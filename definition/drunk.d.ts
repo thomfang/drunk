@@ -41,7 +41,7 @@ declare module drunk.dom {
 declare module drunk.filter {
     interface ParsedFilter {
         name: string;
-        param: parser.Getter;
+        param?: parser.Getter;
     }
     
     interface InternalFilter {
@@ -95,6 +95,7 @@ declare module drunk.compiler {
 
 declare module drunk.binding {
     interface BindingDefinition {
+        preParse?: boolean;
         update?: subscriber.Callback;
         init?: () => void;
         release?: () => void;
@@ -113,6 +114,7 @@ declare module drunk.binding {
         
         viewModel: viewmodel.ViewModel;
         element: HTMLElement;
+        preParse: boolean;
         twoWay: boolean;
         deep: boolean;
         
@@ -209,7 +211,7 @@ declare module drunk.viewmodel {
         private _getValue(getter: parser.Getter, event?: any, el?: HTMLElement): any;
         private _callHandler(handlerName: string): () => any;
         
-        _createBinding(element: HTMLElement, bindingDefinition);
+        _createBinding(element: HTMLElement, descriptor: binding.BindingDescriptor);
         
         $proxy(model: any): void;
         $set(propertyName: string, value?: any): void;
