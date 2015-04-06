@@ -22,7 +22,7 @@ declare module drunk.util {
     function ensureItem(array: any[], item: any): void;
     function removeItem(array: any[], item: any): void;
     function defineProperty(target: any, propertyName: string, propertyValue: any, enumerable?: boolean): void;
-    function asap(callback: ()=>void, sender?: any): number;  // as soon as possible
+    function nextTick(callback: ()=>void, sender?: any): number;  // as soon as possible
     function proxy(target: any, propertyName: string, source: {}): boolean; // return boolean of proxy done or fail
     function ajax(options: AjaxOptions): promise.Promise<string | Object>;
     function getTemplate(templateUrlOrID: string): promise.Promise<string>;

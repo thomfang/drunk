@@ -1,4 +1,16 @@
-﻿///<reference path="../definition/drunk.d.ts" />
+﻿///<reference path="promise.ts" />
+
+interface AjaxOptions {
+    url: string;
+    type?: string;
+    data?: string | {};
+    headers?: {[index: string]: string};
+    xhrFields?: { withCredentials: boolean };
+    withCredentials?: boolean;
+    contentType?: string;
+    dataType?: string;
+}
+
 module drunk.util {
 
     export function isObject(target: any): boolean {
@@ -46,7 +58,7 @@ module drunk.util {
         });
     }
 
-    export function asap(callback: () => void, sender: any = null): number {
+    export function nextTick(callback: () => void, sender: any = null): number {
         return setTimeout(callback.bind(sender), 0);
     }
     
@@ -126,24 +138,17 @@ module drunk.util {
         var template: string = templateCache[templateUrlOrID];
         var node: HTMLElement;
 
-        return new Promise<string>((resolve, reject) => {
-            if (template != null) {
-                resolve(template);
-            }
-            else if ((node = document.getElementById(templateUrlOrID)) && node.innerHTML) {
-                templateCache[templateUrlOrID] = template = node.innerHTML;
-                resolve(template);
-            }
-            else {
-                var onFullfill = (template: string) => {
-                    templateCache[templateUrlOrID] = template;
-                    resolve(template);
-                };
-                var onRejection = (xhr: XMLHttpRequest) => {
-                    reject(xhr);
-                };
-                ajax({ url: templateUrlOrID }).then(onFullfill, onRejection);
-            }
+        if (template != null) {
+            return Promise.resolve(template);
+        }
+        if ((node = document.getElementById(templateUrlOrID)) && node.innerHTML) {
+            templateCache[templateUrlOrID] = template = node.innerHTML;
+            return Promise.resolve(template);
+        }
+
+        return ajax({ url: templateUrlOrID }).then((template) => {
+            (<any>templateCache)[templateUrlOrID] = template;
+            return template;
         });
     }
 }
