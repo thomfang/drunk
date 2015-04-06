@@ -32,6 +32,9 @@ module drunk.promise {
     }
 
     function resolveDefer(defer, value): void {
+        if (defer._state !== PromiseState.PENDING) {
+            return;
+        }
         if (defer === value) {
             publish(defer, undefined, PromiseState.RESOLVED);
         }
@@ -44,6 +47,9 @@ module drunk.promise {
     }
 
     function rejectDefer(defer, reason): void {
+        if (defer._state !== PromiseState.PENDING) {
+            return;
+        }
         publish(defer, reason, PromiseState.REJECTED);
     }
 
