@@ -1,5 +1,4 @@
-﻿///<reference path="../definition/drunk.d.ts" />
-module drunk.dom {
+﻿module drunk.dom {
 
     var div: HTMLElement = document.createElement("div");
 
@@ -44,17 +43,10 @@ module drunk.dom {
             element.parentNode.removeChild(element);
         }
     }
+
     export function replace(newNode: Node, oldNode: Node): void {
         if (oldNode.parentNode) {
             oldNode.parentNode.replaceChild(newNode, oldNode);
         }
-    }
-
-    export function getBindingExpression(elem: HTMLElement, name: string): any {
-        if (!elem.getAttribute) {
-            return;
-        }
-
-        return elem.getAttribute(config.prefix + name);
     }
 }

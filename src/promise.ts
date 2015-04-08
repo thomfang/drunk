@@ -14,76 +14,95 @@ module drunk.promise {
 
     }
 
-    function init<R>(defer: Promise<R>, executor: Executor<R>): void {
+    function init<R>(promise: Promise<R>, executor: Executor<R>): void {
         function resolve<R>(value: R | Thenable<R>): void {
-            resolveDefer(defer, value);
+            resolvePromise(promise, value);
         }
 
         function reject<R>(reason: R | Thenable<R>): void {
-            rejectDefer(defer, reason);
+            rejectPromise(promise, reason);
         }
 
         try {
             executor(resolve, reject);
         }
         catch (e) {
-            rejectDefer(defer, e);
+            rejectPromise(promise, e);
         }
     }
 
-    function resolveDefer(defer, value): void {
-        if (defer._state !== PromiseState.PENDING) {
+    function resolvePromise(promise, value): void {
+        // Promise is handled, we won't handle it again.
+        if (promise._state !== PromiseState.PENDING) {
             return;
         }
-        if (defer === value) {
-            publish(defer, undefined, PromiseState.RESOLVED);
+        
+        // I have try this in Chrome and Safari, when resolve the promise itself,
+        // it would be resolve the undefined value.
+        if (promise === value) {
+            publish(promise, undefined, PromiseState.RESOLVED);
         }
         else if (isThenable(value)) {
-            handleThenable(value, defer);
+            handleThenable(value, promise);
         }
         else {
-            publish(defer, value, PromiseState.RESOLVED);
+            publish(promise, value, PromiseState.RESOLVED);
         }
     }
 
-    function rejectDefer(defer, reason): void {
-        if (defer._state !== PromiseState.PENDING) {
+    function rejectPromise(promise, reason): void {
+        if (promise._state !== PromiseState.PENDING) {
             return;
         }
-        publish(defer, reason, PromiseState.REJECTED);
+
+        // I have try this in Chrome and Safari, when reject the promise itself,
+        // it would be reject the undefined value.
+        if (promise === reason) {
+            reason = undefined;
+        }
+
+        publish(promise, reason, PromiseState.REJECTED);
     }
 
+    // Would this check be okay?
     function isThenable(target): boolean {
         return target && typeof target.then === 'function';
     }
 
-    function handleThenable(thenable, defer) {
+    function handleThenable(thenable, promise) {
         var toResolve = (value) => {
-            resolveDefer(defer, value);
+            resolvePromise(promise, value);
         };
         var toReject = (reason) => {
-            rejectDefer(defer, reason);
+            rejectPromise(promise, reason);
         };
-
+        
+        // If this thenable object is the own Promise instance,
+        // check it's state, if is settled, pulish the state of current promise,
+        // if not, subscribe the thenable object.
         if (thenable instanceof Promise) {
             if (thenable._state === PromiseState.PENDING) {
-                subscribe(thenable, defer, toResolve, toReject);
-            } else if (thenable._state === PromiseState.RESOLVED) {
-                publish(defer, thenable._value, PromiseState.RESOLVED);
-            } else {
-                publish(defer, thenable._value, PromiseState.REJECTED);
+                subscribe(thenable, promise, toResolve, toReject);
             }
-        } else {
+            else if (thenable._state === PromiseState.RESOLVED) {
+                publish(promise, thenable._value, PromiseState.RESOLVED);
+            }
+            else {
+                publish(promise, thenable._value, PromiseState.REJECTED);
+            }
+        }
+        // Just subscribe it.
+        else {
             thenable.then(toResolve, toReject);
         }
     }
 
-    function publish(defer, value, state): void {
-        defer._state = state;
-        defer._value = value;
+    function publish(promise, value, state): void {
+        promise._state = state;
+        promise._value = value;
 
         nextTick(() => {
-            var arr = defer._listeners;
+            var arr = promise._listeners;
             var len = arr.length;
 
             if (!len) {
@@ -98,41 +117,59 @@ module drunk.promise {
         });
     }
 
-    function nextTick(callback: (state, defer, callback, value) => void) {
+    function nextTick(callback: (state, promise, callback, value) => void) {
         setTimeout(callback, 0);
     }
 
-    function invokeCallback(state, defer, callback, value) {
+    function invokeCallback(state, promise, callback, value) {
         var hasCallback = typeof callback === 'function';
-        var failed = true;
+        var done = false;
+        var fail = false;
 
         if (hasCallback) {
             try {
                 value = callback.call(null, value);
-                failed = false;
+                done = true;
             }
             catch (e) {
                 value = e;
+                fail = true;
             }
         }
 
-        if (defer._state !== PromiseState.PENDING) {
+        // The state of next promise is no longer 'pending' anymore, no need to handle.
+        if (promise._state !== PromiseState.PENDING) {
             return;
         }
 
-        if (failed) {
-            rejectDefer(defer, value);
+        // If has callback and resolve done, the state will set to resolved.
+        if (hasCallback && done) {
+            resolvePromise(promise, value);
         }
+        // No mater what state is before, if resolve fail, next promise would be rejected.
+        else if (fail) {
+            rejectPromise(promise, value);
+        }
+        // If no callback
+        // state is resolved, publish for next promise right now.
+        else if (state === PromiseState.RESOLVED) {
+            publish(promise, value, state);
+        }
+        // Else the next promise rejected with the new value.
         else {
-            resolveDefer(defer, value);
+            rejectPromise(promise, value);
         }
     }
 
-    function subscribe(defer, subDefer, onFulfillment, onRejection) {
-        var arr = defer._listeners;
+    // The promise listener list, 3 items to be a piece, as a subscriber,
+    // first item is the promise subscriber,
+    // second item is the fulfillment callback,
+    // third item is the rejection callback.
+    function subscribe(promise, subPromise, onFulfillment, onRejection) {
+        var arr = promise._listeners;
         var len = arr.length;
 
-        arr[len + PromiseState.PENDING] = subDefer;
+        arr[len + PromiseState.PENDING]  = subPromise;
         arr[len + PromiseState.RESOLVED] = onFulfillment;
         arr[len + PromiseState.REJECTED] = onRejection;
     }
@@ -141,9 +178,9 @@ module drunk.promise {
 
         static all<R>(iterable: any[]): Promise<R[]> {
             return new Promise((resolve, reject) => {
-                var len = iterable.length;
-                var count = 0;
-                var result = [];
+                var len      = iterable.length;
+                var count    = 0;
+                var result   = [];
                 var rejected = false;
 
                 var check = (i: number, value: any) => {
@@ -164,20 +201,23 @@ module drunk.promise {
                         return check(i, thenable);
                     }
 
-                    thenable.then((value) => {
-                        if (rejected) {
-                            return;
-                        }
+                    thenable.then(
+                        (value) => {
+                            if (rejected) {
+                                return;
+                            }
 
-                        check(i, value);
-                    }, (reason) => {
-                        if (rejected) {
-                            return;
-                        }
-                        rejected = true;
-                        result = null;
-                        reject(reason);
-                    });
+                            check(i, value);
+                        },
+                        (reason) => {
+                            if (rejected) {
+                                return;
+                            }
+
+                            rejected = true;
+                            result = null;
+                            reject(reason);
+                        });
                 });
 
                 iterable = null;
@@ -211,11 +251,13 @@ module drunk.promise {
                         break;
                     }
                     else {
-                        thenable.then((value) => {
-                            check(value);
-                        }, (reason) => {
-                            check(reason, true);
-                        });
+                        thenable.then(
+                            (value) => {
+                                check(value);
+                            },
+                            (reason) => {
+                                check(reason, true);
+                            });
                     }
                 }
 
@@ -224,29 +266,29 @@ module drunk.promise {
         }
 
         static resolve<R>(value?: R | Thenable<R>): Promise<R> {
-            var defer = new Promise(noop);
+            var promise = new Promise(noop);
 
             if (!isThenable(value)) {
-                defer._state = PromiseState.RESOLVED;
-                defer._value = value;
+                promise._state = PromiseState.RESOLVED;
+                promise._value = value;
             }
             else {
-                resolveDefer(defer, value);
+                resolvePromise(promise, value);
             }
-            return defer;
+            return promise;
         }
 
         static reject<R>(reason?: R | Thenable<R>): Promise<R> {
-            var defer = new Promise(noop);
+            var promise = new Promise(noop);
 
             if (!isThenable(reason)) {
-                defer._state = PromiseState.REJECTED;
-                defer._value = reason;
+                promise._state = PromiseState.REJECTED;
+                promise._value = reason;
             }
             else {
-                resolveDefer(defer, reason);
+                resolvePromise(promise, reason);
             }
-            return defer;
+            return promise;
         }
 
         _state: PromiseState = PromiseState.PENDING;
@@ -275,32 +317,24 @@ module drunk.promise {
                 return Promise.reject(value);
             }
 
-            var defer = new Promise(noop);
+            var promise = new Promise(noop);
 
             if (state) {
                 var callback = arguments[state - 1];
 
                 nextTick(() => {
-                    invokeCallback(state, defer, callback, value);
+                    invokeCallback(state, promise, callback, value);
                 });
             }
             else {
-                subscribe(this, defer, onFulfillment, onRejection);
+                subscribe(this, promise, onFulfillment, onRejection);
             }
 
-            return defer;
+            return promise;
         }
 
         catch<U>(onRejection?: (reason: any) => U | Thenable<U>): Promise<U> {
             return this.then(null, onRejection);
-        }
-
-        done<U>(onFulfillment?: (value: R) => U | Thenable<U>): Promise<U> {
-            return this.then(onFulfillment);
-        }
-
-        fail<U>(onRejection?: (reason: any) => U | Thenable<U>): Promise<U> {
-            return this.catch(onRejection);
         }
     }
 }
