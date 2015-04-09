@@ -1,3 +1,7 @@
+/**
+ * ES6 promise implements.
+ */
+
 interface Thenable<R> {
     then<U>(onFulfillment?: (value: R) => U | Thenable<U>, onRejection?: (error: any) => U | Thenable<U>): Thenable<U>;
 }
