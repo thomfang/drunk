@@ -1,5 +1,5 @@
 # drunk.ts
-Code for fun ~_~.
+Just code for fun ~_~.
 
 # My data binding implementation notes
 
@@ -53,7 +53,7 @@ We could define the getter/setter for binding properties of model, then when the
 When a property changed, if we want to publish for multiple elements, we should have a dispatcher, all the update actions subscribe this dispatcher. So which element binding to the property would only create an update action and add to listener list of the dispatcher.
 
 
-* Define in a module, the binding create method looks like this:
+### Define in a module, the binding create method looks like this:
 
 ```typescript
 
@@ -111,7 +111,7 @@ module Binding {
 }
 ```
 
-* `Dispatcher` class:
+### `Dispatcher` class:
 
 ```typescript
 
@@ -174,7 +174,7 @@ module Binding {
 }
 ```
 
-* Dipatcher manager
+### Dipatcher manager
 
 ```typescript
 
@@ -205,7 +205,7 @@ module Binding {
 
 Okay, now, I think I must think about that when I need to use multiple bindings for one element, and how could users setup their custom binding, so I should make it scalable.
 
-* At first, I must have a binding executor manager, I could register on it  my binding when I need, so now it should looks like:
+### At first, I must have a binding executor manager, I could register on it  my binding when I need, so now it should looks like:
 
 ```typescript
 
@@ -227,7 +227,7 @@ module Binding {
 }
 ```
 
-* So now the `create` method should have a little changed, listener would refer to the `bindingExecutor`.
+### So now the `create` method should have a little changed, listener would refer to the `bindingExecutor`.
 
 ```typescript
 
@@ -278,7 +278,7 @@ module Binding {
 }
 ```
 
-* I add a `parse` method to find and create all the binding on a element.
+### I add a `parse` method to find and create all the binding on a element.
 
 ```typescript
 
@@ -309,7 +309,7 @@ module Binding {
 }
 ```
 
-Have a try:
+### Have a try:
 
 ```html
 
@@ -344,5 +344,4 @@ document.getElementById("btn2").onclick = () => {
 };
 ```
 
-
-## To be continue!
+## STEP 4 Binding with a complex path
