@@ -1,7 +1,7 @@
 # drunk.ts
 Code for fun ~_~.
 
-# How to implement one-way data binding
+# My data binding implementation notes
 
 ## STEP 1 -- A simple binding
 
@@ -9,8 +9,8 @@ We could define the getter/setter for binding properties of model, then when the
 
 ```html
 
-<!--innerHTML binded to 'a' property of model -->
-<div id="content" data-bind="a"></div>
+    <!--innerHTML binded to 'a' property of model -->
+    <div id="content" data-bind="a"></div>
 ```
 
 
@@ -229,7 +229,8 @@ module Binding {
 
 * So now the `create` method should have a little changed, listener would refer to the `bindingExecutor`.
 
-```
+```typescript
+
 module Binding {
     function create(el: HTMLElement, model: Object, name: string, prop: string, value: any) {
         // dispatcher
