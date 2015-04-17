@@ -343,3 +343,6 @@ document.getElementById("btn2").onclick = () => {
     myModel.content = Math.random() + '';
 };
 ```
+
+
+## To be continue!
