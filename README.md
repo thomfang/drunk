@@ -1,11 +1,9 @@
 # drunk.ts
 Code for fun ~_~.
 
-# How to implement a one-way data binding
+# How to implement one-way data binding
 
-## Model changed and dispatch for views
-
-* STEP 1 -- A simple binding
+## STEP 1 -- A simple binding
 
     We could define the getter/setter for binding properties of model, then when the properties changed, we could recieve the message, and do update view actions.
 
@@ -50,7 +48,7 @@ Code for fun ~_~.
         myModel.a = 'a';
     ```
 
-* STEP 2 -- Multiple elements binding to one expression
+## STEP 2 -- Multiple elements binding to one expression
     
     When a property changed, if we want to publish for multiple elements, we should have a dispatcher, all the update actions subscribe this dispatcher. So which element binding to the property would only create an update action and add to listener list of the dispatcher.
 
@@ -203,7 +201,7 @@ Code for fun ~_~.
     }
     ```
 
-* STEP 3 -- Multiple bindings
+## STEP 3 -- Multiple bindings
 
     Okay, now, I think I must think about that when I need to use multiple bindings for one element, and how could users setup their custom binding, so I should make it scalable.
 
