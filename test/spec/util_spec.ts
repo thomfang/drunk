@@ -147,7 +147,7 @@ describe("drunk.util", () => {
             dataType: 'json'
         }).then((result) => {
             expect(util.isObject(result)).toBe(true);
-            expect(result.name).toBe('ajax_test');
+            expect((<any>result).name).toBe('ajax_test');
 
             util.ajax({
                 url: "ajax_test.json"
