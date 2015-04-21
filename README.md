@@ -60,8 +60,8 @@ When a property changed, if we want to publish for multiple elements, we should 
 module Binding {
 
     /**
-        * Bind element to model
-        */
+     * Bind element to model
+     */
     export function create(el: HTMLElement, model: Object): void {
         // find binding property
         let prop: string = el.getAttribute("data-bind");
@@ -117,15 +117,15 @@ module Binding {
 
 module Binding {
     /**
-        * Action listener
-        */
+     * Action listener
+     */
     export interface Listener {
         (newValue: any, oldValue: any): void;
     }
 
     /**
-        * Dispatcher for model property changed
-        */
+     * Dispatcher for model property changed
+     */
     class Dispatcher {
         private listeners: { [index: string]: Listener[] };
 
@@ -143,19 +143,6 @@ module Binding {
 
             if (index < 0) {
                 listeners.push(listener);
-            }
-        }
-
-        public removeListener(name: string, listener: Listener): void {
-            if (!this.listeners) {
-                return;
-            }
-
-            let listeners: Listener[] = this.listeners[name];
-            let index: number = listeners.indexOf(listener);
-
-            if (index > -1) {
-                listeners.splice(index, 1);
             }
         }
 
@@ -184,8 +171,8 @@ module Binding {
     var dispatcherCache: {[index: number]: Dispatcher} = {};
 
     /**
-        * @private
-        */
+     * @private
+     */
     function getDispatcher(model: any): Dispatcher {
         if (model[uniqueKey] == null) {
             id += 1;
@@ -211,8 +198,8 @@ Okay, now, I think I must think about that when I need to use multiple bindings 
 
 module Binding {
     /**
-        * The binding evalucator
-        */
+     * The binding evalucator
+     */
     let bindingExecutor = {
         bind(el: HTMLElement, value: any) {
             if (value == null) {
@@ -344,4 +331,10 @@ document.getElementById("btn2").onclick = () => {
 };
 ```
 
-## STEP 4 Binding with a complex path
+## STEP 4 -- Binding with a complex path
+
+We will encounter in the process of development of ` data - bind = "a + b" `, ` a. [c] - [e] ` d etc. This kind of quite complex scenes, we have already can't only to a certain attributes create listening to achieve the result of view update, so we are going to have a more reasonable data binding design.
+
+### Think in the getters/setter
+
+When the expression come to be complex, how could I manage each property of the data, when one property changed, how could we dispatch to multiple watchers?
