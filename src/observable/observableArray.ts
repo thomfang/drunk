@@ -4,16 +4,16 @@ module drunk.observable {
 
     export var ObservableArrayPrototype: any[] = Object.create(Array.prototype);
 
-	/**
-	 * 设置数组指定数组下标的值，并发送数组更新通知
-	 */
+    /**
+     * 设置数组指定数组下标的值，并发送数组更新通知
+     */
     export function setItem<T>(array: ObservableArray<T>, index: number, value: T): T {
         return value;
     }
-
-	/**
-	 * 根据索引移除数组中的元素，并发送数组更新通知
-	 */
+     
+    /**
+     * 根据索引移除数组中的元素，并发送数组更新通知
+     */
     export function removeByIndex<T>(array: ObservableArray<T>, index: number): T {
         var result: T;
 
@@ -21,21 +21,21 @@ module drunk.observable {
             result = Array.prototype.splice.call(array, index, 1)[0];
         }
 
-        observable.notify(array);
+        notify(array);
 
         return result;
     }
-
-	/**
-	 * 删除数组中出现的一个指定值，并发送数组更新通知
-	 */
+    
+    /**
+     * 删除数组中出现的一个指定值，并发送数组更新通知
+     */
     export function removeItem<T>(array: ObservableArray<T>, value: any): void {
         util.removeArrayItem(array, value);
     }
-
-	/**
-	 * 删除数组中所有的指定值，并发送数组更新通知
-	 */
+    
+    /**
+     * 删除数组中所有的指定值，并发送数组更新通知
+     */
     export function removeAllItem<T>(array: ObservableArray<T>, value: any): void {
         var index: number = array.indexOf(value);
 
@@ -44,7 +44,7 @@ module drunk.observable {
             index = array.indexOf(value);
         }
 
-        observable.notify(array);
+        notify(array);
     }
 
     util.defineProperty(ObservableArrayPrototype, "setItem", function setObservableArrayItem(index: number, value: any) {
@@ -62,10 +62,10 @@ module drunk.observable {
     util.defineProperty(ObservableArrayPrototype, "removeAllItem", function removeAllObservableArrayItem(value: any) {
         return removeAllItem(this, value);
     });
-
-	/**
-	 * 调用原生方法并发送通知
-	 */
+    
+    /**
+     * 调用原生方法并发送通知
+     */
     function executeArrayMethodAndNotify<T>(array: ObservableArray<T>, methodName: string, args: any[], callback?: () => void): any {
         var result = Array.prototype[methodName].apply(array, args);
 
@@ -73,7 +73,7 @@ module drunk.observable {
             callback();
         }
 
-        observable.notify(array);
+        notify(array);
 
         return result;
     }
@@ -89,7 +89,7 @@ module drunk.observable {
     util.defineProperty(ObservableArrayPrototype, "push", function push(...args: any[]) {
         return executeArrayMethodAndNotify(this, "push", args, () => {
             args.forEach((item) => {
-                observable.create(item);
+                create(item);
             });
         });
     });
@@ -97,7 +97,7 @@ module drunk.observable {
     util.defineProperty(ObservableArrayPrototype, "unshift", function unshift(...args: any[]) {
         return executeArrayMethodAndNotify(this, "unshift", args, () => {
             args.forEach((item) => {
-                observable.create(item);
+                create(item);
             });
         });
     });
@@ -105,7 +105,7 @@ module drunk.observable {
     util.defineProperty(ObservableArrayPrototype, "splice", function splice(...args: any[]) {
         return executeArrayMethodAndNotify(this, "splice", args, () => {
             args.slice(2).forEach((item) => {
-                observable.create(item);
+                create(item);
             });
         });
     });
