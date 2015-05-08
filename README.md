@@ -337,4 +337,4 @@ We will encounter in the process of development of ` data - bind = "a + b" `, ` 
 
 ### Think in the getters/setter
 
-When the expression come to be complex, how could I manage each property of the data, when one property changed, how could we dispatch to multiple watchers?
+There is a complex binding path like 'a.b + c', I should watch the property 'a', 'b', 'c'， 

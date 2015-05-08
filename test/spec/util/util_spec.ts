@@ -1,5 +1,7 @@
-/// <reference path="../jasmine.d.ts" />
-/// <reference path="../../src/util.ts" />
+/// <reference path="../../jasmine.d.ts" />
+/// <reference path="../../../src/util/util.ts" />
+/// <reference path="../../../src/util/xhr.ts" />
+/// <reference path="../../../src/util/tpl.ts" />
 
 import util = drunk.util;
 
@@ -12,18 +14,6 @@ describe("drunk.util", () => {
         expect(util.isObject(new Date())).toBe(false);
         expect(util.isObject(null)).toBe(false);
         expect(util.isObject(undefined)).toBe(false);
-    });
-
-    it("camelCase", () => {
-        var target: string = 'testString';
-
-        expect(util.camelCase('test-string')).toBe(target);
-        expect(util.camelCase('test_string')).toBe(target);
-
-        target = 'aBCD';
-
-        expect(util.camelCase('a-b-c-d')).toBe(target);
-        expect(util.camelCase('a_b-c_d')).toBe(target);
     });
 
     it("extend", () => {
@@ -53,31 +43,31 @@ describe("drunk.util", () => {
     it("ensureItem", () => {
         var arr = [];
 
-        util.ensureItem(arr, 1);
+        util.addArrayItem(arr, 1);
         expect(arr[0]).toBe(1);
         expect(arr.length).toBe(1);
 
-        util.ensureItem(arr, 1);
+        util.addArrayItem(arr, 1);
         expect(arr.length).toBe(1);
 
         var fn = () => {};
 
-        util.ensureItem(arr, fn);
+        util.addArrayItem(arr, fn);
         expect(arr[1]).toBe(fn);
         expect(arr.length).toBe(2);
 
-        util.ensureItem(arr, fn);
+        util.addArrayItem(arr, fn);
         expect(arr.length).toBe(2);
     });
 
     it("removeItem", () => {
         var arr = [1, 2, 5, 1];
 
-        util.removeItem(arr, 1);
+        util.removeArrayItem(arr, 1);
         expect(arr.length).toBe(3);
         expect(arr[0]).toBe(2);
 
-        util.removeItem(arr, 1);
+        util.removeArrayItem(arr, 1);
         expect(arr.length).toBe(2);
         expect(arr[1]).toBe(5);
     });
@@ -138,43 +128,5 @@ describe("drunk.util", () => {
         expect(c.list[0]).toBe(1);
 
         expect(util.proxy(a, 'name', d)).toBe(false);
-    });
-
-    it("ajax", (done) => {
-        util.ajax({
-            url: "ajax_test.json",
-            type: 'GET',
-            dataType: 'json'
-        }).then((result) => {
-            expect(util.isObject(result)).toBe(true);
-            expect((<any>result).name).toBe('ajax_test');
-
-            util.ajax({
-                url: "ajax_test.json"
-            }).then((result: string) => {
-                expect(typeof result).toBe('string');
-                done();
-            });
-        });
-
-    });
-
-    it("getTemplate", (done) => {
-        var tplString = "<div></div>";
-        var tplScriptElem = document.createElement("script");
-        tplScriptElem.id = "tpl/test.html";
-        tplScriptElem.type = 'text/template';
-        tplScriptElem.innerHTML = tplString;
-
-        document.body.appendChild(tplScriptElem);
-
-        util.getTemplate('tpl/test.html').then((res) => {
-            expect(res).toBe(tplString);
-
-            util.getTemplate('test_tpl.html').then((res) => {
-                expect(res).toBe("<div>test tpl</div>");
-                done();
-            });
-        });
     });
 });
