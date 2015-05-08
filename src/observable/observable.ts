@@ -1,37 +1,38 @@
 /// <reference path="../util/util.ts" />
 
 module drunk.observable {
-	/**
-	 * 可监控数组的声明
-	 */
+
+    /**
+     * 可监控数组的声明
+     */
     export interface ObservableArray<T> extends Array<T> {
         __observable__?: Observable;
     }
-
-	/**
-	 * 可监控对象的声明
-	 */
+    
+    /**
+     * 可监控JSON对象的声明
+     */
     export interface ObservableObject {
         __observable__?: Observable;
         [key: string]: any;
     }
     
     var observableIdCounter: number = 0;
-
-	/**
-	 * 监控对象类
+     
+    /**
+     * 监控对象类
 	 * 为每个需要监控的对象和数组生成一个实例，用于代理监听事件
-	 */
+     */
     export class Observable {
 
         private _listener: { [key: string]: (() => void)[] };
         private _itemChangedListener: Array<() => void>;
         
         id: number = observableIdCounter++;
-	
-		/**
- 		 * 根据key来添加监控回调
- 		 */
+        
+        /**
+         * 根据key来添加监控回调
+         */
         bind(key: string | any, listener: () => void): void {
             if (key == null && typeof listener === 'function') {
                 return this._addItemChangedListener(listener);
@@ -49,10 +50,10 @@ module drunk.observable {
 
             util.addArrayItem(listeners, listener);
         }
-	
-		/**
- 		 * 移除某属性的指定监控回调
- 		 */
+          
+        /**
+         * 移除某属性的指定监控回调
+         */
         unbind(key: string | any, listener: () => void): void {
             if (key == null && typeof listener === 'function') {
                 return this._removeItemChangedListener(listener);
@@ -66,10 +67,10 @@ module drunk.observable {
 
             util.removeArrayItem(listeners, listener);
         }
-	
-		/**
- 		 * 通知某属性改变
- 		 */
+          
+        /**
+         * 通知某属性改变
+         */
         notify(key: string | any): void {
             if (key == null) {
                 return this._notifyItemChanged();
@@ -112,13 +113,13 @@ module drunk.observable {
             });
         }
     }
-
-	/**
-	 * 根据数据返回对应的Observable 实例
+     
+    /**
+     * 根据数据返回对应的Observable 实例
 	 * 如果该数据已经存在对应的 Observable 实例则直接反悔，否则创建一个新的
      * @param data 数组或JSON对象
      * @returns 返回一个Observable实例
-	 */
+     */
     export function create<T>(data: ObservableArray<T> | ObservableObject | any): Observable {
         var isObject = util.isObject(data);
 
@@ -179,12 +180,12 @@ module drunk.observable {
      * 当前活动中的watcher，用于收集和绑定所有的依赖属性
      */
     export var currentWatcher;
-
-	/**
-	 * 设置JSON对象属性的 getter/setter，使其能在数据更新是能接受到事件
+     
+    /**
+     * 设置JSON对象属性的 getter/setter，使其能在数据更新是能接受到事件
      * @param data JSON对象
      * @param key  JSON对象上的字段
-	 */
+     */
     export function convert(data: ObservableObject, key: string, value): void {
         var dataOb: Observable = create(data);
         var valueOb: Observable = create(value);
@@ -240,10 +241,10 @@ module drunk.observable {
             dataOb.notify(key);
         }
     }
-
-	/**
+     
+    /**
 	 * 通知对象指定属性更新或全更新
-	 */
+     */
     export function notify<T>(data: ObservableArray<T> | ObservableObject, updatedKey?: string): void {
         var ob: Observable = data.__observable__;
 
