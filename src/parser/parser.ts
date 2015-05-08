@@ -4,7 +4,7 @@
 
 interface Getter {
     (dataContext, event?: Event, element?: HTMLElement): any;
-    filters?: {name: string; param: Getter}[];
+    filters?: { name: string; param: Getter }[];
 }
 
 interface Setter {

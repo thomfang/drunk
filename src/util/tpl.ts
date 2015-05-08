@@ -2,9 +2,9 @@
 /// <reference path="./xhr.ts" />
 
 module drunk.util {
-    
+
     import Promise = promise.Promise;
-    
+
     var templateCache: { [index: string]: string } = {};
     
     /**
@@ -16,7 +16,7 @@ module drunk.util {
     export function loadTemplate(templateUrlOrID: string): Promise<string> {
         var template: string = templateCache[templateUrlOrID];
         var node: HTMLElement;
-    
+
         if (template != null) {
             return promise.Promise.resolve(template);
         }
@@ -24,7 +24,7 @@ module drunk.util {
             templateCache[templateUrlOrID] = template = node.innerHTML;
             return promise.Promise.resolve(template);
         }
-    
+
         return ajax({ url: templateUrlOrID }).then((template) => {
             (<any>templateCache)[templateUrlOrID] = template;
             return template;

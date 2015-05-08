@@ -17,8 +17,8 @@ describe("drunk.util", () => {
     });
 
     it("extend", () => {
-        var src1 = {a: 'a'};
-        var src2 = {b: 'b'}
+        var src1 = { a: 'a' };
+        var src2 = { b: 'b' }
 
         var target = {};
         util.extend(target, src1);
@@ -31,7 +31,7 @@ describe("drunk.util", () => {
     });
 
     it("toArray", () => {
-        var obj = {0: 1, 1: 2, 2: 3, length: 3};
+        var obj = { 0: 1, 1: 2, 2: 3, length: 3 };
         var res = util.toArray(obj);
 
         expect(Array.isArray(res)).toBe(true);
@@ -50,7 +50,7 @@ describe("drunk.util", () => {
         util.addArrayItem(arr, 1);
         expect(arr.length).toBe(1);
 
-        var fn = () => {};
+        var fn = () => { };
 
         util.addArrayItem(arr, fn);
         expect(arr[1]).toBe(fn);
@@ -90,11 +90,11 @@ describe("drunk.util", () => {
         c.name = 'd';
         expect(c.name).toBe('d');
 
-        util.defineProperty(c,  'name', 'e');
+        util.defineProperty(c, 'name', 'e');
         expect(c.name).toBe('e');
     });
 
-    it("nextTick", function (done) {
+    it("nextTick", function(done) {
         var invoked = false;
 
         util.nextTick(() => {
@@ -122,7 +122,7 @@ describe("drunk.util", () => {
 
         util.proxy(a, 'list', c);
 
-        a.list = [1,2,3];
+        a.list = [1, 2, 3];
         expect(c.list).toBe(a.list);
         expect(c.list.length).toBe(3);
         expect(c.list[0]).toBe(1);

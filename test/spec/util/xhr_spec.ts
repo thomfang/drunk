@@ -6,7 +6,7 @@
 import util = drunk.util;
 
 describe("drunk.util", () => {
-	
+
     it("ajax", (done) => {
         util.ajax({
             url: "ajax_test.json",
@@ -25,5 +25,5 @@ describe("drunk.util", () => {
         });
 
     });
-	
+
 });

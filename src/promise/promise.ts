@@ -1,29 +1,29 @@
 module drunk.promise {
-     
+
     export interface Thenable<R> {
         then<U>(onFulfillment?: (value: R) => U | Thenable<U>, onRejection?: (error: any) => U | Thenable<U>): Thenable<U>;
     }
-    
+
     export interface Executor<R> {
         (resolve: (value?: R | Thenable<R>) => void, reject: (reason?: any) => void): void;
     }
-    
-    
+
+
     enum PromiseState { PENDING, RESOLVED, REJECTED }
-    
+
     function noop() {
-    
+
     }
-    
+
     function init<R>(promise: Promise<R>, executor: Executor<R>): void {
         function resolve<R>(value: R | Thenable<R>): void {
             resolvePromise(promise, value);
         }
-    
+
         function reject<R>(reason: R | Thenable<R>): void {
             rejectPromise(promise, reason);
         }
-    
+
         try {
             executor(resolve, reject);
         }
@@ -31,7 +31,7 @@ module drunk.promise {
             rejectPromise(promise, e);
         }
     }
-    
+
     function resolvePromise<R>(promise: Promise<R> | any, value: any): void {
         // 已经处理过就不管了
         if (promise._state !== PromiseState.PENDING) {
@@ -49,7 +49,7 @@ module drunk.promise {
             publish(promise, value, PromiseState.RESOLVED);
         }
     }
-    
+
     function rejectPromise<R>(promise: Promise<R> | any, reason: any): void {
         if (promise._state !== PromiseState.PENDING) {
             return;
@@ -59,7 +59,7 @@ module drunk.promise {
         if (promise === reason) {
             reason = undefined;
         }
-    
+
         publish(promise, reason, PromiseState.REJECTED);
     }
     
@@ -67,7 +67,7 @@ module drunk.promise {
     function isThenable(target: any): boolean {
         return target && typeof target.then === 'function';
     }
-    
+
     function handleThenable<R>(thenable: any, promise: Promise<R>) {
         var toResolve = (value: any) => {
             resolvePromise(promise, value);
@@ -93,36 +93,36 @@ module drunk.promise {
             thenable.then(toResolve, toReject);
         }
     }
-    
+
     function publish(promise: any, value: any, state: PromiseState): void {
         promise._state = state;
         promise._value = value;
-    
+
         nextTick(() => {
             var arr = promise._listeners;
             var len = arr.length;
-    
+
             if (!len) {
                 return;
             }
-    
+
             for (var i = 0; i < len; i += 3) {
                 invokeCallback(state, arr[i], arr[i + state], value);
             }
-    
+
             arr.length = 0;
         });
     }
-    
+
     function nextTick<R>(callback: (state: PromiseState, promise: Promise<R>, callback: () => void, value: any) => void) {
         setTimeout(callback, 0);
     }
-    
+
     function invokeCallback<R>(state: PromiseState, promise: Promise<R>, callback: () => void, value: any) {
         var hasCallback = typeof callback === 'function';
         var done = false;
         var fail = false;
-    
+
         if (hasCallback) {
             try {
                 value = callback.call(null, value);
@@ -164,67 +164,67 @@ module drunk.promise {
     function subscribe<R>(promise: Promise<R>, subPromise: Promise<R>, onFulfillment: (value: any) => any, onRejection: (reason: any) => any) {
         var arr = promise._listeners;
         var len = arr.length;
-    
+
         arr[len + PromiseState.PENDING] = subPromise;
         arr[len + PromiseState.RESOLVED] = onFulfillment;
         arr[len + PromiseState.REJECTED] = onRejection;
     }
-    
+
     export class Promise<R> implements Thenable<R> {
-    
+
         static all<R>(iterable: any[]): Promise<R[]> {
             return new Promise((resolve, reject) => {
                 var len: number = iterable.length;
                 var count: number = 0;
                 var result: any[] = [];
                 var rejected: boolean = false;
-    
+
                 var check = (i: number, value: any) => {
                     result[i] = value;
-    
+
                     if (++count === len) {
                         resolve(result);
                         result = null;
                     }
                 };
-    
+
                 if (!len) {
                     return resolve(result);
                 }
-    
+
                 iterable.forEach((thenable, i) => {
                     if (!isThenable(thenable)) {
                         return check(i, thenable);
                     }
-    
+
                     thenable.then(
                         (value: any) => {
                             if (rejected) {
                                 return;
                             }
-    
+
                             check(i, value);
                         },
                         (reason: any) => {
                             if (rejected) {
                                 return;
                             }
-    
+
                             rejected = true;
                             result = null;
                             reject(reason);
                         });
                 });
-    
+
                 iterable = null;
             });
         }
-    
+
         static race<R>(iterable: any[]): Promise<R> {
             return new Promise((resolve, reject) => {
                 var len = iterable.length;
                 var ended = false;
-    
+
                 var check = (value: any, rejected?: boolean) => {
                     if (rejected) {
                         reject(value);
@@ -234,10 +234,10 @@ module drunk.promise {
                     }
                     ended = true;
                 };
-    
+
                 for (var i = 0, thenable: any; i < len; i++) {
                     thenable = iterable[i];
-    
+
                     if (!isThenable(thenable)) {
                         resolve(thenable);
                         break;
@@ -256,14 +256,14 @@ module drunk.promise {
                             });
                     }
                 }
-    
+
                 iterable = null;
             });
         }
-    
+
         static resolve<R>(value?: R | Thenable<R>): Promise<R> {
             var promise = new Promise(noop);
-    
+
             if (!isThenable(value)) {
                 promise._state = PromiseState.RESOLVED;
                 promise._value = value;
@@ -273,10 +273,10 @@ module drunk.promise {
             }
             return promise;
         }
-    
+
         static reject<R>(reason?: R | Thenable<R>): Promise<R> {
             var promise = new Promise(noop);
-    
+
             if (!isThenable(reason)) {
                 promise._state = PromiseState.REJECTED;
                 promise._value = reason;
@@ -286,11 +286,11 @@ module drunk.promise {
             }
             return promise;
         }
-    
+
         _state: PromiseState = PromiseState.PENDING;
         _value: any;
         _listeners: any[] = [];
-    
+
         constructor(executor: Executor<R>) {
             if (typeof executor !== 'function') {
                 throw new TypeError("Promise constructor takes a function argument");
@@ -298,26 +298,26 @@ module drunk.promise {
             if (!(this instanceof Promise)) {
                 throw new TypeError("Promise instance muse be created by 'new' operator");
             }
-    
+
             init(this, executor);
         }
-    
+
         then<U>(onFulfillment?: (value: R) => U | Thenable<U>, onRejection?: (reason: any) => U | Thenable<U>): Promise<U> {
             var state = this._state;
             var value = this._value;
-    
+
             if (state === PromiseState.RESOLVED && !onFulfillment) {
                 return Promise.resolve(value);
             }
             if (state === PromiseState.REJECTED && !onRejection) {
                 return Promise.reject(value);
             }
-    
+
             var promise = new Promise(noop);
-    
+
             if (state) {
                 var callback = arguments[state - 1];
-    
+
                 nextTick(() => {
                     invokeCallback(state, promise, callback, value);
                 });
@@ -325,10 +325,10 @@ module drunk.promise {
             else {
                 subscribe(this, promise, onFulfillment, onRejection);
             }
-    
+
             return promise;
         }
-    
+
         catch<U>(onRejection?: (reason: any) => U | Thenable<U>): Promise<U> {
             return this.then(null, onRejection);
         }
