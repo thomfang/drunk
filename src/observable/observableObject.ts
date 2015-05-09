@@ -1,39 +1,63 @@
 /// <reference path="../util/util.ts" />
 
+/**
+ * @module drunk.observable
+ */
 module drunk.observable {
-    export var ObservableObjectPrototype = {};
+    
+    /**
+     * 可监控JSON对象的声明
+     * @interface ObservableObject
+     */
+    export interface ObservableObject {
+        [name: string]: any;
+        __observable__?: Observable;
+        setProperty?(name: string, value: any): void;
+        removeProperty?(name: string): void;
+    }
      
     /**
      * 设置对象的属性，并发送更新的消息
+     * @method setProperty
+     * @param {ObservableObject} data - 一个JSON对象或已经为observable的JSON对象
+     * @param {string} name - 字段名
+     * @param {any} value - 值
      */
-    export function setProperty(data: ObservableObject, key: string, value: any): void {
-        if (data.hasOwnProperty(key)) {
-            data[key] = value;
+    export function setProperty(data: ObservableObject, name: string, value: any): void {
+        if (data.hasOwnProperty(name)) {
+            data[name] = value;
             return;
         }
 
-        convert(data, key, value);
+        convert(data, name, value);
         notify(data);
     }
      
     /**
      * 移除对象属性，并会发送更新的消息
-     * @param  data  一个JSON对象或已经为 observable 的 JSON对象
+     * @method removeProperty
+     * @param {ObservableObject} data - 一个JSON对象或已经为observable的JSON对象
+     * @param {string} name - 字段名
      */
-    export function removeProperty(data: ObservableObject, key: string): void {
-        if (!data.hasOwnProperty(key)) {
+    export function removeProperty(data: ObservableObject, name: string): void {
+        if (!data.hasOwnProperty(name)) {
             return;
         }
 
-        delete data[key];
+        delete data[name];
         notify(data);
     }
+    
+    /**
+     * @member ObservableObjectPrototype
+     */
+    export var ObservableObjectPrototype = {};
 
-    util.defineProperty(ObservableObjectPrototype, "setProperty", function setObservableObjectProperty(key: string, value: any) {
-        setProperty(this, key, value);
+    util.defineProperty(ObservableObjectPrototype, "setProperty", function setObservableObjectProperty(name: string, value: any) {
+        setProperty(this, name, value);
     });
 
-    util.defineProperty(ObservableObjectPrototype, "removeProperty", function removeObservableObjectProperty(key: string) {
-        removeProperty(this, key);
+    util.defineProperty(ObservableObjectPrototype, "removeProperty", function removeObservableObjectProperty(name: string) {
+        removeProperty(this, name);
     });
 }

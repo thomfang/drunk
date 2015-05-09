@@ -8,9 +8,9 @@ module drunk.util {
     var templateCache: { [index: string]: string } = {};
     
     /**
-     * 加载模板，先尝试从 script 标签上查找，找不到在发送 ajax 请求
-     * @param  templateUrlOrId  script 模板标签的 id 或模板的 url 地址 
-     * @returns 一个 promise 对象，promise 的返回值为模板字符串
+     * 加载模板，先尝试从script标签上查找，找不到再发送ajax请求
+     * @param {string} templateUrlOrId - script模板标签的id或模板的url地址 
+     * @returns {Promise} 一个 promise 对象promise的返回值为模板字符串
      */
     export function loadTemplate(templateUrlOrID: string): Promise<string> {
         var template: string = templateCache[templateUrlOrID];

@@ -2,19 +2,41 @@
 
 module drunk.observable {
 
+    /**
+     * 可监控数组的声明
+     * @interface ObservableArray
+     */
+    export interface ObservableArray<T> extends Array<T> {
+        __observable__?: Observable;
+        setItem?(index: number, value: any): void;
+        removeAt?<T>(index: number): T;
+        removeItem?(value: any): void;
+        removeAllItem?(value: any): void;
+    }
+
     export var ObservableArrayPrototype: any[] = Object.create(Array.prototype);
 
     /**
      * 设置数组指定数组下标的值，并发送数组更新通知
+     * @param {array} array - observableArray类型的数组
+     * @param {number} index - 要设置的数组下标
+     * @param {any} value - 要设置的值
      */
-    export function setItem<T>(array: ObservableArray<T>, index: number, value: T): T {
-        return value;
+    export function setItem<T>(array: ObservableArray<T>, index: number, value: T): void {
+        if (index > array.length) {
+            array.length = index + 1;
+        }
+
+        array.splice(index, 1, value);
     }
      
     /**
      * 根据索引移除数组中的元素，并发送数组更新通知
+     * @param {array} array - observableArray类型的数组
+     * @param {number} index - 要移除的下标
+     * @returns {any} 返回移除的值
      */
-    export function removeByIndex<T>(array: ObservableArray<T>, index: number): T {
+    export function removeAt<T>(array: ObservableArray<T>, index: number): T {
         var result: T;
 
         if (index > -1 && index < array.length) {
@@ -28,6 +50,8 @@ module drunk.observable {
     
     /**
      * 删除数组中出现的一个指定值，并发送数组更新通知
+     * @param {array} array - observableArray类型的数组
+     * @param {any} value - 要移除的值
      */
     export function removeItem<T>(array: ObservableArray<T>, value: any): void {
         util.removeArrayItem(array, value);
@@ -35,6 +59,8 @@ module drunk.observable {
     
     /**
      * 删除数组中所有的指定值，并发送数组更新通知
+     * @param {array} array - observableArray类型的数组
+     * @param {any} value - 要移除的值
      */
     export function removeAllItem<T>(array: ObservableArray<T>, value: any): void {
         var index: number = array.indexOf(value);
@@ -51,8 +77,8 @@ module drunk.observable {
         return setItem(this, index, value);
     });
 
-    util.defineProperty(ObservableArrayPrototype, "removeByIndex", function removeObservalbeArrayByIndex(index: number) {
-        return removeByIndex(this, index);
+    util.defineProperty(ObservableArrayPrototype, "removeAt", function removeObservalbeArrayByIndex(index: number) {
+        return removeAt(this, index);
     });
 
     util.defineProperty(ObservableArrayPrototype, "removeItem", function removeObservableArrayItem(value: any) {
@@ -63,7 +89,7 @@ module drunk.observable {
         return removeAllItem(this, value);
     });
     
-    /**
+    /*
      * 调用原生方法并发送通知
      */
     function executeArrayMethodAndNotify<T>(array: ObservableArray<T>, methodName: string, args: any[], callback?: () => void): any {
