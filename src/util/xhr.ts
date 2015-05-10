@@ -1,6 +1,10 @@
 /// <reference path="../util/util.ts" />
 /// <reference path="../promise/promise.ts" />
 
+/**
+ * @module drunk.util
+ * @class util
+ */
 module drunk.util {
 
     import Promise = promise.Promise;
@@ -16,6 +20,23 @@ module drunk.util {
         dataType?: string;
     }
 
+    /**
+     * Ajax工具方法
+     * 
+     * @static
+     * @method ajax
+     * @param  {object}     	options                     配置参数
+     * @param  {string}         options.url                 请求的url
+     * @param  {string}         [options.type]              请求的类型(GET或POST)
+     * @param  {string|object}  [options.data]              要发送的数据
+     * @param  {object}         [options.headers]           请求头配置
+     * @param  {object}         [options.xhrFields]         withCredentials配置
+     * @param  {boolean}        [options.withCredentials]   withCredentials配置
+     * @param  {string}         [options.contentType]       请求的content-type
+     * @param  {string}         [options.dataType]          接受的数据类型(目前只支持json)
+     * @return {Promise}                                    一个promise实例
+     * @demo test/spec.js [ajax]
+     */
     export function ajax(options: AjaxOptions): Promise<string | Object> {
         var xhr = new XMLHttpRequest();
 
