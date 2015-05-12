@@ -37,7 +37,7 @@ module drunk.observable {
          */
         bind(property: string | any, action: () => void): void {
             if (property == null && typeof action === 'function') {
-                return this._addItemChangedaction(action);
+                return this._addItemChangedAction(action);
             }
 
             if (!this._action) {
@@ -62,7 +62,7 @@ module drunk.observable {
          */
         unbind(property: string | any, action: () => void): void {
             if (property == null && typeof action === 'function') {
-                return this._removeItemChangedaction(action);
+                return this._removeItemChangedAction(action);
             }
 
             if (!this._action || !this._action[property] || !this._action[property].length) {
@@ -100,7 +100,7 @@ module drunk.observable {
             });
         }
 
-        private _addItemChangedaction(action: () => void) {
+        private _addItemChangedAction(action: () => void) {
             if (!this._itemChangedActions) {
                 this._itemChangedActions = [];
             }
@@ -108,7 +108,7 @@ module drunk.observable {
             util.addArrayItem(this._itemChangedActions, action);
         }
 
-        private _removeItemChangedaction(action: () => void) {
+        private _removeItemChangedAction(action: () => void) {
             if (!this._itemChangedActions || !this._itemChangedActions.length) {
                 return;
             }

@@ -35,10 +35,10 @@ module drunk.util {
      * @return {Promise}                                    一个promise实例
      * @demo test/spec.js [ajax]
      */
-    export function ajax(options: AjaxOptions): Promise<string | Object> {
+    export function ajax<T>(options: AjaxOptions): Promise<T> {
         var xhr = new XMLHttpRequest();
 
-        return new Promise<string | Object>((resolve, reject) => {
+        return new Promise<T>((resolve, reject) => {
             xhr.onreadystatechange = function() {
                 if (xhr.readyState === 4) {
                     if (xhr.status >= 200 && xhr.status < 300 || xhr.status === 304) {
@@ -70,9 +70,10 @@ module drunk.util {
             });
 
             if (util.isObject(data)) {
-                if (options.contentType && options.contentType.match(/json/i)) {
+                if (options.contentType && options.contentType.match(/^json$/i)) {
                     data = JSON.stringify(data);
-                } else {
+                }
+                else {
                     data = [];
                     Object.keys(options.data).forEach(function(key) {
                         data.push(key + '=' + encodeURIComponent((<any>options.data)[key]));

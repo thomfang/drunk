@@ -15,6 +15,7 @@ module drunk.observable {
     /**
      * 根据数据返回对应的Observer 实例，如果该数据已经存在对应的 Observer 实例则直接返回，否则创建一个新的实例
      * 
+     * @static
      * @method create
      * @param {ObservableArray|ObservableObject} data 数组或JSON对象
      * @return {Observer} 返回一个Observer实例
@@ -63,6 +64,7 @@ module drunk.observable {
     /**
      * 绑定数据的某个字段改变的回调
      * 
+     * @static
      * @method bind
      * @param {ObservableArray|ObservableObject} data 数组或JSON数据
      * @param {string|null} property 数据的指定字段
