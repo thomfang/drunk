@@ -7,8 +7,6 @@
  */
 module drunk.util {
 
-    import Promise = promise.Promise;
-
     export interface AjaxOptions {
         url: string;
         type?: string;

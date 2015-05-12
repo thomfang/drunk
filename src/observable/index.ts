@@ -98,6 +98,13 @@ module drunk.observable {
      * @param {string}           property  JSON对象上的字段
      */
     export function observe(data: ObservableObject, property: string, value): void {
+        var descriptor = Object.getOwnPropertyDescriptor(data, property);
+        
+        if (descriptor && descriptor.get === descriptor.set) {
+            // 如果已经绑定过了， 则不再绑定
+            return;
+        }
+        
         var dataOb: Observer = create(data);
         var valueOb: Observer = create(value);
 
@@ -113,9 +120,9 @@ module drunk.observable {
         }
         
         // 属性的getter和setter，聚合在一个函数换取空间？
-        function propertyGetterSetter(newValue?: any) {
-            // 如果没有传入任何参数，则为访问，返回值
+        function propertyGetterSetter() {
             if (arguments.length === 0) {
+                // 如果没有传入任何参数，则为访问，返回值
                 
                 if (onPropertyAccess) {
                     // 调用存在的onPropertyAcess方法
@@ -124,6 +131,8 @@ module drunk.observable {
                 
                 return value;
             }
+            
+            var newValue: any = arguments[0];
             
             // 有传入参数，则是赋值操作
             if (newValue === value) {
