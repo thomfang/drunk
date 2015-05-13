@@ -17,12 +17,14 @@ module drunk {
      */
     export class ViewModel {
         
-        protected _models: Model[] = [{}];
-        protected _bindings: Binding[] = [];
-        protected _watchers: {[expression: string]: Watcher} = {};
+        _models: Model[];
+        _bindings: Binding[];
+        _watchers: {[on: string]: Watcher};
         
-        private _getLastModel(): Model {
-            return this._models[this._models.length - 1];
+        constructor() {
+            util.defineProperty(this, "_models", [{}]);
+            util.defineProperty(this, "_bindings", []);
+            util.defineProperty(this, "_watchers", {});
         }
         
         /**
@@ -47,7 +49,8 @@ module drunk {
                 return;
             }
             
-            ViewModel.proxy(this, name, this._getLastModel());
+            var model = this._models[this._models.length - 1];
+            ViewModel.proxy(this, name, model);
         }
         
         /**
@@ -60,16 +63,6 @@ module drunk {
             Object.keys(model).forEach((name) => {
                 ViewModel.proxy(this, name, model);
             });
-        }
-        
-        /**
-         * 添加绑定实例
-         * 
-         * @method addBinding
-         * @param  {Binding}  binding  绑定实例
-         */
-        addBinding(binding: any): void {
-            util.addArrayItem(this._bindings, binding);
         }
         
         /**
@@ -98,6 +91,18 @@ module drunk {
         }
         
         /**
+         * 执行表达式并返回结果
+         * 
+         * @method eval
+         * @param  {string}  expression      表达式
+         * @param  {boolean} [isInterpolate] 是否是插值表达式
+         * @return {string}                  结果
+         */
+        eval(expression: string, isInterpolate?: boolean): string {
+            return "";
+        }
+        
+        /**
          * 释放ViewModel实例的所有元素与数据的绑定
          * 
          * @method release
@@ -108,7 +113,9 @@ module drunk {
                 
             });
         }
-        
+    }
+    
+    export module ViewModel {
         /**
          * 数据代理，把对象a的某个属性的读写代理到对象b上
          * 
@@ -118,7 +125,7 @@ module drunk {
          * @param  {string}  name 代理的属性名
          * @param  {object}  b    对象b
          */
-        static proxy(a: Object, name: string, b: Object): void {
+        export function proxy(a: Object, name: string, b: Object): void {
             Object.defineProperty(a, name, {
                 enumerable: true,
                 configurable: true,
@@ -143,7 +150,7 @@ module drunk {
          * @param  {string} name   属性名
          * @return {boolean}       是否代理
          */
-        static isProxy(target: Object | ViewModel, name: string): boolean {
+        export function isProxy(target: Object | ViewModel, name: string): boolean {
             var descriptor = Object.getOwnPropertyDescriptor(target, name);
             
             return descriptor && descriptor.get === descriptor.set;

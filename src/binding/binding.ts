@@ -1,6 +1,6 @@
 /// <reference path="../promise/promise.ts" />
 /// <reference path="../viewmodel/viewModel.ts" />
-/// <reference path="../template/template.ts" />
+/// <reference path="../template/compiler.ts" />
 /// <reference path="../util/dom.ts" />
 /// <reference path="../util/util.ts" />
 /// <reference path="../config/config.ts" />
@@ -8,31 +8,87 @@
 module drunk {
     
     export interface BindingUpdateHandler {
-        (newValue: any, oldValue: any): void;
+        (newValue: any, oldValue: any): any;
     }
     
     export interface BindingDefiniation {
+        name?: string;
+        deep?: boolean;
+        twoway?: boolean;
         expression?: string;
-        element?: HTMLElement;
-        viewModel?: ViewModel;
+        retainAttribute?: boolean;
         init?(): void;
         update?(newValue: any, oldValue: any): void;
         release?(): void;
     }
     
-    export interface BindingResult {
-        executor: Template.BindingExecutor;
-        template:HTMLElement;
+    export interface BindingExecutor {
+        (viewModel: ViewModel, element: any): void;
+        isEnding?: boolean;
     }
-    
-    var definitionMap: {[name: string]: BindingDefiniation} = {};
-    var endingList: {name: string; priority: number}[];
     
     /**
      * @module drunk.Binding
      * @class Binding
      */
     export class Binding {
+        
+        deep: boolean;
+        twoway: boolean;
+        expression: string;
+        
+        watcher: Watcher;
+        
+        init: () => void;
+        update: BindingUpdateHandler;
+        release: () => void;
+        
+        /**
+         * @class Binding
+         * @constructor
+         * @param  {ViewModel}          viewModel  ViewModel实例
+         * @param  {HTMLElement}        element    绑定元素
+         * @param  {BindingDefinition}  definition 绑定定义
+         * @param  {boolean} [descriptor.deep]   是否深度监听
+         * @param  {boolean} [descriptor.twoway] 是否双向绑定
+         */
+        constructor(public viewModel: ViewModel, public element: any, descriptor) {
+            util.extend(this, descriptor);
+        }
+        
+        initialize() {
+            if (this.init) {
+                this.init();
+            }
+            
+            if (!this.update) {
+                return;
+            }
+            
+            this._update = this._update.bind(this);
+        }
+        
+        unbindAndRelease() {
+            if (this.release) {
+                this.release();
+            }
+            
+            this.element = null;
+            this.viewModel = null;
+            this.expression = null;
+            
+            util.removeArrayItem(this.viewModel._bindings, this);
+        }
+        
+        private _update(newValue: any, oldValue: any) {
+            this.update(newValue, oldValue);
+        }
+    }
+    
+    export module Binding {
+    
+        var endingList: {name: string; priority: number}[] = [];
+        var definitionMap: {[name: string]: BindingDefiniation} = {};
         
         /**
          * 自定义一个binding指令
@@ -42,7 +98,7 @@ module drunk {
          * @param  {string}          name  指令名
          * @param  {function|Object} def   binding实现的定义对象或绑定的更新函数
          */
-        static define(name: string, def: BindingDefiniation | BindingUpdateHandler):void {
+        export function define(name: string, def: BindingDefiniation | BindingUpdateHandler):void {
             var definition: BindingDefiniation;
             
             if (typeof def === 'function') {
@@ -55,7 +111,7 @@ module drunk {
             }
             
             if (definitionMap[name] && config.debug) {
-                console.warn(name, "绑定已经存在，原定义为：", definitionMap[name]);
+                console.warn(name, "绑定已定义，原定义为：", definitionMap[name]);
                 console.warn("替换为", def);
             }
             
@@ -70,7 +126,7 @@ module drunk {
          * @param  {string}  name      绑定的名称
          * @return {BindingDefinition} 具有绑定定义信息的对象
          */
-        static getDefinintionByName(name: string): BindingDefiniation {
+        export function getDefinintionByName(name: string): BindingDefiniation {
             return definitionMap[name];
         }
         
@@ -82,7 +138,7 @@ module drunk {
          * @param  {string}  name      绑定的名称
          * @param  {number}  priority  绑定的优先级
          */
-        static setEnding(name: string, priority: number): void {
+        export function setEnding(name: string, priority: number): void {
             // 检测是否已经存在该绑定
             for (var i = 0, item; item = endingList[i]; i++) {
                 if (item.name === name) {
@@ -109,65 +165,27 @@ module drunk {
          * @static
          * @return {array}  返回绑定名称列表
          */
-        static getEndingNames() {
+        export function getEndingNames() {
             return endingList.map((item) => {
                 return item.name;
             });
         }
         
         /**
-         * 绑定viewModel与模板元素
-         * 如果提供元素节点,解析元素上的绑定指令生成绑定方法,再创建绑定
-         * 如果提供的是模板链接,先加载链接生成HTML元素在进行绑定操作
+         * 创建viewModel与模板元素的绑定
          * 
-         * @method process
+         * @method create
          * @static
-         * @param  {ViewModel}          viewModel  ViewModel实例
-         * @param  {HTMLElement|string} template   模板元素或模板链接
-         * @return {Promise}                       返回promise对象
+         * @param  {ViewModel}   viewModel  ViewModel实例
+         * @param  {HTMLElement} element    元素
+         * @return {Promise}                返回promise对象
          */
-        static process(viewModel: ViewModel, template: HTMLElement) {
-            var executor = Template.parse(template, true);
-                
-            executor(viewModel, template);
+        export function create(viewModel: ViewModel, element: any, descriptor: BindingDefiniation) {
+            var binding: Binding = new Binding(viewModel, element, descriptor);
             
-            return {
-                executor: executor,
-                template: template
-            };
-        }
-        
-        init: () => void;
-        update: BindingUpdateHandler;
-        release: () => void;
-        
-        /**
-         * @class Binding
-         * @constructor
-         * @param  {ViewModel}          viewModel  ViewModel实例
-         * @param  {HTMLElement}        element    绑定元素
-         * @param  {BindingDefinition}  definition 绑定定义
-         */
-        constructor(public viewModel: ViewModel, public element: HTMLElement, definition: BindingDefiniation) {
-            this.init = definition.init;
-            this.update = definition.update;
-            this.release = definition.release;
-//            this.expression = definition.expression;
-            this._init();
-        }
-        
-        private _init() {
-            if (this.init) {
-                this.init();
-            }
+            util.addArrayItem(viewModel._bindings, binding);
             
-            if (!this.update) {
-                return;
-            }
-        }
-        
-        private _update(newValue: any, oldValue: any) {
-            this.update(newValue, oldValue);
+            return Promise.resolve(binding.initialize());
         }
     }
 }

@@ -30,7 +30,7 @@ module drunk.util {
      * @param  {object}  ...sources   不定长参数，源对象的集合
      * @return {object}               返回输入的目标对象
      */
-    export function extend<T>(destination: T, ...sources: any[]): T {
+    export function extend(destination: any, ...sources: any[]): any {
         sources.forEach((src) => {
             Object.keys(src).forEach((key) => {
                 (<any>destination)[key] = src[key];
