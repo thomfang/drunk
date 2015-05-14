@@ -1,0 +1,28 @@
+{
+  "name": "drunk.ts",
+  "version": "1.0.0",
+  "description": "写着玩~",
+  "main": "drunk.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "python -m SimpleHTTPServer 8000"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tilfon/drunk.ts.git"
+  },
+  "keywords": [
+    "MVVM",
+    "Component"
+  ],
+  "author": "Todd Fon",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/tilfon/drunk.ts/issues"
+  },
+  "homepage": "https://github.com/tilfon/drunk.ts",
+  "devDependencies": {
+  }
+}

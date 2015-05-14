@@ -111,32 +111,4 @@ module drunk.util {
     export function nextTick(callback: () => void, sender: any = null): number {
         return setTimeout(callback.bind(sender), 0);
     }
-
-    /**
-     * 给目标对象代理指定属性到另一个对象，如果代理对象上的该属性已经代理过了，则代理失败
-     * 
-     * @static
-     * @method proxy
-     * @param  {any}     target         需要代理的对象
-     * @param  {string}  propertyName   代理的属性
-     * @param  {any}     source         代理的目标对象
-     * @return {boolean}                返回代理结果
-     */
-    export function proxy(target: any, propertyName: string, source: {}): boolean {
-        var des = Object.getOwnPropertyDescriptor(target, propertyName);
-        if (!des || typeof des.get !== 'function') {
-            Object.defineProperty(target, propertyName, {
-                set(value) {
-                    (<any>source)[propertyName] = value;
-                },
-                get() {
-                    return (<any>source)[propertyName];
-                },
-                configurable: true,
-                enumerable: true
-            });
-            return true;
-        }
-        return false;
-    }
 }

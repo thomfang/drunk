@@ -1,5 +1,5 @@
 /// <reference path="../util/util.ts" />
-/// <reference path="./index.ts" />
+/// <reference path="./observable.ts" />
 
 /**
  * @module drunk.observable

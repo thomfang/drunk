@@ -7,7 +7,7 @@
 
 module drunk {
     
-    export interface BindingUpdateHandler {
+    export interface BindingUpdateAction {
         (newValue: any, oldValue: any): any;
     }
     
@@ -27,10 +27,6 @@ module drunk {
         isEnding?: boolean;
     }
     
-    /**
-     * @module drunk.Binding
-     * @class Binding
-     */
     export class Binding {
         
         deep: boolean;
@@ -40,10 +36,12 @@ module drunk {
         watcher: Watcher;
         
         init: () => void;
-        update: BindingUpdateHandler;
+        update: BindingUpdateAction;
         release: () => void;
         
         /**
+         * 根据绑定的定义创建一个绑定实例，根据定义进行viewModel与DOM元素绑定的初始化、视图渲染和释放
+         * 
          * @class Binding
          * @constructor
          * @param  {ViewModel}          viewModel  ViewModel实例
@@ -98,12 +96,12 @@ module drunk {
          * @param  {string}          name  指令名
          * @param  {function|Object} def   binding实现的定义对象或绑定的更新函数
          */
-        export function define(name: string, def: BindingDefiniation | BindingUpdateHandler):void {
+        export function define(name: string, def: BindingDefiniation | BindingUpdateAction):void {
             var definition: BindingDefiniation;
             
             if (typeof def === 'function') {
                 definition = {
-                    update: (<BindingUpdateHandler>def)
+                    update: (<BindingUpdateAction>def)
                 };
             }
             else {

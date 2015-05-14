@@ -80,6 +80,40 @@ module drunk {
         }
         
         /**
+         * 监听表达式的里每个数据的变化
+         * 
+         * @method watch
+         * @param  {string}  expression  表达式
+         */
+        watch(expression: string, action: BindingUpdateAction, isDeepWatch?: boolean) {
+            var key: string = expression;
+            var watcher: Watcher;
+            
+            isDeepWatch = !!isDeepWatch;
+            
+            if (isDeepWatch) {
+                // 深度监听的表达式后面都加上<deep>标记作为Key
+                key += '<deep>';
+            }
+            
+            watcher = this._watchers[key];
+            
+            if (!watcher) {
+                watcher = new Watcher(this, expression, isDeepWatch);
+            }
+            
+            var wrappedAction: BindingUpdateAction = (newValue: any, oldValue: any) => {
+                action.call(this, newValue, oldValue);
+            };
+            
+            watcher.addAction(wrappedAction);
+            
+            return () => {
+                watcher.removeAction(wrappedAction);
+            };
+        }
+        
+        /**
          * 执行时间回调
          * 
          * @method invokeHandler
@@ -98,7 +132,7 @@ module drunk {
          * @param  {boolean} [isInterpolate] 是否是插值表达式
          * @return {string}                  结果
          */
-        eval(expression: string, isInterpolate?: boolean): string {
+        eval(expression: string, isInterpolate?: boolean): any {
             return "";
         }
         
