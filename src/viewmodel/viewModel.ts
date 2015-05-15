@@ -1,10 +1,13 @@
 /// <reference path="../util/util.ts" />
+/// <reference path="../parser/parser.ts" />
 /// <reference path="../promise/promise.ts" />
 /// <reference path="../watcher/watcher.ts" />
 /// <reference path="../binding/binding.ts" />
+/// <reference path="../filter/filter" />
+
 
 module drunk {
-    
+
     export interface Model {
         [key: string]: any;
     }
@@ -16,15 +19,28 @@ module drunk {
      * namespace drunk
      */
     export class ViewModel {
-        
+
         _models: Model[];
         _bindings: Binding[];
-        _watchers: {[on: string]: Watcher};
+        _watchers: { [on: string]: Watcher };
         
+        /**
+         * 过滤器方法,包含内置的
+         */
+        filter: {[name: string]: filter.Filter};
+
         constructor() {
             util.defineProperty(this, "_models", [{}]);
             util.defineProperty(this, "_bindings", []);
             util.defineProperty(this, "_watchers", {});
+        }
+        
+        /**
+         * 初始化
+         * @method initialize
+         */
+        initialize() {
+            util.defineProperty(this, "filter", Object.create(filter.filters));
         }
         
         /**
@@ -35,7 +51,7 @@ module drunk {
          * @param  {object}   model  数据源
          */
         proxyKeyToModel(key: string, model: Model): void {
-            
+
         }
         
         /**
@@ -48,7 +64,7 @@ module drunk {
             if (ViewModel.isProxy(this, name)) {
                 return;
             }
-            
+
             var model = this._models[this._models.length - 1];
             ViewModel.proxy(this, name, model);
         }
@@ -66,61 +82,40 @@ module drunk {
         }
         
         /**
-         * 获取指定表达式的watcher
-         * 
-         * @method getWatcher
-         * @param  {string}  expression     监控表达式
-         * @param  {boolean} [isDeepWatch]  是否深度监控
-         * @return {Watcher}                返回对应表达式的Watcher实例
-         */
-        getWatcher(expression: string, isDeepWatch = false): Watcher {
-            var watcher: Watcher;
-            
-            return watcher;
-        }
-        
-        /**
          * 监听表达式的里每个数据的变化
          * 
          * @method watch
          * @param  {string}  expression  表达式
          */
         watch(expression: string, action: BindingUpdateAction, isDeepWatch?: boolean) {
-            var key: string = expression;
+            var key: string = Watcher.getReferKey(expression, isDeepWatch);
             var watcher: Watcher;
-            
-            isDeepWatch = !!isDeepWatch;
-            
-            if (isDeepWatch) {
-                // 深度监听的表达式后面都加上<deep>标记作为Key
-                key += '<deep>';
-            }
-            
+
             watcher = this._watchers[key];
-            
+
             if (!watcher) {
                 watcher = new Watcher(this, expression, isDeepWatch);
             }
-            
+
             var wrappedAction: BindingUpdateAction = (newValue: any, oldValue: any) => {
                 action.call(this, newValue, oldValue);
             };
-            
+
             watcher.addAction(wrappedAction);
-            
+
             return () => {
                 watcher.removeAction(wrappedAction);
             };
         }
         
         /**
-         * 执行时间回调
+         * 获取事件回调
          * 
-         * @method invokeHandler
+         * @method getHandler
          * @param  {string}  handlerName  时间回调名称
          * @return {ViewModel} 返回实例用于链式调用
          */
-        invokeHandler(handlerName: string): ViewModel {
+        getHandler(handlerName: string): ViewModel {
             return this;
         }
         
@@ -133,7 +128,26 @@ module drunk {
          * @return {string}                  结果
          */
         eval(expression: string, isInterpolate?: boolean): any {
-            return "";
+            var getter: parser.Getter;
+            if (isInterpolate) {
+                getter = parser.parseInterpolate(expression);
+            }
+            else {
+                getter = parser.parseGetter(expression);
+            }
+            return getter.call(undefined, this);
+        }
+        
+        /**
+         * 根据表达式设置值
+         * 
+         * @method setValue
+         * @param  {string}  expression  表达式
+         * @param  {any}     value       值
+         */
+        setValue(expression: string, value: any): void {
+            var setter = parser.parseSetter(expression);
+            setter.call(undefined, this, value);
         }
         
         /**
@@ -144,11 +158,11 @@ module drunk {
          */
         release(): Promise<any> {
             return new Promise((resolve, reject) => {
-                
+
             });
         }
     }
-    
+
     export module ViewModel {
         /**
          * 数据代理，把对象a的某个属性的读写代理到对象b上
@@ -166,7 +180,7 @@ module drunk {
                 get: propertyGetterSetter,
                 set: propertyGetterSetter
             });
-            
+
             function propertyGetterSetter() {
                 if (arguments.length === 0) {
                     return b[name];
@@ -186,7 +200,7 @@ module drunk {
          */
         export function isProxy(target: Object | ViewModel, name: string): boolean {
             var descriptor = Object.getOwnPropertyDescriptor(target, name);
-            
+
             return descriptor && descriptor.get === descriptor.set;
         }
     }

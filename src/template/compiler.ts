@@ -45,7 +45,7 @@ module drunk.template {
             
                 return () => {
                     bindingList.forEach((binding) => {
-                        binding.unbindAndRelease();
+                        binding.teardown();
                     });
                 };
             }
@@ -127,7 +127,18 @@ module drunk.template {
             // 如果不存在则判断是否有普通的绑定指令
             executor = processEndingBinding(element) || processNormalBinding(element);
         }
-        if (element.tagName === 'TEXTAREA') {
+        
+        if ((!executor || !executor.isEnding) && isRootNode) {
+            var tagName: string = element.tagName.toLowerCase();
+            
+            if (tagName.indexOf("-") > 0) {
+                // 如果标签名有破折号，则认为是自定义标签
+                executor = (viewModel: ViewModel, template: any) => {
+//                    Component.create(tagName, viewModel, template);
+                };
+            }
+        }
+        else if (element.tagName === 'TEXTAREA') {
             // 如果是textarea， 它的值有可能存在插值表达式， 比如 "the textarea value with {{some_var}}"
             // 第一次进行绑定先换成插值表达式
             var originExecutor = executor;

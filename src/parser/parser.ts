@@ -1,4 +1,6 @@
 /// <reference path="../viewmodel/viewmodel.ts" />
+/// <reference path="../filter/filter" />
+
 
 /**
  * 简单的词法解析器
@@ -10,7 +12,7 @@ module drunk.parser {
     
     export interface Getter {
         (viewModel: ViewModel, ...args: any[]): any;
-        filters?: FilterDef[];
+        filters?: filter.FilterDef[];
         dynamic?: boolean;
     }
     
@@ -18,14 +20,9 @@ module drunk.parser {
         (viewModel: ViewModel, value: any): any;
     }
     
-    export interface FilterDef {
-        name: string;
-        param?: Getter;
-    }
-    
     interface FilterCache {
         input: string;
-        filters: FilterDef[];
+        filters: filter.FilterDef[];
     }
     
     var eventName = "$event";
@@ -63,7 +60,7 @@ module drunk.parser {
     // 解析filter定义
     function parseFilterDef(str: string, skipSetter: boolean = false) {
         if (!filterCache[str]) {
-            var def: FilterDef[] = [];
+            var def: filter.FilterDef[] = [];
             var idx: number;
             
             str.replace(regFilter, ($0, quote, name, args, i) => {

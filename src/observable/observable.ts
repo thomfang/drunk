@@ -92,7 +92,7 @@ module drunk.observable {
     export var onPropertyAccess: (observer: Observer, property: string, value: any, data: ObservableObject) => void;
      
     /**
-     * 设置JSON对象属性的 getter/setter，使其能在数据更新是能接受到事件
+     * 转换对象属性的getter/setter，使其能在数据更新是能接受到事件
      * 
      * @static
      * @method observe
