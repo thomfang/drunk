@@ -62,34 +62,16 @@ module drunk.observable {
     }
     
     /**
-     * 绑定数据的某个字段改变的回调
-     * 
-     * @static
-     * @method bind
-     * @param {ObservableArray|ObservableObject} data 数组或JSON数据
-     * @param {string|null} property 数据的指定字段
-     */
-    export function bind<T>(data: ObservableArray<T> | ObservableObject, property: string | any, action: () => void): void {
-        var ob: Observer = create(data);
-        
-        if (!ob) {
-            throw new Error("observable.bind: 只接受数组或JSON格式数据");
-        }
-        
-        ob.bind(property, action);
-    }
-    
-    /**
      * 访问observableObject的字段时会调用的回调
      * 
      * @static
-     * @property onPropertyAccess
+     * @property onAccessingProperty
      * @param {Observer}     observer  返回的当前正在访问的数据的observer对象
      * @param {string}       property  正在访问的数据的字段
      * @param {any}             value  对应字段的数据
-     * @param {ObservableObject} data  已经创建过observable实例的JSON类型数据
+     * @param {ObservableObject} data  可观察数据
      */
-    export var onPropertyAccess: (observer: Observer, property: string, value: any, data: ObservableObject) => void;
+    export var onAccessingProperty: (observer: Observer, property: string, value: any, data: ObservableObject) => void;
      
     /**
      * 转换对象属性的getter/setter，使其能在数据更新是能接受到事件
@@ -126,9 +108,9 @@ module drunk.observable {
             if (arguments.length === 0) {
                 // 如果没有传入任何参数，则为访问，返回值
                 
-                if (onPropertyAccess) {
+                if (onAccessingProperty) {
                     // 调用存在的onPropertyAcess方法
-                    onPropertyAccess(dataOb, property, value, data);
+                    onAccessingProperty(dataOb, property, value, data);
                 }
                 
                 return value;

@@ -168,12 +168,12 @@ module drunk {
         // 访问数据前做的准备工作
         private _beforeAccess(): void {
             this._tmpObservers = {};
-            observable.onPropertyAccess = this._subscribe.bind(this);
+            observable.onAccessingProperty = this._subscribe.bind(this);
         }
         
         // 访问书后做的处理工作
         private _afterAccess(): void {
-            observable.onPropertyAccess = null;
+            observable.onAccessingProperty = null;
 
             Object.keys(this._observers).forEach((id) => {
                 if (!this._tmpObservers[id]) {
