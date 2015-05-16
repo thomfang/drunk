@@ -7,11 +7,11 @@
 /**
  * 模板工具模块， 提供编译创建绑定，模板加载的工具方法
  * 
- * @module drunk.template
- * @class template
+ * @module drunk.Template
+ * @class Template
  * @main
  */
-module drunk.template {
+module drunk.Template {
     
     /**
      * 编译模板元素生成绑定方法
@@ -20,8 +20,8 @@ module drunk.template {
      * @param  {boolean}    isRootNode  是否是根元素
      * @return {function}               绑定元素与viewModel的方法
      */
-    export function compile(node: any, isRootNode: boolean): BindingExecutor {
-        var executor: BindingExecutor = node.nodeType === 11 ? null : compileNode(node, isRootNode);
+    export function compile(node: any): BindingExecutor {
+        var executor: BindingExecutor = node.nodeType === 11 ? null : compileNode(node);
         var isEnding: boolean = executor && executor.isEnding;
         var childExecutor: BindingExecutor;
         
@@ -40,25 +40,23 @@ module drunk.template {
                 executor(viewModel, element.childNodes);
             }
             
-            if (isRootNode) {
-                bindingList = viewModel._bindings.slice(startIndex);
-            
-                return () => {
-                    bindingList.forEach((binding) => {
-                        binding.teardown();
-                    });
-                };
-            }
+            bindingList = viewModel._bindings.slice(startIndex);
+        
+            return () => {
+                bindingList.forEach((binding) => {
+                    binding.teardown();
+                });
+            };
         };
     }
     
     // 判断元素是什么类型,调用相应的类型编译方法
-    function compileNode(node: any, isRootNode: boolean): BindingExecutor {
+    function compileNode(node: any): BindingExecutor {
         var nodeType: number = node.nodeType;
         
         if (nodeType === 1 && node.tagName !== "SCRIPT") {
             // 如果是元素节点
-            return compileElement(node, isRootNode);
+            return compileElement(node);
         }
         if (nodeType === 3) {
             // 如果是textNode
@@ -74,7 +72,7 @@ module drunk.template {
             var executor: BindingExecutor;
             var childExecutor: BindingExecutor;
             
-            executor = compileNode(node, false);
+            executor = compileNode(node);
             
             if (!(executor && executor.isEnding) && node.hasChildNodes()) {
                 childExecutor = compileNodeList(node.childNodes);
@@ -109,17 +107,7 @@ module drunk.template {
     }
     
     // 编译元素的绑定并创建绑定描述符
-    function compileElement(element: any, isRootNode: boolean): BindingExecutor {
-        if (!isRootNode) {
-            var tagName: string = element.tagName;
-            
-            if (tagName.indexOf("-") > 0) {
-                // 如果标签名有破折号，则当成是自定义标签
-                // 把为起添加component的指令属性
-                element.setAttribute(config.prefix + "component", tagName.toLowerCase());
-            }
-        }
-        
+    function compileElement(element: any): BindingExecutor {
         var executor;
         
         if (element.hasAttributes()) {
@@ -128,7 +116,7 @@ module drunk.template {
             executor = processEndingBinding(element) || processNormalBinding(element);
         }
         
-        if ((!executor || !executor.isEnding) && isRootNode) {
+        if (!executor || !executor.isEnding) {
             var tagName: string = element.tagName.toLowerCase();
             
             if (tagName.indexOf("-") > 0) {

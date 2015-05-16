@@ -32,9 +32,11 @@ module drunk.util {
      */
     export function extend(destination: any, ...sources: any[]): any {
         sources.forEach((src) => {
-            Object.keys(src).forEach((key) => {
-                (<any>destination)[key] = src[key];
-            });
+            if (src) {
+                Object.keys(src).forEach((key) => {
+                    (<any>destination)[key] = src[key];
+                });
+            }
         });
         return destination;
     }

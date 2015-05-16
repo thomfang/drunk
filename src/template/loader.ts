@@ -2,10 +2,10 @@
 /// <reference path="../util/xhr.ts" />
 
 /**
- * @module drunk.template
- * @class template
+ * @module drunk.Template
+ * @class Template
  */
-module drunk.template {
+module drunk.Template {
     
     var cache: {[index: string]: string} = {};
     
@@ -15,26 +15,26 @@ module drunk.template {
      * 
      * @static
      * @method loadTemplate
-     * @param   {string}  template  script模板标签的id或模板的url地址 
-     * @returns {Promise}           一个 promise 对象promise的返回值为模板字符串
+     * @param   {string}  templateUrl  script模板标签的id或模板的url地址 
+     * @returns {Promise}              一个 promise 对象promise的返回值为模板字符串
      */
-    export function load(template: string): Promise<string> {
-        var html: string = cache[template];
+    export function load(templateUrl: string): Promise<string> {
+        var html: string = cache[templateUrl];
         var node: HTMLElement;
 
         if (html != null) {
             return Promise.resolve(html);
         }
         
-        node = document.getElementById(template);
+        node = document.getElementById(templateUrl);
         
         if (node) {
-            cache[template] = node.innerHTML;
-            return Promise.resolve(cache[template]);
+            cache[templateUrl] = node.innerHTML;
+            return Promise.resolve(cache[templateUrl]);
         }
 
-        return util.ajax({ url: template }).then((html) => {
-            (<any>cache)[template] = html;
+        return util.ajax({ url: templateUrl }).then((html) => {
+            (<any>cache)[templateUrl] = html;
             return html;
         });
     }
