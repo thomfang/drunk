@@ -103,10 +103,10 @@ module drunk {
         }
         
         /**
-         * 移除绑定并释放
+         * 移除绑定并销毁
          * @method teardown
          */
-        teardown(): void {
+        dispose(): void {
             if (this.release) {
                 this.release();
             }

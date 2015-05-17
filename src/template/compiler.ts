@@ -44,7 +44,7 @@ module drunk.Template {
         
             return () => {
                 bindingList.forEach((binding) => {
-                    binding.teardown();
+                    binding.dispose();
                 });
             };
         };

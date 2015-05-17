@@ -29,8 +29,11 @@ module drunk {
          */
         filter: {[name: string]: filter.Filter};
 
-        constructor() {
-            util.defineProperty(this, "_models", [{}]);
+        constructor(model?: Model) {
+            model = model || {};
+            observable.create(model);
+            
+            util.defineProperty(this, "_models", [model]);
             util.defineProperty(this, "_bindings", []);
             util.defineProperty(this, "_watchers", {});
         }
@@ -40,7 +43,7 @@ module drunk {
          * @method initialize
          */
         initialize() {
-            util.defineProperty(this, "filter", Object.create(filter.filters));
+            
         }
         
         /**
@@ -72,13 +75,102 @@ module drunk {
         /**
          * 代理model上的所以key到model上，当访问viewModel上的key是会引用到model上的值
          * 
-         * @method proxyToModel
+         * @method addModel
          * @param  {object}  model  数据
          */
-        proxyToModel(model: Model): void {
+        addModel(model: Model): void {
             Object.keys(model).forEach((name) => {
                 ViewModel.proxy(this, name, model);
             });
+            this._models.push(model);
+        }
+        
+        removeModel(model: Model): void {
+            
+        }
+        
+        setFilter(filters) {
+            this.filter = util.extend({}, filter.filters, filters);
+        }
+        
+        setHandlers() {
+            
+        }
+        
+        /**
+         * 获取事件回调
+         * 
+         * @method getHandler
+         * @param  {string}  handlerName  时间回调名称
+         * @return {ViewModel} 返回实例用于链式调用
+         */
+        getHandler(handlerName: string): Function {
+            return () => {
+                
+            };
+        }
+        
+        /**
+         * 执行表达式并返回结果
+         * 
+         * @method eval
+         * @param  {string}  expression      表达式
+         * @param  {boolean} [isInterpolate] 是否是插值表达式
+         * @return {string}                  结果
+         */
+        eval(expression: string, isInterpolate?: boolean): any {
+            var getter: parser.Getter;
+            var value: any;
+            
+            if (isInterpolate) {
+                getter = parser.parseInterpolate(expression);
+            }
+            else {
+                getter = parser.parseGetter(expression);
+            }
+            
+            value = getter.call(undefined, this);
+            
+            if (getter.filters) {
+                value = filter.applyFilters(value, getter.filters, this);
+            }
+            
+            return value;
+        }
+        
+        /**
+         * 根据表达式设置值
+         * 
+         * @method setValue
+         * @param  {string}  expression  表达式
+         * @param  {any}     value       值
+         */
+        setValue(expression: string, value: any): void {
+            var setter = parser.parseSetter(expression);
+            setter.call(undefined, this, value);
+        }
+        
+        /**
+         * 把model数据转成json
+         * @method toJSON
+         */
+        toJSON() {
+            var json: Model = {};
+            
+            function deepClone(des, src) {
+                Object.keys(src).forEach((key) => {
+                    if (util.isObject(src[key])) {
+                        des[key] = deepClone({}, src[key]);
+                    }
+                });
+                return des;
+            }
+            
+            this._models.forEach((model) => {
+               deepClone(json, model);
+            });
+            
+            return json;
         }
         
         /**
@@ -106,48 +198,6 @@ module drunk {
             return () => {
                 watcher.removeAction(wrappedAction);
             };
-        }
-        
-        /**
-         * 获取事件回调
-         * 
-         * @method getHandler
-         * @param  {string}  handlerName  时间回调名称
-         * @return {ViewModel} 返回实例用于链式调用
-         */
-        getHandler(handlerName: string): ViewModel {
-            return this;
-        }
-        
-        /**
-         * 执行表达式并返回结果
-         * 
-         * @method eval
-         * @param  {string}  expression      表达式
-         * @param  {boolean} [isInterpolate] 是否是插值表达式
-         * @return {string}                  结果
-         */
-        eval(expression: string, isInterpolate?: boolean): any {
-            var getter: parser.Getter;
-            if (isInterpolate) {
-                getter = parser.parseInterpolate(expression);
-            }
-            else {
-                getter = parser.parseGetter(expression);
-            }
-            return getter.call(undefined, this);
-        }
-        
-        /**
-         * 根据表达式设置值
-         * 
-         * @method setValue
-         * @param  {string}  expression  表达式
-         * @param  {any}     value       值
-         */
-        setValue(expression: string, value: any): void {
-            var setter = parser.parseSetter(expression);
-            setter.call(undefined, this, value);
         }
         
         /**
