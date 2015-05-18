@@ -84,7 +84,7 @@ module drunk.Template {
         if (executors.length > 1) {
             return (viewModel: ViewModel, nodes: any) => {
                 if (nodes.length * 2 !== executors.length) {
-                    throw new Error("进行创建绑定之前,节点已经被动态修改");
+                    throw new Error("创建绑定之前,节点已经被动态修改");
                 }
                 
                 var i = 0;
@@ -113,20 +113,10 @@ module drunk.Template {
         if (element.hasAttributes()) {
             // 如果元素上有属性， 先判断是否存在终止型绑定指令
             // 如果不存在则判断是否有普通的绑定指令
-            executor = processEndingBinding(element) || processNormalBinding(element);
+            executor = processEndingBinding(element) || processComponent(element) || processNormalBinding(element);
         }
         
-        if (!executor || !executor.isEnding) {
-            var tagName: string = element.tagName.toLowerCase();
-            
-            if (tagName.indexOf("-") > 0) {
-                // 如果标签名有破折号，则认为是自定义标签
-                executor = (viewModel: ViewModel, template: any) => {
-//                    Component.create(tagName, viewModel, template);
-                };
-            }
-        }
-        else if (element.tagName === 'TEXTAREA') {
+        if (element.tagName === 'TEXTAREA') {
             // 如果是textarea， 它的值有可能存在插值表达式， 比如 "the textarea value with {{some_var}}"
             // 第一次进行绑定先换成插值表达式
             var originExecutor = executor;
@@ -196,6 +186,18 @@ module drunk.Template {
                     expression: expression
                 }, true);
             }
+        }
+    }
+    
+    // 检测是否是一个组件标签
+    function processComponent(element: any) {
+        var tagName: string = element.tagName.toLowerCase();
+        
+        if (tagName.indexOf("-") > 0) {
+            // 如果标签名有破折号，则认为是自定义标签
+            return (viewModel: ViewModel, template: any) => {
+//                Component.create(tagName, viewModel, template);
+            };
         }
     }
     

@@ -119,6 +119,18 @@ module drunk {
         }
         
         /**
+         * 设置表达式的值
+         * @method setValue
+         * @param  {any}  value  值
+         */
+        setValue(value: any) {
+            if (!this._setter) {
+                this._setter = parser.parseSetter(this.expression);
+            }
+            this._setter.call(undefined, this.viewModel, value);
+        }
+        
+        /**
          * 释放引用和内存
          * @method release 
          */

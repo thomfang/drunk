@@ -16,7 +16,6 @@ module drunk {
      * ViewModel类， 实现数据与模板元素的绑定
      * 
      * @class ViewModel
-     * namespace drunk
      */
     export class ViewModel {
 
@@ -26,8 +25,17 @@ module drunk {
         
         /**
          * 过滤器方法,包含内置的
+         * @property filter
+         * @type Filter
          */
         filter: {[name: string]: filter.Filter};
+        
+        /**
+         * 事件处理方法集合
+         * @property handlers
+         * @type object
+         */
+        handlers: {[name: string]: (...args: any[]) => any};
 
         constructor(model?: Model) {
             model = model || {};
@@ -47,17 +55,6 @@ module drunk {
         }
         
         /**
-         * 代理某个属性到指定的model上
-         * 
-         * @method proxyKeyToModel
-         * @param  {string}  key    需要代理的属性
-         * @param  {object}   model  数据源
-         */
-        proxyKeyToModel(key: string, model: Model): void {
-
-        }
-        
-        /**
          * 代理某个属性到最新的Model上
          * 
          * @method proxy
@@ -73,40 +70,26 @@ module drunk {
         }
         
         /**
-         * 代理model上的所以key到model上，当访问viewModel上的key是会引用到model上的值
-         * 
-         * @method addModel
-         * @param  {object}  model  数据
-         */
-        addModel(model: Model): void {
-            Object.keys(model).forEach((name) => {
-                ViewModel.proxy(this, name, model);
-            });
-            this._models.push(model);
-        }
-        
-        removeModel(model: Model): void {
-            
-        }
-        
-        setFilter(filters) {
-            this.filter = util.extend({}, filter.filters, filters);
-        }
-        
-        setHandlers() {
-            
-        }
-        
-        /**
          * 获取事件回调
          * 
          * @method getHandler
          * @param  {string}  handlerName  时间回调名称
-         * @return {ViewModel} 返回实例用于链式调用
+         * @return {ViewModel} 返回事件处理函数
          */
         getHandler(handlerName: string): Function {
-            return () => {
-                
+            var handler = this.handlers[handlerName];
+            var context: any = this;
+            
+            if (!handler) {
+                if (typeof window[handlerName] === 'function') {
+                    handler = window[handlerName];
+                    context = window;
+                }
+                throw new Error(handlerName + ": 没有找到该事件处理方法");
+            }
+            
+            return (...args: any[]) => {
+                handler.apply(context, args);
             };
         }
         
@@ -157,6 +140,7 @@ module drunk {
         toJSON() {
             var json: Model = {};
             
+            // 深度拷贝
             function deepClone(des, src) {
                 Object.keys(src).forEach((key) => {
                     if (util.isObject(src[key])) {

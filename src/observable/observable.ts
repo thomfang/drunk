@@ -119,7 +119,7 @@ module drunk.observable {
             var newValue: any = arguments[0];
             
             // 有传入参数，则是赋值操作
-            if (newValue === value) {
+            if (!isNotEqual(newValue, value)) {
                 // 如果值相同，不做任何处理
                 return;
             }
@@ -159,5 +159,10 @@ module drunk.observable {
         if (ob) {
             ob.notify(property);
         }
+    }
+    
+    // 判断两个值是否不同
+    function isNotEqual(a, b) {
+        return a !== b || (typeof a === 'object' && a);
     }
 }

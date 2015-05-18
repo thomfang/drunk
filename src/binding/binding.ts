@@ -113,6 +113,7 @@ module drunk {
 
             if (this._watcher && this._watcher.isActived) {
                 this._watcher.removeAction(this._update);
+                this._watcher = null;
             }
 
             this.element = null;
@@ -130,8 +131,11 @@ module drunk {
          * @param  {boolean} [isLocked] 是否加锁
          */
         setValue(value: any, isLocked?: boolean): void {
+            if (!this._watcher) {
+                throw new Error(this.expression + ': 该表达式不能赋值');
+            }
             this._isLocked = !!isLocked;
-            this.viewModel.setValue(this.expression, value);
+            this._watcher.setValue(value);
         }
         
         // 创建对应表达式的watcher

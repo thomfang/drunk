@@ -11,8 +11,8 @@
 module drunk.parser {
     
     export interface Getter {
-        (viewModel: ViewModel, ...args: any[]): any;
-        filters?: filter.FilterDef[];
+        (viewModel: ViewModel, ...args: Array<any>): any;
+        filters?: Array<filter.FilterDef>;
         dynamic?: boolean;
     }
     
@@ -22,7 +22,7 @@ module drunk.parser {
     
     interface FilterCache {
         input: string;
-        filters: filter.FilterDef[];
+        filters: Array<filter.FilterDef>;
     }
     
     var eventName = "$event";
@@ -33,7 +33,7 @@ module drunk.parser {
     var getHandlerOperation = contextName + ".getHandler";
     
     // 保留关键字
-    var reserved: string[] = [
+    var reserved: Array<string> = [
         'break', 'case', 'catch', 'continue', 'debugger', 'default', 'delete', 'do',
         'else', 'finally', 'for', 'function', 'if', 'in', 'instanceof', 'new', 'return',
         'switch', 'this', 'throw', 'try', 'typeof', 'var', 'void', 'while',
@@ -41,7 +41,7 @@ module drunk.parser {
         'let', 'abstract', 'import', 'yield', 'arguments'
     ];
     
-    var tokenCache: {[expression: string]: any[]} = {};
+    var tokenCache: {[expression: string]: Array<any>} = {};
     var getterCache: {[expression: string]: Getter} = {};
     var setterCache: {[expression: string]: Setter} = {};
     var filterCache: {[expression: string]: FilterCache} = {};
@@ -60,7 +60,7 @@ module drunk.parser {
     // 解析filter定义
     function parseFilterDef(str: string, skipSetter: boolean = false) {
         if (!filterCache[str]) {
-            var def: filter.FilterDef[] = [];
+            var def: Array<filter.FilterDef> = [];
             var idx: number;
             
             str.replace(regFilter, ($0, quote, name, args, i) => {
@@ -177,14 +177,14 @@ module drunk.parser {
     }
     
     // 创建函数
-    function createFunction(expression, ...args: string[]): any {
+    function createFunction(expression, ...args: Array<string>): any {
         try {
             return Function.apply(Function, args);
         }
         catch (err) {
             console.error(
-                '创建getter/setter失败\n\n',
-                '非法的表达式"' + expression + '",解析后的结果为:\n\n',
+                '解析错误\n\n',
+                '非法的表达式"' + expression + '", 尝试解析后的结果为:\n\n',
                 args[args.length - 1], '\n\n',
                 err.stack
             );
