@@ -19,7 +19,7 @@ module drunk {
      */
     export class ViewModel {
 
-        _models: Model[];
+        _model: Model;
         _bindings: Binding[];
         _watchers: { [on: string]: Watcher };
         
@@ -41,17 +41,9 @@ module drunk {
             model = model || {};
             observable.create(model);
             
-            util.defineProperty(this, "_models", [model]);
+            util.defineProperty(this, "_model", model);
             util.defineProperty(this, "_bindings", []);
             util.defineProperty(this, "_watchers", {});
-        }
-        
-        /**
-         * 初始化
-         * @method initialize
-         */
-        initialize() {
-            
         }
         
         /**
@@ -64,9 +56,14 @@ module drunk {
             if (ViewModel.isProxy(this, name)) {
                 return;
             }
-
-            var model = this._models[this._models.length - 1];
-            ViewModel.proxy(this, name, model);
+            
+            var value = this[name];
+            
+            ViewModel.proxy(this, name, this._model);
+            
+            if (value !== undefined) {
+                this[name] = value;
+            }
         }
         
         /**
@@ -138,8 +135,6 @@ module drunk {
          * @method toJSON
          */
         toJSON() {
-            var json: Model = {};
-            
             // 深度拷贝
             function deepClone(des, src) {
                 Object.keys(src).forEach((key) => {
@@ -150,11 +145,7 @@ module drunk {
                 return des;
             }
             
-            this._models.forEach((model) => {
-               deepClone(json, model);
-            });
-            
-            return json;
+            return deepClone({}, this._model);
         }
         
         /**
@@ -186,14 +177,28 @@ module drunk {
         
         /**
          * 释放ViewModel实例的所有元素与数据的绑定
+         * 解除所有的代理属性
+         * 解除所有的视图于数据绑定
+         * 销毁所有的watcher
          * 
-         * @method release
-         * @return  {Promise} 返回一个promise对象
+         * @method dispose
          */
-        release(): Promise<any> {
-            return new Promise((resolve, reject) => {
-
+        dispose() {
+            Object.keys(this._model).forEach((property) => {
+                delete this[property];
             });
+            
+            Object.keys(this._watchers).forEach((key) => {
+                this._watchers[key].dispose();
+            });
+            
+            this._bindings.forEach((binding) => {
+                binding.dispose();
+            });
+            
+            this._model = null;
+            this._bindings = null;
+            this._watchers = null;
         }
     }
 

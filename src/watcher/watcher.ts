@@ -85,7 +85,7 @@ module drunk {
             util.removeArrayItem(this._actions, action);
 
             if (!this._actions.length) {
-                this.release();
+                this.dispose();
             }
         }
         
@@ -132,9 +132,9 @@ module drunk {
         
         /**
          * 释放引用和内存
-         * @method release 
+         * @method dispose 
          */
-        release() {
+        dispose() {
             if (!this.isActived) {
                 return;
             }
