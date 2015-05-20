@@ -5,7 +5,6 @@
 /// <reference path="../binding/binding.ts" />
 /// <reference path="../filter/filter" />
 
-
 module drunk {
 
     export interface Model {
@@ -76,6 +75,11 @@ module drunk {
         getHandler(handlerName: string): Function {
             var handler = this.handlers[handlerName];
             var context: any = this;
+            
+            while (!handler && context.parent) {
+                context = context.parent;
+                handler = context.handlers[handlerName];
+            }
             
             if (!handler) {
                 if (typeof window[handlerName] === 'function') {

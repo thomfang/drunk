@@ -29,6 +29,13 @@ module drunk {
             super(_options.model);
         }
         
+        /**
+         * 初始化模板，解析模板的所有绑定
+         * 
+         * @method _initTemplate
+         * @private
+         * @return {Promise}
+         */
         private _initTemplate(): Promise<{element: HTMLElement; executor: BindingExecutor}> {
             var template = this._options.template;
             

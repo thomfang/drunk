@@ -180,7 +180,9 @@ module drunk {
          * @param  {string}          name  指令名
          * @param  {function|Object} def   binding实现的定义对象或绑定的更新函数
          */
-        export function define(name: string, def: BindingDefiniation | BindingUpdateAction): void {
+        export function define(name: string, def: BindingDefiniation): void;
+        export function define(name: string, def: BindingUpdateAction): void;
+        export function define(name: string, def: any): void {
             var definition: BindingDefiniation;
 
             if (typeof def === 'function') {
@@ -241,7 +243,7 @@ module drunk {
             
             // 重新根据优先级排序
             endingList.sort((a, b) => {
-                return a.priority - b.priority;
+                return b.priority - a.priority;
             });
         }
         
