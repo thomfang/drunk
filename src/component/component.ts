@@ -5,7 +5,7 @@
 module drunk {
     
     export interface ComponentOptions {
-        model?: Model;
+        model?: IModel;
         template?: string | HTMLElement;
         filters?: {[name: string]: filter.Filter};
         handlers?: {[name: string]:  (...args: any[]) => any};
@@ -17,7 +17,7 @@ module drunk {
         
         private _children: Component[];
         
-        parent: Component;
+        element: Node;
         
         /**
          * 组件类，继承ViewModel类，实现了模板的准备和数据的绑定

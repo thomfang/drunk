@@ -180,22 +180,11 @@ module drunk {
          * @param  {string}          name  指令名
          * @param  {function|Object} def   binding实现的定义对象或绑定的更新函数
          */
-        export function define(name: string, def: BindingDefiniation): void;
-        export function define(name: string, def: BindingUpdateAction): void;
-        export function define(name: string, def: any): void {
+        export function define(name: string, def: BindingDefiniation): void {
             var definition: BindingDefiniation;
 
-            if (typeof def === 'function') {
-                definition = {
-                    update: (<BindingUpdateAction>def)
-                };
-            }
-            else {
-                definition = def;
-
-                if (definition.isEnding) {
-                    Binding.setEnding(name, definition.priority || 0);
-                }
+            if (definition.isEnding) {
+                Binding.setEnding(name, definition.priority || 0);
             }
 
             if (definitionMap[name] && config.debug) {

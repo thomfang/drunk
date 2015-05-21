@@ -4,10 +4,12 @@
 /// <reference path="../watcher/watcher.ts" />
 /// <reference path="../binding/binding.ts" />
 /// <reference path="../filter/filter" />
+/// <reference path="../events/events" />
+
 
 module drunk {
 
-    export interface Model {
+    export interface IModel {
         [key: string]: any;
     }
     
@@ -16,9 +18,9 @@ module drunk {
      * 
      * @class ViewModel
      */
-    export class ViewModel {
+    export class ViewModel extends Events {
 
-        _model: Model;
+        _model: IModel;
         _bindings: Binding[];
         _watchers: { [on: string]: Watcher };
         
@@ -36,7 +38,13 @@ module drunk {
          */
         handlers: {[name: string]: (...args: any[]) => any};
 
-        constructor(model?: Model) {
+        /**
+         * constructor
+         * @param  {IModel} [model] 数据
+         */
+        constructor(model?: IModel) {
+            super();
+            
             model = model || {};
             observable.create(model);
             
@@ -46,7 +54,7 @@ module drunk {
         }
         
         /**
-         * 代理某个属性到最新的Model上
+         * 代理某个属性到最新的IModel上
          * 
          * @method proxy
          * @param  {string}  name  需要代理的属性名
@@ -75,11 +83,6 @@ module drunk {
         getHandler(handlerName: string): Function {
             var handler = this.handlers[handlerName];
             var context: any = this;
-            
-            while (!handler && context.parent) {
-                context = context.parent;
-                handler = context.handlers[handlerName];
-            }
             
             if (!handler) {
                 if (typeof window[handlerName] === 'function') {
@@ -135,10 +138,11 @@ module drunk {
         }
         
         /**
-         * 把model数据转成json
-         * @method toJSON
+         * 把model数据转成json并返回
+         * @method getModel
+         * @return {IModel}  反悔json格式的不带getter/setter的model
          */
-        toJSON() {
+        getModel() {
             // 深度拷贝
             function deepClone(des, src) {
                 Object.keys(src).forEach((key) => {
@@ -183,6 +187,7 @@ module drunk {
          * 释放ViewModel实例的所有元素与数据的绑定
          * 解除所有的代理属性
          * 解除所有的视图于数据绑定
+         * 移除事件缓存
          * 销毁所有的watcher
          * 
          * @method dispose
@@ -201,6 +206,7 @@ module drunk {
             });
             
             this._model = null;
+            this._events = null;
             this._bindings = null;
             this._watchers = null;
         }

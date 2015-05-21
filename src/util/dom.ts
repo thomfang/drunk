@@ -30,18 +30,6 @@ module drunk.dom {
 
         return div.firstChild;
     }
-    
-    export function setRef(a: any, b: any) {
-        a.__ref__ = b;
-    }
-    
-    export function getRef(node: any): any {
-        return node.__ref__ || node;
-    }
-    
-    export function cleanRef(node: any) {
-        node.__ref__ = null;
-    }
 
     /**
      * 在旧的元素节点前插入新的元素节点
