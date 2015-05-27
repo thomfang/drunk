@@ -100,6 +100,39 @@ module drunk.util {
             enumerable: !!enumerable
         });
     }
+    
+    /**
+     * 属性代理,把a对象的某个属性的读写代理到b对象上,返回代理是否成功的结果
+     * @method proxy
+     * @static
+     * @param  {Object}  a         对象a
+     * @param  {string}  property  属性名
+     * @param  {Object}  b         对象b
+     * @return {boolean}           如果已经代理过,则不再代理该属性
+     */
+    export function proxy(a: Object, property: string, b: Object) {
+        var des = Object.getOwnPropertyDescriptor(a, property);
+        
+        if (des && typeof des.get === 'function' && des.get === des.set) {
+            return false;
+        }
+        
+        function proxyGetterSetter() {
+            if (arguments.length === 0) {
+                return b[property];
+            }
+            b[property] = arguments[0];
+        }
+        
+        Object.defineProperty(a, property, {
+            enumerable: true,
+            configurable: true,
+            set: proxyGetterSetter,
+            get: proxyGetterSetter
+        });
+        
+        return true;
+    }
 
     /**
      * 设置函数在下一帧执行

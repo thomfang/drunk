@@ -29,32 +29,63 @@ module drunk.filter {
      * 
      * @method applyFilters
      * @static
-     * @param  {any}            input       输入
+     * @param  {any}            value       输入
      * @param  {FilterDef[]}    filterDefs  filter定义集合
      * @param  {ViewModel}      viewModel   ViewModel实例
      * @param  {any[]}          ...args     其他参数
      * @return {any}                        过滤后得到的值
      */
-    export function applyFilters(input: any, filterDefs: FilterDef[], viewModel: ViewModel, ...args: any[]): any {
+    export function applyFilters(value: any, filterDefs: any, filterMap: { [name: string]: Filter }, isInterpolate: boolean, viewModel: ViewModel,   ...args: any[]): any {
         if (!filterDefs) {
-            return input;
-        }
-
-        var filters = viewModel.filter;
-        var method: Filter;
-
-        filterDefs.forEach((def) => {
-            method = filters[def.name];
-
-            if ("function" !== typeof method) {
-                return console.error(def.name, "filter未找到");
+                return isInterpolate ? getInterpolateValue(value) : value;
             }
 
-            var params = def.param ? def.param(viewModel, ...args) : [];
-            input = method(input, ...params);
-        });
+            if (isInterpolate) {
+                // 如果是插值表达式,插值表达式的每个token对应自己的filter,需要一个个进行处理,
+                // 如果某个token没有filter说明那个token只是普通的字符串,直接返回
+                value = value.map(function (item, i) {
+                    if (!filterDefs[i]) {
+                        return item;
+                    }
+                    return filter.applyFilters(item, filterDefs[i], filterMap, false, viewModel);
+                });
+                
+                // 对所有token求值得到的结果做处理,如果是undefined或null类型直接转成空字符串,避免页面显示出undefined或null
+                return getInterpolateValue(value);
+            }
 
-        return input;
+            let name;
+            let param;
+            let method;
+    
+            // 应用于所有的filter
+            filterDefs.forEach(def => {
+                name = def.name;
+                method = filterMap[name];
+
+                if (typeof method !== 'function') {
+                    throw new Error('Filter "' + name + '" not found');
+                }
+
+                param = def.param ? def.param.apply(null, args) : [];
+                value = method.apply(viewModel, [value].concat(param));
+            });
+
+            return value;
+    }
+    
+    // 判断插值表达式的值个数,如果只有一个,则返回该值,如果有多个,则返回所有值的字符串相加
+    function getInterpolateValue(values: any[]): any {
+        if (values.length === 1) {
+            return values[0];
+        }
+        
+        return values.map(item => {
+            if (item == null) {
+                return '';
+            }
+            return typeof item === 'object' ? JSON.stringify(item) : item;
+        }).join('');
     }
 
     var reg = {

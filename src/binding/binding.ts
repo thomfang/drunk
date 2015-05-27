@@ -169,30 +169,44 @@ module drunk {
 
     export module Binding {
 
+        /**
+         * 终止型绑定信息列表,每个绑定信息包含了name(名字)和priority(优先级)信息
+         * @property endingList
+         * @private
+         * @type Array<{name: string; priority: number}>
+         */
         var endingList: { name: string; priority: number }[] = [];
-        var definitionMap: { [name: string]: BindingDefiniation } = {};
         
         /**
-         * 自定义一个binding指令
+         * 终止型绑定的名称
+         * @property endingNames
+         * @private
+         * @type Array<string>
+         */
+        var endingNames: string[] = [];
+        var definitions: { [name: string]: BindingDefiniation } = {};
+        
+        /**
+         * 根据一个绑定原型对象注册一个binding指令
          * 
-         * @method define
+         * @method register
          * @static
          * @param  {string}          name  指令名
          * @param  {function|Object} def   binding实现的定义对象或绑定的更新函数
          */
-        export function define(name: string, def: BindingDefiniation): void {
+        export function register<T extends BindingDefiniation>(name: string, def: T): void {
             var definition: BindingDefiniation;
 
             if (definition.isEnding) {
-                Binding.setEnding(name, definition.priority || 0);
+                setEnding(name, definition.priority || 0);
             }
 
-            if (definitionMap[name] && config.debug) {
-                console.warn(name, "绑定已定义，原定义为：", definitionMap[name]);
+            if (definitions[name]) {
+                console.warn(name, "绑定已定义，原定义为：", definitions[name]);
                 console.warn("替换为", def);
             }
 
-            definitionMap[name] = definition;
+            definitions[name] = definition;
         }
         
         /**
@@ -204,36 +218,7 @@ module drunk {
          * @return {BindingDefinition} 具有绑定定义信息的对象
          */
         export function getDefinintionByName(name: string): BindingDefiniation {
-            return definitionMap[name];
-        }
-        
-        /**
-         * 设置终止型的绑定，根据提供的优先级对终止型绑定列表进行排序，优先级高的绑定会先于优先级的绑定创建
-         * 
-         * @method setEnding
-         * @static
-         * @param  {string}  name      绑定的名称
-         * @param  {number}  priority  绑定的优先级
-         */
-        export function setEnding(name: string, priority: number): void {
-            // 检测是否已经存在该绑定
-            for (var i = 0, item; item = endingList[i]; i++) {
-                if (item.name === name) {
-                    item.priority = priority;
-                    break;
-                }
-            }
-            
-            // 添加到列表中
-            endingList.push({
-                name: name,
-                priority: priority
-            });
-            
-            // 重新根据优先级排序
-            endingList.sort((a, b) => {
-                return b.priority - a.priority;
-            });
+            return definitions[name];
         }
         
         /**
@@ -244,9 +229,7 @@ module drunk {
          * @return {array}  返回绑定名称列表
          */
         export function getEndingNames() {
-            return endingList.map((item) => {
-                return item.name;
-            });
+            return endingNames.slice();
         }
         
         /**
@@ -264,6 +247,37 @@ module drunk {
             util.addArrayItem(viewModel._bindings, binding);
 
             return Promise.resolve(binding.initialize());
+        }
+        
+        /**
+         * 设置终止型的绑定，根据提供的优先级对终止型绑定列表进行排序，优先级高的绑定会先于优先级的绑定创建
+         * 
+         * @method setEnding
+         * @private
+         * @static
+         * @param  {string}  name      绑定的名称
+         * @param  {number}  priority  绑定的优先级
+         */
+        function setEnding(name: string, priority: number): void {
+            // 检测是否已经存在该绑定
+            for (var i = 0, item; item = endingList[i]; i++) {
+                if (item.name === name) {
+                    item.priority = priority;
+                    break;
+                }
+            }
+            
+            // 添加到列表中
+            endingList.push({
+                name: name,
+                priority: priority
+            });
+            
+            // 重新根据优先级排序
+            endingList.sort((a, b) => b.priority - a.priority);
+            
+            // 更新名字列表
+            endingNames = endingList.map(item => item.name);
         }
     }
 }

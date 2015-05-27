@@ -9,9 +9,11 @@
 
 module drunk {
 
-    export interface IModel {
+    export interface IModel extends observable.ObservableObject {
         [key: string]: any;
     }
+    
+    var counter = 0;
     
     /**
      * ViewModel类， 实现数据与模板元素的绑定
@@ -19,10 +21,44 @@ module drunk {
      * @class ViewModel
      */
     export class ViewModel extends Events {
+        
+        /**
+         * 实例是否未被释放
+         * @property _isActived
+         * @type boolean
+         */
+        _isActived: boolean;
 
+        /**
+         * 数据对象
+         * @property _model
+         * @type object
+         * @private
+         */
         _model: IModel;
+        
+        /**
+         * 该实例下所有的绑定实例的列表
+         * @property _bindings
+         * @type Array<Binding>
+         * @private
+         */
         _bindings: Binding[];
+        
+        /**
+         * 该实例下所有的watcher实例表
+         * @property _watchers
+         * @type {[expression]: Watcher}
+         * @private
+         */
         _watchers: { [on: string]: Watcher };
+        
+        /**
+         * 唯一id
+         * @property $id
+         * @type number
+         */
+        $id: number;
         
         /**
          * 过滤器方法,包含内置的
@@ -45,12 +81,23 @@ module drunk {
         constructor(model?: IModel) {
             super();
             
+            this.__init();
+        }
+        
+        protected __init(model?: IModel) {
             model = model || {};
             observable.create(model);
-            
+    
+            util.defineProperty(this, "$id", counter++);
+            util.defineProperty(this, "filter", Object.create(filter.filters));
             util.defineProperty(this, "_model", model);
             util.defineProperty(this, "_bindings", []);
             util.defineProperty(this, "_watchers", {});
+            util.defineProperty(this, "_isActived", true);
+            
+            Object.keys(model).forEach((property) => {
+                this.proxy(property);
+            });
         }
         
         /**
@@ -60,41 +107,15 @@ module drunk {
          * @param  {string}  name  需要代理的属性名
          */
         proxy(name: string): void {
-            if (ViewModel.isProxy(this, name)) {
-                return;
-            }
-            
             var value = this[name];
-            
-            ViewModel.proxy(this, name, this._model);
-            
-            if (value !== undefined) {
-                this[name] = value;
-            }
-        }
         
-        /**
-         * 获取事件回调
-         * 
-         * @method getHandler
-         * @param  {string}  handlerName  时间回调名称
-         * @return {ViewModel} 返回事件处理函数
-         */
-        getHandler(handlerName: string): Function {
-            var handler = this.handlers[handlerName];
-            var context: any = this;
-            
-            if (!handler) {
-                if (typeof window[handlerName] === 'function') {
-                    handler = window[handlerName];
-                    context = window;
-                }
-                throw new Error(handlerName + ": 没有找到该事件处理方法");
+            if (value === undefined) {
+                value = this._model[name];
             }
             
-            return (...args: any[]) => {
-                handler.apply(context, args);
-            };
+            if (util.proxy(this, name, this._model)) {
+                this._model.setProperty(name, value);
+            }
         }
         
         /**
@@ -106,23 +127,20 @@ module drunk {
          * @return {string}                  结果
          */
         eval(expression: string, isInterpolate?: boolean): any {
-            var getter: parser.Getter;
-            var value: any;
-            
+            var getter;
+        
             if (isInterpolate) {
                 getter = parser.parseInterpolate(expression);
+                
+                if (!getter) {
+                    return expression;
+                }
             }
             else {
                 getter = parser.parseGetter(expression);
             }
             
-            value = getter.call(undefined, this);
-            
-            if (getter.filters) {
-                value = filter.applyFilters(value, getter.filters, this);
-            }
-            
-            return value;
+            return this.__getValueByGetter(getter, isInterpolate);
         }
         
         /**
@@ -190,9 +208,9 @@ module drunk {
          * 移除事件缓存
          * 销毁所有的watcher
          * 
-         * @method dispose
+         * @method release
          */
-        dispose() {
+        release() {
             Object.keys(this._model).forEach((property) => {
                 delete this[property];
             });
@@ -210,47 +228,45 @@ module drunk {
             this._bindings = null;
             this._watchers = null;
         }
-    }
-
-    export module ViewModel {
+        
         /**
-         * 数据代理，把对象a的某个属性的读写代理到对象b上
+         * 获取事件回调,内置方法
          * 
-         * @method proxy
-         * @static
-         * @param  {object}  a    对象a
-         * @param  {string}  name 代理的属性名
-         * @param  {object}  b    对象b
+         * @method __getHandler
+         * @internal
+         * @param  {string}  handlerName  时间回调名称
+         * @return {ViewModel} 返回事件处理函数
          */
-        export function proxy(a: Object, name: string, b: Object): void {
-            Object.defineProperty(a, name, {
-                enumerable: true,
-                configurable: true,
-                get: propertyGetterSetter,
-                set: propertyGetterSetter
-            });
-
-            function propertyGetterSetter() {
-                if (arguments.length === 0) {
-                    return b[name];
+        __getHandler(handlerName: string): Function {
+            var handler = this.handlers[handlerName];
+            var context: any = this;
+            
+            if (!handler) {
+                if (typeof window[handlerName] === 'function') {
+                    handler = window[handlerName];
+                    context = window;
                 }
-                b[name] = arguments[0];
+                throw new Error(handlerName + ": 没有找到该事件处理方法");
             }
+            
+            return (...args: any[]) => {
+                handler.apply(context, args);
+            };
         }
         
         /**
-         * 判断对象上的某个属性是否代理到其他对象上
-         * 
-         * @method isProxy
-         * @static
-         * @param  {object} target 目标对象
-         * @param  {string} name   属性名
-         * @return {boolean}       是否代理
+         * 根据getter函数获取数据
+         * @method __getValueByGetter
+         * @param  {function}    getter         表达式解析生成的getter函数
+         * @param  {boolean}     isInterpolate  是否是插值表达式
+         * @param  {Event}       [event]        事件对象
+         * @param  {HTMLElement} [el]           元素对象
+         * @return {any}
          */
-        export function isProxy(target: Object | ViewModel, name: string): boolean {
-            var descriptor = Object.getOwnPropertyDescriptor(target, name);
-
-            return descriptor && descriptor.get === descriptor.set;
-        }
+        __getValueByGetter(getter, isInterpolate) {
+            var args = [this].concat(util.toArray(arguments).slice(1));
+            var value = getter.apply(null, args);
+            return filter.applyFilters.apply(null, [value, getter.filters, this.filter, isInterpolate].concat(args));
+        };
     }
 }
