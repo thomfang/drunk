@@ -180,8 +180,8 @@ module drunk {
          * @method watch
          * @param  {string}  expression  表达式
          */
-        watch(expression: string, action: BindingUpdateAction, isDeepWatch?: boolean) {
-            var key: string = Watcher.getReferKey(expression, isDeepWatch);
+        watch(expression: string, action: BindingUpdateAction, isDeepWatch?: boolean, isImmediate?: boolean) {
+            var key: string = Watcher.getNameOfKey(expression, isDeepWatch);
             var watcher: Watcher;
 
             watcher = this._watchers[key];
@@ -195,6 +195,10 @@ module drunk {
             };
 
             watcher.addAction(wrappedAction);
+            
+            if (isImmediate) {
+                wrappedAction(watcher.value, undefined);
+            }
 
             return () => {
                 watcher.removeAction(wrappedAction);
@@ -208,9 +212,9 @@ module drunk {
          * 移除事件缓存
          * 销毁所有的watcher
          * 
-         * @method release
+         * @method dispose
          */
-        release() {
+        dispose() {
             Object.keys(this._model).forEach((property) => {
                 delete this[property];
             });
@@ -223,8 +227,9 @@ module drunk {
                 binding.dispose();
             });
             
+            Events.cleanup(this);
+            
             this._model = null;
-            this._events = null;
             this._bindings = null;
             this._watchers = null;
         }

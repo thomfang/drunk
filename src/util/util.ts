@@ -8,6 +8,23 @@
  * @main
  */
 module drunk.util {
+    
+    var nameOfUid: string = '__DRUNK_UUID__';
+    var counter: number = 0;
+    
+    /**
+     * 获取对象的为一id
+     * @method uuid
+     * @static
+     * @param  {any}     target  设置的对象
+     * @return {number}
+     */
+    export function uuid(target: any): number {
+        if (typeof target[nameOfUid] === undefined) {
+            target[nameOfUid] = counter++;
+        }
+        return target[nameOfUid];
+    }
 
     /**
      * 判断是否是对象

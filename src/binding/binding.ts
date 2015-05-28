@@ -42,11 +42,11 @@ module drunk {
         isDeepWatch: boolean;
         
         /**
-         * 是否双向绑定
-         * @property isTwowayBinding
+         * 是否是绑定在一个插值表达式
+         * @property isInterpolate
          * @type boolean
          */
-        isTwowayBinding: boolean;
+        isInterpolate: boolean;
         
         /**
          * 绑定的表达式
@@ -59,10 +59,10 @@ module drunk {
         update: BindingUpdateAction;
         release: () => void;
 
-        private _watcher: Watcher;
-        private _getter: parser.Getter;
-        private _isActived: boolean;
-        private _isLocked: boolean;
+        private _isActived: boolean = true;
+        private _isLocked: boolean = false;
+        private _unwatch: () => void;
+        private _update: (newValue: any, oldValue: any) => void;
         
         /**
          * 根据绑定的定义创建一个绑定实例，根据定义进行viewModel与DOM元素绑定的初始化、视图渲染和释放
@@ -87,19 +87,35 @@ module drunk {
             if (this.init) {
                 this.init();
             }
+            
             this._isActived = true;
-
+    
             if (!this.update) {
                 return;
             }
-
-            var getter = parser.parse(this.expression);
+            
+            let expression = this.expression;
+            let isInterpolate = this.isInterpolate;
+            let viewModel = this.viewModel;
+            let getter = parser.parseGetter(expression, isInterpolate);
+            
             if (!getter.dynamic) {
-                // 如果表达式不包含任何变量
-                return this.update(this.viewModel.eval(this.expression), undefined);
+                // 如果只是一个静态表达式直接取值更新
+                return this.update(viewModel.eval(expression, isInterpolate), undefined);
             }
-
-            this._createWatcher();
+    
+            let wrapped = (newValue, oldValue) => {
+                if (!this._isActived || this._isLocked) {
+                    this._isLocked = false;
+                    return;
+                }
+                this.update(newValue, oldValue);
+            }
+    
+            this._unwatch = viewModel.watch(expression, wrapped, this.isDeepWatch, true);
+            
+            this._update = wrapped;
+            
         }
         
         /**
@@ -107,20 +123,24 @@ module drunk {
          * @method teardown
          */
         dispose(): void {
+            if (!this._isActived) {
+                return;
+            }
             if (this.release) {
                 this.release();
             }
-
-            if (this._watcher && this._watcher.isActived) {
-                this._watcher.removeAction(this._update);
-                this._watcher = null;
+            
+            if (this._unwatch) {
+                this._unwatch();
             }
-
+            
+            this._unwatch = null;
+            this._update = null;
+            this._isActived = false;
+            
             this.element = null;
-            this.viewModel = null;
             this.expression = null;
-
-            util.removeArrayItem(this.viewModel._bindings, this);
+            this.viewModel = null;
         }
         
         /**
@@ -131,39 +151,8 @@ module drunk {
          * @param  {boolean} [isLocked] 是否加锁
          */
         setValue(value: any, isLocked?: boolean): void {
-            if (!this._watcher) {
-                throw new Error(this.expression + ': 该表达式不能赋值');
-            }
             this._isLocked = !!isLocked;
-            this._watcher.setValue(value);
-        }
-        
-        // 创建对应表达式的watcher
-        private _createWatcher() {
-            var key: string = Watcher.getReferKey(this.expression, this.isDeepWatch);
-            var watcher: Watcher = this.viewModel._watchers[key];
-
-            if (!watcher) {
-                watcher = new Watcher(this.viewModel, this.expression, this.isDeepWatch);
-                this.viewModel._watchers[key] = watcher;
-            }
-
-            this._update = this._update.bind(this);
-            watcher.addAction(this._update);
-
-            if (watcher.initialized) {
-                // 如果watcher已经初始化得到值,立即调用update方法
-                this.update(watcher.value, undefined);
-            }
-        }
-        
-        // 包装后的update方法
-        private _update(newValue: any, oldValue: any) {
-            if (!this._isActived || this._isLocked) {
-                this._isLocked = false;
-                return;
-            }
-            this.update(newValue, oldValue);
+            this.viewModel.setValue(this.expression, value);
         }
     }
 
@@ -175,7 +164,7 @@ module drunk {
          * @private
          * @type Array<{name: string; priority: number}>
          */
-        var endingList: { name: string; priority: number }[] = [];
+        let endingList: { name: string; priority: number }[] = [];
         
         /**
          * 终止型绑定的名称
@@ -183,8 +172,8 @@ module drunk {
          * @private
          * @type Array<string>
          */
-        var endingNames: string[] = [];
-        var definitions: { [name: string]: BindingDefiniation } = {};
+        let endingNames: string[] = [];
+        let definitions: { [name: string]: BindingDefiniation } = {};
         
         /**
          * 根据一个绑定原型对象注册一个binding指令
@@ -195,7 +184,7 @@ module drunk {
          * @param  {function|Object} def   binding实现的定义对象或绑定的更新函数
          */
         export function register<T extends BindingDefiniation>(name: string, def: T): void {
-            var definition: BindingDefiniation;
+            let definition: BindingDefiniation;
 
             if (definition.isEnding) {
                 setEnding(name, definition.priority || 0);
@@ -242,7 +231,7 @@ module drunk {
          * @return {Promise}                返回promise对象
          */
         export function create(viewModel: ViewModel, element: any, descriptor: BindingDefiniation) {
-            var binding: Binding = new Binding(viewModel, element, descriptor);
+            let binding: Binding = new Binding(viewModel, element, descriptor);
 
             util.addArrayItem(viewModel._bindings, binding);
 
@@ -260,7 +249,7 @@ module drunk {
          */
         function setEnding(name: string, priority: number): void {
             // 检测是否已经存在该绑定
-            for (var i = 0, item; item = endingList[i]; i++) {
+            for (let i = 0, item; item = endingList[i]; i++) {
                 if (item.name === name) {
                     item.priority = priority;
                     break;

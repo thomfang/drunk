@@ -1,133 +1,71 @@
 /// <reference path="../util/util.ts" />
 /// <reference path="./observableArray.ts" />
 /// <reference path="./observableObject.ts" />
+/// <reference path="../events/events" />
+
 
 /**
  * @module drunk.observable
  */
 module drunk.observable {
     
-    var observableIdCounter: number = 0;
+    let observableIdCounter: number = 0;
      
     /**
      * 监控对象类，为每个需要监控的对象和数组生成一个实例，用于代理监听事件
      * 
      * @class Observer
+     * @extends Events
      * @constructor
      */
-    export class Observer {
-
-        private _action: { [property: string]: (() => void)[] };
-        private _itemChangedActions: Array<() => void>;
+    export class Observer extends Events {
         
         /**
-         * observer实例的id
-         * 
-         * @property id
-         * @type number
+         * 属性改变的回调函数列表
+         * @property _propertyChangedCallbackList
+         * @type array
+         * @private
          */
-        id: number = observableIdCounter++;
+        private _propertyChangedCallbackList: EventListener[];
         
         /**
-         * 根据property来添加绑定回调，如果property为null，则添加到数据的全局监听
-         * 
-         * @method bind
-         * @param {string|null} property  要绑定的字段名
-         * @param {function}    action    监听函数
+         * 添加任意属性改变的回调
+         * @method addPropertyChangedCallback
+         * @param  {function}  callback
          */
-        bind(property: string | any, action: () => void): void {
-            if (property == null && typeof action === 'function') {
-                return this._addItemChangedAction(action);
+        addPropertyChangedCallback(callback: EventListener) {
+            if (!this._propertyChangedCallbackList) {
+                this._propertyChangedCallbackList = [];
             }
-
-            if (!this._action) {
-                this._action = {};
-            }
-
-            if (!this._action[property]) {
-                this._action[property] = [];
-            }
-
-            var actions = this._action[property];
-
-            util.addArrayItem(actions, action);
+            util.addArrayItem(this._propertyChangedCallbackList, callback);
         }
-          
+        
         /**
-         * 移除字段的绑定监听，如果property为null，则从全局监听的回调队列中移除
-         * 
-         * @method unbind
-         * @param {string|null} property   字段名
-         * @param {function}    action     要求绑定的回调
+         * 移除任意属性改变的指定回调
+         * @method removePropertyChangedCallback
+         * @param  {function}  callback
          */
-        unbind(property: string | any, action: () => void): void {
-            if (property == null && typeof action === 'function') {
-                return this._removeItemChangedAction(action);
+        removePropertyChangedCallback(callback: EventListener) {
+            if (!this._propertyChangedCallbackList) {
+                this._propertyChangedCallbackList = [];
             }
-
-            if (!this._action || !this._action[property] || !this._action[property].length) {
-                return;
-            }
-
-            var actions = this._action[property];
-
-            util.removeArrayItem(actions, action);
+            util.addArrayItem(this._propertyChangedCallbackList, callback);
             
-            if (action.length === 0) {
-                this._action[property] = null;
+            if (this._propertyChangedCallbackList.length === 0) {
+                this._propertyChangedCallbackList = null;
             }
         }
           
         /**
-         * 通知某字段已更新
-         * 
+         * 发送任意属性改变的通知
          * @method notify
-         * @param {string} [property] 字段名，如果字段为null，则通知全局更新
          */
-        notify(property?: string): void {
-            if (property == null) {
-                return this._notifyItemChanged();
-            }
-
-            if (!this._action || !this._action[property] || !this._action[property].length) {
+        notify() {
+            if (!this._propertyChangedCallbackList) {
                 return;
             }
-
-            var actions = this._action[property];
-
-            actions.forEach((action) => {
-                action.call(null);
-            });
-        }
-
-        private _addItemChangedAction(action: () => void) {
-            if (!this._itemChangedActions) {
-                this._itemChangedActions = [];
-            }
-
-            util.addArrayItem(this._itemChangedActions, action);
-        }
-
-        private _removeItemChangedAction(action: () => void) {
-            if (!this._itemChangedActions || !this._itemChangedActions.length) {
-                return;
-            }
-
-            util.removeArrayItem(this._itemChangedActions, action);
             
-            if (this._itemChangedActions.length === 0) {
-                this._itemChangedActions = null;
-            }
-        }
-
-        private _notifyItemChanged() {
-            if (!this._itemChangedActions || !this._itemChangedActions.length) {
-                return;
-            }
-
-            this._itemChangedActions.forEach((action) => {
-                action.call(null);
-            });
+            this._propertyChangedCallbackList.forEach(callback => callback());
         }
     }
 }

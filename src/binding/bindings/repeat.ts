@@ -211,7 +211,7 @@ module drunk {
                 }
 
                 dom.remove(viewModel.element);
-                viewModel.release();
+                viewModel.dispose();
             });
         },
 
