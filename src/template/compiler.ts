@@ -6,7 +6,6 @@
 
 /**
  * 模板工具模块， 提供编译创建绑定，模板加载的工具方法
- * 
  * @module drunk.Template
  * @class Template
  * @main
@@ -15,16 +14,15 @@ module drunk.Template {
     
     /**
      * 编译模板元素生成绑定方法
-     * 
      * @param  {any}        node        模板元素
      * @param  {boolean}    isRootNode  是否是根元素
      * @return {function}               绑定元素与viewModel的方法
      */
-    export function compile(node: any): BindingExecutor {
+    export function compile(node: any): IBindingExecutor {
         var isArray: boolean = Array.isArray(node);
-        var executor: BindingExecutor = isArray || node.nodeType === 11 ? null : compileNode(node);
+        var executor: IBindingExecutor = isArray || node.nodeType === 11 ? null : compileNode(node);
         var isEnding: boolean = executor && executor.isEnding;
-        var childExecutor: BindingExecutor;
+        var childExecutor: IBindingExecutor;
         
         if (isArray) {
             executor = compileNodeList(node);
@@ -55,7 +53,7 @@ module drunk.Template {
     }
     
     // 判断元素是什么类型,调用相应的类型编译方法
-    function compileNode(node: any): BindingExecutor {
+    function compileNode(node: any): IBindingExecutor {
         var nodeType: number = node.nodeType;
         
         if (nodeType === 1 && node.tagName !== "SCRIPT") {
@@ -69,12 +67,12 @@ module drunk.Template {
     }
     
     // 编译NodeList
-    function compileNodeList(nodeList: any[]): BindingExecutor {
+    function compileNodeList(nodeList: any[]): IBindingExecutor {
         var executors: any = [];
         
         util.toArray(nodeList).forEach((node) => {
-            var executor: BindingExecutor;
-            var childExecutor: BindingExecutor;
+            var executor: IBindingExecutor;
+            var childExecutor: IBindingExecutor;
             
             executor = compileNode(node);
             
@@ -92,8 +90,8 @@ module drunk.Template {
                 }
                 
                 var i = 0;
-                var nodeExecutor: BindingExecutor;
-                var childExecutor: BindingExecutor;
+                var nodeExecutor: IBindingExecutor;
+                var childExecutor: IBindingExecutor;
                 
                 util.toArray(nodes).forEach((node) => {
                     nodeExecutor = executors[i++];
@@ -111,7 +109,7 @@ module drunk.Template {
     }
     
     // 编译元素的绑定并创建绑定描述符
-    function compileElement(element: any): BindingExecutor {
+    function compileElement(element: any): IBindingExecutor {
         var executor;
         
         if (element.hasAttributes()) {
@@ -138,7 +136,7 @@ module drunk.Template {
     }
     
     // 编译文本节点
-    function compileTextNode(node: any): BindingExecutor {
+    function compileTextNode(node: any): IBindingExecutor {
         var content: string = node.textContent;
         var tokens: any[] = parser.parseInterpolate(content, true);
         
@@ -177,7 +175,7 @@ module drunk.Template {
     }
     
     // 检测是否存在终止编译的绑定，比如component指令会终止当前编译过程，如果有创建绑定描述符
-    function processEndingBinding(element: any): BindingExecutor {
+    function processEndingBinding(element: any): IBindingExecutor {
         var endings: string[] = Binding.getEndingNames();
         var name: string;
         var expression: string;
@@ -195,7 +193,7 @@ module drunk.Template {
     }
     
     // 查找并创建通常的绑定
-    function processNormalBinding(element: any): BindingExecutor {
+    function processNormalBinding(element: any): IBindingExecutor {
         var executors: any[];
         
         util.toArray(element.attributes).forEach((attr) => {
@@ -237,7 +235,7 @@ module drunk.Template {
     }
     
     // 生成绑定描述符方法
-    function createExecutor(element: any, descriptor: BindingDefiniation): BindingExecutor {
+    function createExecutor(element: any, descriptor: IBindingDefinition): IBindingExecutor {
         var definition = Binding.getDefinintionByName(descriptor.name);
         var executor: any;
         

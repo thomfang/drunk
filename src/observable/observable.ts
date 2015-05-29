@@ -14,7 +14,6 @@ module drunk.observable {
      
     /**
      * 根据数据返回对应的Observer 实例，如果该数据已经存在对应的 Observer 实例则直接返回，否则创建一个新的实例
-     * 
      * @static
      * @method create
      * @param {ObservableArray|ObservableObject} data 数组或JSON对象
@@ -63,7 +62,6 @@ module drunk.observable {
     
     /**
      * 访问observableObject的字段时会调用的回调
-     * 
      * @static
      * @property onAccessingProperty
      * @param {Observer}     observer  返回的当前正在访问的数据的observer对象
@@ -75,7 +73,6 @@ module drunk.observable {
      
     /**
      * 转换对象属性的getter/setter，使其能在数据更新是能接受到事件
-     * 
      * @static
      * @method observe
      * @param {ObservableObject} data  	   JSON对象
@@ -100,7 +97,7 @@ module drunk.observable {
         });
         
         if (valueOb) {
-            valueOb.bind(null, propertyChanged);
+            valueOb.addPropertyChangedCallback(propertyChanged);
         }
         
         // 属性的getter和setter，聚合在一个函数换取空间？
@@ -125,14 +122,14 @@ module drunk.observable {
             }
             
             if (valueOb) {
-                valueOb.unbind(null, propertyChanged);
+                valueOb.addPropertyChangedCallback(propertyChanged);
             }
             
             value = newValue;
             valueOb = create(newValue);
             
             if (valueOb) {
-                valueOb.bind(null, propertyChanged);
+                valueOb.addPropertyChangedCallback(propertyChanged);
             }
             
             propertyChanged();
@@ -141,23 +138,22 @@ module drunk.observable {
         // 假设value是一个数组，当数组添加了一个新的item时，
         // 告知data的observer实例派发property改变的通知
         function propertyChanged() {
-            dataOb.notify(property);
+            dataOb.dispatchEvent(property);
         }
     }
      
     /**
      * 通知数据的指定属性更新
-     * 
      * @static
      * @method notify
      * @param {ObservableArray|ObservableObject} data       数据
      * @param {string}  	                     [property] 要通知的字段名，如果该参数不提供，则派发该该数据更新的通知
      */
-    export function notify<T>(data: ObservableArray<T> | ObservableObject, property?: string): void {
+    export function notify<T>(data: ObservableArray<T> | ObservableObject): void {
         var ob: Observer = data.__observer__;
 
         if (ob) {
-            ob.notify(property);
+            ob.notify();
         }
     }
     

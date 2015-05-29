@@ -1,34 +1,34 @@
 /// <reference path="../viewmodel/viewmodel.ts" />
 /// <reference path="../filter/filter" />
+/// <reference path="../cache/cache" />
 
 
 /**
  * 简单的解析器,只是做了字符串替换,然后使用new Function生成函数
- * 
  * @module drunk.parser
  * @class parser
  */
 module drunk.parser {
     
-    export interface Getter {
+    export interface IGetter {
         (viewModel: ViewModel, ...args: Array<any>): any;
         filters?: Array<filter.FilterDef>;
         dynamic?: boolean;
         isInterpolate?: boolean;
     }
     
-    export interface Setter {
+    export interface ISetter {
         (viewModel: ViewModel, value: any): any;
     }
     
-    interface FilterCache {
+    interface IFilterCache {
         input: string;
         filters: Array<filter.FilterDef>;
     }
     
     var eventName = "$event";
-    var valueName = "__value";
     var elementName = "$el";
+    var valueName = "__value";
     var contextName = "__context";
     var proxyOperation = contextName + ".proxy";
     var getHandlerOperation = contextName + ".__getHandler";
@@ -42,13 +42,13 @@ module drunk.parser {
         'let', 'abstract', 'import', 'yield', 'arguments'
     ];
     
-    var tokenCache: {[expression: string]: Array<any>} = {};
-    var getterCache: {[expression: string]: Getter} = {};
-    var setterCache: {[expression: string]: Setter} = {};
-    var filterCache: {[expression: string]: FilterCache} = {};
-    var expressionCache: {[expression: string]: Getter} = {};
-    var identifierCache: {[expression: string]: any} = {};
-    var interpolateGetterCache: {[expression: string]: Getter} = {};
+    var tokenCache = new Cache<any[]>();
+    var getterCache = new Cache<IGetter>();
+    var setterCache = new Cache<ISetter>();
+    var filterCache = new Cache<IFilterCache>();
+    var expressionCache = new Cache<IGetter>();
+    var identifierCache = new Cache<any>();
+    var interpolateGetterCache = new Cache<IGetter>();
     
     var regIdentifier = /("|').*?\1|[a-zA-Z$_][a-z0-9A-Z$_]*/g;
     var regFilter = /("|').*?\1|\|\||\|\s*([a-zA-Z$_][a-z0-9A-Z$_]*)(:[^|]*)?/g;
@@ -60,7 +60,7 @@ module drunk.parser {
 
     // 解析filter定义
     function parseFilterDef(str: string, skipSetter: boolean = false) {
-        if (!filterCache[str]) {
+        if (!filterCache.get(str)) {
             var def: Array<filter.FilterDef> = [];
             var idx: number;
             
@@ -74,7 +74,7 @@ module drunk.parser {
                     idx = i;
                 }
                 
-                var param: Getter;
+                var param: IGetter;
                 if (args) {
                     param = parseGetter('[' + args.slice(1) + ']');
                 }
@@ -85,13 +85,13 @@ module drunk.parser {
                 return;
             }
             
-            filterCache[str] = {
+            filterCache.set(str, {
                 input: str.slice(0, idx).trim(),
                 filters: def
-            };
+            });
         }
         
-        return filterCache[str];
+        return filterCache.get(str);
     }
     
     // 断言非空字符串
@@ -118,7 +118,7 @@ module drunk.parser {
     
     // 解析所有的标记并对表达式进行格式化
     function parseIdentifier(str: string) {
-        var cache = identifierCache[str];
+        var cache = identifierCache.get(str);
         
         if (!cache) {
             var index = 0;
@@ -171,7 +171,7 @@ module drunk.parser {
                 identifiers: identifiers
             };
             
-            identifierCache[str] = cache;
+            identifierCache.set(str, cache);
         }
 
         return cache;
@@ -200,17 +200,17 @@ module drunk.parser {
      * @param  {string}  expression  表达式
      * @return {function}            返回一个方法
      */
-    export function parse(expression: string): Getter {
+    export function parse(expression: string): IGetter {
         assertNotEmptyString(expression, "解析表达式失败");
         
-        var fn: Getter = expressionCache[expression];
+        var fn = expressionCache.get(expression);
         
         if (!fn) {
             var detail = parseIdentifier(expression);
             var fnBody = detail.proxies + "return (" + detail.formated + ");";
             
             fn = createFunction(expression, contextName, eventName, eventName, fnBody);
-            expressionCache[expression] = fn;
+            expressionCache.set(expression, fn);
         }
         
         return fn;
@@ -225,14 +225,14 @@ module drunk.parser {
      * @param  {boolean} skipFilter  跳过解析filter
      * @return {function}            getter函数
      */
-    export function parseGetter(expression: string, skipFilter?: boolean): Getter {
+    export function parseGetter(expression: string, skipFilter?: boolean): IGetter {
         assertNotEmptyString(expression, "创建getter失败");
         
-        var getter: Getter = getterCache[expression];
+        var getter = getterCache.get(expression);
         
         if (!getter) {
             var input: string = expression;
-            var filter: FilterCache;
+            var filter: IFilterCache;
     
             if (!skipFilter && (filter = parseFilterDef(expression))) {
                 input = filter.input;
@@ -245,7 +245,7 @@ module drunk.parser {
             getter.dynamic = !!detail.identifiers.length;
             getter.filters = filter ? filter.filters : null;
             
-            getterCache[expression] = getter;
+            getterCache.set(expression, getter);
         }
 
         return getter;
@@ -259,17 +259,17 @@ module drunk.parser {
      * @param  {string}  expression 表达式字符串
      * @return {function}           setter函数
      */
-    export function parseSetter(expression: string): Setter {
+    export function parseSetter(expression: string): ISetter {
         assertNotEmptyString(expression, "创建setter失败");
         
-        var setter: Setter = setterCache[expression];
+        var setter = setterCache.get(expression);
 
         if (!setter) {
             var detail = parseIdentifier(expression);
             var fnBody = detail.proxies + "return (" + detail.formated + " = " + valueName + ");";
             
             setter = createFunction(expression, contextName, valueName, fnBody);
-            setterCache[expression] = setter;
+            setterCache.set(expression, setter);
         }
         
         return setter;
@@ -285,12 +285,12 @@ module drunk.parser {
      * @param  {boolean} justTokens  是否只需要返回tokens
      * @return {array|function}      返回token数组或getter函数
      */
-    export function parseInterpolate(expression: string): Getter;
+    export function parseInterpolate(expression: string): IGetter;
     export function parseInterpolate(expression: string, justTokens: boolean): any[];
     export function parseInterpolate(expression: string, justTokens?: boolean): any {
         console.assert(hasInterpolation(expression), "parseInterpolate: 非法表达式", expression);
         
-        var tokens = tokenCache[expression];
+        var tokens = tokenCache.get(expression);
         
         if (!tokens) {
             tokens = [];
@@ -313,7 +313,7 @@ module drunk.parser {
                 tokens.push(expression.slice(index));
             }
             
-            tokenCache[expression] = tokens;
+            tokenCache.set(expression, tokens);
         }
         if (!tokens.length) {
             return;
@@ -335,8 +335,8 @@ module drunk.parser {
     }
     
     // 根据token生成getter函数
-    function tokensToGetter(tokens: any[], expression): Getter {
-        var getter = interpolateGetterCache[expression];
+    function tokensToGetter(tokens: any[], expression): IGetter {
+        var getter = interpolateGetterCache.get(expression);
 
         if (!getter) {
             var dynamic = false;
@@ -374,7 +374,7 @@ module drunk.parser {
             getter.filters = filters;
             getter.isInterpolate = true;
             
-            interpolateGetterCache[expression] = getter;
+            interpolateGetterCache.set(expression, getter);
         }
         return getter;
     }

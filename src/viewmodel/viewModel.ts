@@ -6,7 +6,6 @@
 /// <reference path="../filter/filter" />
 /// <reference path="../events/events" />
 
-
 module drunk {
 
     export interface IModel extends observable.ObservableObject {
@@ -65,7 +64,7 @@ module drunk {
          * @property filter
          * @type Filter
          */
-        filter: {[name: string]: filter.Filter};
+        filter: {[name: string]: filter.IFilter};
         
         /**
          * 事件处理方法集合
@@ -180,7 +179,7 @@ module drunk {
          * @method watch
          * @param  {string}  expression  表达式
          */
-        watch(expression: string, action: BindingUpdateAction, isDeepWatch?: boolean, isImmediate?: boolean) {
+        watch(expression: string, action: IBindingUpdateAction, isDeepWatch?: boolean, isImmediate?: boolean) {
             var key: string = Watcher.getNameOfKey(expression, isDeepWatch);
             var watcher: Watcher;
 
@@ -190,7 +189,7 @@ module drunk {
                 watcher = new Watcher(this, expression, isDeepWatch);
             }
 
-            var wrappedAction: BindingUpdateAction = (newValue: any, oldValue: any) => {
+            var wrappedAction: IBindingUpdateAction = (newValue: any, oldValue: any) => {
                 action.call(this, newValue, oldValue);
             };
 

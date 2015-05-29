@@ -19,7 +19,7 @@ module drunk {
     let regParam = /\s+in\s+/;
     let regComma = /\s*,\s*/;
 
-    let RepeatBindingDefinition: BindingDefiniation = {
+    let RepeatBindingDefinition: IBindingDefinition = {
 
         isEnding: true,
         priority: 90,

@@ -79,7 +79,6 @@ module drunk.dom {
 
     /**
      * 新的节点替换旧的节点
-     * 
      * @static
      * @method replace
      * @param  {Node}  newNode  新的节点
@@ -105,7 +104,6 @@ module drunk.dom {
     
     /**
      * 为节点注册事件监听
-     * 
      * @static
      * @method addListener
      * @param  {HTMLElement} element  元素
@@ -118,7 +116,6 @@ module drunk.dom {
     
     /**
      * 移除节点的事件监听
-     * 
      * @static
      * @method removeListener
      * @param  {HTMLElement} element  元素
@@ -131,7 +128,6 @@ module drunk.dom {
     
     /**
      * 添加样式
-     * 
      * @static
      * @method addClass
      * @param  {HTMLElement}  element    元素
@@ -143,7 +139,6 @@ module drunk.dom {
     
     /**
      * 移除样式
-     * 
      * @static
      * @method removeClass
      * @param  {HTMLElement}  element    元素

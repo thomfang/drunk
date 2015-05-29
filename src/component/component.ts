@@ -7,12 +7,17 @@ module drunk {
         name?: string;
         init?: () => void;
         data?: {[name: string]: any};
-        filters?: { [name: string]: filter.Filter };
+        filters?: { [name: string]: filter.IFilter };
         watchers?: { [expression: string]: (newValue: any, oldValue: any) => void};
         handlers?: {[name: string]: (...args: any[]) => any};
         element?: Node | Node[];
         template?: string;
         templateUrl?: string;
+    }
+    
+    export interface IComponentContructor<T extends IComponent> {
+        extend?<T extends IComponent>(name: string | T, members?: T): IComponentContructor<T>;
+        (...args: any[]): T;
     }
 
     export class Component extends ViewModel {
@@ -107,7 +112,7 @@ module drunk {
          * @property filters
          * @type {[name]: Filter}
          */
-        filters: { [name: string]: filter.Filter };
+        filters: { [name: string]: filter.IFilter };
         
         /**
          * 该组件作用域下的事件处理方法
@@ -188,12 +193,12 @@ module drunk {
         }
         
         /**
-         * 初始化模板，解析模板的所有绑定
+         * 处理模板，并返回模板元素
          * 
-         * @method initTemplate
+         * @method processTemplate
          * @return {Promise}
          */
-        initTemplate(templateUrl?: string): Promise<any> {
+        processTemplate(templateUrl?: string): Promise<any> {
             function onFailed(reason) {
                 console.warn("模板加载失败: " + templateUrl, reason);
             }
@@ -283,8 +288,8 @@ module drunk {
             var _super = this;
             var prototype = Object.create(_super.prototype);
             
-            var component = function (model?: IModel) {
-                _super.call(this, model);
+            var component: IComponentContructor<T> = function (...args: any[]) {
+                return _super(this, ...args);
             };
     
             util.extend(prototype, members);
@@ -296,20 +301,20 @@ module drunk {
                 Component.register((<string>name), component);
             }
             else {
-                component['extend'] = Component.extend;
+                component.extend = Component.extend;
             }
     
             return component;
         }
         
-        export function register(name: string, componentContructor: Function) {
+        export function register<T>(name: string, componentContructor: IComponentContructor<T>) {
             console.assert(name.indexOf('-') > -1, "非法组件名:" + name + '组件明必须带"-"字符,如"custom-view".');
             
             if (defined[name] != null) {
                 console.warn('组件 "' + name + '" 已被覆盖,请确认该操作');
             }
             
-            componentContructor['extend'] = Component.extend;
+            componentContructor.extend = Component.extend;
             defined[name] = componentContructor;
         }
     }

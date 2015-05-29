@@ -20,14 +20,14 @@ module drunk {
         }
 
         private _isInterpolate: boolean;
-        private _actions: BindingUpdateAction[] = [];
+        private _actions: IBindingUpdateAction[] = [];
         private _observers: { [id: string]: observable.Observer } = {};
         private _properties: { [number: string]: {[property: string]: boolean}} = {};
         private _tmpObservers: { [id: string]: observable.Observer };
         private _tmpProperties: { [number: string]: {[property: string]: boolean}};
 
         private _timerid: number;
-        private _getter: parser.Getter;
+        private _getter: parser.IGetter;
         
         /**
          * 表达式求值的结果
@@ -56,7 +56,7 @@ module drunk {
          * @param  {boolean}   isDeepWatch 是否深度监听,当对象或数组里的任意一个数据改变都会发送更新消息
          */
         constructor(private viewModel: ViewModel, private expression: string, private isDeepWatch?: boolean) {
-            this._isInterpolate = parser.hasInterpolate(expression);
+            this._isInterpolate = parser.hasInterpolation(expression);
             this._getter = this._isInterpolate ? parser.parseInterpolate(expression) : parser.parseGetter(expression);
             
             if (!this._getter.dynamic) {
@@ -71,7 +71,7 @@ module drunk {
          * @method addAction
          * @param {function} action  回调函数
          */
-        addAction(action: BindingUpdateAction): void {
+        addAction(action: IBindingUpdateAction): void {
             util.addArrayItem(this._actions, action);
         }
         
@@ -81,7 +81,7 @@ module drunk {
          * @method removeAction
          * @param  {function} action 回调函数
          */
-        removeAction(action: BindingUpdateAction): void {
+        removeAction(action: IBindingUpdateAction): void {
             util.removeArrayItem(this._actions, action);
 
             if (!this._actions.length) {

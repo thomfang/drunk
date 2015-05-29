@@ -1,11 +1,11 @@
 module drunk {
 
-    export interface Thenable<R> {
-        then<U>(onFulfillment?: (value: R) => U | Thenable<U>, onRejection?: (error: any) => U | Thenable<U>): Thenable<U>;
+    export interface IThenable<R> {
+        then<U>(onFulfillment?: (value: R) => U | IThenable<U>, onRejection?: (error: any) => U | IThenable<U>): IThenable<U>;
     }
 
-    export interface Executor<R> {
-        (resolve: (value?: R | Thenable<R>) => void, reject: (reason?: any) => void): void;
+    export interface IPromiseExecutor<R> {
+        (resolve: (value?: R | IThenable<R>) => void, reject: (reason?: any) => void): void;
     }
 
 
@@ -15,12 +15,12 @@ module drunk {
 
     }
 
-    function init<R>(promise: Promise<R>, executor: Executor<R>): void {
-        function resolve<R>(value: R | Thenable<R>): void {
+    function init<R>(promise: Promise<R>, executor: IPromiseExecutor<R>): void {
+        function resolve<R>(value: R | IThenable<R>): void {
             resolvePromise(promise, value);
         }
 
-        function reject<R>(reason: R | Thenable<R>): void {
+        function reject<R>(reason: R | IThenable<R>): void {
             rejectPromise(promise, reason);
         }
 
@@ -170,7 +170,7 @@ module drunk {
         arr[len + PromiseState.REJECTED] = onRejection;
     }
 
-    export class Promise<R> implements Thenable<R> {
+    export class Promise<R> implements IThenable<R> {
 
         static all<R>(iterable: any[]): Promise<R[]> {
             return new Promise((resolve, reject) => {
@@ -261,7 +261,7 @@ module drunk {
             });
         }
 
-        static resolve<R>(value?: R | Thenable<R>): Promise<R> {
+        static resolve<R>(value?: R | IThenable<R>): Promise<R> {
             var promise = new Promise(noop);
 
             if (!isThenable(value)) {
@@ -274,7 +274,7 @@ module drunk {
             return promise;
         }
 
-        static reject<R>(reason?: R | Thenable<R>): Promise<R> {
+        static reject<R>(reason?: R | IThenable<R>): Promise<R> {
             var promise = new Promise(noop);
 
             if (!isThenable(reason)) {
@@ -291,7 +291,7 @@ module drunk {
         _value: any;
         _listeners: any[] = [];
 
-        constructor(executor: Executor<R>) {
+        constructor(executor: IPromiseExecutor<R>) {
             if (typeof executor !== 'function') {
                 throw new TypeError("Promise constructor takes a function argument");
             }
@@ -302,7 +302,7 @@ module drunk {
             init(this, executor);
         }
 
-        then<U>(onFulfillment?: (value: R) => U | Thenable<U>, onRejection?: (reason: any) => U | Thenable<U>): Promise<U> {
+        then<U>(onFulfillment?: (value: R) => U | IThenable<U>, onRejection?: (reason: any) => U | IThenable<U>): Promise<U> {
             var state = this._state;
             var value = this._value;
 
@@ -329,7 +329,7 @@ module drunk {
             return promise;
         }
 
-        catch<U>(onRejection?: (reason: any) => U | Thenable<U>): Promise<U> {
+        catch<U>(onRejection?: (reason: any) => U | IThenable<U>): Promise<U> {
             return this.then(null, onRejection);
         }
     }

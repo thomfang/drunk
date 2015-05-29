@@ -9,11 +9,11 @@
 
 module drunk {
 
-    export interface BindingUpdateAction {
+    export interface IBindingUpdateAction {
         (newValue: any, oldValue: any): any;
     }
 
-    export interface BindingDefiniation {
+    export interface IBindingDefinition {
         name?: string;
         isDeepWatch?: boolean;
         isTwowayBinding?: boolean;
@@ -27,7 +27,7 @@ module drunk {
         release?(): void;
     }
 
-    export interface BindingExecutor {
+    export interface IBindingExecutor {
         (viewModel: ViewModel, element: any): void;
         isEnding?: boolean;
     }
@@ -56,7 +56,7 @@ module drunk {
         expression: string;
 
         init: () => void;
-        update: BindingUpdateAction;
+        update: IBindingUpdateAction;
         release: () => void;
 
         private _isActived: boolean = true;
@@ -173,7 +173,7 @@ module drunk {
          * @type Array<string>
          */
         let endingNames: string[] = [];
-        let definitions: { [name: string]: BindingDefiniation } = {};
+        let definitions: { [name: string]: IBindingDefinition } = {};
         
         /**
          * 根据一个绑定原型对象注册一个binding指令
@@ -183,8 +183,8 @@ module drunk {
          * @param  {string}          name  指令名
          * @param  {function|Object} def   binding实现的定义对象或绑定的更新函数
          */
-        export function register<T extends BindingDefiniation>(name: string, def: T): void {
-            let definition: BindingDefiniation;
+        export function register<T extends IBindingDefinition>(name: string, def: T): void {
+            let definition: IBindingDefinition;
 
             if (definition.isEnding) {
                 setEnding(name, definition.priority || 0);
@@ -206,7 +206,7 @@ module drunk {
          * @param  {string}  name      绑定的名称
          * @return {BindingDefinition} 具有绑定定义信息的对象
          */
-        export function getDefinintionByName(name: string): BindingDefiniation {
+        export function getDefinintionByName(name: string): IBindingDefinition {
             return definitions[name];
         }
         
@@ -230,7 +230,7 @@ module drunk {
          * @param  {HTMLElement} element    元素
          * @return {Promise}                返回promise对象
          */
-        export function create(viewModel: ViewModel, element: any, descriptor: BindingDefiniation) {
+        export function create(viewModel: ViewModel, element: any, descriptor: IBindingDefinition) {
             let binding: Binding = new Binding(viewModel, element, descriptor);
 
             util.addArrayItem(viewModel._bindings, binding);

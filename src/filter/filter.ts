@@ -15,13 +15,13 @@ module drunk.filter {
      * @param  {any[]} [...arggs]   其他参数
      * @return {any}                返回值
      */
-    export interface Filter {
+    export interface IFilter {
         (input: any, ...args: any[]): any;
     }
 
     export interface FilterDef {
         name: string;
-        param?: parser.Getter;
+        param?: parser.IGetter;
     }
     
     /**
@@ -35,7 +35,7 @@ module drunk.filter {
      * @param  {any[]}          ...args     其他参数
      * @return {any}                        过滤后得到的值
      */
-    export function applyFilters(value: any, filterDefs: any, filterMap: { [name: string]: Filter }, isInterpolate: boolean, viewModel: ViewModel,   ...args: any[]): any {
+    export function applyFilters(value: any, filterDefs: any, filterMap: { [name: string]: IFilter }, isInterpolate: boolean, viewModel: ViewModel,   ...args: any[]): any {
         if (!filterDefs) {
                 return isInterpolate ? getInterpolateValue(value) : value;
             }
@@ -113,7 +113,7 @@ module drunk.filter {
         "&gt;": ">"
     };
 
-    export var filters: { [name: string]: Filter } = {
+    export var filters: { [name: string]: IFilter } = {
         
         /**
          * 对输入的字符串进行编码

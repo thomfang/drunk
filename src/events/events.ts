@@ -2,20 +2,20 @@
 
 module drunk {
     
-    export interface EventListener {
+    export interface IEventListener {
         (...args: any[]): void;
     }
     
-    var eventCache: {[id: number]: {[type: string]: EventListener[]}} = {};
+    let eventStore: {[id: number]: {[type: string]: IEventListener[]}} = {};
     
-    function getCache(object: any) {
-        var id = util.uuid(object);
+    function getStore(object: any) {
+        let id = util.uuid(object);
         
-        if (!eventCache[id]) {
-            eventCache[id] = {};
+        if (!eventStore[id]) {
+            eventStore[id] = {};
         }
         
-        return eventCache[id];
+        return eventStore[id];
     }
     
     /**
@@ -30,16 +30,16 @@ module drunk {
          * 
          * @method addListener
          * @param  {string}          type       事件类型
-         * @param  {EventListener}   listener   事件回调
+         * @param  {IEventListener}   listener   事件回调
          */
-        addListener(type: string, listener: EventListener): void {
-            var cache = getCache(this);
+        addListener(type: string, listener: IEventListener): void {
+            let store = getStore(this);
             
-            if (!cache[type]) {
-                cache[type] = [];
+            if (!store[type]) {
+                store[type] = [];
             }
             
-            util.addArrayItem(cache[type], listener);
+            util.addArrayItem(store[type], listener);
         }
         
         /**
@@ -47,11 +47,11 @@ module drunk {
          * 
          * @method removeListener
          * @param  {string}         type     事件类型
-         * @param  {EventListener}  listener 事件回调
+         * @param  {IEventListener}  listener 事件回调
          */
-        removeListener(type: string, listener: EventListener): void {
-            var cache = getCache(this);
-            var listeners = cache[type];
+        removeListener(type: string, listener: IEventListener): void {
+            let store = getStore(this);
+            let listeners = store[type];
             
             if (!listeners || listeners.length) {
                 return;
@@ -68,15 +68,15 @@ module drunk {
          * @param  {any[]}   ...args    其他参数
          */
         dispatchEvent(type: string, ...args: any[]): void {
-            var cache = getCache(this);
-            var listeners = cache[type];
+            let store = getStore(this);
+            let listeners = store[type];
             
             if (!listeners || !listeners.length) {
                 return;
             }
             
             listeners.slice().forEach((listener) => {
-                listener.apply(this, args);
+                listener(this, ...args);
             });
         }
         
@@ -89,13 +89,13 @@ module drunk {
          * @return {number}
          */
         static getListenerCount(object: any, type: string): number {
-            var cache = getCache(object);
+            let store = getStore(object);
             
-            if (!cache[type]) {
+            if (!store[type]) {
                 return 0;
             }
             
-            return cache[type].length;
+            return store[type].length;
         }
         
         /**
@@ -105,8 +105,8 @@ module drunk {
          * @param  {object}  object  指定对象
          */
         static cleanup(object: any) {
-            var id = util.uuid(object);
-            eventCache[id] = null;
+            let id = util.uuid(object);
+            eventStore[id] = null;
         };
     }
 }

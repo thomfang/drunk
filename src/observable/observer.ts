@@ -3,17 +3,13 @@
 /// <reference path="./observableObject.ts" />
 /// <reference path="../events/events" />
 
-
 /**
  * @module drunk.observable
  */
 module drunk.observable {
     
-    let observableIdCounter: number = 0;
-     
     /**
      * 监控对象类，为每个需要监控的对象和数组生成一个实例，用于代理监听事件
-     * 
      * @class Observer
      * @extends Events
      * @constructor
@@ -26,14 +22,14 @@ module drunk.observable {
          * @type array
          * @private
          */
-        private _propertyChangedCallbackList: EventListener[];
+        private _propertyChangedCallbackList: IEventListener[];
         
         /**
          * 添加任意属性改变的回调
          * @method addPropertyChangedCallback
          * @param  {function}  callback
          */
-        addPropertyChangedCallback(callback: EventListener) {
+        addPropertyChangedCallback(callback: IEventListener) {
             if (!this._propertyChangedCallbackList) {
                 this._propertyChangedCallbackList = [];
             }
@@ -45,7 +41,7 @@ module drunk.observable {
          * @method removePropertyChangedCallback
          * @param  {function}  callback
          */
-        removePropertyChangedCallback(callback: EventListener) {
+        removePropertyChangedCallback(callback: IEventListener) {
             if (!this._propertyChangedCallbackList) {
                 this._propertyChangedCallbackList = [];
             }
