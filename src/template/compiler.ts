@@ -21,11 +21,15 @@ module drunk.Template {
      * @return {function}               绑定元素与viewModel的方法
      */
     export function compile(node: any): BindingExecutor {
-        var executor: BindingExecutor = node.nodeType === 11 ? null : compileNode(node);
+        var isArray: boolean = Array.isArray(node);
+        var executor: BindingExecutor = isArray || node.nodeType === 11 ? null : compileNode(node);
         var isEnding: boolean = executor && executor.isEnding;
         var childExecutor: BindingExecutor;
         
-        if (!isEnding && node.tagName !== 'SCRIPT' && node.hasChildNodes()) {
+        if (isArray) {
+            executor = compileNodeList(node);
+        }
+        else if (!isEnding && node.tagName !== 'SCRIPT' && node.hasChildNodes()) {
             childExecutor = compileNodeList(node.childNodes);
         }
         
@@ -113,7 +117,7 @@ module drunk.Template {
         if (element.hasAttributes()) {
             // 如果元素上有属性， 先判断是否存在终止型绑定指令
             // 如果不存在则判断是否有普通的绑定指令
-            executor = processEndingBinding(element) || processComponent(element) || processNormalBinding(element);
+            executor = processEndingBinding(element) || processNormalBinding(element);
         }
         
         if (element.tagName === 'TEXTAREA') {
@@ -183,21 +187,10 @@ module drunk.Template {
                 // 如果存在该绑定
                 return createExecutor(element, {
                     name: name,
-                    expression: expression
-                }, true);
+                    expression: expression,
+                    isEnding: true
+                });
             }
-        }
-    }
-    
-    // 检测是否是一个组件标签
-    function processComponent(element: any) {
-        var tagName: string = element.tagName.toLowerCase();
-        
-        if (tagName.indexOf("-") > 0) {
-            // 如果标签名有破折号，则认为是自定义标签
-            return (viewModel: ViewModel, template: any) => {
-//                Component.create(tagName, viewModel, template);
-            };
         }
     }
     
@@ -219,7 +212,7 @@ module drunk.Template {
                     expression: expression
                 });
             }
-            else if (parser.hasInterpolate(expression)) {
+            else if (parser.hasInterpolation(expression)) {
                 // 如果是在某个属性上进行插值创建一个attr的绑定
                 executor = createExecutor(element, {
                     name: "attr",
@@ -244,7 +237,7 @@ module drunk.Template {
     }
     
     // 生成绑定描述符方法
-    function createExecutor(element: any, descriptor: BindingDefiniation, isEnding?: boolean): BindingExecutor {
+    function createExecutor(element: any, descriptor: BindingDefiniation): BindingExecutor {
         var definition = Binding.getDefinintionByName(descriptor.name);
         var executor: any;
         
@@ -263,7 +256,7 @@ module drunk.Template {
         executor = (viewModel, element) => {
             Binding.create(viewModel, element, descriptor);
         };
-        executor.isEnding = isEnding;
+        executor.isEnding = descriptor.isEnding;
         
         return executor;
     }

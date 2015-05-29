@@ -11,7 +11,6 @@ module drunk.dom {
 
     /**
      * 根据提供的html字符串创建html元素
-     * 
      * @static
      * @method create
      * @param  {string}  html  html字符串
@@ -33,7 +32,6 @@ module drunk.dom {
 
     /**
      * 在旧的元素节点前插入新的元素节点
-     * 
      * @static
      * @method insertBefore
      * @param  {Node}  newNode  新的节点
@@ -47,7 +45,6 @@ module drunk.dom {
 
     /**
      * 在旧的元素节点后插入新的元素节点
-     * 
      * @static
      * @method insertAfter
      * @param  {Node}  newNode  新的节点
@@ -63,14 +60,20 @@ module drunk.dom {
 
     /**
      * 移除元素节点
-     * 
      * @static
      * @method remove
-     * @param  {Node}  node  节点
+     * @param  {Node|Node[]}  target  节点
      */
-    export function remove(node: Node): void {
-        if (node.parentNode) {
-            node.parentNode.removeChild(node);
+    export function remove(target: Node | Node[]): void {
+        if (Array.isArray(target)) {
+            (<Array<Node>>target).forEach(node => {
+                if (node.parentNode) {
+                    node.parentNode.removeChild(node);
+                }
+            });
+        }
+        else if ((<Node>target).parentNode) {
+            (<Node>target).parentNode.removeChild((<Node>target));
         }
     }
 
@@ -82,9 +85,21 @@ module drunk.dom {
      * @param  {Node}  newNode  新的节点
      * @param  {Node}  oldNode  旧的节点
      */
-    export function replace(newNode: Node, oldNode: Node): void {
-        if (oldNode.parentNode) {
-            oldNode.parentNode.replaceChild(newNode, oldNode);
+    export function replace(newNode: Node | Node[], oldNode: Node): void {
+        var parent = oldNode.parentNode;
+            
+        if (!parent) {
+            return;
+        }
+        
+        if (Array.isArray(newNode)) {
+            (<Array<Node>>newNode).forEach(function (node) {
+                parent.insertBefore(node, oldNode);
+            });
+            parent.removeChild(oldNode);
+        }
+        else {
+            parent.replaceChild((<Node>newNode), oldNode);
         }
     }
     

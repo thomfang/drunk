@@ -3,7 +3,7 @@
 
 
 /**
- * 简单的词法解析器
+ * 简单的解析器,只是做了字符串替换,然后使用new Function生成函数
  * 
  * @module drunk.parser
  * @class parser
@@ -14,6 +14,7 @@ module drunk.parser {
         (viewModel: ViewModel, ...args: Array<any>): any;
         filters?: Array<filter.FilterDef>;
         dynamic?: boolean;
+        isInterpolate?: boolean;
     }
     
     export interface Setter {
@@ -26,18 +27,18 @@ module drunk.parser {
     }
     
     var eventName = "$event";
-    var valueName = "$value";
+    var valueName = "__value";
     var elementName = "$el";
-    var contextName = "$context";
+    var contextName = "__context";
     var proxyOperation = contextName + ".proxy";
-    var getHandlerOperation = contextName + ".getHandler";
+    var getHandlerOperation = contextName + ".__getHandler";
     
     // 保留关键字
     var reserved: Array<string> = [
         'break', 'case', 'catch', 'continue', 'debugger', 'default', 'delete', 'do',
         'else', 'finally', 'for', 'function', 'if', 'in', 'instanceof', 'new', 'return',
         'switch', 'this', 'throw', 'try', 'typeof', 'var', 'void', 'while',
-        'class', 'null', 'undefined', 'true', 'false', 'with', '$event', '$el',
+        'class', 'null', 'undefined', 'true', 'false', 'with', eventName, elementName,
         'let', 'abstract', 'import', 'yield', 'arguments'
     ];
     
@@ -287,9 +288,7 @@ module drunk.parser {
     export function parseInterpolate(expression: string): Getter;
     export function parseInterpolate(expression: string, justTokens: boolean): any[];
     export function parseInterpolate(expression: string, justTokens?: boolean): any {
-        if (hasInterpolate(expression)) {
-            return;
-        }
+        console.assert(hasInterpolation(expression), "parseInterpolate: 非法表达式", expression);
         
         var tokens = tokenCache[expression];
         
@@ -326,49 +325,55 @@ module drunk.parser {
     /**
      * 是否有插值语法
      * 
-     * @method hasInterpolate
+     * @method hasInterpolation
      * @static
      * @param  {string}  str  字符串
      * @return {boolean}      返回结果
      */
-    export function hasInterpolate(str: string): boolean {
-        return str.match(regInterpolate) != null;
+    export function hasInterpolation(str: string): boolean {
+        return typeof str === 'string' && str.match(regAnychar) !== null && str.match(regInterpolate) !== null;
     }
     
     // 根据token生成getter函数
     function tokensToGetter(tokens: any[], expression): Getter {
         var getter = interpolateGetterCache[expression];
-        var dynamic = false;
-        
+
         if (!getter) {
-            tokens = tokens.map((token) => {
-                if (typeof token === "string") {
-                    return token;
-                }
-                if (token && token.expression != null) {
-                    dynamic = true;
-                    return parseGetter(token.expression);
-                }
-                console.error("getter生成失败失败,未知的token:\n", tokens);
-            });
+            var dynamic = false;
+            var filters = [];
             
-            getter = (viewModel: ViewModel) => {
-                var val;
-                var ret;
-                tokens.forEach((token) => {
-                    if (typeof token === 'string') {
-                        val = token;
+            tokens = tokens.map(function (item, i) {
+                if (typeof item === 'string') {
+                    filters[i] = null;
+                    return item;
+                }
+                if (item && item.expression != null) {
+                    getter = parseGetter(item.expression);
+                    filters[i] = getter.filters;
+                    
+                    if (!getter.dynamic) {
+                        return getter(<ViewModel>(null));
                     }
-                    else {
-                        val = viewModel.eval(token);
-                        val = val == null ? '' : val;
+                    dynamic = true;
+                    return getter;
+                }
+                
+                console.error("非法的token:\n", item);
+            });
+
+            getter = (ctx) => {
+                return tokens.map(function (item) {
+                    if (typeof item === 'string') {
+                        return item;
                     }
-                    ret = ret == null ? val : ret + val;
+                    return item.call(null, ctx);
                 });
-                return ret;
             };
 
             getter.dynamic = dynamic;
+            getter.filters = filters;
+            getter.isInterpolate = true;
+            
             interpolateGetterCache[expression] = getter;
         }
         return getter;
