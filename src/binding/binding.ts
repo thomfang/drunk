@@ -3,16 +3,26 @@
 /// <reference path="../template/compiler.ts" />
 /// <reference path="../parser/parser.ts" />
 /// <reference path="../watcher/watcher.ts" />
-/// <reference path="../util/dom.ts" />
+/// <reference path="../util/elem" />
 /// <reference path="../util/util.ts" />
 /// <reference path="../config/config.ts" />
 
 module drunk {
 
+    /**
+     * 绑定更新方法接口
+     * @interface IBindingUpdateAction
+     * @type function
+     */
     export interface IBindingUpdateAction {
         (newValue: any, oldValue: any): any;
     }
 
+    /**
+     * 绑定声明接口
+     * @interface IBindingDefinition
+     * @type object
+     */
     export interface IBindingDefinition {
         name?: string;
         isDeepWatch?: boolean;
@@ -27,6 +37,11 @@ module drunk {
         release?(): void;
     }
 
+    /**
+     * 绑定构建函数接口
+     * @interface IBindingExecutor
+     * @type function
+     */
     export interface IBindingExecutor {
         (viewModel: ViewModel, element: any): void;
         isEnding?: boolean;
@@ -66,7 +81,6 @@ module drunk {
         
         /**
          * 根据绑定的定义创建一个绑定实例，根据定义进行viewModel与DOM元素绑定的初始化、视图渲染和释放
-         * 
          * @class Binding
          * @constructor
          * @param  {ViewModel}          viewModel       ViewModel实例
@@ -183,16 +197,14 @@ module drunk {
          * @param  {string}          name  指令名
          * @param  {function|Object} def   binding实现的定义对象或绑定的更新函数
          */
-        export function register<T extends IBindingDefinition>(name: string, def: T): void {
-            let definition: IBindingDefinition;
-
+        export function register<T extends IBindingDefinition>(name: string, definition: T): void {
             if (definition.isEnding) {
                 setEnding(name, definition.priority || 0);
             }
 
             if (definitions[name]) {
                 console.warn(name, "绑定已定义，原定义为：", definitions[name]);
-                console.warn("替换为", def);
+                console.warn("替换为", definition);
             }
 
             definitions[name] = definition;

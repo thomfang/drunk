@@ -1,5 +1,5 @@
 /// <reference path="../binding" />
-/// <reference path="../../util/dom" />
+/// <reference path="../../util/elem" />
 /// <reference path="../../component/component" />
 /// <reference path="../../template/compiler" />
 /// <reference path="../../viewmodel/viewmodel" />
@@ -39,8 +39,8 @@ module drunk {
             this.startNode = document.createComment(this.expression + " : [循环开始]");
             this.endedNode = document.createComment(this.expression + " : [循环结束]");
 
-            dom.insertBefore(this.startNode, this.element);
-            dom.replace(this.endedNode, this.element);
+            elementUtil.insertBefore(this.startNode, this.element);
+            elementUtil.replace(this.endedNode, this.element);
         },
 
         // 解析表达式定义
@@ -88,7 +88,7 @@ module drunk {
                 viewModel._isChecked = true;
 
                 if (isEmpty) {
-                    dom.insertBefore(viewModel.element, this.endedNode);
+                    elementUtil.insertBefore(viewModel.element, this.endedNode);
                 }
             }
 
@@ -105,7 +105,7 @@ module drunk {
                     el = viewModel.element;
 
                     if (el !== curr) {
-                        dom.insertAfter(el, curr);
+                        elementUtil.insertAfter(el, curr);
                     }
                     else {
                         curr = curr.previousSibling;
@@ -210,7 +210,7 @@ module drunk {
                     util.removeArrayItem(cache[val], viewModel);
                 }
 
-                dom.remove(viewModel.element);
+                elementUtil.remove(viewModel.element);
                 viewModel.dispose();
             });
         },
@@ -220,8 +220,8 @@ module drunk {
                 this.releaseVm(this.itemVms, true);
             }
 
-            dom.remove(this.startNode);
-            dom.replace(this.element, this.endedNode);
+            elementUtil.remove(this.startNode);
+            elementUtil.replace(this.element, this.endedNode);
 
             this.cache = null;
             this.itemVms = null;

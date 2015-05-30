@@ -1,6 +1,7 @@
 /// <reference path="../viewmodel/viewModel.ts" />
 /// <reference path="../promise/promise.ts" />
 /// <reference path="../util/xhr.ts" />
+/// <reference path="../util/elem" />
 /// <reference path="../config/config.ts" />
 /// <reference path="../parser/parser.ts" />
 
@@ -170,7 +171,7 @@ module drunk.Template {
                 }
             });
             
-            dom.replace(frag, element);
+            elementUtil.replace(frag, element);
         };
     }
     

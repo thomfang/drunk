@@ -1,33 +1,28 @@
 ﻿/**
  * DOM操作的工具方法模块
  * 
- * @module drunk.dom
+ * @module drunk.elementUtil
  * @main
- * @class dom
+ * @class ElementUtil
  */
-module drunk.dom {
-
-    var div: HTMLElement = document.createElement("div");
+module drunk.elementUtil {
 
     /**
      * 根据提供的html字符串创建html元素
      * @static
      * @method create
      * @param  {string}  html  html字符串
-     * @return {Node}          创建好的html元素
+     * @return {Node|Node[]}          创建好的html元素
      */
-    export function create(html: string): Node {
+    export function create(html: string): Node | Node[] {
+        var div = document.createElement("div");
         var str = html.trim();
 
         console.assert(str.length > 0, "HTML是空的");
 
         div.innerHTML = str;
 
-        if (div.childNodes.length > 1) {
-            throw new Error("提供的html包含多个根节点，只能存在一个根节点:\n\n" + html);
-        }
-
-        return div.firstChild;
+        return div.childNodes.length === 1 ? div.firstChild : util.toArray(div.childNodes);
     }
 
     /**
@@ -134,7 +129,11 @@ module drunk.dom {
      * @param  {string}       token      样式名
      */
     export function addClass(element: HTMLElement, token: string): void {
-        element.classList.add(token);
+        var list = token.trim().split(/\s+/);
+        
+        list.forEach((name) => {
+            element.classList.add(name);
+        });
     }
     
     /**
@@ -145,6 +144,10 @@ module drunk.dom {
      * @param  {string}       token      样式名
      */
     export function removeClass(element: HTMLElement, token: string): void {
-        element.classList.remove(token);
+        var list = token.trim().split(/\s+/);
+        
+        list.forEach((name) => {
+            element.classList.remove(name);
+        });
     }
 }

@@ -17,7 +17,7 @@ module drunk {
     
     export interface IComponentContructor<T extends IComponent> {
         extend?<T extends IComponent>(name: string | T, members?: T): IComponentContructor<T>;
-        (...args: any[]): T;
+        (...args: any[]): void;
     }
 
     export class Component extends ViewModel {
@@ -204,7 +204,7 @@ module drunk {
             }
             
             if (typeof templateUrl === 'string') {
-                return Template.load(templateUrl).then(dom.create).catch(onFailed);
+                return Template.load(templateUrl).then(elementUtil.create).catch(onFailed);
             }
             
             if (this.element) {
@@ -212,13 +212,13 @@ module drunk {
             }
             
             if (typeof this.template === 'string') {
-                return Promise.resolve(dom.create(this.template));
+                return Promise.resolve(elementUtil.create(this.template));
             }
             
             templateUrl = this.templateUrl;
             
             if (typeof templateUrl === 'string') {
-                return Template.load(templateUrl).then(dom.create).catch(onFailed);
+                return Template.load(templateUrl).then(elementUtil.create).catch(onFailed);
             }
             
             throw new Error((this.name || (<any>this.constructor).name) + "组件模板未指定");
@@ -262,7 +262,7 @@ module drunk {
 
     export module Component {
     
-        export var defined = {};
+        export var defined: {[name: string]: IComponentContructor<any>} = {};
         
         /**
          * 自定义一个组件类
@@ -289,7 +289,7 @@ module drunk {
             var prototype = Object.create(_super.prototype);
             
             var component: IComponentContructor<T> = function (...args: any[]) {
-                return _super(this, ...args);
+                _super(this, ...args);
             };
     
             util.extend(prototype, members);

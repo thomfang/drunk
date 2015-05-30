@@ -98,6 +98,17 @@ module drunk.util {
             array.splice(index, 1);
         }
     }
+    
+    /**
+     * 字符串驼峰化
+     * @method camelCase
+     * @static
+     * @param  {string}  str 字符串
+     * @return {string}
+     */
+    export function camelCase(str: string) {
+        return str.replace(/[-_](\w)/g, ($0, $1) => $1.toUpperCase());
+    }
 
     /**
      * Object.defineProperty的快捷方法，会设置configurable,writable默认为true
