@@ -1,0 +1,43 @@
+{
+    "compilerOptions": {
+        "noImplicitAny": false,
+        "removeComments": true,
+        "target": "ES5",
+        "preserveConstEnums": true,
+        "out": "build/drunk.js",
+        "declaration": true,
+        "sourceMap": true
+    },
+    "files": [
+        "src/promise/promise.ts",
+        "src/config/config.ts",
+        "src/cache/cache.ts",
+        "src/events/events.ts",
+        "src/util/util.ts",
+        "src/util/elem.ts",
+        "src/util/xhr.ts",
+        "src/observable/observableArray.ts",
+        "src/observable/observableObject.ts",
+        "src/observable/observer.ts",
+        "src/observable/observable.ts",
+        "src/filter/filter.ts",
+        "src/parser/parser.ts",
+        "src/template/compiler.ts",
+        "src/template/loader.ts",
+        "src/watcher/watcher.ts",
+        "src/viewmodel/viewmodel.ts",
+        "src/component/component.ts",
+        "src/binding/binding.ts",
+        "src/binding/bindings/on.ts",
+        "src/binding/bindings/attr.ts",
+        "src/binding/bindings/bind.ts",
+        "src/binding/bindings/class.ts",
+        "src/binding/bindings/component.ts",
+        "src/binding/bindings/if.ts",
+        "src/binding/bindings/include.ts",
+        "src/binding/bindings/model.ts",
+        "src/binding/bindings/repeat.ts",
+        "src/binding/bindings/show.ts",
+        "src/binding/bindings/transclude.ts"
+    ]
+}

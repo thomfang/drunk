@@ -26,7 +26,6 @@ module drunk {
     export interface IBindingDefinition {
         name?: string;
         isDeepWatch?: boolean;
-        isTwowayBinding?: boolean;
         isEnding?: boolean;
         priority?: number;
         expression?: string;

@@ -11,9 +11,8 @@
  *       <div drunk-attr="{style: customStyle}"></div>
  *       </html>
  *       <script>
- *       var drunk = esun.use("drunk");
  *       var myView = new drunk.Component();
- *       myView.$mount(document.body);
+ *       myView.mount(document.body);
  *       myView.customStyle = "background:red;width:200px;height:100px;";
  *       </script>
  */

@@ -9,7 +9,7 @@ module drunk {
     }
 
 
-    enum PromiseState { PENDING, RESOLVED, REJECTED }
+    export enum PromiseState { PENDING, RESOLVED, REJECTED }
 
     function noop() {
 

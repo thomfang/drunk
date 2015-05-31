@@ -21,8 +21,7 @@
         </html>
         
         <script>
-            var drunk = esun.use("drunk");
-            new drunk.Component().$mount(document.querySelector("section"));
+            new drunk.Component().mount(document.querySelector("section"));
         </script>
  */
 module drunk {
