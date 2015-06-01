@@ -266,7 +266,6 @@ module drunk {
         
         /**
          * 自定义一个组件类
-         * 
          * @method define
          * @static
          * @param  {string}
@@ -276,6 +275,14 @@ module drunk {
             return;
         }
         
+        /**
+         * 当前组件类拓展出一个子组件
+         * @method extend
+         * @static
+         * @param  {string}      name       子组件名
+         * @param  {IComponent}  members    子组件的成员
+         * @return {IComponentContructor}
+         */
         export function extend<T extends IComponent>(name: string | T, members?: T) {
             if (arguments.length === 1 && util.isObject(name)) {
                 members = arguments[0];
@@ -307,15 +314,22 @@ module drunk {
             return component;
         }
         
-        export function register<T>(name: string, componentContructor: IComponentContructor<T>) {
-            console.assert(name.indexOf('-') > -1, "非法组件名:" + name + '组件明必须带"-"字符,如"custom-view".');
+        /**
+         * 把一个继承了drunk.Component的组件类根据组件名字注册到组件系统中
+         * @method reigster
+         * @static
+         * @param  {string}   name          组件名
+         * @param  {function} componentCtor 组件类
+         */
+        export function register<T>(name: string, componentCtor: IComponentContructor<T>) {
+            console.assert(name.indexOf('-') > -1, name, '组件明必须在中间带"-"字符,如"custom-view"');
             
             if (defined[name] != null) {
                 console.warn('组件 "' + name + '" 已被覆盖,请确认该操作');
             }
             
-            componentContructor.extend = Component.extend;
-            defined[name] = componentContructor;
+            componentCtor.extend = Component.extend;
+            defined[name] = componentCtor;
         }
     }
 }

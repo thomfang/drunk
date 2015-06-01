@@ -26,43 +26,43 @@ module drunk.parser {
         filters: Array<filter.FilterDef>;
     }
     
-    var eventName = "$event";
-    var elementName = "$el";
-    var valueName = "__value";
-    var contextName = "__context";
-    var proxyOperation = contextName + ".proxy";
-    var getHandlerOperation = contextName + ".__getHandler";
+    let eventName = "$event";
+    let elementName = "$el";
+    let valueName = "__value";
+    let contextName = "__context";
+    let proxyOperation = contextName + ".proxy";
+    let getHandlerOperation = contextName + ".__getHandler";
     
     // 保留关键字
-    var reserved: Array<string> = [
+    let reserved: Array<string> = [
         'break', 'case', 'catch', 'continue', 'debugger', 'default', 'delete', 'do',
         'else', 'finally', 'for', 'function', 'if', 'in', 'instanceof', 'new', 'return',
-        'switch', 'this', 'throw', 'try', 'typeof', 'var', 'void', 'while',
+        'switch', 'this', 'throw', 'try', 'typeof', 'let', 'void', 'while',
         'class', 'null', 'undefined', 'true', 'false', 'with', eventName, elementName,
         'let', 'abstract', 'import', 'yield', 'arguments'
     ];
     
-    var tokenCache = new Cache<any[]>();
-    var getterCache = new Cache<IGetter>();
-    var setterCache = new Cache<ISetter>();
-    var filterCache = new Cache<IFilterCache>();
-    var expressionCache = new Cache<IGetter>();
-    var identifierCache = new Cache<any>();
-    var interpolateGetterCache = new Cache<IGetter>();
+    let tokenCache = new Cache<any[]>();
+    let getterCache = new Cache<IGetter>();
+    let setterCache = new Cache<ISetter>();
+    let filterCache = new Cache<IFilterCache>();
+    let expressionCache = new Cache<IGetter>();
+    let identifierCache = new Cache<any>();
+    let interpolateGetterCache = new Cache<IGetter>();
     
-    var regIdentifier = /("|').*?\1|[a-zA-Z$_][a-z0-9A-Z$_]*/g;
-    var regFilter = /("|').*?\1|\|\||\|\s*([a-zA-Z$_][a-z0-9A-Z$_]*)(:[^|]*)?/g;
-    var regInterpolate = /\{\{([^{]+)\}\}/g;
-    var regBrackets = /^\([^)]*\)/;
-    var regObjectKey = /[{,]\s*$/;
-    var regColon = /^\s*:/;
-    var regAnychar = /\S+/;
+    let regIdentifier = /("|').*?\1|[a-zA-Z$_][a-z0-9A-Z$_]*/g;
+    let regFilter = /("|').*?\1|\|\||\|\s*([a-zA-Z$_][a-z0-9A-Z$_]*)(:[^|]*)?/g;
+    let regInterpolate = /\{\{([^{]+)\}\}/g;
+    let regBrackets = /^\([^)]*\)/;
+    let regObjectKey = /[{,]\s*$/;
+    let regColon = /^\s*:/;
+    let regAnychar = /\S+/;
 
     // 解析filter定义
     function parseFilterDef(str: string, skipSetter: boolean = false) {
         if (!filterCache.get(str)) {
-            var def: Array<filter.FilterDef> = [];
-            var idx: number;
+            let def: Array<filter.FilterDef> = [];
+            let idx: number;
             
             str.replace(regFilter, ($0, quote, name, args, i) => {
                 if (!name) {
@@ -74,7 +74,7 @@ module drunk.parser {
                     idx = i;
                 }
                 
-                var param: IGetter;
+                let param: IGetter;
                 if (args) {
                     param = parseGetter('[' + args.slice(1) + ']');
                 }
@@ -118,23 +118,23 @@ module drunk.parser {
     
     // 解析所有的标记并对表达式进行格式化
     function parseIdentifier(str: string) {
-        var cache = identifierCache.get(str);
+        let cache = identifierCache.get(str);
         
         if (!cache) {
-            var index = 0;
-            var proxies = [];
-            var identifiers = [];
+            let index = 0;
+            let proxies = [];
+            let identifiers = [];
 
-            var formated = str.replace(regIdentifier, function (x, p, i) {
+            let formated = str.replace(regIdentifier, function (x, p, i) {
                 if (p === '"' || p === "'" || str[i - 1] === '.') {
                     // 如果是字符串: "aaa"
-                    // 或对象的属性: ".aaa"
+                    // 或对象的属性: .aaa
                     index = i + x.length;
                     return x;
                 }
 
-                var prefix = str.slice(index, i);     // 前一个字符
-                var suffix = str.slice(i + x.length); // 后一个字符
+                let prefix = str.slice(index, i);     // 前一个字符
+                let suffix = str.slice(i + x.length); // 后一个字符
 
                 index = i + x.length;
 
@@ -203,11 +203,11 @@ module drunk.parser {
     export function parse(expression: string): IGetter {
         assertNotEmptyString(expression, "解析表达式失败");
         
-        var fn = expressionCache.get(expression);
+        let fn = expressionCache.get(expression);
         
         if (!fn) {
-            var detail = parseIdentifier(expression);
-            var fnBody = detail.proxies + "return (" + detail.formated + ");";
+            let detail = parseIdentifier(expression);
+            let fnBody = detail.proxies + "return (" + detail.formated + ");";
             
             fn = createFunction(expression, contextName, eventName, eventName, fnBody);
             expressionCache.set(expression, fn);
@@ -228,18 +228,18 @@ module drunk.parser {
     export function parseGetter(expression: string, skipFilter?: boolean): IGetter {
         assertNotEmptyString(expression, "创建getter失败");
         
-        var getter = getterCache.get(expression);
+        let getter = getterCache.get(expression);
         
         if (!getter) {
-            var input: string = expression;
-            var filter: IFilterCache;
+            let input: string = expression;
+            let filter: IFilterCache;
     
             if (!skipFilter && (filter = parseFilterDef(expression))) {
                 input = filter.input;
             }
             
-            var detail = parseIdentifier(input);
-            var fnBody = detail.proxies + "try{return (" + detail.formated + ");}catch(e){}";
+            let detail = parseIdentifier(input);
+            let fnBody = detail.proxies + "try{return (" + detail.formated + ");}catch(e){}";
     
             getter = createFunction(expression, contextName, eventName, elementName, fnBody);
             getter.dynamic = !!detail.identifiers.length;
@@ -262,11 +262,11 @@ module drunk.parser {
     export function parseSetter(expression: string): ISetter {
         assertNotEmptyString(expression, "创建setter失败");
         
-        var setter = setterCache.get(expression);
+        let setter = setterCache.get(expression);
 
         if (!setter) {
-            var detail = parseIdentifier(expression);
-            var fnBody = detail.proxies + "return (" + detail.formated + " = " + valueName + ");";
+            let detail = parseIdentifier(expression);
+            let fnBody = detail.proxies + "return (" + detail.formated + " = " + valueName + ");";
             
             setter = createFunction(expression, contextName, valueName, fnBody);
             setterCache.set(expression, setter);
@@ -276,7 +276,7 @@ module drunk.parser {
     }
     
     /**
-     * 解析包含插值绑定的字符串表达式， 类似"a {{interpolate_var}}"， 花括号里的就是插值变量
+     * 解析包含插值绑定的字符串表达式， 类似"a {{interpolate_let}}"， 花括号里的就是插值变量
      * 先判断是否存在花括号， 然后在解析成tokens， 再根据token生成getter函数
      * 
      * @method parseInterpolate
@@ -290,13 +290,13 @@ module drunk.parser {
     export function parseInterpolate(expression: string, justTokens?: boolean): any {
         console.assert(hasInterpolation(expression), "parseInterpolate: 非法表达式", expression);
         
-        var tokens = tokenCache.get(expression);
+        let tokens = tokenCache.get(expression);
         
         if (!tokens) {
             tokens = [];
             
-            var index = 0;
-            var length = expression.length;
+            let index = 0;
+            let length = expression.length;
             expression.replace(regInterpolate, ($0, exp, i) => {
                 if (i > index) {
                     tokens.push(expression.slice(index, i));
@@ -336,11 +336,11 @@ module drunk.parser {
     
     // 根据token生成getter函数
     function tokensToGetter(tokens: any[], expression): IGetter {
-        var getter = interpolateGetterCache.get(expression);
+        let getter = interpolateGetterCache.get(expression);
 
         if (!getter) {
-            var dynamic = false;
-            var filters = [];
+            let dynamic = false;
+            let filters = [];
             
             tokens = tokens.map(function (item, i) {
                 if (typeof item === 'string') {

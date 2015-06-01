@@ -53,13 +53,6 @@ module drunk {
         _watchers: { [on: string]: Watcher };
         
         /**
-         * 唯一id
-         * @property $id
-         * @type number
-         */
-        $id: number;
-        
-        /**
          * 过滤器方法,包含内置的
          * @property filter
          * @type Filter
@@ -83,11 +76,16 @@ module drunk {
             this.__init();
         }
         
+        /**
+         * 初始化私有属性,并对model里的所有字段进行代理处理
+         * @method __init
+         * @protected
+         * @param  {IModel} [model]  数据对象
+         */
         protected __init(model?: IModel) {
             model = model || {};
             observable.create(model);
-    
-            util.defineProperty(this, "$id", counter++);
+            
             util.defineProperty(this, "filter", Object.create(filter.filters));
             util.defineProperty(this, "_model", model);
             util.defineProperty(this, "_bindings", []);
@@ -160,17 +158,7 @@ module drunk {
          * @return {IModel}  反悔json格式的不带getter/setter的model
          */
         getModel() {
-            // 深度拷贝
-            function deepClone(des, src) {
-                Object.keys(src).forEach((key) => {
-                    if (util.isObject(src[key])) {
-                        des[key] = deepClone({}, src[key]);
-                    }
-                });
-                return des;
-            }
-            
-            return deepClone({}, this._model);
+            return util.deepClone(this._model);
         }
         
         /**

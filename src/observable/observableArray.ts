@@ -162,7 +162,7 @@ module drunk.observable {
      * 调用原生方法并发送通知
      */
     function executeArrayMethodAndNotify<T>(array: ObservableArray<T>, methodName: string, args: any[], callback?: () => void): any {
-        var result = Array.prototype[methodName].apply(array, args);
+        var result = Array.prototype[methodName](array, ...args);
 
         if (callback) {
             callback();
@@ -183,25 +183,19 @@ module drunk.observable {
 
     util.defineProperty(ObservableArrayPrototype, "push", function push(...args: any[]) {
         return executeArrayMethodAndNotify(this, "push", args, () => {
-            args.forEach((item) => {
-                create(item);
-            });
+            args.forEach(create);
         });
     });
 
     util.defineProperty(ObservableArrayPrototype, "unshift", function unshift(...args: any[]) {
         return executeArrayMethodAndNotify(this, "unshift", args, () => {
-            args.forEach((item) => {
-                create(item);
-            });
+            args.forEach(create);
         });
     });
 
     util.defineProperty(ObservableArrayPrototype, "splice", function splice(...args: any[]) {
         return executeArrayMethodAndNotify(this, "splice", args, () => {
-            args.slice(2).forEach((item) => {
-                create(item);
-            });
+            args.slice(2).forEach(create);
         });
     });
 

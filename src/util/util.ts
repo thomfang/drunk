@@ -57,6 +57,28 @@ module drunk.util {
         });
         return destination;
     }
+    
+    /**
+     * 深度拷贝对象
+     * @method deepClone
+     * @static
+     * @param  {any}  target  需要拷贝的对象
+     * @return {any}
+     */
+    export function deepClone(target: any): any {
+        if (Array.isArray(target)) {
+            return target.map((item) => {
+                return deepClone(item);
+            });
+        }
+        if (isObject(target)) {
+            var ret = {};
+            Object.keys(target).forEach(name => {
+                ret[name] = deepClone(target[name]);
+            });
+        }
+        return target;
+    }
 
     /**
      * 转换成数组
