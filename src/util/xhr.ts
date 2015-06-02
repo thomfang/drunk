@@ -44,6 +44,9 @@ module drunk.util {
                         resolve(options.dataType === 'json' ? JSON.parse(res) : res);
                         xhr = null;
                     }
+                    else {
+                        reject(xhr);
+                    }
                 }
             };
 

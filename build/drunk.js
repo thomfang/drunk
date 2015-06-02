@@ -850,6 +850,9 @@ var drunk;
                             resolve(options.dataType === 'json' ? JSON.parse(res) : res);
                             xhr = null;
                         }
+                        else {
+                            reject(xhr);
+                        }
                     }
                 };
                 xhr.onerror = function () {
