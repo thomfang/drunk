@@ -238,12 +238,11 @@ module drunk {
      * 用于repeat作用域下的子viewModel
      * @class RepeatItem
      * @constructor
-     * @private
      * @param {Component}   parent      父级ViewModel
      * @param {object}      ownModel    私有的数据
      * @param {HTMLElement} element     元素对象
      */
-    class RepeatItem extends Component {
+    export class RepeatItem extends Component {
         
         _isCollection: boolean;
         _isChecked: boolean;

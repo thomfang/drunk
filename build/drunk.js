@@ -2055,7 +2055,7 @@ var drunk;
          */
         function ViewModel(model) {
             _super.call(this);
-            this.__init();
+            this.__init(model);
         }
         /**
          * 初始化私有属性,并对model里的所有字段进行代理处理
@@ -2190,7 +2190,7 @@ var drunk;
          * @return {ViewModel} 返回事件处理函数
          */
         ViewModel.prototype.__getHandler = function (handlerName) {
-            var handler = this.handlers[handlerName];
+            var handler = this[handlerName];
             var context = this;
             if (!handler) {
                 if (typeof window[handlerName] === 'function') {
@@ -2389,7 +2389,7 @@ var drunk;
             if (!fn) {
                 var detail = parseIdentifier(expression);
                 var fnBody = detail.proxies + "return (" + detail.formated + ");";
-                fn = createFunction(expression, contextName, eventName, eventName, fnBody);
+                fn = createFunction(expression, contextName, eventName, elementName, fnBody);
                 expressionCache.set(expression, fn);
             }
             return fn;
@@ -2543,10 +2543,10 @@ var drunk;
          * @param  {any[]}          ...args     其他参数
          * @return {any}                        过滤后得到的值
          */
-        function applyFilters(value, filterDefs, filterMap, isInterpolate, viewModel) {
+        function applyFilters(value, filterDefs, filterMap, isInterpolate) {
             var args = [];
-            for (var _i = 5; _i < arguments.length; _i++) {
-                args[_i - 5] = arguments[_i];
+            for (var _i = 4; _i < arguments.length; _i++) {
+                args[_i - 4] = arguments[_i];
             }
             if (!filterDefs) {
                 return isInterpolate ? getInterpolateValue(value) : value;
@@ -2558,7 +2558,7 @@ var drunk;
                     if (!filterDefs[i]) {
                         return item;
                     }
-                    return filter.applyFilters(item, filterDefs[i], filterMap, false, viewModel);
+                    return filter.applyFilters.apply(filter, [item, filterDefs[i], filterMap, false].concat(args));
                 });
                 // 对所有token求值得到的结果做处理,如果是undefined或null类型直接转成空字符串,避免页面显示出undefined或null
                 return getInterpolateValue(value);
@@ -2573,8 +2573,8 @@ var drunk;
                 if (typeof method !== 'function') {
                     throw new Error('Filter "' + name + '" not found');
                 }
-                param = def.param ? def.param.apply(null, args) : [];
-                value = method.apply(viewModel, [value].concat(param));
+                param = def.param ? def.param.apply(def, args) : [];
+                value = method.apply(void 0, [value].concat(param));
             });
             return value;
         }
@@ -3903,7 +3903,6 @@ var drunk;
      * 用于repeat作用域下的子viewModel
      * @class RepeatItem
      * @constructor
-     * @private
      * @param {Component}   parent      父级ViewModel
      * @param {object}      ownModel    私有的数据
      * @param {HTMLElement} element     元素对象
@@ -3965,6 +3964,7 @@ var drunk;
         };
         return RepeatItem;
     })(drunk.Component);
+    drunk.RepeatItem = RepeatItem;
     /*
      * 把数据转成列表,如果为空则转成空数组
      */

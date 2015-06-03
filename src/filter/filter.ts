@@ -35,7 +35,7 @@ module drunk.filter {
      * @param  {any[]}          ...args     其他参数
      * @return {any}                        过滤后得到的值
      */
-    export function applyFilters(value: any, filterDefs: any, filterMap: { [name: string]: IFilter }, isInterpolate: boolean, viewModel: ViewModel, ...args: any[]): any {
+    export function applyFilters(value: any, filterDefs: any, filterMap: { [name: string]: IFilter }, isInterpolate: boolean, ...args: any[]): any {
         if (!filterDefs) {
             return isInterpolate ? getInterpolateValue(value) : value;
         }
@@ -47,7 +47,7 @@ module drunk.filter {
                 if (!filterDefs[i]) {
                     return item;
                 }
-                return filter.applyFilters(item, filterDefs[i], filterMap, false, viewModel);
+                return filter.applyFilters(item, filterDefs[i], filterMap, false, ...args);
             });
                 
             // 对所有token求值得到的结果做处理,如果是undefined或null类型直接转成空字符串,避免页面显示出undefined或null
@@ -67,8 +67,8 @@ module drunk.filter {
                 throw new Error('Filter "' + name + '" not found');
             }
 
-            param = def.param ? def.param.apply(null, args) : [];
-            value = method.apply(viewModel, [value].concat(param));
+            param = def.param ? def.param(...args) : [];
+            value = method(...[value].concat(param));
         });
 
         return value;

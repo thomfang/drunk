@@ -209,7 +209,7 @@ module drunk.parser {
             let detail = parseIdentifier(expression);
             let fnBody = detail.proxies + "return (" + detail.formated + ");";
             
-            fn = createFunction(expression, contextName, eventName, eventName, fnBody);
+            fn = createFunction(expression, contextName, eventName, elementName, fnBody);
             expressionCache.set(expression, fn);
         }
         

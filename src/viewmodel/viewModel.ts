@@ -73,7 +73,7 @@ module drunk {
         constructor(model?: IModel) {
             super();
             
-            this.__init();
+            this.__init(model);
         }
         
         /**
@@ -230,7 +230,7 @@ module drunk {
          * @return {ViewModel} 返回事件处理函数
          */
         __getHandler(handlerName: string): Function {
-            var handler = this.handlers[handlerName];
+            var handler = this[handlerName];
             var context: any = this;
             
             if (!handler) {

@@ -1062,7 +1062,7 @@ declare module drunk.filter {
      */
     function applyFilters(value: any, filterDefs: any, filterMap: {
         [name: string]: IFilter;
-    }, isInterpolate: boolean, viewModel: ViewModel, ...args: any[]): any;
+    }, isInterpolate: boolean, ...args: any[]): any;
     var filters: {
         [name: string]: IFilter;
     };
@@ -1485,6 +1485,26 @@ declare module drunk {
 declare module drunk {
 }
 declare module drunk {
+    /**
+     * 用于repeat作用域下的子viewModel
+     * @class RepeatItem
+     * @constructor
+     * @param {Component}   parent      父级ViewModel
+     * @param {object}      ownModel    私有的数据
+     * @param {HTMLElement} element     元素对象
+     */
+    class RepeatItem extends Component {
+        parent: Component | RepeatItem;
+        element: any;
+        _isCollection: boolean;
+        _isChecked: boolean;
+        protected _models: IModel[];
+        constructor(parent: Component | RepeatItem, ownModel: any, element: any);
+        protected __init(ownModel: any): void;
+        proxy(property: string): void;
+        __getHandler(name: string): (...args: any[]) => any;
+        private __proxyModel(model);
+    }
 }
 /**
  * 切换元素显示隐藏,和drunk-if的效果相似,只是在具有多个绑定的情况下if的性能更好,反之是show的性能更好
