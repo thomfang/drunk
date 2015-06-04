@@ -33,14 +33,15 @@ module drunk.Template {
         }
         
         return (viewModel: ViewModel, element: any) => {
-            var startIndex: number = viewModel._bindings.length;
+            var allBindings = viewModel._bindings;
+            var startIndex: number = allBindings.length;
             var bindingList: Binding[];
             
             if (executor) {
                 executor(viewModel, element);
             }
             if (childExecutor) {
-                executor(viewModel, element.childNodes);
+                childExecutor(viewModel, element.childNodes);
             }
             
             bindingList = viewModel._bindings.slice(startIndex);
@@ -49,6 +50,9 @@ module drunk.Template {
                 bindingList.forEach((binding) => {
                     binding.dispose();
                 });
+                
+                startIndex = allBindings.indexOf(bindingList[0]);
+                allBindings.splice(startIndex, bindingList.length);
             };
         };
     }
@@ -195,7 +199,7 @@ module drunk.Template {
     
     // 查找并创建通常的绑定
     function processNormalBinding(element: any): IBindingExecutor {
-        var executors: any[];
+        var executors: IBindingExecutor[] = [];
         
         util.toArray(element.attributes).forEach((attr) => {
             var name: string = attr.name;
@@ -216,7 +220,8 @@ module drunk.Template {
                 executor = createExecutor(element, {
                     name: "attr",
                     attrName: name,
-                    expression: expression
+                    expression: expression,
+                    isInterpolate: true
                 });
             }
                 

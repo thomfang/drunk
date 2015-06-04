@@ -76,7 +76,7 @@ module drunk.parser {
                 
                 let param: IGetter;
                 if (args) {
-                    param = parseGetter('[' + args.slice(1) + ']');
+                    param = parseGetter('[' + args.slice(1) + ']', false, true);
                 }
                 def.push({ name: name,  param: param });
             });
@@ -225,8 +225,12 @@ module drunk.parser {
      * @param  {boolean} skipFilter  跳过解析filter
      * @return {function}            getter函数
      */
-    export function parseGetter(expression: string, skipFilter?: boolean): IGetter {
+    export function parseGetter(expression: string, isInterpolate?: boolean, skipFilter?: boolean): IGetter {
         assertNotEmptyString(expression, "创建getter失败");
+        
+        if (isInterpolate) {
+            return parseInterpolate(expression);
+        }
         
         let getter = getterCache.get(expression);
         

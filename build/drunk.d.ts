@@ -998,7 +998,7 @@ declare module drunk.parser {
      * @param  {boolean} skipFilter  跳过解析filter
      * @return {function}            getter函数
      */
-    function parseGetter(expression: string, skipFilter?: boolean): IGetter;
+    function parseGetter(expression: string, isInterpolate?: boolean, skipFilter?: boolean): IGetter;
     /**
      * 解析表达式生成setter函数
      *

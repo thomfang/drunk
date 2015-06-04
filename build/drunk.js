@@ -1652,19 +1652,22 @@ var drunk;
                 childExecutor = compileNodeList(node.childNodes);
             }
             return function (viewModel, element) {
-                var startIndex = viewModel._bindings.length;
+                var allBindings = viewModel._bindings;
+                var startIndex = allBindings.length;
                 var bindingList;
                 if (executor) {
                     executor(viewModel, element);
                 }
                 if (childExecutor) {
-                    executor(viewModel, element.childNodes);
+                    childExecutor(viewModel, element.childNodes);
                 }
                 bindingList = viewModel._bindings.slice(startIndex);
                 return function () {
                     bindingList.forEach(function (binding) {
                         binding.dispose();
                     });
+                    startIndex = allBindings.indexOf(bindingList[0]);
+                    allBindings.splice(startIndex, bindingList.length);
                 };
             };
         }
@@ -1785,7 +1788,7 @@ var drunk;
         }
         // 查找并创建通常的绑定
         function processNormalBinding(element) {
-            var executors;
+            var executors = [];
             drunk.util.toArray(element.attributes).forEach(function (attr) {
                 var name = attr.name;
                 var index = name.indexOf(drunk.config.prefix);
@@ -1804,7 +1807,8 @@ var drunk;
                     executor = createExecutor(element, {
                         name: "attr",
                         attrName: name,
-                        expression: expression
+                        expression: expression,
+                        isInterpolate: true
                     });
                 }
                 if (executor) {
@@ -2288,7 +2292,7 @@ var drunk;
                     }
                     var param;
                     if (args) {
-                        param = parseGetter('[' + args.slice(1) + ']');
+                        param = parseGetter('[' + args.slice(1) + ']', false, true);
                     }
                     def.push({ name: name, param: param });
                 });
@@ -2410,8 +2414,11 @@ var drunk;
          * @param  {boolean} skipFilter  跳过解析filter
          * @return {function}            getter函数
          */
-        function parseGetter(expression, skipFilter) {
+        function parseGetter(expression, isInterpolate, skipFilter) {
             assertNotEmptyString(expression, "创建getter失败");
+            if (isInterpolate) {
+                return parseInterpolate(expression);
+            }
             var getter = getterCache.get(expression);
             if (!getter) {
                 var input = expression;
