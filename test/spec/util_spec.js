@@ -1,6 +1,12 @@
 describe("util", function () {
 
     var util = drunk.util;
+    
+    it("uuid", function () {
+        var obj = {};
+        
+        expect(typeof drunk.util.uuid(obj)).toBe('number');
+    });
 
     it("camelCase", function () {
         var result = "dataRepeat";

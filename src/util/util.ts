@@ -20,7 +20,7 @@ module drunk.util {
      * @return {number}
      */
     export function uuid(target: any): number {
-        if (typeof target[nameOfUid] === undefined) {
+        if (typeof target[nameOfUid] === 'undefined') {
             target[nameOfUid] = counter++;
         }
         return target[nameOfUid];

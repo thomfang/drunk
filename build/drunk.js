@@ -384,7 +384,7 @@ var drunk;
          * @return {number}
          */
         function uuid(target) {
-            if (typeof target[nameOfUid] === undefined) {
+            if (typeof target[nameOfUid] === 'undefined') {
                 target[nameOfUid] = counter++;
             }
             return target[nameOfUid];
@@ -1463,9 +1463,13 @@ var drunk;
          * @return {Promise} 等待所有回调执行完毕的promise对象
          */
         Watcher.prototype.__runActions = function () {
+            if (!this._isActived) {
+                return;
+            }
             var oldValue = this.value;
             var newValue = this.__getValue();
             if ((typeof newValue === 'object' && newValue != null) || newValue !== oldValue) {
+                this.value = newValue;
                 this._actions.slice().forEach(function (action) {
                     action(newValue, oldValue);
                 });

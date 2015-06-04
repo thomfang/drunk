@@ -106,10 +106,15 @@ module drunk {
          * @return {Promise} 等待所有回调执行完毕的promise对象
          */
         __runActions(): void {
+            if (!this._isActived) {
+                return;
+            }
+            
             let oldValue: any = this.value;
             let newValue: any = this.__getValue();
 
             if ((typeof newValue === 'object' && newValue != null) || newValue !== oldValue) {
+                this.value = newValue;
                 this._actions.slice().forEach((action) => {
                     action(newValue, oldValue);
                 });
