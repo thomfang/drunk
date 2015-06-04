@@ -78,7 +78,7 @@ module drunk.observable {
      * @static
      * @for observable
      */
-    export var ObservableObjectPrototype = {};
+    export var ObservableObjectPrototype: ObservableObject = {};
     
     /**
      * 设置对象的指定字段的值

@@ -35,7 +35,7 @@ module drunk.observable {
      * @static
      * @for observable
      */
-    export var ObservableArrayPrototype: any[] = Object.create(Array.prototype);
+    export var ObservableArrayPrototype: ObservableArray<any> = Object.create(Array.prototype);
 
     /**
      * 设置数组指定数组下标的值，并发送数组更新通知
@@ -162,7 +162,7 @@ module drunk.observable {
      * 调用原生方法并发送通知
      */
     function executeArrayMethodAndNotify<T>(array: ObservableArray<T>, methodName: string, args: any[], callback?: () => void): any {
-        var result = Array.prototype[methodName](array, ...args);
+        var result = Array.prototype[methodName].apply(array, args);
 
         if (callback) {
             callback();

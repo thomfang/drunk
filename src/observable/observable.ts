@@ -81,7 +81,7 @@ module drunk.observable {
     export function observe(data: ObservableObject, property: string, value): void {
         var descriptor = Object.getOwnPropertyDescriptor(data, property);
         
-        if (descriptor && descriptor.get === descriptor.set) {
+        if (descriptor && typeof descriptor.get === 'function' && descriptor.get === descriptor.set) {
             // 如果已经绑定过了， 则不再绑定
             return;
         }

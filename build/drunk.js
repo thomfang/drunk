@@ -1119,7 +1119,7 @@ var drunk;
          */
         function observe(data, property, value) {
             var descriptor = Object.getOwnPropertyDescriptor(data, property);
-            if (descriptor && descriptor.get === descriptor.set) {
+            if (descriptor && typeof descriptor.get === 'function' && descriptor.get === descriptor.set) {
                 // 如果已经绑定过了， 则不再绑定
                 return;
             }
@@ -1329,13 +1329,12 @@ var drunk;
          * 调用原生方法并发送通知
          */
         function executeArrayMethodAndNotify(array, methodName, args, callback) {
-            var result = (_a = Array.prototype)[methodName].apply(_a, [array].concat(args));
+            var result = Array.prototype[methodName].apply(array, args);
             if (callback) {
                 callback();
             }
             observable.notify(array);
             return result;
-            var _a;
         }
         drunk.util.defineProperty(observable.ObservableArrayPrototype, "pop", function pop() {
             return executeArrayMethodAndNotify(this, "pop", []);
@@ -1416,6 +1415,7 @@ var drunk;
                 throw new Error('不能监控一个静态表达式:"' + expression + '"');
             }
             this.__propertyChanged = this.__propertyChanged.bind(this);
+            this.value = this.__getValue();
         }
         /**
          * 根据表达式和是否深度监听生成唯一的key,用于储存在关联的viewModel实例的watcher表中
@@ -1510,6 +1510,8 @@ var drunk;
                 visit(newValue);
             }
             if (this._getter.filters) {
+                // 派发到各个filter中处理
+                newValue = drunk.filter.applyFilters(newValue, this._getter.filters, this.viewModel.filter, this._isInterpolate, this.viewModel);
             }
             this.__afterGetValue();
             return newValue;
@@ -1884,15 +1886,14 @@ var drunk;
                 // 如果只是一个静态表达式直接取值更新
                 return this.update(viewModel.eval(expression, isInterpolate), undefined);
             }
-            var wrapped = function (newValue, oldValue) {
+            this._update = function (newValue, oldValue) {
                 if (!_this._isActived || _this._isLocked) {
                     _this._isLocked = false;
                     return;
                 }
                 _this.update(newValue, oldValue);
             };
-            this._unwatch = viewModel.watch(expression, wrapped, this.isDeepWatch, true);
-            this._update = wrapped;
+            this._unwatch = viewModel.watch(expression, this._update, this.isDeepWatch, true);
         };
         /**
          * 移除绑定并销毁
@@ -2136,6 +2137,7 @@ var drunk;
          *
          * @method watch
          * @param  {string}  expression  表达式
+         * @return {function}            返回一个取消监听的函数
          */
         ViewModel.prototype.watch = function (expression, action, isDeepWatch, isImmediate) {
             var _this = this;
@@ -2143,7 +2145,7 @@ var drunk;
             var watcher;
             watcher = this._watchers[key];
             if (!watcher) {
-                watcher = new drunk.Watcher(this, expression, isDeepWatch);
+                watcher = this._watchers[key] = new drunk.Watcher(this, expression, isDeepWatch);
             }
             var wrappedAction = function (newValue, oldValue) {
                 action.call(_this, newValue, oldValue);
@@ -3543,7 +3545,7 @@ var drunk;
         },
         release: function () {
             this.removeFromDocument();
-            drunk.elementUtil.replace(this.element, this.startNode);
+            drunk.elementUtil.remove(this.startNode);
             drunk.elementUtil.remove(this.endedNode);
             this.startNode = null;
             this.endedNode = null;

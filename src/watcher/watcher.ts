@@ -64,6 +64,7 @@ module drunk {
             }
             
             this.__propertyChanged = this.__propertyChanged.bind(this);
+            this.value = this.__getValue();
         }
         
         /**
@@ -162,6 +163,8 @@ module drunk {
 
             if (this._getter.filters) {
                 // 派发到各个filter中处理
+                newValue = filter.applyFilters(
+                    newValue, this._getter.filters, this.viewModel.filter, this._isInterpolate, this.viewModel);
             }
 
             this.__afterGetValue();

@@ -420,7 +420,7 @@ declare module drunk.observable {
      * @static
      * @for observable
      */
-    var ObservableObjectPrototype: {};
+    var ObservableObjectPrototype: ObservableObject;
 }
 /**
  * @module drunk.observable
@@ -533,7 +533,7 @@ declare module drunk.observable {
      * @static
      * @for observable
      */
-    var ObservableArrayPrototype: any[];
+    var ObservableArrayPrototype: ObservableArray<any>;
     /**
      * 设置数组指定数组下标的值，并发送数组更新通知
      *
@@ -931,6 +931,7 @@ declare module drunk {
          *
          * @method watch
          * @param  {string}  expression  表达式
+         * @return {function}            返回一个取消监听的函数
          */
         watch(expression: string, action: IBindingUpdateAction, isDeepWatch?: boolean, isImmediate?: boolean): () => void;
         /**

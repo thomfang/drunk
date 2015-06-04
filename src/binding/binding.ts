@@ -117,7 +117,7 @@ module drunk {
                 return this.update(viewModel.eval(expression, isInterpolate), undefined);
             }
     
-            let wrapped = (newValue, oldValue) => {
+            this._update = (newValue, oldValue) => {
                 if (!this._isActived || this._isLocked) {
                     this._isLocked = false;
                     return;
@@ -125,10 +125,7 @@ module drunk {
                 this.update(newValue, oldValue);
             }
     
-            this._unwatch = viewModel.watch(expression, wrapped, this.isDeepWatch, true);
-            
-            this._update = wrapped;
-            
+            this._unwatch = viewModel.watch(expression, this._update, this.isDeepWatch, true);
         }
         
         /**

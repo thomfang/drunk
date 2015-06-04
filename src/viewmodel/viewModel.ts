@@ -166,6 +166,7 @@ module drunk {
          * 
          * @method watch
          * @param  {string}  expression  表达式
+         * @return {function}            返回一个取消监听的函数
          */
         watch(expression: string, action: IBindingUpdateAction, isDeepWatch?: boolean, isImmediate?: boolean) {
             var key: string = Watcher.getNameOfKey(expression, isDeepWatch);
@@ -174,7 +175,7 @@ module drunk {
             watcher = this._watchers[key];
 
             if (!watcher) {
-                watcher = new Watcher(this, expression, isDeepWatch);
+                watcher = this._watchers[key] = new Watcher(this, expression, isDeepWatch);
             }
 
             var wrappedAction: IBindingUpdateAction = (newValue: any, oldValue: any) => {

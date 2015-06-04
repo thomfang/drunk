@@ -77,7 +77,7 @@ module drunk {
         release() {
             this.removeFromDocument();
 
-            elementUtil.replace(this.element, this.startNode);
+            elementUtil.remove(this.startNode);
             elementUtil.remove(this.endedNode);
 
             this.startNode = null;
