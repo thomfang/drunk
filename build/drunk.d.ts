@@ -1044,7 +1044,7 @@ declare module drunk.filter {
      * @return {any}                返回值
      */
     interface IFilter {
-        (input: any, ...args: any[]): any;
+        (...args: any[]): any;
     }
     interface FilterDef {
         name: string;
@@ -1094,10 +1094,10 @@ declare module drunk {
             [name: string]: filter.IFilter;
         };
         watchers?: {
-            [expression: string]: (newValue: any, oldValue: any) => void;
+            [expression: string]: IBindingUpdateAction;
         };
         handlers?: {
-            [name: string]: (...args: any[]) => any;
+            [name: string]: Function;
         };
         element?: Node | Node[];
         template?: string;
@@ -1249,7 +1249,7 @@ declare module drunk {
          * @static
          * @param  {string}
          */
-        function define<T extends IComponent>(name: string, members: T): void;
+        function define<T extends IComponent>(name: string, members: T): IComponentContructor<T>;
         /**
          * 当前组件类拓展出一个子组件
          * @method extend

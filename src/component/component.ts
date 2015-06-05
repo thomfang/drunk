@@ -2,19 +2,19 @@
 /// <reference path="../template/loader" />
 
 module drunk {
-    
+
     export interface IComponent {
         name?: string;
         init?: () => void;
-        data?: {[name: string]: any};
+        data?: { [name: string]: any };
         filters?: { [name: string]: filter.IFilter };
-        watchers?: { [expression: string]: (newValue: any, oldValue: any) => void};
-        handlers?: {[name: string]: (...args: any[]) => any};
+        watchers?: { [expression: string]: IBindingUpdateAction };
+        handlers?: { [name: string]: Function };
         element?: Node | Node[];
         template?: string;
         templateUrl?: string;
     }
-    
+
     export interface IComponentContructor<T extends IComponent> {
         extend?<T extends IComponent>(name: string | T, members?: T): IComponentContructor<T>;
         (...args: any[]): void;
@@ -105,7 +105,7 @@ module drunk {
          * @property data
          * @type {[name: string]: any}
          */
-        data: {[name: string]: any};
+        data: { [name: string]: any };
         
         /**
          * 该组件作用域下的数据过滤器表
@@ -186,8 +186,8 @@ module drunk {
                     Promise.resolve(data).then(result => {
                         this[name] = result;
                     }, (reason) => {
-                        console.warn("数据准备失败:", reason);
-                    });
+                            console.warn("数据准备失败:", reason);
+                        });
                 });
             }
         }
@@ -202,25 +202,25 @@ module drunk {
             function onFailed(reason) {
                 console.warn("模板加载失败: " + templateUrl, reason);
             }
-            
+
             if (typeof templateUrl === 'string') {
                 return Template.load(templateUrl).then(elementUtil.create).catch(onFailed);
             }
-            
+
             if (this.element) {
                 return Promise.resolve(this.element);
             }
-            
+
             if (typeof this.template === 'string') {
                 return Promise.resolve(elementUtil.create(this.template));
             }
-            
+
             templateUrl = this.templateUrl;
-            
+
             if (typeof templateUrl === 'string') {
                 return Template.load(templateUrl).then(elementUtil.create).catch(onFailed);
             }
-            
+
             throw new Error((this.name || (<any>this.constructor).name) + "组件模板未指定");
         }
         
@@ -230,18 +230,18 @@ module drunk {
          */
         mount(element: Node | Node[]) {
             console.assert(!this._isMounted, "该组件已有挂载到", this.element);
-        
+
             if (element['__viewModel']) {
                 return console.error("Component.$mount(element): 尝试挂载到一个已经挂载过组件实例的元素节点", element);
             }
-    
+
             Template.compile(element)(this, element);
-            
+
             element['__viewModel'] = this;
-            
+
             this.element = element;
             this._isMounted = true;
-            
+
             this.dispatchEvent(Component.MOUNTED);
         }
         
@@ -251,7 +251,7 @@ module drunk {
          */
         dispose() {
             super.dispose();
-            
+
             if (this._isMounted) {
                 this.element['__viewModel'] = null;
                 this._isMounted = false;
@@ -261,8 +261,8 @@ module drunk {
     }
 
     export module Component {
-    
-        export var defined: {[name: string]: IComponentContructor<any>} = {};
+
+        export var defined: { [name: string]: IComponentContructor<any> } = {};
         
         /**
          * 自定义一个组件类
@@ -272,7 +272,7 @@ module drunk {
          */
         export function define<T extends IComponent>(name: string, members: T) {
             members.name = name;
-            return;
+            return Component.extend(members);
         }
         
         /**
@@ -291,26 +291,26 @@ module drunk {
             else {
                 members.name = arguments[0];
             }
-            
+
             var _super = this;
             var prototype = Object.create(_super.prototype);
-            
-            var component: IComponentContructor<T> = function (...args: any[]) {
-                _super(this, ...args);
+
+            var component: IComponentContructor<T> = function(...args: any[]) {
+                _super.apply(this, args);
             };
-    
+
             util.extend(prototype, members);
-    
+
             component.prototype = prototype;
             prototype.constructor = component;
-    
+
             if (name) {
                 Component.register((<string>name), component);
             }
             else {
                 component.extend = Component.extend;
             }
-    
+
             return component;
         }
         
@@ -323,11 +323,11 @@ module drunk {
          */
         export function register<T>(name: string, componentCtor: IComponentContructor<T>) {
             console.assert(name.indexOf('-') > -1, name, '组件明必须在中间带"-"字符,如"custom-view"');
-            
+
             if (defined[name] != null) {
                 console.warn('组件 "' + name + '" 已被覆盖,请确认该操作');
             }
-            
+
             componentCtor.extend = Component.extend;
             defined[name] = componentCtor;
         }

@@ -1434,6 +1434,9 @@ var drunk;
          * @param {function} action  回调函数
          */
         Watcher.prototype.addAction = function (action) {
+            if (!this._isActived) {
+                return;
+            }
             drunk.util.addArrayItem(this._actions, action);
         };
         /**
@@ -1443,6 +1446,9 @@ var drunk;
          * @param  {function} action 回调函数
          */
         Watcher.prototype.removeAction = function (action) {
+            if (!this._isActived) {
+                return;
+            }
             drunk.util.removeArrayItem(this._actions, action);
             if (!this._actions.length) {
                 this.dispose();
@@ -3007,7 +3013,7 @@ var drunk;
          */
         function define(name, members) {
             members.name = name;
-            return;
+            return Component.extend(members);
         }
         Component.define = define;
         /**
@@ -3033,7 +3039,7 @@ var drunk;
                 for (var _i = 0; _i < arguments.length; _i++) {
                     args[_i - 0] = arguments[_i];
                 }
-                _super.apply(void 0, [this].concat(args));
+                _super.apply(this, args);
             };
             drunk.util.extend(prototype, members);
             component.prototype = prototype;

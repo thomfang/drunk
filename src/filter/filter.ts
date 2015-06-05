@@ -16,7 +16,7 @@ module drunk.filter {
      * @return {any}                返回值
      */
     export interface IFilter {
-        (input: any, ...args: any[]): any;
+        (...args: any[]): any;
     }
 
     export interface FilterDef {

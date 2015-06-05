@@ -73,6 +73,9 @@ module drunk {
          * @param {function} action  回调函数
          */
         addAction(action: IBindingUpdateAction): void {
+            if (!this._isActived) {
+                return;
+            }
             util.addArrayItem(this._actions, action);
         }
         
@@ -83,6 +86,10 @@ module drunk {
          * @param  {function} action 回调函数
          */
         removeAction(action: IBindingUpdateAction): void {
+            if (!this._isActived) {
+                return;
+            }
+            
             util.removeArrayItem(this._actions, action);
 
             if (!this._actions.length) {
