@@ -204,6 +204,10 @@ module drunk {
          * @method dispose
          */
         dispose() {
+            if (!this._isActived) {
+                return;
+            }
+            
             Object.keys(this._model).forEach((property) => {
                 delete this[property];
             });
@@ -218,6 +222,7 @@ module drunk {
             
             EventEmitter.cleanup(this);
             
+            this._isActived = false;
             this._model = null;
             this._bindings = null;
             this._watchers = null;

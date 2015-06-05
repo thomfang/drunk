@@ -1,5 +1,6 @@
-/// <reference path="../util/util.ts" />
-/// <reference path="../promise/promise.ts" />
+/// <reference path="./util" />
+/// <reference path="./querystring" />
+/// <reference path="../promise/promise" />
 
 /**
  * @module drunk.util
@@ -35,14 +36,38 @@ module drunk.util {
      */
     export function ajax<T>(options: IAjaxOptions): Promise<T> {
         var xhr = new XMLHttpRequest();
+        
+        if (typeof options.url !== 'string') {
+            throw new Error('发送ajax请求失败:url未提供');
+        }
 
         return new Promise<T>((resolve, reject) => {
+            var url = options.url;
+            var type = (options.type || 'GET').toUpperCase();
+            var headers = options.headers || {};
+            var data: any = options.data;
+            var contentType: string = options.contentType || 'application/x-www-form-urlencoded; charset=UTF-8';
+
+            if (util.isObject(data)) {
+                if (options.contentType && options.contentType.match(/^json$/i)) {
+                    data = JSON.stringify(data);
+                }
+                else {
+                    data = querystring.stringify(data);
+                    
+                    if (type === 'GET') {
+                        url += (url.indexOf('?') === -1 ? '?' : '&') + data;
+                        data = null; 
+                    }
+                }
+            }
+            
             xhr.onreadystatechange = function() {
                 if (xhr.readyState === 4) {
                     if (xhr.status >= 200 && xhr.status < 300 || xhr.status === 304) {
                         var res: any = xhr.responseText;
-                        resolve(options.dataType === 'json' ? JSON.parse(res) : res);
                         xhr = null;
+                        resolve(options.dataType === 'json' ? JSON.parse(res) : res);
                     }
                     else {
                         reject(xhr);
@@ -54,34 +79,17 @@ module drunk.util {
                 reject(xhr);
             };
 
-            xhr.open((options.type || 'GET').toUpperCase(), options.url, true);
+            xhr.open((type).toUpperCase(), url, true);
 
             if (options.withCredentials || (options.xhrFields && options.xhrFields.withCredentials)) {
                 xhr.withCredentials = true;
             }
-
-            var headers = options.headers || {};
-            var data: any = options.data;
-            var contentType: string = options.contentType || 'application/x-www-form-urlencoded; charset=UTF-8';
 
             xhr.setRequestHeader("Content-Type", contentType);
 
             Object.keys(headers).forEach(function(name) {
                 xhr.setRequestHeader(name, headers[name]);
             });
-
-            if (util.isObject(data)) {
-                if (options.contentType && options.contentType.match(/^json$/i)) {
-                    data = JSON.stringify(data);
-                }
-                else {
-                    data = [];
-                    Object.keys(options.data).forEach(function(key) {
-                        data.push(key + '=' + encodeURIComponent((<any>options.data)[key]));
-                    });
-                    data = data.join("&");
-                }
-            }
 
             xhr.send(data);
         });

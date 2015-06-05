@@ -1,7 +1,7 @@
 /// <reference path="../../build/drunk.d.ts" />
 /// <reference path="../jasmine.d.ts" />
 
-describe("observer", function () {
+describe("observable", function () {
     
     var observable = drunk.observable;
     var ObservableArray = drunk.observable.ObservableArrayPrototype;

@@ -7,7 +7,7 @@
  
 module drunk {
     
-    interface IDataItem {
+    export interface IItemDataDescriptor {
         key: string | number;
         idx: number;
         val: any;
@@ -156,7 +156,7 @@ module drunk {
             return viewModel;
         },
 
-        createItemVm(item: IDataItem, isLast: boolean, isCollection: boolean) {
+        createItemVm(item: IItemDataDescriptor, isLast: boolean, isCollection: boolean) {
             let own: IModel = {};
             let val = item.val;
 
@@ -176,7 +176,7 @@ module drunk {
             return viewModel;
         },
 
-        updateItemModel(target: any, item: IDataItem, isLast: boolean) {
+        updateItemModel(target: any, item: IItemDataDescriptor, isLast: boolean) {
             target.$odd = 0 === item.idx % 2;
             target.$last = isLast;
             target.$first = 0 === item.idx;
@@ -198,8 +198,6 @@ module drunk {
                     return;
                 }
 
-                // 如果未在使用或强制销毁
-                
                 let val = viewModel[value];
 
                 if (viewModel._isCollection) {
@@ -247,36 +245,78 @@ module drunk {
         _isCollection: boolean;
         _isChecked: boolean;
         
-        protected _models: IModel[] = [];
+        protected _models: IModel[];
         
         constructor(public parent: Component | RepeatItem, ownModel, public element) {
             super(ownModel);
+            this.__inheritParentMembers();
         }
         
+        /**
+         * 这里只初始化私有model
+         * @method __init
+         * @override
+         * @protected
+         */
         protected __init(ownModel) {
+            this.__proxyModel(ownModel);
+            observable.create(ownModel);
+        }
+        
+        /**
+         * 继承父级viewModel的filter和私有model
+         * @method __inheritParentMembers
+         * @protected
+         * @override
+         */
+        protected __inheritParentMembers() {
             let parent = this.parent;
             let models = (<RepeatItem>parent)._models;
             
-            super.__init.call(this, parent._model);
+            super.__init(parent._model);
             
             this.filter = parent.filter;
-            
-            this.__proxyModel(ownModel);
-            observable.create(ownModel);
     
             if (models) {
-                models.forEach(function (model) {
+                models.forEach((model) => {
                     this.__proxyModel(model);
-                }, this);
+                });
             }
         }
         
+        /**
+         * 代理指定model上的所有属性
+         * @method __proxyModel
+         * @protected
+         */
+        protected __proxyModel(model: IModel) {
+            Object.keys(model).forEach((name) => {
+                util.proxy(this, name, model);
+            });
+            
+            if (!this._models) {
+                this._models = [];
+            }
+            
+            this._models.push(model);
+        }
+        
+        /**
+         * 重写代理方法,顺便也让父级viewModel代理该属性
+         * @method proxy
+         * @override
+         */
         proxy(property: string) {
             if (util.proxy(this, name, this._model)) {
                 this.parent.proxy(name);
             }
         }
         
+        /**
+         * 重写获取事件处理方法,忘父级查找该方法
+         * @override
+         * @method __getHandler
+         */
         __getHandler(name: string) {
             let context: any = this;
             let handler = this[name];
@@ -299,20 +339,13 @@ module drunk {
                 return handler.apply(context, args);
             };
         }
-        
-        private __proxyModel(model: IModel) {
-            Object.keys(model).forEach((name) => {
-                util.proxy(this, name, model);
-            });
-            this._models.push(model);
-        }
     }
 
     /*
      * 把数据转成列表,如果为空则转成空数组
      */
-    function toList(target): IDataItem[] {
-        let ret: IDataItem[] = [];
+    export function toList(target): IItemDataDescriptor[] {
+        let ret: IItemDataDescriptor[] = [];
 
         if (Array.isArray(target)) {
             target.forEach(function (val, idx) {

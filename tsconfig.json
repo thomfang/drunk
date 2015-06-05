@@ -15,6 +15,7 @@
         "src/events/events.ts",
         "src/util/util.ts",
         "src/util/elem.ts",
+        "src/util/querystring.ts",
         "src/util/xhr.ts",
         "src/observable/observableArray.ts",
         "src/observable/observableObject.ts",

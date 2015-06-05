@@ -1,4 +1,4 @@
-describe("Filter", function () {
+describe("filter", function () {
     var filter = drunk.filter.filters;
 
     it("escape", function () {

@@ -869,8 +869,49 @@ var drunk;
         elementUtil.removeClass = removeClass;
     })(elementUtil = drunk.elementUtil || (drunk.elementUtil = {}));
 })(drunk || (drunk = {}));
-/// <reference path="../util/util.ts" />
-/// <reference path="../promise/promise.ts" />
+/// <reference path="./util" />
+/**
+ * 搜索字符串解析模块
+ * @module drunk.querystring
+ * @class querystring
+ */
+var drunk;
+(function (drunk) {
+    var querystring;
+    (function (querystring) {
+        /**
+         * 解析字符串生成一个键值对表
+         * @method parse
+         * @static
+         * @param  {string}  str  搜索字符串
+         * @return {Object}
+         */
+        function parse(str) {
+            str = decodeURIComponent(str);
+            var ret = {};
+            str.split('&').forEach(function (pair) {
+                var arr = pair.split('=');
+                ret[arr[0]] = arr[1];
+            });
+            return ret;
+        }
+        querystring.parse = parse;
+        /**
+         * 把一个键值对表转化为搜索字符串
+         * @method stringify
+         * @static
+         * @param  {Object} obj 键值对表
+         * @return {string}
+         */
+        function stringify(obj) {
+            return Object.keys(obj).map(function (key) { return key + '=' + encodeURIComponent(obj[key]); }).join('&');
+        }
+        querystring.stringify = stringify;
+    })(querystring = drunk.querystring || (drunk.querystring = {}));
+})(drunk || (drunk = {}));
+/// <reference path="./util" />
+/// <reference path="./querystring" />
+/// <reference path="../promise/promise" />
 /**
  * @module drunk.util
  * @class util
@@ -896,13 +937,33 @@ var drunk;
          */
         function ajax(options) {
             var xhr = new XMLHttpRequest();
+            if (typeof options.url !== 'string') {
+                throw new Error('发送ajax请求失败:url未提供');
+            }
             return new drunk.Promise(function (resolve, reject) {
+                var url = options.url;
+                var type = (options.type || 'GET').toUpperCase();
+                var headers = options.headers || {};
+                var data = options.data;
+                var contentType = options.contentType || 'application/x-www-form-urlencoded; charset=UTF-8';
+                if (util.isObject(data)) {
+                    if (options.contentType && options.contentType.match(/^json$/i)) {
+                        data = JSON.stringify(data);
+                    }
+                    else {
+                        data = drunk.querystring.stringify(data);
+                        if (type === 'GET') {
+                            url += (url.indexOf('?') === -1 ? '?' : '&') + data;
+                            data = null;
+                        }
+                    }
+                }
                 xhr.onreadystatechange = function () {
                     if (xhr.readyState === 4) {
                         if (xhr.status >= 200 && xhr.status < 300 || xhr.status === 304) {
                             var res = xhr.responseText;
-                            resolve(options.dataType === 'json' ? JSON.parse(res) : res);
                             xhr = null;
+                            resolve(options.dataType === 'json' ? JSON.parse(res) : res);
                         }
                         else {
                             reject(xhr);
@@ -912,29 +973,14 @@ var drunk;
                 xhr.onerror = function () {
                     reject(xhr);
                 };
-                xhr.open((options.type || 'GET').toUpperCase(), options.url, true);
+                xhr.open((type).toUpperCase(), url, true);
                 if (options.withCredentials || (options.xhrFields && options.xhrFields.withCredentials)) {
                     xhr.withCredentials = true;
                 }
-                var headers = options.headers || {};
-                var data = options.data;
-                var contentType = options.contentType || 'application/x-www-form-urlencoded; charset=UTF-8';
                 xhr.setRequestHeader("Content-Type", contentType);
                 Object.keys(headers).forEach(function (name) {
                     xhr.setRequestHeader(name, headers[name]);
                 });
-                if (util.isObject(data)) {
-                    if (options.contentType && options.contentType.match(/^json$/i)) {
-                        data = JSON.stringify(data);
-                    }
-                    else {
-                        data = [];
-                        Object.keys(options.data).forEach(function (key) {
-                            data.push(key + '=' + encodeURIComponent(options.data[key]));
-                        });
-                        data = data.join("&");
-                    }
-                }
                 xhr.send(data);
             });
         }
@@ -2238,6 +2284,9 @@ var drunk;
          */
         ViewModel.prototype.dispose = function () {
             var _this = this;
+            if (!this._isActived) {
+                return;
+            }
             Object.keys(this._model).forEach(function (property) {
                 delete _this[property];
             });
@@ -2248,6 +2297,7 @@ var drunk;
                 binding.dispose();
             });
             drunk.EventEmitter.cleanup(this);
+            this._isActived = false;
             this._model = null;
             this._bindings = null;
             this._watchers = null;
@@ -3651,20 +3701,24 @@ var drunk;
 var drunk;
 (function (drunk) {
     drunk.Binding.register("include", {
+        isActived: true,
+        _unbindExecutor: null,
         update: function (url) {
-            if (url && this.url === url) {
+            if (!this.isActived || (url && url === this.url)) {
                 return;
             }
             this.unbind();
             if (url) {
                 this.url = url;
-                drunk.Template.load(url).then(this.createBinding.bind(this));
+                return drunk.Template.load(url).then(this.createBinding.bind(this));
             }
         },
         createBinding: function (template) {
+            if (!this.isActived) {
+                return;
+            }
             this.element.innerHTML = template;
-            var bindingExecutor = drunk.Template.compile(this.element);
-            this._unbindExecutor = bindingExecutor(this.viewModel, this.element);
+            this._unbindExecutor = drunk.Template.compile(this.element)(this.viewModel, this.element);
         },
         unbind: function () {
             if (this._unbindExecutor) {
@@ -3676,6 +3730,7 @@ var drunk;
             this.unbind();
             this.url = null;
             this.element.innerHTML = "";
+            this.isActived = false;
         }
     });
 })(drunk || (drunk = {}));
@@ -3945,7 +4000,6 @@ var drunk;
                 if (viewModel._isChecked && !force) {
                     return;
                 }
-                // 如果未在使用或强制销毁
                 var val = viewModel[value];
                 if (viewModel._isCollection) {
                     // 移除数据对viewModel实例的引用
@@ -3987,26 +4041,66 @@ var drunk;
             _super.call(this, ownModel);
             this.parent = parent;
             this.element = element;
-            this._models = [];
+            this.__inheritParentMembers();
         }
+        /**
+         * 这里只初始化私有model
+         * @method __init
+         * @override
+         * @protected
+         */
         RepeatItem.prototype.__init = function (ownModel) {
+            this.__proxyModel(ownModel);
+            drunk.observable.create(ownModel);
+        };
+        /**
+         * 继承父级viewModel的filter和私有model
+         * @method __inheritParentMembers
+         * @protected
+         * @override
+         */
+        RepeatItem.prototype.__inheritParentMembers = function () {
+            var _this = this;
             var parent = this.parent;
             var models = parent._models;
             _super.prototype.__init.call(this, parent._model);
             this.filter = parent.filter;
-            this.__proxyModel(ownModel);
-            drunk.observable.create(ownModel);
             if (models) {
                 models.forEach(function (model) {
-                    this.__proxyModel(model);
-                }, this);
+                    _this.__proxyModel(model);
+                });
             }
         };
+        /**
+         * 代理指定model上的所有属性
+         * @method __proxyModel
+         * @protected
+         */
+        RepeatItem.prototype.__proxyModel = function (model) {
+            var _this = this;
+            Object.keys(model).forEach(function (name) {
+                drunk.util.proxy(_this, name, model);
+            });
+            if (!this._models) {
+                this._models = [];
+            }
+            this._models.push(model);
+        };
+        /**
+         * 重写代理方法,顺便也让父级viewModel代理该属性
+         * @method proxy
+         * @override
+         */
         RepeatItem.prototype.proxy = function (property) {
             if (drunk.util.proxy(this, name, this._model)) {
                 this.parent.proxy(name);
             }
         };
+        /**
+         * 重写获取事件处理方法,忘父级查找该方法
+         * @override
+         * @method __getHandler
+         */
         RepeatItem.prototype.__getHandler = function (name) {
             var context = this;
             var handler = this[name];
@@ -4028,13 +4122,6 @@ var drunk;
                 }
                 return handler.apply(context, args);
             };
-        };
-        RepeatItem.prototype.__proxyModel = function (model) {
-            var _this = this;
-            Object.keys(model).forEach(function (name) {
-                drunk.util.proxy(_this, name, model);
-            });
-            this._models.push(model);
         };
         return RepeatItem;
     })(drunk.Component);
@@ -4075,6 +4162,7 @@ var drunk;
         }
         return ret;
     }
+    drunk.toList = toList;
 })(drunk || (drunk = {}));
 /// <reference path="../binding" />
 /**

@@ -370,6 +370,31 @@ declare module drunk.elementUtil {
     function removeClass(element: HTMLElement, token: string): void;
 }
 /**
+ * 搜索字符串解析模块
+ * @module drunk.querystring
+ * @class querystring
+ */
+declare module drunk.querystring {
+    /**
+     * 解析字符串生成一个键值对表
+     * @method parse
+     * @static
+     * @param  {string}  str  搜索字符串
+     * @return {Object}
+     */
+    function parse(str: string): {
+        [key: string]: string;
+    };
+    /**
+     * 把一个键值对表转化为搜索字符串
+     * @method stringify
+     * @static
+     * @param  {Object} obj 键值对表
+     * @return {string}
+     */
+    function stringify(obj: Object): string;
+}
+/**
  * @module drunk.util
  * @class util
  */
@@ -1519,6 +1544,11 @@ declare module drunk {
 declare module drunk {
 }
 declare module drunk {
+    interface IItemDataDescriptor {
+        key: string | number;
+        idx: number;
+        val: any;
+    }
     /**
      * 用于repeat作用域下的子viewModel
      * @class RepeatItem
@@ -1534,11 +1564,40 @@ declare module drunk {
         _isChecked: boolean;
         protected _models: IModel[];
         constructor(parent: Component | RepeatItem, ownModel: any, element: any);
+        /**
+         * 这里只初始化私有model
+         * @method __init
+         * @override
+         * @protected
+         */
         protected __init(ownModel: any): void;
+        /**
+         * 继承父级viewModel的filter和私有model
+         * @method __inheritParentMembers
+         * @protected
+         * @override
+         */
+        protected __inheritParentMembers(): void;
+        /**
+         * 代理指定model上的所有属性
+         * @method __proxyModel
+         * @protected
+         */
+        protected __proxyModel(model: IModel): void;
+        /**
+         * 重写代理方法,顺便也让父级viewModel代理该属性
+         * @method proxy
+         * @override
+         */
         proxy(property: string): void;
+        /**
+         * 重写获取事件处理方法,忘父级查找该方法
+         * @override
+         * @method __getHandler
+         */
         __getHandler(name: string): (...args: any[]) => any;
-        private __proxyModel(model);
     }
+    function toList(target: any): IItemDataDescriptor[];
 }
 /**
  * 切换元素显示隐藏,和drunk-if的效果相似,只是在具有多个绑定的情况下if的性能更好,反之是show的性能更好

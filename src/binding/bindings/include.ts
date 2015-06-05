@@ -25,9 +25,12 @@
 module drunk {
 
     Binding.register("include", {
+        
+        isActived: true,
+        _unbindExecutor: null,
 
         update(url: string) {
-            if (url && this.url === url) {
+            if (!this.isActived || (url && url === this.url)) {
                 return;
             }
             
@@ -35,14 +38,17 @@ module drunk {
 
             if (url) {
                 this.url = url;
-                Template.load(url).then(this.createBinding.bind(this));
+                return Template.load(url).then(this.createBinding.bind(this));
             }
         },
 
         createBinding(template: string) {
+            if (!this.isActived) {
+                return;
+            }
+            
             this.element.innerHTML = template;
-            var bindingExecutor = Template.compile(this.element);
-            this._unbindExecutor = bindingExecutor(this.viewModel, this.element);
+            this._unbindExecutor = Template.compile(this.element)(this.viewModel, this.element);
         },
         
         unbind() {
@@ -56,6 +62,7 @@ module drunk {
             this.unbind();
             this.url = null;
             this.element.innerHTML = "";
+            this.isActived = false;
         }
     });
 
