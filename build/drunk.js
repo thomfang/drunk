@@ -630,7 +630,7 @@ var drunk;
         EventEmitter.prototype.removeListener = function (type, listener) {
             var store = getStore(this);
             var listeners = store[type];
-            if (!listeners || listeners.length) {
+            if (!listeners || !listeners.length) {
                 return;
             }
             drunk.util.removeArrayItem(listeners, listener);
@@ -685,7 +685,8 @@ var drunk;
          * @return {Array<IEventListener>}
          */
         EventEmitter.prototype.listeners = function (type) {
-            return getStore(this)[type] || [];
+            var listeners = getStore(this)[type];
+            return listeners ? listeners.slice() : [];
         };
         /**
          * 获取事件实例的指定事件类型的回调技术

@@ -79,7 +79,7 @@ module drunk {
             let store = getStore(this);
             let listeners = store[type];
             
-            if (!listeners || listeners.length) {
+            if (!listeners || !listeners.length) {
                 return;
             }
             
@@ -137,7 +137,8 @@ module drunk {
          * @return {Array<IEventListener>}
          */
         listeners(type: string): IEventListener[] {
-            return getStore(this)[type] || [];
+            var listeners: IEventListener[] = getStore(this)[type];
+            return listeners ? listeners.slice() : [];
         }
         
         /**
