@@ -18,8 +18,9 @@ module drunk {
      * ViewModel类， 实现数据与模板元素的绑定
      * 
      * @class ViewModel
+     * @extend EventEmitter
      */
-    export class ViewModel extends Events {
+    export class ViewModel extends EventEmitter {
         
         /**
          * 实例是否未被释放
@@ -215,7 +216,7 @@ module drunk {
                 binding.dispose();
             });
             
-            Events.cleanup(this);
+            EventEmitter.cleanup(this);
             
             this._model = null;
             this._bindings = null;

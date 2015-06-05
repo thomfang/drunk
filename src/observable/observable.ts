@@ -138,7 +138,7 @@ module drunk.observable {
         // 假设value是一个数组，当数组添加了一个新的item时，
         // 告知data的observer实例派发property改变的通知
         function propertyChanged() {
-            dataOb.dispatchEvent(property);
+            dataOb.emit(property);
         }
     }
      

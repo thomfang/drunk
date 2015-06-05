@@ -568,8 +568,8 @@ var drunk;
 var drunk;
 (function (drunk) {
     var eventStore = {};
-    function getStore(object) {
-        var id = drunk.util.uuid(object);
+    function getStore(emitter) {
+        var id = drunk.util.uuid(emitter);
         if (!eventStore[id]) {
             eventStore[id] = {};
         }
@@ -578,48 +578,88 @@ var drunk;
     /**
      * 事件管理类
      *
-     * @class Events
+     * @class EventEmitter
      */
-    var Events = (function () {
-        function Events() {
+    var EventEmitter = (function () {
+        function EventEmitter() {
         }
         /**
          * 注册事件
-         *
          * @method addListener
          * @param  {string}          type       事件类型
          * @param  {IEventListener}   listener   事件回调
+         * @return {EventEmitter}
          */
-        Events.prototype.addListener = function (type, listener) {
+        EventEmitter.prototype.addListener = function (type, listener) {
             var store = getStore(this);
             if (!store[type]) {
                 store[type] = [];
             }
             drunk.util.addArrayItem(store[type], listener);
+            return this;
+        };
+        /**
+         * 注册事件,addListener方法的别名
+         * @method on
+         * @param  {string}           type       事件类型
+         * @param  {IEventListener}   listener   事件回调
+         * @return {EventEmitter}
+         */
+        EventEmitter.prototype.on = function (type, listener) {
+            return this.addListener(type, listener);
+        };
+        /**
+         * 注册一次性事件
+         * @method once
+         * @param  {string}         type      事件类型
+         * @param  {IEventListener} listener  事件回调
+         * @return {EventEmitter}
+         */
+        EventEmitter.prototype.once = function (type, listener) {
+            listener.__isOnce = true;
+            this.addListener(type, listener);
+            return this;
         };
         /**
          * 移除指定类型的事件监听
-         *
          * @method removeListener
          * @param  {string}         type     事件类型
          * @param  {IEventListener}  listener 事件回调
+         * @return {EventEmitter}
          */
-        Events.prototype.removeListener = function (type, listener) {
+        EventEmitter.prototype.removeListener = function (type, listener) {
             var store = getStore(this);
             var listeners = store[type];
             if (!listeners || listeners.length) {
                 return;
             }
             drunk.util.removeArrayItem(listeners, listener);
+            return this;
+        };
+        /**
+         * 移除所有指定类型的事件,或当事件类型未提供时,移除所有该实例上所有的事件
+         * @method removeAllListeners
+         * @param  {string}  [type]  事件类型
+         * @return {EventEmitter}
+         */
+        EventEmitter.prototype.removeAllListeners = function (type) {
+            if (!type) {
+                EventEmitter.cleanup(this);
+            }
+            else {
+                getStore(this)[type] = null;
+            }
+            return this;
         };
         /**
          * 派发指定类型事件
          *
-         * @method dispatchEvent
-         * @param  {string}  type       事件类型
-         * @param  {any[]}   ...args    其他参数
+         * @method emit
+         * @param  {string}  type        事件类型
+         * @param  {any[]}   [...args]    其他参数
+         * @return {EventEmitter}
          */
-        Events.prototype.dispatchEvent = function (type) {
+        EventEmitter.prototype.emit = function (type) {
             var _this = this;
             var args = [];
             for (var _i = 1; _i < arguments.length; _i++) {
@@ -631,19 +671,32 @@ var drunk;
                 return;
             }
             listeners.slice().forEach(function (listener) {
-                listener.apply(void 0, [_this].concat(args));
+                listener.apply(_this, args);
+                if (listener.__isOnce) {
+                    drunk.util.removeArrayItem(listeners, listener);
+                }
             });
+            return this;
+        };
+        /**
+         * 获取指定事件类型的所有listener
+         * @method listeners
+         * @param  {string}  type  事件类型
+         * @return {Array<IEventListener>}
+         */
+        EventEmitter.prototype.listeners = function (type) {
+            return getStore(this)[type] || [];
         };
         /**
          * 获取事件实例的指定事件类型的回调技术
-         * @method getListenerCount
+         * @method listenerCount
          * @static
-         * @param  {Events} instance  事件类实例
-         * @param  {string} type      事件类型
+         * @param  {EventEmitter} emitter  事件类实例
+         * @param  {string} type            事件类型
          * @return {number}
          */
-        Events.getListenerCount = function (object, type) {
-            var store = getStore(object);
+        EventEmitter.listenerCount = function (emitter, type) {
+            var store = getStore(emitter);
             if (!store[type]) {
                 return 0;
             }
@@ -653,16 +706,16 @@ var drunk;
          * 移除对象的所有事件回调引用
          * @method cleanup
          * @static
-         * @param  {object}  object  指定对象
+         * @param  {EventEmitter}  emitter  事件发射器实例
          */
-        Events.cleanup = function (object) {
-            var id = drunk.util.uuid(object);
+        EventEmitter.cleanup = function (emitter) {
+            var id = drunk.util.uuid(emitter);
             eventStore[id] = null;
         };
         ;
-        return Events;
+        return EventEmitter;
     })();
-    drunk.Events = Events;
+    drunk.EventEmitter = EventEmitter;
 })(drunk || (drunk = {}));
 /**
  * DOM操作的工具方法模块
@@ -1041,7 +1094,7 @@ var drunk;
                 this._propertyChangedCallbackList.forEach(function (callback) { return callback(); });
             };
             return Observer;
-        })(drunk.Events);
+        })(drunk.EventEmitter);
         observable.Observer = Observer;
     })(observable = drunk.observable || (drunk.observable = {}));
 })(drunk || (drunk = {}));
@@ -1163,7 +1216,7 @@ var drunk;
             // 假设value是一个数组，当数组添加了一个新的item时，
             // 告知data的observer实例派发property改变的通知
             function propertyChanged() {
-                dataOb.dispatchEvent(property);
+                dataOb.emit(property);
             }
         }
         observable.observe = observe;
@@ -2061,6 +2114,7 @@ var drunk;
      * ViewModel类， 实现数据与模板元素的绑定
      *
      * @class ViewModel
+     * @extend EventEmitter
      */
     var ViewModel = (function (_super) {
         __extends(ViewModel, _super);
@@ -2192,7 +2246,7 @@ var drunk;
             this._bindings.forEach(function (binding) {
                 binding.dispose();
             });
-            drunk.Events.cleanup(this);
+            drunk.EventEmitter.cleanup(this);
             this._model = null;
             this._bindings = null;
             this._watchers = null;
@@ -2240,7 +2294,7 @@ var drunk;
         };
         ;
         return ViewModel;
-    })(drunk.Events);
+    })(drunk.EventEmitter);
     drunk.ViewModel = ViewModel;
 })(drunk || (drunk = {}));
 /// <reference path="../viewmodel/viewmodel.ts" />
@@ -2950,7 +3004,7 @@ var drunk;
             element['__viewModel'] = this;
             this.element = element;
             this._isMounted = true;
-            this.dispatchEvent(Component.MOUNTED);
+            this.emit(Component.MOUNTED);
         };
         /**
          * 释放组件
@@ -3370,11 +3424,10 @@ var drunk;
             this.processComponentContextEvent();
             this.processComponentAttributes();
             // 触发组件实例创建事件
-            this.viewModel.dispatchEvent(drunk.Component.SUB_COMPONENT_CREATED, this.component);
+            this.viewModel.emit(drunk.Component.SUB_COMPONENT_CREATED, this.component);
             return this.processComponentBinding();
         },
         processComponentContextEvent: function () {
-            var _this = this;
             var element = this.element;
             var viewModel = this.viewModel;
             // 在组件实例上注册getComponentContext事件,
@@ -3383,7 +3436,7 @@ var drunk;
             // 只要在触发该事件时把特定事件名传递过来,就会触发该事件名并把上下文传递过去
             this.component.addListener(drunk.Component.GET_COMPONENT_CONTEXT, function (eventName) {
                 if (typeof eventName === 'string') {
-                    _this.dispatchEvent(eventName, viewModel, element);
+                    this.emit(eventName, viewModel, element);
                 }
             });
         },
@@ -3441,7 +3494,7 @@ var drunk;
                 drunk.elementUtil.replace(template, _this.element);
                 component.mount(template);
                 // 触发组件已经挂载到元素上的事件
-                viewModel.dispatchEvent(drunk.Component.SUB_COMPONENT_MOUNTED, component);
+                viewModel.emit(drunk.Component.SUB_COMPONENT_MOUNTED, component);
             }).catch(function (reason) {
                 console.warn("组件挂载失败,错误信息:");
                 console.warn(reason);
@@ -3483,7 +3536,7 @@ var drunk;
          */
         release: function () {
             // 触发组件即将释放事件
-            this.viewModel.dispatchEvent(drunk.Component.SUB_COMPONENT_BEFORE_RELEASE, this.component);
+            this.viewModel.emit(drunk.Component.SUB_COMPONENT_BEFORE_RELEASE, this.component);
             if (this.component.element) {
                 drunk.elementUtil.remove(this.component.element);
             }
@@ -3492,7 +3545,7 @@ var drunk;
             // 移除所有的属性监控
             this.unwatches.forEach(function (unwatch) { return unwatch(); });
             // 触发组件已经释放完毕事件
-            this.viewModel.dispatchEvent(drunk.Component.SUB_COMPONENT_RELEASED, this.component);
+            this.viewModel.emit(drunk.Component.SUB_COMPONENT_RELEASED, this.component);
             // 移除所有引用
             this.component = null;
             this.unwatches = null;
@@ -4075,8 +4128,8 @@ var drunk;
          */
         init: function () {
             var eventName = "transclude:setup";
-            this.viewModel.addListener(eventName, this.setup.bind(this), true);
-            this.viewModel.dispatchEvent(drunk.Component.GET_COMPONENT_CONTEXT, eventName);
+            this.viewModel.once(eventName, this.setup.bind(this), true);
+            this.viewModel.emit(drunk.Component.GET_COMPONENT_CONTEXT, eventName);
         },
         /*
          * 设置transclude并创建绑定

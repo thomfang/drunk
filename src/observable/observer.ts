@@ -14,7 +14,7 @@ module drunk.observable {
      * @extends Events
      * @constructor
      */
-    export class Observer extends Events {
+    export class Observer extends EventEmitter {
         
         /**
          * 属性改变的回调函数列表

@@ -26,7 +26,7 @@ module drunk {
             this.processComponentAttributes();
             
             // 触发组件实例创建事件
-            this.viewModel.dispatchEvent(Component.SUB_COMPONENT_CREATED, this.component);
+            this.viewModel.emit(Component.SUB_COMPONENT_CREATED, this.component);
             
             return this.processComponentBinding();
         },
@@ -39,9 +39,9 @@ module drunk {
             // 该事件提供获取组件父级viewModel及element上下文的借口,
             // 可以在任何地方触发该事件以获取组件相关上下文,
             // 只要在触发该事件时把特定事件名传递过来,就会触发该事件名并把上下文传递过去
-            this.component.addListener(Component.GET_COMPONENT_CONTEXT, (eventName) => {
+            this.component.addListener(Component.GET_COMPONENT_CONTEXT, function (eventName) {
                 if (typeof eventName === 'string') {
-                    this.dispatchEvent(eventName, viewModel, element);
+                    this.emit(eventName, viewModel, element);
                 }
             });
         },
@@ -111,7 +111,7 @@ module drunk {
                 component.mount(template);
                 
                 // 触发组件已经挂载到元素上的事件
-                viewModel.dispatchEvent(Component.SUB_COMPONENT_MOUNTED, component);
+                viewModel.emit(Component.SUB_COMPONENT_MOUNTED, component);
             }).catch(function (reason) {
                 console.warn("组件挂载失败,错误信息:");
                 console.warn(reason);
@@ -156,7 +156,7 @@ module drunk {
          */
         release() {
             // 触发组件即将释放事件
-            this.viewModel.dispatchEvent(Component.SUB_COMPONENT_BEFORE_RELEASE, this.component);
+            this.viewModel.emit(Component.SUB_COMPONENT_BEFORE_RELEASE, this.component);
             
             if (this.component.element) {
                 elementUtil.remove(this.component.element);
@@ -169,7 +169,7 @@ module drunk {
             this.unwatches.forEach(unwatch => unwatch());
             
             // 触发组件已经释放完毕事件
-            this.viewModel.dispatchEvent(Component.SUB_COMPONENT_RELEASED, this.component);
+            this.viewModel.emit(Component.SUB_COMPONENT_RELEASED, this.component);
             
             // 移除所有引用
             this.component = null;

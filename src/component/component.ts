@@ -242,7 +242,7 @@ module drunk {
             this.element = element;
             this._isMounted = true;
 
-            this.dispatchEvent(Component.MOUNTED);
+            this.emit(Component.MOUNTED);
         }
         
         /**

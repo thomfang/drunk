@@ -13,8 +13,8 @@ module drunk {
          */
         init() {
             var eventName = "transclude:setup";
-            this.viewModel.addListener(eventName, this.setup.bind(this), true);
-            this.viewModel.dispatchEvent(Component.GET_COMPONENT_CONTEXT, eventName);
+            this.viewModel.once(eventName, this.setup.bind(this), true);
+            this.viewModel.emit(Component.GET_COMPONENT_CONTEXT, eventName);
         },
 
         /*
