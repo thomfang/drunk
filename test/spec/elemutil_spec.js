@@ -1,3 +1,6 @@
+/// <reference path="../../build/drunk.d.ts" />
+/// <reference path="../jasmine.d.ts" />
+
 describe("elementUtil", function () {
 
     var elementUtil = drunk.elementUtil;
@@ -10,6 +13,14 @@ describe("elementUtil", function () {
         expect(res.tagName).toBe("DIV");
         expect(res.hasChildNodes()).toBe(false);
         expect(res.id).toBe("test");
+    });
+    
+    it("create node list", function () {
+        var tpl = '<div></div><div></div>';
+        var res = elementUtil.create(tpl);
+        
+        expect(Array.isArray(res)).toBe(true);
+        expect(res.length).toBe(2);
     });
 
     it("add newNode before oldNode", function () {

@@ -220,6 +220,7 @@ module drunk {
             this._model = null;
             this._bindings = null;
             this._watchers = null;
+            this.filter = null;
         }
         
         /**

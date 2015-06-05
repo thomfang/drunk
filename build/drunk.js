@@ -2190,6 +2190,7 @@ var drunk;
             this._model = null;
             this._bindings = null;
             this._watchers = null;
+            this.filter = null;
         };
         /**
          * 获取事件回调,内置方法
