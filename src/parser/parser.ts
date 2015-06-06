@@ -2,7 +2,6 @@
 /// <reference path="../filter/filter" />
 /// <reference path="../cache/cache" />
 
-
 /**
  * 简单的解析器,只是做了字符串替换,然后使用new Function生成函数
  * @module drunk.parser
@@ -194,7 +193,6 @@ module drunk.parser {
     
     /**
      * 解析表达式
-     * 
      * @method parse
      * @static
      * @param  {string}  expression  表达式
@@ -218,12 +216,12 @@ module drunk.parser {
     
     /**
      * 解析表达式生成getter函数
-     * 
      * @method parsetGetter
      * @static
-     * @param  {string}  expression  表达式字符串
-     * @param  {boolean} skipFilter  跳过解析filter
-     * @return {function}            getter函数
+     * @param  {string}  expression      表达式字符串
+     * @param  {boolean} [isInterpolate] 是否是一哥插值表达式
+     * @param  {boolean} [skipFilter]    跳过解析filter
+     * @return {function}                getter函数
      */
     export function parseGetter(expression: string, isInterpolate?: boolean, skipFilter?: boolean): IGetter {
         assertNotEmptyString(expression, "创建getter失败");
@@ -258,7 +256,7 @@ module drunk.parser {
     /**
      * 解析表达式生成setter函数
      * 
-     * @method parsetSetter
+     * @method parseSetter
      * @static
      * @param  {string}  expression 表达式字符串
      * @return {function}           setter函数
@@ -282,7 +280,6 @@ module drunk.parser {
     /**
      * 解析包含插值绑定的字符串表达式， 类似"a {{interpolate_let}}"， 花括号里的就是插值变量
      * 先判断是否存在花括号， 然后在解析成tokens， 再根据token生成getter函数
-     * 
      * @method parseInterpolate
      * @static
      * @param  {string}  expression  表达式字符串
@@ -328,7 +325,6 @@ module drunk.parser {
     
     /**
      * 是否有插值语法
-     * 
      * @method hasInterpolation
      * @static
      * @param  {string}  str  字符串

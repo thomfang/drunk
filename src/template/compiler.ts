@@ -22,13 +22,13 @@ module drunk.Template {
     export function compile(node: any): IBindingExecutor {
         var isArray: boolean = Array.isArray(node);
         var executor: IBindingExecutor = isArray || node.nodeType === 11 ? null : compileNode(node);
-        var isEnding: boolean = executor && executor.isEnding;
+        var isTerminal: boolean = executor && executor.isTerminal;
         var childExecutor: IBindingExecutor;
         
         if (isArray) {
             executor = compileNodeList(node);
         }
-        else if (!isEnding && node.tagName !== 'SCRIPT' && node.hasChildNodes()) {
+        else if (!isTerminal && node.tagName !== 'SCRIPT' && node.hasChildNodes()) {
             childExecutor = compileNodeList(node.childNodes);
         }
         
@@ -81,7 +81,7 @@ module drunk.Template {
             
             executor = compileNode(node);
             
-            if (!(executor && executor.isEnding) && node.hasChildNodes()) {
+            if (!(executor && executor.isTerminal) && node.hasChildNodes()) {
                 childExecutor = compileNodeList(node.childNodes);
             }
             
@@ -120,7 +120,7 @@ module drunk.Template {
         if (element.hasAttributes()) {
             // 如果元素上有属性， 先判断是否存在终止型绑定指令
             // 如果不存在则判断是否有普通的绑定指令
-            executor = processEndingBinding(element) || processNormalBinding(element);
+            executor = processTerminalBinding(element) || processNormalBinding(element);
         }
         
         if (element.tagName === 'TEXTAREA') {
@@ -180,18 +180,18 @@ module drunk.Template {
     }
     
     // 检测是否存在终止编译的绑定，比如component指令会终止当前编译过程，如果有创建绑定描述符
-    function processEndingBinding(element: any): IBindingExecutor {
-        var endings: string[] = Binding.getEndingNames();
+    function processTerminalBinding(element: any): IBindingExecutor {
+        var terminals: string[] = Binding.getTerminalBindings();
         var name: string;
         var expression: string;
         
-        for (var i = 0; name = endings[i]; i++) {
+        for (var i = 0; name = terminals[i]; i++) {
             if (expression = element.getAttribute(config.prefix + name)) {
                 // 如果存在该绑定
                 return createExecutor(element, {
                     name: name,
                     expression: expression,
-                    isEnding: true
+                    isTerminal: true
                 });
             }
         }
@@ -260,7 +260,7 @@ module drunk.Template {
         executor = (viewModel, element) => {
             Binding.create(viewModel, element, descriptor);
         };
-        executor.isEnding = descriptor.isEnding;
+        executor.isTerminal = descriptor.isTerminal;
         
         return executor;
     }

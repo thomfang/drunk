@@ -26,7 +26,7 @@ module drunk {
     export interface IBindingDefinition {
         name?: string;
         isDeepWatch?: boolean;
-        isEnding?: boolean;
+        isTerminal?: boolean;
         priority?: number;
         expression?: string;
         retainAttribute?: boolean;
@@ -43,7 +43,7 @@ module drunk {
      */
     export interface IBindingExecutor {
         (viewModel: ViewModel, element: any): void;
-        isEnding?: boolean;
+        isTerminal?: boolean;
     }
 
     export class Binding {
@@ -170,11 +170,11 @@ module drunk {
 
         /**
          * 终止型绑定信息列表,每个绑定信息包含了name(名字)和priority(优先级)信息
-         * @property endingList
+         * @property terminalBindingDescriptors
          * @private
          * @type Array<{name: string; priority: number}>
          */
-        let endingList: { name: string; priority: number }[] = [];
+        let terminalBindingDescriptors: { name: string; priority: number }[] = [];
         
         /**
          * 终止型绑定的名称
@@ -182,7 +182,7 @@ module drunk {
          * @private
          * @type Array<string>
          */
-        let endingNames: string[] = [];
+        let terminalBindings: string[] = [];
         let definitions: { [name: string]: IBindingDefinition } = {};
         
         /**
@@ -194,8 +194,8 @@ module drunk {
          * @param  {function|Object} def   binding实现的定义对象或绑定的更新函数
          */
         export function register<T extends IBindingDefinition>(name: string, definition: T): void {
-            if (definition.isEnding) {
-                setEnding(name, definition.priority || 0);
+            if (definition.isTerminal) {
+                setTernimalBinding(name, definition.priority || 0);
             }
 
             if (definitions[name]) {
@@ -221,12 +221,12 @@ module drunk {
         /**
          * 获取已经根据优先级排序的终止型绑定的名称列表
          * 
-         * @method getEndingNames
+         * @method getTerminalBindings
          * @static
          * @return {array}  返回绑定名称列表
          */
-        export function getEndingNames() {
-            return endingNames.slice();
+        export function getTerminalBindings() {
+            return terminalBindings.slice();
         }
         
         /**
@@ -255,9 +255,9 @@ module drunk {
          * @param  {string}  name      绑定的名称
          * @param  {number}  priority  绑定的优先级
          */
-        function setEnding(name: string, priority: number): void {
+        function setTernimalBinding(name: string, priority: number): void {
             // 检测是否已经存在该绑定
-            for (let i = 0, item; item = endingList[i]; i++) {
+            for (let i = 0, item; item = terminalBindingDescriptors[i]; i++) {
                 if (item.name === name) {
                     item.priority = priority;
                     break;
@@ -265,16 +265,16 @@ module drunk {
             }
             
             // 添加到列表中
-            endingList.push({
+            terminalBindingDescriptors.push({
                 name: name,
                 priority: priority
             });
             
             // 重新根据优先级排序
-            endingList.sort((a, b) => b.priority - a.priority);
+            terminalBindingDescriptors.sort((a, b) => b.priority - a.priority);
             
             // 更新名字列表
-            endingNames = endingList.map(item => item.name);
+            terminalBindings = terminalBindingDescriptors.map(item => item.name);
         }
     }
 }

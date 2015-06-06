@@ -772,7 +772,7 @@ declare module drunk {
     interface IBindingDefinition {
         name?: string;
         isDeepWatch?: boolean;
-        isEnding?: boolean;
+        isTerminal?: boolean;
         priority?: number;
         expression?: string;
         retainAttribute?: boolean;
@@ -787,7 +787,7 @@ declare module drunk {
      */
     interface IBindingExecutor {
         (viewModel: ViewModel, element: any): void;
-        isEnding?: boolean;
+        isTerminal?: boolean;
     }
     class Binding {
         viewModel: ViewModel;
@@ -869,11 +869,11 @@ declare module drunk {
         /**
          * 获取已经根据优先级排序的终止型绑定的名称列表
          *
-         * @method getEndingNames
+         * @method getTerminalBindings
          * @static
          * @return {array}  返回绑定名称列表
          */
-        function getEndingNames(): string[];
+        function getTerminalBindings(): string[];
         /**
          * 创建viewModel与模板元素的绑定
          *
@@ -1040,7 +1040,6 @@ declare module drunk.parser {
     }
     /**
      * 解析表达式
-     *
      * @method parse
      * @static
      * @param  {string}  expression  表达式
@@ -1049,18 +1048,18 @@ declare module drunk.parser {
     function parse(expression: string): IGetter;
     /**
      * 解析表达式生成getter函数
-     *
      * @method parsetGetter
      * @static
-     * @param  {string}  expression  表达式字符串
-     * @param  {boolean} skipFilter  跳过解析filter
-     * @return {function}            getter函数
+     * @param  {string}  expression      表达式字符串
+     * @param  {boolean} [isInterpolate] 是否是一哥插值表达式
+     * @param  {boolean} [skipFilter]    跳过解析filter
+     * @return {function}                getter函数
      */
     function parseGetter(expression: string, isInterpolate?: boolean, skipFilter?: boolean): IGetter;
     /**
      * 解析表达式生成setter函数
      *
-     * @method parsetSetter
+     * @method parseSetter
      * @static
      * @param  {string}  expression 表达式字符串
      * @return {function}           setter函数
@@ -1069,7 +1068,6 @@ declare module drunk.parser {
     /**
      * 解析包含插值绑定的字符串表达式， 类似"a {{interpolate_let}}"， 花括号里的就是插值变量
      * 先判断是否存在花括号， 然后在解析成tokens， 再根据token生成getter函数
-     *
      * @method parseInterpolate
      * @static
      * @param  {string}  expression  表达式字符串
@@ -1080,7 +1078,6 @@ declare module drunk.parser {
     function parseInterpolate(expression: string, justTokens: boolean): any[];
     /**
      * 是否有插值语法
-     *
      * @method hasInterpolation
      * @static
      * @param  {string}  str  字符串

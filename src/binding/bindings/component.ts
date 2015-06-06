@@ -6,7 +6,7 @@ module drunk {
     
     Binding.register("component", {
 
-        isEnding: true,
+        isTerminal: true,
         priority: 80,
 
         /*

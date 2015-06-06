@@ -24,7 +24,7 @@ module drunk {
 
     Binding.register("if", {
 
-        isEnding: true,
+        isTerminal: true,
         priority: 100,
 
         init() {

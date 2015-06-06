@@ -21,7 +21,7 @@ module drunk {
 
     let RepeatBindingDefinition: IBindingDefinition = {
 
-        isEnding: true,
+        isTerminal: true,
         priority: 90,
 
         // 初始化绑定

@@ -1749,12 +1749,12 @@ var drunk;
         function compile(node) {
             var isArray = Array.isArray(node);
             var executor = isArray || node.nodeType === 11 ? null : compileNode(node);
-            var isEnding = executor && executor.isEnding;
+            var isTerminal = executor && executor.isTerminal;
             var childExecutor;
             if (isArray) {
                 executor = compileNodeList(node);
             }
-            else if (!isEnding && node.tagName !== 'SCRIPT' && node.hasChildNodes()) {
+            else if (!isTerminal && node.tagName !== 'SCRIPT' && node.hasChildNodes()) {
                 childExecutor = compileNodeList(node.childNodes);
             }
             return function (viewModel, element) {
@@ -1797,7 +1797,7 @@ var drunk;
                 var executor;
                 var childExecutor;
                 executor = compileNode(node);
-                if (!(executor && executor.isEnding) && node.hasChildNodes()) {
+                if (!(executor && executor.isTerminal) && node.hasChildNodes()) {
                     childExecutor = compileNodeList(node.childNodes);
                 }
                 executors.push(executor, childExecutor);
@@ -1829,7 +1829,7 @@ var drunk;
             if (element.hasAttributes()) {
                 // 如果元素上有属性， 先判断是否存在终止型绑定指令
                 // 如果不存在则判断是否有普通的绑定指令
-                executor = processEndingBinding(element) || processNormalBinding(element);
+                executor = processTerminalBinding(element) || processNormalBinding(element);
             }
             if (element.tagName === 'TEXTAREA') {
                 // 如果是textarea， 它的值有可能存在插值表达式， 比如 "the textarea value with {{some_var}}"
@@ -1877,17 +1877,17 @@ var drunk;
             };
         }
         // 检测是否存在终止编译的绑定，比如component指令会终止当前编译过程，如果有创建绑定描述符
-        function processEndingBinding(element) {
-            var endings = drunk.Binding.getEndingNames();
+        function processTerminalBinding(element) {
+            var terminals = drunk.Binding.getTerminalBindings();
             var name;
             var expression;
-            for (var i = 0; name = endings[i]; i++) {
+            for (var i = 0; name = terminals[i]; i++) {
                 if (expression = element.getAttribute(drunk.config.prefix + name)) {
                     // 如果存在该绑定
                     return createExecutor(element, {
                         name: name,
                         expression: expression,
-                        isEnding: true
+                        isTerminal: true
                     });
                 }
             }
@@ -1946,7 +1946,7 @@ var drunk;
             executor = function (viewModel, element) {
                 drunk.Binding.create(viewModel, element, descriptor);
             };
-            executor.isEnding = descriptor.isEnding;
+            executor.isTerminal = descriptor.isTerminal;
             return executor;
         }
     })(Template = drunk.Template || (drunk.Template = {}));
@@ -2048,18 +2048,18 @@ var drunk;
     (function (Binding) {
         /**
          * 终止型绑定信息列表,每个绑定信息包含了name(名字)和priority(优先级)信息
-         * @property endingList
+         * @property terminalBindingDescriptors
          * @private
          * @type Array<{name: string; priority: number}>
          */
-        var endingList = [];
+        var terminalBindingDescriptors = [];
         /**
          * 终止型绑定的名称
          * @property endingNames
          * @private
          * @type Array<string>
          */
-        var endingNames = [];
+        var terminalBindings = [];
         var definitions = {};
         /**
          * 根据一个绑定原型对象注册一个binding指令
@@ -2070,8 +2070,8 @@ var drunk;
          * @param  {function|Object} def   binding实现的定义对象或绑定的更新函数
          */
         function register(name, definition) {
-            if (definition.isEnding) {
-                setEnding(name, definition.priority || 0);
+            if (definition.isTerminal) {
+                setTernimalBinding(name, definition.priority || 0);
             }
             if (definitions[name]) {
                 console.warn(name, "绑定已定义，原定义为：", definitions[name]);
@@ -2095,14 +2095,14 @@ var drunk;
         /**
          * 获取已经根据优先级排序的终止型绑定的名称列表
          *
-         * @method getEndingNames
+         * @method getTerminalBindings
          * @static
          * @return {array}  返回绑定名称列表
          */
-        function getEndingNames() {
-            return endingNames.slice();
+        function getTerminalBindings() {
+            return terminalBindings.slice();
         }
-        Binding.getEndingNames = getEndingNames;
+        Binding.getTerminalBindings = getTerminalBindings;
         /**
          * 创建viewModel与模板元素的绑定
          *
@@ -2127,23 +2127,23 @@ var drunk;
          * @param  {string}  name      绑定的名称
          * @param  {number}  priority  绑定的优先级
          */
-        function setEnding(name, priority) {
+        function setTernimalBinding(name, priority) {
             // 检测是否已经存在该绑定
-            for (var i = 0, item = void 0; item = endingList[i]; i++) {
+            for (var i = 0, item = void 0; item = terminalBindingDescriptors[i]; i++) {
                 if (item.name === name) {
                     item.priority = priority;
                     break;
                 }
             }
             // 添加到列表中
-            endingList.push({
+            terminalBindingDescriptors.push({
                 name: name,
                 priority: priority
             });
             // 重新根据优先级排序
-            endingList.sort(function (a, b) { return b.priority - a.priority; });
+            terminalBindingDescriptors.sort(function (a, b) { return b.priority - a.priority; });
             // 更新名字列表
-            endingNames = endingList.map(function (item) { return item.name; });
+            terminalBindings = terminalBindingDescriptors.map(function (item) { return item.name; });
         }
     })(Binding = drunk.Binding || (drunk.Binding = {}));
 })(drunk || (drunk = {}));
@@ -2499,7 +2499,6 @@ var drunk;
         }
         /**
          * 解析表达式
-         *
          * @method parse
          * @static
          * @param  {string}  expression  表达式
@@ -2519,12 +2518,12 @@ var drunk;
         parser.parse = parse;
         /**
          * 解析表达式生成getter函数
-         *
          * @method parsetGetter
          * @static
-         * @param  {string}  expression  表达式字符串
-         * @param  {boolean} skipFilter  跳过解析filter
-         * @return {function}            getter函数
+         * @param  {string}  expression      表达式字符串
+         * @param  {boolean} [isInterpolate] 是否是一哥插值表达式
+         * @param  {boolean} [skipFilter]    跳过解析filter
+         * @return {function}                getter函数
          */
         function parseGetter(expression, isInterpolate, skipFilter) {
             assertNotEmptyString(expression, "创建getter失败");
@@ -2551,7 +2550,7 @@ var drunk;
         /**
          * 解析表达式生成setter函数
          *
-         * @method parsetSetter
+         * @method parseSetter
          * @static
          * @param  {string}  expression 表达式字符串
          * @return {function}           setter函数
@@ -2598,7 +2597,6 @@ var drunk;
         parser.parseInterpolate = parseInterpolate;
         /**
          * 是否有插值语法
-         *
          * @method hasInterpolation
          * @static
          * @param  {string}  str  字符串
@@ -3460,7 +3458,7 @@ var drunk;
 var drunk;
 (function (drunk) {
     drunk.Binding.register("component", {
-        isEnding: true,
+        isTerminal: true,
         priority: 80,
         /*
          * 初始化组件,找到组件类并生成实例,创建组件的绑定
@@ -3628,7 +3626,7 @@ var drunk;
 var drunk;
 (function (drunk) {
     drunk.Binding.register("if", {
-        isEnding: true,
+        isTerminal: true,
         priority: 100,
         init: function () {
             this.startNode = document.createComment(" if: " + this.expression);
@@ -3864,7 +3862,7 @@ var drunk;
     var regParam = /\s+in\s+/;
     var regComma = /\s*,\s*/;
     var RepeatBindingDefinition = {
-        isEnding: true,
+        isTerminal: true,
         priority: 90,
         // 初始化绑定
         init: function () {
