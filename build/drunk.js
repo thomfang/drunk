@@ -2390,6 +2390,21 @@ var drunk;
         var regObjectKey = /[{,]\s*$/;
         var regColon = /^\s*:/;
         var regAnychar = /\S+/;
+        /**
+         * 清空parser所创建的缓存
+         * @method cleanupCache
+         * @static
+         */
+        function cleanupCache() {
+            tokenCache.cleanup();
+            getterCache.cleanup();
+            setterCache.cleanup();
+            filterCache.cleanup();
+            expressionCache.cleanup();
+            identifierCache.cleanup();
+            interpolateGetterCache.cleanup();
+        }
+        parser.cleanupCache = cleanupCache;
         // 解析filter定义
         function parseFilterDef(str, skipSetter) {
             if (skipSetter === void 0) { skipSetter = false; }
@@ -2958,6 +2973,15 @@ var drunk;
             return promise;
         }
         Template.load = load;
+        /**
+         * 清空加载的模板字符串缓存
+         * @method cleanupCache
+         * @static
+         */
+        function cleanupCache() {
+            cache.cleanup();
+        }
+        Template.cleanupCache = cleanupCache;
     })(Template = drunk.Template || (drunk.Template = {}));
 })(drunk || (drunk = {}));
 /// <reference path="../viewmodel/viewmodel" />
@@ -4193,8 +4217,8 @@ var drunk;
          * @type object
          */
         Action.Type = {
-            enter: 'enter',
-            leave: 'leave'
+            created: 'created',
+            removed: 'removed'
         };
         /**
          * action事件类型
@@ -4202,8 +4226,8 @@ var drunk;
          * @type object
          */
         Action.Event = {
-            enter: 'drunk:action:enter',
-            leave: 'drunk:action:leave'
+            created: 'drunk:action:created',
+            removed: 'drunk:action:removed'
         };
         /**
          * js动画定义
@@ -4281,12 +4305,23 @@ var drunk;
          * @method run
          * @static
          * @param  {HTMLElement}    element    元素对象
-         * @param  {string}         animation  动画名称
-         * @param  {string}         type       动画的类型(enter或leave)
+         * @param  {string}         detail     动画的信息,动画名或延迟时间
+         * @param  {string}         type       动画的类型(created或removed)
          */
-        function run(element, animationName, type) {
+        function run(element, detail, type) {
             var state = {};
-            var definition = definitions[animationName];
+            if (!isNaN(Number(detail))) {
+                // 如果是一个数字,则为延时等待操作
+                state.promise = new drunk.Promise(function (resolve) {
+                    var timerid;
+                    state.cancel = function () {
+                        clearTimeout(timerid);
+                    };
+                    timerid = setTimeout(resolve, detail * 1000);
+                });
+                return state;
+            }
+            var definition = definitions[detail];
             if (definition) {
                 // 如果有通过js注册的action,优先执行
                 var action = definition[type];
@@ -4299,53 +4334,45 @@ var drunk;
                 });
                 return state;
             }
-            animationName = animationName ? animationName + '-' : drunk.config.prefix;
-            var className = animationName + type;
+            detail = detail ? detail + '-' : drunk.config.prefix;
+            var className = detail + type;
+            // 如果transitionDuration或animationDuration都不为0s的话说明已经设置了该属性
+            // 必须先在这里取一次transitionDuration的值,动画才会生效
             var style = getComputedStyle(element, null);
-            if (style[getPropertyName('transitionDuration')] !== '0s') {
-                // 如果样式中有设置了transition属性,并且其duration值不为0s,则判断为transition动画
-                // 注册transitionEnd事件触发动画完成
-                state.promise = new drunk.Promise(function (resolve) {
-                    var onTransitionEnd = function () {
-                        element.removeEventListener(transitionEndEvent, onTransitionEnd, false);
-                        state.cancel = null;
-                        state.promise = null;
-                        if (type === Action.Type.leave) {
-                            element.classList.remove(animationName + Action.Type.enter, className);
-                        }
-                        resolve();
-                    };
-                    element.addEventListener(transitionEndEvent, onTransitionEnd, false);
-                    element.classList.add(className);
-                    state.cancel = function () {
-                        element.removeEventListener(transitionEndEvent, onTransitionEnd, false);
-                        element.classList.remove(className);
-                    };
-                });
-                return state;
-            }
-            element.classList.add(className);
-            if (style[getPropertyName('animationDuration')] !== '0s') {
-                state.promise = new drunk.Promise(function (resolve) {
-                    var onAnimationEnd = function () {
-                        element.removeEventListener(animationEndEvent, onAnimationEnd, false);
-                        element.classList.remove(className);
-                        state.cancel = null;
-                        state.promise = null;
-                        resolve();
-                    };
-                    element.addEventListener(animationEndEvent, onAnimationEnd, false);
-                    state.cancel = function () {
-                        element.removeEventListener(animationEndEvent, onAnimationEnd, false);
-                        element.classList.remove(className);
-                    };
-                });
-                return state;
-            }
-            state.promise = drunk.Promise.resolve();
-            state.cancel = function () {
-                element.classList.remove(className);
-            };
+            var transitionExist = style[getPropertyName('transitionDuration')] !== '0s';
+            state.promise = new drunk.Promise(function (resolve) {
+                // 给样式赋值后,取animationDuration的值,判断有没有设置animation动画
+                element.classList.add(className);
+                var animationExist = style[getPropertyName('animationDuration')] !== '0s';
+                if (!transitionExist && !animationExist) {
+                    return resolve();
+                }
+                function onTransitionEnd() {
+                    element.removeEventListener(animationEndEvent, onAnimationEnd, false);
+                    element.removeEventListener(transitionEndEvent, onTransitionEnd, false);
+                    state.cancel = null;
+                    state.promise = null;
+                    if (type === Action.Type.removed) {
+                        element.classList.remove(detail + Action.Type.created, className);
+                    }
+                    resolve();
+                }
+                function onAnimationEnd() {
+                    element.removeEventListener(transitionEndEvent, onTransitionEnd, false);
+                    element.removeEventListener(animationEndEvent, onAnimationEnd, false);
+                    element.classList.remove(className);
+                    state.cancel = null;
+                    state.promise = null;
+                    resolve();
+                }
+                element.addEventListener(animationEndEvent, onAnimationEnd, false);
+                element.addEventListener(transitionEndEvent, onTransitionEnd, false);
+                state.cancel = function () {
+                    element.removeEventListener(transitionEndEvent, onTransitionEnd, false);
+                    element.removeEventListener(animationEndEvent, onAnimationEnd, false);
+                    element.classList.remove(className);
+                };
+            });
             return state;
         }
         Action.run = run;
@@ -4383,8 +4410,8 @@ var drunk;
         init: function () {
             this._runEnterActions = this._runEnterActions.bind(this);
             this._runLeaveActions = this._runLeaveActions.bind(this);
-            this.element.addEventListener(Action.Event.enter, this._runEnterActions, false);
-            this.element.addEventListener(Action.Event.leave, this._runLeaveActions, false);
+            this.element.addEventListener(Action.Event.created, this._runEnterActions, false);
+            this.element.addEventListener(Action.Event.removed, this._runLeaveActions, false);
             this._runEnterActions();
         },
         getActions: function () {
@@ -4412,16 +4439,9 @@ var drunk;
                         state.promise = null;
                         return resolve();
                     }
-                    if (!isNaN(Number(action))) {
-                        var timerid = setTimeout(runAction, action * 1000);
-                        state.cancel = function () {
-                            clearTimeout(timerid);
-                        };
-                        return;
-                    }
-                    var animState = Action.run(element, action, type);
-                    animState.promise.then(runAction);
-                    state.cancel = animState.cancel;
+                    var actionState = Action.run(element, action, type);
+                    actionState.promise.then(runAction);
+                    state.cancel = actionState.cancel;
                 };
                 runAction();
             });
@@ -4434,20 +4454,20 @@ var drunk;
             }
         },
         release: function () {
-            this.runActions(Action.Type.leave);
+            this.runActions(Action.Type.removed);
             this._actions = null;
-            this.element.removeEventListener(Action.Event.enter, this._runEnterActions, false);
-            this.element.removeEventListener(Action.Event.leave, this._runLeaveActions, false);
+            this.element.removeEventListener(Action.Event.created, this._runEnterActions, false);
+            this.element.removeEventListener(Action.Event.removed, this._runLeaveActions, false);
         },
         _runEnterActions: function () {
             this.cancelPrevAction();
             this.getActions();
-            this.runActions(Action.Type.enter);
+            this.runActions(Action.Type.created);
         },
         _runLeaveActions: function () {
             this.cancelPrevAction();
             this.getActions();
-            this.runActions(Action.Type.leave);
+            this.runActions(Action.Type.removed);
         }
     });
 })(drunk || (drunk = {}));
@@ -4484,13 +4504,13 @@ var drunk;
         update: function (isVisible) {
             var style = this.element.style;
             if (!isVisible && style.display !== 'none') {
-                processAction(this.element, drunk.Action.Event.leave).then(function () {
+                processAction(this.element, drunk.Action.Event.removed).then(function () {
                     style.display = 'none';
                 });
             }
             else if (isVisible && style.display === 'none') {
                 style.display = '';
-                processAction(this.element, drunk.Action.Event.enter);
+                processAction(this.element, drunk.Action.Event.created);
             }
         }
     });

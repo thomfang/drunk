@@ -56,6 +56,21 @@ module drunk.parser {
     let regObjectKey = /[{,]\s*$/;
     let regColon = /^\s*:/;
     let regAnychar = /\S+/;
+    
+    /**
+     * 清空parser所创建的缓存
+     * @method cleanupCache
+     * @static
+     */
+    export function cleanupCache() {
+        tokenCache.cleanup();
+        getterCache.cleanup();
+        setterCache.cleanup();
+        filterCache.cleanup();
+        expressionCache.cleanup();
+        identifierCache.cleanup();
+        interpolateGetterCache.cleanup();
+    }
 
     // 解析filter定义
     function parseFilterDef(str: string, skipSetter: boolean = false) {

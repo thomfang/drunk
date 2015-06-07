@@ -12,12 +12,27 @@
               overflow: hidden;
               opacity: 0;
             }
-            .msg.expand-enter {
+            .msg.expand-created {
                 height: 30px;
                 opacity: 1;
             }
-            .msg.expand-leave {
+            .msg.expand-removed {
               height: 0;
+              opacity: 0;
+            }
+            .animated {
+                  transition: all .3s ease;
+                  height: 0px;
+                  background-color: #eee;
+                  overflow: hidden;
+                  opacity: 0;
+            }
+            .animated.drunk-created {
+                height: 30px;
+                opacity: 1;
+            }
+            .animated.drunk-removed {
+                height: 0;
               opacity: 0;
             }
             .blackbox {
@@ -29,11 +44,11 @@
                 transform: translateX(100px);
                 margin: 5px 0;
             }
-            .blackbox.box-enter {
+            .blackbox.box-created {
                 opacity: 1;
                 transform: translate(0px);
             }
-            .blackbox.box-leave {
+            .blackbox.box-removed {
                 opacity: 0;
                 transform: translate(100px);
             }
@@ -43,10 +58,10 @@
                 width: 100px;
                 height: 100px;
             }
-            .redbox.bounce-enter {
+            .bounce-created {
               animation: bounce-in .5s none;
             }
-            .redbox.bounce-leave {
+            .bounce-removed {
               animation: bounce-out .5s none;
             }
             
@@ -77,11 +92,23 @@
                 transform: scale(0);
               }
             }
+            
+            .slogan {
+                transition: all 0.5s ease-out;
+                transform: translateY(50px);
+            }
+            .slide-created {
+                transform: translateY(0px);
+            }
+            .slide-removed {
+                transform: translateY(-50px);
+            }
         </style>
     </head>
     
     <body>
         <button drunk-on="click:show = !show">点击切换文本展示</button>
+        <button drunk-on="click:expanded = !expanded">点击切换文本展示</button>
         <button drunk-on="click:list.unshift({})">从列表头部添加一个</button>
         <button drunk-on="click:list.push({})">从列表尾部添加一个</button>
         <button drunk-on="click:list.pop()">从列表中移除一个</button>
@@ -90,14 +117,24 @@
         
         <!--<div class="msg" drunk-if="show" drunk-action="expand">Hello!</div>-->
         <div class="msg" drunk-show="show" drunk-action="expand">World!</div>
-        <div class="blackbox" drunk-repeat="e,i in list" drunk-action="{{i * 0.1}} box"></div>
+        
+        <div class="animated" drunk-show='expanded' drunk-action>这是默认样式明</div>
+        
+        <div>
+            <p class="slogan" drunk-repeat="content in slogan" drunk-action="slide">{{content}}</p>
+        </div>
+        
+        
+        <div class="blackbox" drunk-repeat="e,i in list" drunk-action="{{i * 0.1}} box bounce"></div>
+        
+        
         <div class="redbox" drunk-if="redBoxVisible" drunk-action="bounce"></div>
         <div class="greenbox" drunk-if="greenBoxVisible" drunk-action="fade"></div>
         
         <script>
             
             drunk.Action.register('fade', {
-                enter: function (element, done) {
+                created: function (element, done) {
                     element.style.opacity = 0;
                     
                     var timerid = setInterval(function () {
@@ -118,7 +155,7 @@
                     
                     return cancel;
                 },
-                leave: function (element, done) {
+                removed: function (element, done) {
                     element.style.opacity = 1;
                     
                     var timerid = setInterval(function () {
@@ -142,7 +179,21 @@
             });
             
             var app = new drunk.Component({
-                list: [1,2,3]
+                list: [1,2,3],
+                sloganList: ['123', '234', '345'],
+                slogan: [],
+                
+                init: function () {
+                    // var currentIndex = 0;
+                    // var self = this;
+                    
+                    // setInterval(function () {
+                    //     if (currentIndex === self.sloganList.length) {
+                    //         currentIndex = 0;
+                    //     }
+                    //     self.slogan.setAt(0, self.sloganList[currentIndex++]);
+                    // }, 3000);
+                }
             });
             app.mount(document.body);
         </script>

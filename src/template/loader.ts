@@ -47,4 +47,13 @@ module drunk.Template {
         
         return promise;
     }
+    
+    /**
+     * 清空加载的模板字符串缓存
+     * @method cleanupCache
+     * @static
+     */
+    export function cleanupCache() {
+        cache.cleanup();
+    }
 }

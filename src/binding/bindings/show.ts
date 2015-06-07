@@ -34,13 +34,13 @@ module drunk {
             var style = this.element.style;
 
             if (!isVisible && style.display !== 'none') {
-                processAction(this.element, Action.Event.leave).then(() => {
+                processAction(this.element, Action.Event.removed).then(() => {
                     style.display = 'none';
                 });
             }
             else if (isVisible && style.display === 'none') {
                 style.display = '';
-                processAction(this.element, Action.Event.enter);
+                processAction(this.element, Action.Event.created);
             }
         }
     });

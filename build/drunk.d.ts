@@ -1039,6 +1039,12 @@ declare module drunk.parser {
         (viewModel: ViewModel, value: any): any;
     }
     /**
+     * 清空parser所创建的缓存
+     * @method cleanupCache
+     * @static
+     */
+    function cleanupCache(): void;
+    /**
      * 解析表达式
      * @method parse
      * @static
@@ -1137,6 +1143,12 @@ declare module drunk.Template {
      * @returns {Promise}           一个 promise 对象promise的返回值为模板字符串
      */
     function load(urlOrId: string): Promise<string>;
+    /**
+     * 清空加载的模板字符串缓存
+     * @method cleanupCache
+     * @static
+     */
+    function cleanupCache(): void;
 }
 declare module drunk {
     interface IComponent {
@@ -1604,20 +1616,20 @@ declare module drunk {
     interface IAnimationDefinition {
         /**
          * 元素被添加进dom时调用的动画方法,会接收元素节点和一个动画完成的回调
-         * @method enter
+         * @method created
          * @param  {HTMLElement}  element           元素节点
          * @param  {function}     onDoneCallback    动画完成的回调
          * @return {function}     返回一取消动画继续执行的方法
          */
-        enter(element: HTMLElement, onDoneCallback: Function): () => void;
+        created(element: HTMLElement, onDoneCallback: Function): () => void;
         /**
          * 元素被移除时调用的动画方法,会接收元素节点和一个动画完成的回调
-         * @method enter
+         * @method removed
          * @param  {HTMLElement}  element           元素节点
          * @param  {function}     onDoneCallback    动画完成的回调
          * @return {function}     返回一取消动画继续执行的方法
          */
-        leave(element: HTMLElement, onDoneCallback: Function): () => void;
+        removed(element: HTMLElement, onDoneCallback: Function): () => void;
     }
     interface IActionState {
         cancel?(): void;
@@ -1635,8 +1647,8 @@ declare module drunk {
          * @type object
          */
         var Type: {
-            enter: string;
-            leave: string;
+            created: string;
+            removed: string;
         };
         /**
          * action事件类型
@@ -1644,8 +1656,8 @@ declare module drunk {
          * @type object
          */
         var Event: {
-            enter: string;
-            leave: string;
+            created: string;
+            removed: string;
         };
         function setState(element: HTMLElement, state: IActionState): void;
         /**
@@ -1661,10 +1673,10 @@ declare module drunk {
          * @method run
          * @static
          * @param  {HTMLElement}    element    元素对象
-         * @param  {string}         animation  动画名称
-         * @param  {string}         type       动画的类型(enter或leave)
+         * @param  {string}         detail     动画的信息,动画名或延迟时间
+         * @param  {string}         type       动画的类型(created或removed)
          */
-        function run(element: HTMLElement, animationName: string, type: string): IActionState;
+        function run(element: HTMLElement, detail: string, type: string): IActionState;
         /**
          * 判断是否有动画正在处理,返回一个动画执行完成的promise对象
          * @method processAll

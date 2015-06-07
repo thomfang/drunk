@@ -12,21 +12,21 @@ module drunk {
         
         /**
          * 元素被添加进dom时调用的动画方法,会接收元素节点和一个动画完成的回调
-         * @method enter
+         * @method created
          * @param  {HTMLElement}  element           元素节点
          * @param  {function}     onDoneCallback    动画完成的回调
          * @return {function}     返回一取消动画继续执行的方法
          */
-        enter(element: HTMLElement, onDoneCallback: Function): () => void;
+        created(element: HTMLElement, onDoneCallback: Function): () => void;
         
         /**
          * 元素被移除时调用的动画方法,会接收元素节点和一个动画完成的回调
-         * @method enter
+         * @method removed
          * @param  {HTMLElement}  element           元素节点
          * @param  {function}     onDoneCallback    动画完成的回调
          * @return {function}     返回一取消动画继续执行的方法
          */
-        leave(element: HTMLElement, onDoneCallback: Function): () => void;
+        removed(element: HTMLElement, onDoneCallback: Function): () => void;
     }
 
     export interface IActionState {
@@ -47,8 +47,8 @@ module drunk {
          * @type object
          */
         export var Type = {
-            enter: 'enter',
-            leave: 'leave'
+            created: 'created',
+            removed: 'removed'
         };
         
         /**
@@ -57,8 +57,8 @@ module drunk {
          * @type object
          */
         export var Event = {
-            enter: 'drunk:action:enter',
-            leave: 'drunk:action:leave'
+            created: 'drunk:action:created',
+            removed: 'drunk:action:removed'
         };
         
         /**
@@ -144,13 +144,26 @@ module drunk {
          * @method run
          * @static
          * @param  {HTMLElement}    element    元素对象
-         * @param  {string}         animation  动画名称
-         * @param  {string}         type       动画的类型(enter或leave)
+         * @param  {string}         detail     动画的信息,动画名或延迟时间
+         * @param  {string}         type       动画的类型(created或removed)
          */
-        export function run(element: HTMLElement, animationName: string, type: string) {
+        export function run(element: HTMLElement, detail: string, type: string) {
             let state: IActionState = {};
-            let definition = definitions[animationName];
 
+            if (!isNaN(Number(detail))) {
+                // 如果是一个数字,则为延时等待操作
+                state.promise = new Promise((resolve) => {
+                    let timerid;
+                    state.cancel = () => {
+                        clearTimeout(timerid);
+                    };
+                    timerid = setTimeout(resolve, (<any>detail) * 1000);
+                });
+
+                return state;
+            }
+            
+            let definition = definitions[detail];
             if (definition) {
                 // 如果有通过js注册的action,优先执行
                 let action = definition[type];
@@ -166,65 +179,54 @@ module drunk {
                 return state;
             }
 
-            animationName = animationName ? animationName + '-' : config.prefix;
-            let className = animationName + type;
+            detail = detail ? detail + '-' : config.prefix;
+
+            let className = detail + type;
+            
+            // 如果transitionDuration或animationDuration都不为0s的话说明已经设置了该属性
+            // 必须先在这里取一次transitionDuration的值,动画才会生效
             let style = getComputedStyle(element, null);
+            let transitionExist = style[getPropertyName('transitionDuration')] !== '0s';
 
-            if (style[getPropertyName('transitionDuration')] !== '0s') {
-                // 如果样式中有设置了transition属性,并且其duration值不为0s,则判断为transition动画
-                // 注册transitionEnd事件触发动画完成
-                state.promise = new Promise((resolve) => {
-                    let onTransitionEnd = () => {
-                        element.removeEventListener(transitionEndEvent, onTransitionEnd, false);
-                        state.cancel = null;
-                        state.promise = null;
-                        
-                        if (type === Type.leave) {
-                            element.classList.remove(animationName + Type.enter, className);
-                        }
-                        resolve();
-                    };
+            state.promise = new Promise((resolve) => {
+                // 给样式赋值后,取animationDuration的值,判断有没有设置animation动画
+                element.classList.add(className);
+                let animationExist = style[getPropertyName('animationDuration')] !== '0s';
+                
+                if (!transitionExist && !animationExist) {
+                    return resolve();
+                }
+                
+                function onTransitionEnd() {
+                    element.removeEventListener(animationEndEvent, onAnimationEnd, false);
+                    element.removeEventListener(transitionEndEvent, onTransitionEnd, false);
+                    state.cancel = null;
+                    state.promise = null;
 
-                    element.addEventListener(transitionEndEvent, onTransitionEnd, false);
-                    element.classList.add(className);
+                    if (type === Type.removed) {
+                        element.classList.remove(detail + Type.created, className);
+                    }
+                    resolve();
+                }
+                function onAnimationEnd() {
+                    element.removeEventListener(transitionEndEvent, onTransitionEnd, false);
+                    element.removeEventListener(animationEndEvent, onAnimationEnd, false);
+                    element.classList.remove(className);
+                    state.cancel = null;
+                    state.promise = null;
+                    resolve();
+                }
 
-                    state.cancel = () => {
-                        element.removeEventListener(transitionEndEvent, onTransitionEnd, false);
-                        element.classList.remove(className);
-                    };
-                });
+                element.addEventListener(animationEndEvent, onAnimationEnd, false);
+                element.addEventListener(transitionEndEvent, onTransitionEnd, false);
 
-                return state;
-            }
-
-            element.classList.add(className);
-
-            if (style[getPropertyName('animationDuration')] !== '0s') {
-                state.promise = new Promise((resolve) => {
-                    let onAnimationEnd = () => {
-                        element.removeEventListener(animationEndEvent, onAnimationEnd, false);
-                        element.classList.remove(className);
-                        state.cancel = null;
-                        state.promise = null;
-                        resolve();
-                    };
-
-                    element.addEventListener(animationEndEvent, onAnimationEnd, false);
-
-                    state.cancel = () => {
-                        element.removeEventListener(animationEndEvent, onAnimationEnd, false);
-                        element.classList.remove(className);
-                    };
-                });
-
-                return state;
-            }
-
-            state.promise = Promise.resolve();
-            state.cancel = () => {
-                element.classList.remove(className);
-            };
-
+                state.cancel = () => {
+                    element.removeEventListener(transitionEndEvent, onTransitionEnd, false);
+                    element.removeEventListener(animationEndEvent, onAnimationEnd, false);
+                    element.classList.remove(className);
+                };
+            });
+            
             return state;
         }
         
@@ -267,13 +269,13 @@ module drunk {
         init() {
             this._runEnterActions = this._runEnterActions.bind(this);
             this._runLeaveActions = this._runLeaveActions.bind(this);
-            
-            this.element.addEventListener(Action.Event.enter, this._runEnterActions, false);
-            this.element.addEventListener(Action.Event.leave, this._runLeaveActions, false);
-            
+
+            this.element.addEventListener(Action.Event.created, this._runEnterActions, false);
+            this.element.addEventListener(Action.Event.removed, this._runLeaveActions, false);
+
             this._runEnterActions();
         },
-        
+
         getActions() {
             if (!this.expression) {
                 this._actions = [];
@@ -286,7 +288,7 @@ module drunk {
 
         runActions(type: string) {
             let element = this.element;
-            
+
             if (this._actions.length < 2) {
                 return Action.setState(element, Action.run(element, this._actions[0], type));
             }
@@ -296,6 +298,7 @@ module drunk {
 
             state.promise = new Promise((resolve) => {
                 let index = 0;
+
                 let runAction = () => {
                     let action = actions[index++];
 
@@ -305,17 +308,9 @@ module drunk {
                         return resolve();
                     }
 
-                    if (!isNaN(Number(action))) {
-                        let timerid = setTimeout(runAction, action * 1000);
-                        state.cancel = () => {
-                            clearTimeout(timerid);
-                        };
-                        return;
-                    }
-
-                    let animState = Action.run(element, action, type);
-                    animState.promise.then(runAction);
-                    state.cancel = animState.cancel;
+                    let actionState = Action.run(element, action, type);
+                    actionState.promise.then(runAction);
+                    state.cancel = actionState.cancel;
                 };
 
                 runAction();
@@ -323,7 +318,7 @@ module drunk {
 
             Action.setState(element, state);
         },
-        
+
         cancelPrevAction() {
             let state = Action.getState(this.element);
             if (state && state.cancel) {
@@ -332,22 +327,22 @@ module drunk {
         },
 
         release() {
-            this.runActions(Action.Type.leave);
+            this.runActions(Action.Type.removed);
             this._actions = null;
-            this.element.removeEventListener(Action.Event.enter, this._runEnterActions, false);
-            this.element.removeEventListener(Action.Event.leave, this._runLeaveActions, false);
+            this.element.removeEventListener(Action.Event.created, this._runEnterActions, false);
+            this.element.removeEventListener(Action.Event.removed, this._runLeaveActions, false);
         },
-        
+
         _runEnterActions() {
             this.cancelPrevAction();
             this.getActions();
-            this.runActions(Action.Type.enter);
+            this.runActions(Action.Type.created);
         },
-        
+
         _runLeaveActions() {
             this.cancelPrevAction();
             this.getActions();
-            this.runActions(Action.Type.leave);
+            this.runActions(Action.Type.removed);
         }
     });
 }
