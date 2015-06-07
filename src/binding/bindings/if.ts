@@ -28,8 +28,8 @@ module drunk {
         priority: 100,
 
         init() {
-            this.startNode = document.createComment(" if: " + this.expression);
-            this.endedNode = document.createComment(" /if: " + this.expression);
+            this.startNode = document.createComment("if-start: " + this.expression);
+            this.endedNode = document.createComment("if-ended: " + this.expression);
             this.bindingExecutor = Template.compile(this.element);
             this.inDocument = false;
 

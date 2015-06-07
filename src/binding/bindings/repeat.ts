@@ -17,7 +17,7 @@ module drunk {
     let counter = 0;
 
     let regParam = /\s+in\s+/;
-    let regComma = /\s*,\s*/;
+    let regKeyValue = /(\w+)\s*,\s*(\w+)/;
 
     let RepeatBindingDefinition: IBindingDefinition = {
 
@@ -36,8 +36,8 @@ module drunk {
         
         // 创建注释标记标签
         createCommentNodes() {
-            this.startNode = document.createComment(this.expression + " : [循环开始]");
-            this.endedNode = document.createComment(this.expression + " : [循环结束]");
+            this.startNode = document.createComment('repeat-start: ' + this.expression);
+            this.endedNode = document.createComment('repeat-ended: ' + this.expression);
 
             elementUtil.insertBefore(this.startNode, this.element);
             elementUtil.replace(this.endedNode, this.element);
@@ -48,16 +48,18 @@ module drunk {
             let expression: string = this.expression;
             let parts = expression.split(regParam);
 
-            console.assert(parts.length === 2, '非法的 ', config.prefix + 'repeat 表达式: ', expression);
+            console.assert(parts.length === 2, '错误的', config.prefix + 'repeat 表达式: ', expression);
 
             let params: any = parts[0];
             let key: string;
             let value: string;
             
             if (params.indexOf(',') > 0) {
-                params = params.split(regComma);
-                key = params[1];
-                value = params[0];
+                let matches = params.match(regKeyValue);
+                console.assert(matches, '错误的', config.prefix + 'repeat 表达式: ', expression);
+                // params = params.split(regComma);
+                key = matches[2];
+                value = matches[1];
             }
             else {
                 value = params;
@@ -96,9 +98,17 @@ module drunk {
                 this.releaseVm(this.itemVms);
 
                 let curr, el;
+                
+                let getPrev = (node: Node) => {
+                    curr = node.previousSibling;
+                    while (curr && curr.__disposed) {
+                        curr = curr.previousSibling;
+                    }
+                    return curr;
+                }
 
                 i = data.length;
-                curr = this.endedNode.previousSibling;
+                curr = getPrev(this.endedNode);
 
                 while (i--) {
                     viewModel = vmList[i];
@@ -108,7 +118,7 @@ module drunk {
                         elementUtil.insertAfter(el, curr);
                     }
                     else {
-                        curr = curr.previousSibling;
+                        curr = getPrev(curr);
                     }
                 }
             }
@@ -208,8 +218,10 @@ module drunk {
                     util.removeArrayItem(cache[val], viewModel);
                 }
 
-                elementUtil.remove(viewModel.element);
+                let element = viewModel.element;
+                element.__disposed = true;
                 viewModel.dispose();
+                elementUtil.remove(element);
             });
         },
 

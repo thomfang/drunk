@@ -78,27 +78,31 @@ describe("elementUtil", function () {
         elementUtil.remove(list);
     });
 
-    it("remove node", function () {
+    it("remove node", function (done) {
         var elem = elementUtil.create("<div></div>")
         document.body.appendChild(elem);
 
         expect(elem.parentNode).toBe(document.body);
 
-        elementUtil.remove(elem);
-        expect(elem.parentNode).toBeNull();
+        elementUtil.remove(elem).then(function () {
+            expect(elem.parentNode).toBeNull();
+            done();
+        });
     });
 
-    it("remove node list", function () {
+    it("remove node list", function (done) {
         var nodes = elementUtil.create("<div></div><div></div>");
 
         nodes.forEach(function (node) {
             document.body.appendChild(node);
         });
 
-        elementUtil.remove(nodes);
-
-        nodes.forEach(function (node) {
-            expect(node.parentNode).toBeNull();
+        elementUtil.remove(nodes).then(function () {
+            nodes.forEach(function (node) {
+                expect(node.parentNode).toBeNull();
+            });
+            
+            done();
         });
     });
 

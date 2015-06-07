@@ -143,12 +143,12 @@ module drunk.Template {
     // 编译文本节点
     function compileTextNode(node: any): IBindingExecutor {
         var content: string = node.textContent;
-        var tokens: any[] = parser.parseInterpolate(content, true);
         
-        if (!tokens) {
+        if (!parser.hasInterpolation(content)) {
             return;
         }
         
+        var tokens: any[] = parser.parseInterpolate(content, true);
         var fragment = document.createDocumentFragment();
         var executors = [];
         

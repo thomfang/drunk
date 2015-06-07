@@ -1,4 +1,5 @@
 /// <reference path="../binding" />
+/// <reference path="./action" />
 
 /**
  * 切换元素显示隐藏,和drunk-if的效果相似,只是在具有多个绑定的情况下if的性能更好,反之是show的性能更好
@@ -33,12 +34,23 @@ module drunk {
             var style = this.element.style;
 
             if (!isVisible && style.display !== 'none') {
-                style.display = 'none';
+                processAction(this.element, Action.Event.leave).then(() => {
+                    style.display = 'none';
+                });
             }
             else if (isVisible && style.display === 'none') {
                 style.display = '';
+                processAction(this.element, Action.Event.enter);
             }
         }
     });
+
+    function processAction(element: HTMLElement, type: string) {
+        var evt = document.createEvent("CustomEvent");
+        evt.initEvent(type, true, true);
+        element.dispatchEvent(evt);
+        
+        return Action.processAll(element);
+    }
 
 }

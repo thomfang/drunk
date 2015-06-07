@@ -292,7 +292,7 @@ var drunk;
          * @property debug
          * @type boolean
          */
-        config.debug = true;
+        config.debug = false;
     })(config = drunk.config || (drunk.config = {}));
 })(drunk || (drunk = {}));
 var drunk;
@@ -718,6 +718,7 @@ var drunk;
     })();
     drunk.EventEmitter = EventEmitter;
 })(drunk || (drunk = {}));
+/// <reference path="../promise/promise" />
 /**
  * DOM操作的工具方法模块
  *
@@ -781,17 +782,22 @@ var drunk;
          */
         function remove(target) {
             if (Array.isArray(target)) {
-                target.forEach(function (node) {
-                    if (node.parentNode) {
-                        node.parentNode.removeChild(node);
-                    }
-                });
+                return drunk.Promise.all(target.map(function (node) {
+                    return removeAfterActionEnd(node);
+                }));
             }
             else if (target.parentNode) {
-                target.parentNode.removeChild(target);
+                return removeAfterActionEnd(target);
             }
         }
         elementUtil.remove = remove;
+        function removeAfterActionEnd(node) {
+            if (node.parentNode) {
+                return drunk.Action.processAll(node).then(function () {
+                    node.parentNode.removeChild(node);
+                });
+            }
+        }
         /**
          * 新的节点替换旧的节点
          * @static
@@ -848,9 +854,7 @@ var drunk;
          */
         function addClass(element, token) {
             var list = token.trim().split(/\s+/);
-            list.forEach(function (name) {
-                element.classList.add(name);
-            });
+            element.classList.add.apply(element.classList, list);
         }
         elementUtil.addClass = addClass;
         /**
@@ -862,9 +866,7 @@ var drunk;
          */
         function removeClass(element, token) {
             var list = token.trim().split(/\s+/);
-            list.forEach(function (name) {
-                element.classList.remove(name);
-            });
+            element.classList.remove.apply(element.classList, list);
         }
         elementUtil.removeClass = removeClass;
     })(elementUtil = drunk.elementUtil || (drunk.elementUtil = {}));
@@ -1847,10 +1849,10 @@ var drunk;
         // 编译文本节点
         function compileTextNode(node) {
             var content = node.textContent;
-            var tokens = drunk.parser.parseInterpolate(content, true);
-            if (!tokens) {
+            if (!drunk.parser.hasInterpolation(content)) {
                 return;
             }
+            var tokens = drunk.parser.parseInterpolate(content, true);
             var fragment = document.createDocumentFragment();
             var executors = [];
             tokens.forEach(function (token, i) {
@@ -2218,10 +2220,10 @@ var drunk;
         ViewModel.prototype.eval = function (expression, isInterpolate) {
             var getter;
             if (isInterpolate) {
-                getter = drunk.parser.parseInterpolate(expression);
-                if (!getter) {
+                if (!drunk.parser.hasInterpolation(expression)) {
                     return expression;
                 }
+                getter = drunk.parser.parseInterpolate(expression);
             }
             else {
                 getter = drunk.parser.parseGetter(expression);
@@ -3629,8 +3631,8 @@ var drunk;
         isTerminal: true,
         priority: 100,
         init: function () {
-            this.startNode = document.createComment(" if: " + this.expression);
-            this.endedNode = document.createComment(" /if: " + this.expression);
+            this.startNode = document.createComment("if-start: " + this.expression);
+            this.endedNode = document.createComment("if-ended: " + this.expression);
             this.bindingExecutor = drunk.Template.compile(this.element);
             this.inDocument = false;
             drunk.elementUtil.replace(this.startNode, this.element);
@@ -3860,7 +3862,7 @@ var drunk;
     var REPEAT_PREFIX = "__repeat_id";
     var counter = 0;
     var regParam = /\s+in\s+/;
-    var regComma = /\s*,\s*/;
+    var regKeyValue = /(\w+)\s*,\s*(\w+)/;
     var RepeatBindingDefinition = {
         isTerminal: true,
         priority: 90,
@@ -3874,8 +3876,8 @@ var drunk;
         },
         // 创建注释标记标签
         createCommentNodes: function () {
-            this.startNode = document.createComment(this.expression + " : [循环开始]");
-            this.endedNode = document.createComment(this.expression + " : [循环结束]");
+            this.startNode = document.createComment('repeat-start: ' + this.expression);
+            this.endedNode = document.createComment('repeat-ended: ' + this.expression);
             drunk.elementUtil.insertBefore(this.startNode, this.element);
             drunk.elementUtil.replace(this.endedNode, this.element);
         },
@@ -3883,14 +3885,16 @@ var drunk;
         parseDefinition: function () {
             var expression = this.expression;
             var parts = expression.split(regParam);
-            console.assert(parts.length === 2, '非法的 ', drunk.config.prefix + 'repeat 表达式: ', expression);
+            console.assert(parts.length === 2, '错误的', drunk.config.prefix + 'repeat 表达式: ', expression);
             var params = parts[0];
             var key;
             var value;
             if (params.indexOf(',') > 0) {
-                params = params.split(regComma);
-                key = params[1];
-                value = params[0];
+                var matches = params.match(regKeyValue);
+                console.assert(matches, '错误的', drunk.config.prefix + 'repeat 表达式: ', expression);
+                // params = params.split(regComma);
+                key = matches[2];
+                value = matches[1];
             }
             else {
                 value = params;
@@ -3919,8 +3923,15 @@ var drunk;
             if (!isEmpty) {
                 this.releaseVm(this.itemVms);
                 var curr, el;
+                var getPrev = function (node) {
+                    curr = node.previousSibling;
+                    while (curr && curr.__disposed) {
+                        curr = curr.previousSibling;
+                    }
+                    return curr;
+                };
                 i = data.length;
-                curr = this.endedNode.previousSibling;
+                curr = getPrev(this.endedNode);
                 while (i--) {
                     viewModel = vmList[i];
                     el = viewModel.element;
@@ -3928,7 +3939,7 @@ var drunk;
                         drunk.elementUtil.insertAfter(el, curr);
                     }
                     else {
-                        curr = curr.previousSibling;
+                        curr = getPrev(curr);
                     }
                 }
             }
@@ -4006,8 +4017,10 @@ var drunk;
                 else {
                     drunk.util.removeArrayItem(cache[val], viewModel);
                 }
-                drunk.elementUtil.remove(viewModel.element);
+                var element = viewModel.element;
+                element.__disposed = true;
                 viewModel.dispose();
+                drunk.elementUtil.remove(element);
             });
         },
         release: function () {
@@ -4163,6 +4176,283 @@ var drunk;
     drunk.toList = toList;
 })(drunk || (drunk = {}));
 /// <reference path="../binding" />
+/// <reference path="../../config/config" />
+/// <reference path="../../promise/promise" />
+var drunk;
+(function (drunk) {
+    /**
+     * 动画模块
+     * @module drunk.Action
+     * @class Action
+     */
+    var Action;
+    (function (Action) {
+        /**
+         * action的类型
+         * @property Type
+         * @type object
+         */
+        Action.Type = {
+            enter: 'enter',
+            leave: 'leave'
+        };
+        /**
+         * action事件类型
+         * @property Event
+         * @type object
+         */
+        Action.Event = {
+            enter: 'drunk:action:enter',
+            leave: 'drunk:action:leave'
+        };
+        /**
+         * js动画定义
+         * @property definitions
+         * @private
+         * @type object
+         */
+        var definitions = {};
+        /**
+         * 动画状态
+         * @property actionStates
+         * @private
+         * @type object
+         */
+        var actionStates = {};
+        function setState(element, state) {
+            var id = drunk.util.uuid(element);
+            actionStates[id] = state;
+        }
+        Action.setState = setState;
+        /**
+         * 获取节点的动画状态
+         * @method getState
+         * @static
+         * @param  {HTMLElement}  element  元素节点
+         * @return {object}
+         */
+        function getState(element) {
+            var id = drunk.util.uuid(element);
+            return actionStates[id];
+        }
+        Action.getState = getState;
+        /**
+         * 清楚节点的动画状态缓存
+         * @method clearState
+         * @static
+         * @private
+         * @param  {HTMLElement} element
+         */
+        function clearState(element) {
+            var id = drunk.util.uuid(element);
+            actionStates[id] = null;
+        }
+        var prefix = null;
+        var transitionEndEvent = null;
+        var animationEndEvent = null;
+        function getPropertyName(property) {
+            if (prefix === null) {
+                var style = document.body.style;
+                if ('webkitAnimationDuration' in style) {
+                    prefix = 'webkit';
+                    transitionEndEvent = 'webkitTransitionEnd';
+                    animationEndEvent = 'webkitAnimationEnd';
+                }
+                else if ('mozAnimationDuration' in style) {
+                    prefix = 'moz';
+                    transitionEndEvent = 'mozTransitionEnd';
+                    animationEndEvent = 'mozAnimationEnd';
+                }
+                else if ('msAnimationDuration' in style) {
+                    prefix = 'ms';
+                    transitionEndEvent = 'msTransitionEnd';
+                    animationEndEvent = 'msAnimationEnd';
+                }
+                else {
+                    prefix = '';
+                    transitionEndEvent = 'transitionEnd';
+                    animationEndEvent = 'animationEnd';
+                }
+            }
+            return prefix ? prefix + (property.charAt(0).toUpperCase() + property.slice(1)) : property;
+        }
+        /**
+         * 执行动画,有限判断是否存在js动画,再判断是否是css动画
+         * @method run
+         * @static
+         * @param  {HTMLElement}    element    元素对象
+         * @param  {string}         animation  动画名称
+         * @param  {string}         type       动画的类型(enter或leave)
+         */
+        function run(element, animationName, type) {
+            var state = {};
+            var definition = definitions[animationName];
+            if (definition) {
+                // 如果有通过js注册的action,优先执行
+                var action = definition[type];
+                state.promise = new drunk.Promise(function (resolve) {
+                    state.cancel = action(element, function () {
+                        state.cancel = null;
+                        state.promise = null;
+                        resolve();
+                    });
+                });
+                return state;
+            }
+            animationName = animationName ? animationName + '-' : drunk.config.prefix;
+            var className = animationName + type;
+            var style = getComputedStyle(element, null);
+            if (style[getPropertyName('transitionDuration')] !== '0s') {
+                // 如果样式中有设置了transition属性,并且其duration值不为0s,则判断为transition动画
+                // 注册transitionEnd事件触发动画完成
+                state.promise = new drunk.Promise(function (resolve) {
+                    var onTransitionEnd = function () {
+                        element.removeEventListener(transitionEndEvent, onTransitionEnd, false);
+                        state.cancel = null;
+                        state.promise = null;
+                        if (type === Action.Type.leave) {
+                            element.classList.remove(animationName + Action.Type.enter, className);
+                        }
+                        resolve();
+                    };
+                    element.addEventListener(transitionEndEvent, onTransitionEnd, false);
+                    element.classList.add(className);
+                    state.cancel = function () {
+                        element.removeEventListener(transitionEndEvent, onTransitionEnd, false);
+                        element.classList.remove(className);
+                    };
+                });
+                return state;
+            }
+            element.classList.add(className);
+            if (style[getPropertyName('animationDuration')] !== '0s') {
+                state.promise = new drunk.Promise(function (resolve) {
+                    var onAnimationEnd = function () {
+                        element.removeEventListener(animationEndEvent, onAnimationEnd, false);
+                        element.classList.remove(className);
+                        state.cancel = null;
+                        state.promise = null;
+                        resolve();
+                    };
+                    element.addEventListener(animationEndEvent, onAnimationEnd, false);
+                    state.cancel = function () {
+                        element.removeEventListener(animationEndEvent, onAnimationEnd, false);
+                        element.classList.remove(className);
+                    };
+                });
+                return state;
+            }
+            state.promise = drunk.Promise.resolve();
+            state.cancel = function () {
+                element.classList.remove(className);
+            };
+            return state;
+        }
+        Action.run = run;
+        /**
+         * 判断是否有动画正在处理,返回一个动画执行完成的promise对象
+         * @method processAll
+         * @static
+         * @param  {HTMLElement}  element 元素节点
+         * @return {Promise}
+         */
+        function processAll(element) {
+            var state = getState(element);
+            if (state) {
+                clearState(element);
+                return drunk.Promise.resolve(state.promise);
+            }
+            return drunk.Promise.resolve();
+        }
+        Action.processAll = processAll;
+        /**
+         * 注册一个js动画
+         * @method register
+         * @param  {string}                 name        动画名称
+         * @param  {IAnimationDefinition}   definition  动画定义
+         */
+        function register(name, definition) {
+            if (definitions[name] != null) {
+                console.warn(name, "动画已经被覆盖为", definition);
+            }
+            definitions[name] = definition;
+        }
+        Action.register = register;
+    })(Action = drunk.Action || (drunk.Action = {}));
+    drunk.Binding.register('action', {
+        init: function () {
+            this._runEnterActions = this._runEnterActions.bind(this);
+            this._runLeaveActions = this._runLeaveActions.bind(this);
+            this.element.addEventListener(Action.Event.enter, this._runEnterActions, false);
+            this.element.addEventListener(Action.Event.leave, this._runLeaveActions, false);
+            this._runEnterActions();
+        },
+        getActions: function () {
+            if (!this.expression) {
+                this._actions = [];
+            }
+            else {
+                var str = this.viewModel.eval(this.expression, true);
+                this._actions = str.split(/\s+/);
+            }
+        },
+        runActions: function (type) {
+            var element = this.element;
+            if (this._actions.length < 2) {
+                return Action.setState(element, Action.run(element, this._actions[0], type));
+            }
+            var state = {};
+            var actions = this._actions;
+            state.promise = new drunk.Promise(function (resolve) {
+                var index = 0;
+                var runAction = function () {
+                    var action = actions[index++];
+                    if (typeof action === 'undefined') {
+                        state.cancel = null;
+                        state.promise = null;
+                        return resolve();
+                    }
+                    if (!isNaN(Number(action))) {
+                        var timerid = setTimeout(runAction, action * 1000);
+                        state.cancel = function () {
+                            clearTimeout(timerid);
+                        };
+                        return;
+                    }
+                    var animState = Action.run(element, action, type);
+                    animState.promise.then(runAction);
+                    state.cancel = animState.cancel;
+                };
+                runAction();
+            });
+            Action.setState(element, state);
+        },
+        cancelPrevAction: function () {
+            var state = Action.getState(this.element);
+            if (state && state.cancel) {
+                state.cancel();
+            }
+        },
+        release: function () {
+            this.runActions(Action.Type.leave);
+            this._actions = null;
+            this.element.removeEventListener(Action.Event.enter, this._runEnterActions, false);
+            this.element.removeEventListener(Action.Event.leave, this._runLeaveActions, false);
+        },
+        _runEnterActions: function () {
+            this.cancelPrevAction();
+            this.getActions();
+            this.runActions(Action.Type.enter);
+        },
+        _runLeaveActions: function () {
+            this.cancelPrevAction();
+            this.getActions();
+            this.runActions(Action.Type.leave);
+        }
+    });
+})(drunk || (drunk = {}));
+/// <reference path="../binding" />
+/// <reference path="./action" />
 /**
  * 切换元素显示隐藏,和drunk-if的效果相似,只是在具有多个绑定的情况下if的性能更好,反之是show的性能更好
  * @class drunk-show
@@ -4194,13 +4484,22 @@ var drunk;
         update: function (isVisible) {
             var style = this.element.style;
             if (!isVisible && style.display !== 'none') {
-                style.display = 'none';
+                processAction(this.element, drunk.Action.Event.leave).then(function () {
+                    style.display = 'none';
+                });
             }
             else if (isVisible && style.display === 'none') {
                 style.display = '';
+                processAction(this.element, drunk.Action.Event.enter);
             }
         }
     });
+    function processAction(element, type) {
+        var evt = document.createEvent("CustomEvent");
+        evt.initEvent(type, true, true);
+        element.dispatchEvent(evt);
+        return drunk.Action.processAll(element);
+    }
 })(drunk || (drunk = {}));
 /// <reference path="../binding" />
 /// <reference path="../../component/component" />

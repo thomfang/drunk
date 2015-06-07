@@ -1,4 +1,6 @@
-﻿/**
+﻿/// <reference path="../promise/promise" />
+
+/**
  * DOM操作的工具方法模块
  * 
  * @module drunk.elementUtil
@@ -59,16 +61,22 @@ module drunk.elementUtil {
      * @method remove
      * @param  {Node|Node[]}  target  节点
      */
-    export function remove(target: Node | Node[]): void {
+    export function remove(target: Node | Node[]): Promise<any> {
         if (Array.isArray(target)) {
-            (<Array<Node>>target).forEach(node => {
-                if (node.parentNode) {
-                    node.parentNode.removeChild(node);
-                }
-            });
+            return Promise.all((<Array<Node>>target).map(node => {
+                return removeAfterActionEnd(node);
+            }));
         }
         else if ((<Node>target).parentNode) {
-            (<Node>target).parentNode.removeChild((<Node>target));
+            return removeAfterActionEnd(target);
+        }
+    }
+    
+    function removeAfterActionEnd(node: any) {
+        if (node.parentNode) {
+            return Action.processAll(node).then(() => {
+                node.parentNode.removeChild(node);
+            });
         }
     }
 
@@ -130,10 +138,7 @@ module drunk.elementUtil {
      */
     export function addClass(element: HTMLElement, token: string): void {
         var list = token.trim().split(/\s+/);
-        
-        list.forEach((name) => {
-            element.classList.add(name);
-        });
+        element.classList.add.apply(element.classList, list);
     }
     
     /**
@@ -145,9 +150,6 @@ module drunk.elementUtil {
      */
     export function removeClass(element: HTMLElement, token: string): void {
         var list = token.trim().split(/\s+/);
-        
-        list.forEach((name) => {
-            element.classList.remove(name);
-        });
+        element.classList.remove.apply(element.classList, list);
     }
 }

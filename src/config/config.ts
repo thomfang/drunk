@@ -21,5 +21,5 @@ module drunk.config {
      * @property debug
      * @type boolean
      */
-    export var debug: boolean = true;
+    export var debug: boolean = false;
 }

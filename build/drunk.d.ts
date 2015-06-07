@@ -325,7 +325,7 @@ declare module drunk.elementUtil {
      * @method remove
      * @param  {Node|Node[]}  target  节点
      */
-    function remove(target: Node | Node[]): void;
+    function remove(target: Node | Node[]): Promise<any>;
     /**
      * 新的节点替换旧的节点
      * @static
@@ -1595,6 +1595,92 @@ declare module drunk {
         __getHandler(name: string): (...args: any[]) => any;
     }
     function toList(target: any): IItemDataDescriptor[];
+}
+declare module drunk {
+    /**
+     * 动画定义接口
+     * @interface IAnimationDefinition
+     */
+    interface IAnimationDefinition {
+        /**
+         * 元素被添加进dom时调用的动画方法,会接收元素节点和一个动画完成的回调
+         * @method enter
+         * @param  {HTMLElement}  element           元素节点
+         * @param  {function}     onDoneCallback    动画完成的回调
+         * @return {function}     返回一取消动画继续执行的方法
+         */
+        enter(element: HTMLElement, onDoneCallback: Function): () => void;
+        /**
+         * 元素被移除时调用的动画方法,会接收元素节点和一个动画完成的回调
+         * @method enter
+         * @param  {HTMLElement}  element           元素节点
+         * @param  {function}     onDoneCallback    动画完成的回调
+         * @return {function}     返回一取消动画继续执行的方法
+         */
+        leave(element: HTMLElement, onDoneCallback: Function): () => void;
+    }
+    interface IActionState {
+        cancel?(): void;
+        promise?: Promise<any>;
+    }
+    /**
+     * 动画模块
+     * @module drunk.Action
+     * @class Action
+     */
+    module Action {
+        /**
+         * action的类型
+         * @property Type
+         * @type object
+         */
+        var Type: {
+            enter: string;
+            leave: string;
+        };
+        /**
+         * action事件类型
+         * @property Event
+         * @type object
+         */
+        var Event: {
+            enter: string;
+            leave: string;
+        };
+        function setState(element: HTMLElement, state: IActionState): void;
+        /**
+         * 获取节点的动画状态
+         * @method getState
+         * @static
+         * @param  {HTMLElement}  element  元素节点
+         * @return {object}
+         */
+        function getState(element: HTMLElement): IActionState;
+        /**
+         * 执行动画,有限判断是否存在js动画,再判断是否是css动画
+         * @method run
+         * @static
+         * @param  {HTMLElement}    element    元素对象
+         * @param  {string}         animation  动画名称
+         * @param  {string}         type       动画的类型(enter或leave)
+         */
+        function run(element: HTMLElement, animationName: string, type: string): IActionState;
+        /**
+         * 判断是否有动画正在处理,返回一个动画执行完成的promise对象
+         * @method processAll
+         * @static
+         * @param  {HTMLElement}  element 元素节点
+         * @return {Promise}
+         */
+        function processAll(element: HTMLElement): Promise<any>;
+        /**
+         * 注册一个js动画
+         * @method register
+         * @param  {string}                 name        动画名称
+         * @param  {IAnimationDefinition}   definition  动画定义
+         */
+        function register(name: string, definition: IAnimationDefinition): void;
+    }
 }
 /**
  * 切换元素显示隐藏,和drunk-if的效果相似,只是在具有多个绑定的情况下if的性能更好,反之是show的性能更好

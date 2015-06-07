@@ -128,11 +128,11 @@ module drunk {
             var getter;
         
             if (isInterpolate) {
-                getter = parser.parseInterpolate(expression);
-                
-                if (!getter) {
+                if (!parser.hasInterpolation(expression)) {
                     return expression;
                 }
+                
+                getter = parser.parseInterpolate(expression);
             }
             else {
                 getter = parser.parseGetter(expression);
