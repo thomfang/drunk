@@ -27,7 +27,7 @@ module drunk.filter {
     /**
      * 使用提供的filter列表处理数据
      * 
-     * @method applyFilters
+     * @method pipeFor
      * @static
      * @param  {any}            value       输入
      * @param  {FilterDef[]}    filterDefs  filter定义集合
@@ -35,7 +35,7 @@ module drunk.filter {
      * @param  {any[]}          ...args     其他参数
      * @return {any}                        过滤后得到的值
      */
-    export function applyFilters(value: any, filterDefs: any, filterMap: { [name: string]: IFilter }, isInterpolate: boolean, ...args: any[]): any {
+    export function pipeFor(value: any, filterDefs: any, filterMap: { [name: string]: IFilter }, isInterpolate: boolean, ...args: any[]): any {
         if (!filterDefs) {
             return isInterpolate ? getInterpolateValue(value) : value;
         }
@@ -47,7 +47,7 @@ module drunk.filter {
                 if (!filterDefs[i]) {
                     return item;
                 }
-                return filter.applyFilters(item, filterDefs[i], filterMap, false, ...args);
+                return filter.pipeFor(item, filterDefs[i], filterMap, false, ...args);
             });
                 
             // 对所有token求值得到的结果做处理,如果是undefined或null类型直接转成空字符串,避免页面显示出undefined或null
@@ -88,14 +88,14 @@ module drunk.filter {
         }).join('');
     }
 
-    var reg = {
+    let reg = {
         escape: /[<>& "']/gm,
         unescape: /&.+?;/g,
         striptags: /(<([^>]+)>)/ig,
-        format: /(YY|M|D|H|m|s)(\1)*/g
+        format: /(yy|M|d|h|m|s)(\1)*/g
     };
 
-    var escapeChars = {
+    let escapeChars = {
         '&': "&amp;",
         ' ': "&nbsp;",
         '"': "&quot;",
@@ -104,7 +104,7 @@ module drunk.filter {
         ">": "&gt;"
     };
 
-    var unescapeChars = {
+    let unescapeChars = {
         '&amp;': "&",
         "&nbsp;": " ",
         "&quot;": '"',
@@ -113,7 +113,7 @@ module drunk.filter {
         "&gt;": ">"
     };
 
-    export var filters: { [name: string]: IFilter } = {
+    export let filters: { [name: string]: IFilter } = {
         
         /**
          * 对输入的字符串进行编码
@@ -176,11 +176,11 @@ module drunk.filter {
 
         /**
          * 计算输入的长度，支持字符串、数组和对象
-         * @method length
+         * @method size
          * @param  {string|array|object}  input 输入
          * @return {number}  长度
          */
-        length(input: any): number {
+        size(input: any): number {
             if (input == null) {
                 return 0;
             }
@@ -188,8 +188,8 @@ module drunk.filter {
                 return input.length;
             }
             if (typeof input === 'object') {
-                var length = 0;
-                for (var k in input) {
+                let length = 0;
+                for (let k in input) {
                     if (input.hasOwnProperty(k)) {
                         length += 1;
                     }
@@ -243,12 +243,12 @@ module drunk.filter {
 
         /**
          * 在控制台上打印输入
-         * @method debug
+         * @method log
          * @param  {any}  input  输入
          * @return {any}         返回输入的值
          */
-        debug<T>(input: T): T {
-            console.log("Current data: ", input);
+        log<T>(input: T): T {
+            console.log("[Filter.log]: ", input);
             return input;
         }
     };
@@ -261,31 +261,31 @@ module drunk.filter {
             time = time.replace(/-/g, "/");
         }
 
-        var t = new Date(time);
-        var y = String(t.getFullYear());
-        var M = t.getMonth() + 1;
-        var d = t.getDate();
-        var H = t.getHours();
-        var m = t.getMinutes();
-        var s = t.getSeconds();
+        let t = new Date(time);
+        let y = String(t.getFullYear());
+        let M = t.getMonth() + 1;
+        let d = t.getDate();
+        let H = t.getHours();
+        let m = t.getMinutes();
+        let s = t.getSeconds();
 
         return format.replace(reg.format, function(x) {
             switch (x) {
-                case "YYYY":
+                case "yyyy":
                     return y;
-                case "YY":
+                case "yy":
                     return y.slice(2);
                 case "MM":
                     return padded(M);
                 case "M":
                     return M;
-                case "DD":
+                case "dd":
                     return padded(d);
-                case "D":
+                case "d":
                     return d;
-                case "H":
+                case "h":
                     return H;
-                case "HH":
+                case "hh":
                     return padded(H);
                 case "mm":
                     return padded(m);

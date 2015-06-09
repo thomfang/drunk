@@ -116,7 +116,7 @@ describe("parser", function () {
 
                 expect(value).toBe(test.value);
                 
-                value = drunk.filter.applyFilters(value, result2.filters, viewModel.filter, false, viewModel);
+                value = drunk.filter.pipeFor(value, result2.filters, viewModel.filter, false, viewModel);
                 expect(value).toBe(test.expected);
             });
 

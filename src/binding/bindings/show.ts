@@ -46,8 +46,8 @@ module drunk {
     });
 
     function processAction(element: HTMLElement, type: string) {
-        var evt = document.createEvent("CustomEvent");
-        evt.initEvent(type, true, true);
+        var evt = document.createEvent("Event");
+        evt.initEvent(type, true, false);
         element.dispatchEvent(evt);
         
         return Action.processAll(element);

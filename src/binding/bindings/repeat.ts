@@ -6,15 +6,15 @@
 
  
 module drunk {
-    
+
     export interface IItemDataDescriptor {
         key: string | number;
         idx: number;
         val: any;
     }
-    
-    let REPEAT_PREFIX = "__repeat_id";
-    let counter = 0;
+
+    let repeaterPrefix = "__drunk_repeater_item_";
+    let repeaterCounter = 0;
 
     let regParam = /\s+in\s+/;
     let regKeyValue = /(\w+)\s*,\s*(\w+)/;
@@ -29,9 +29,9 @@ module drunk {
             this.createCommentNodes();
             this.parseDefinition();
 
-            this.$id = REPEAT_PREFIX + counter++;
-            this.cache = {};
-            this.bindingExecutor = Template.compile(this.element);
+            this._cache = {};
+            this._nameOfRef = repeaterPrefix + repeaterCounter++;
+            this._bindExecutor = Template.compile(this.element);
         },
         
         // 创建注释标记标签
@@ -53,7 +53,7 @@ module drunk {
             let params: any = parts[0];
             let key: string;
             let value: string;
-            
+
             if (params.indexOf(',') > 0) {
                 let matches = params.match(regKeyValue);
                 console.assert(matches, '错误的', config.prefix + 'repeat 表达式: ', expression);
@@ -75,119 +75,137 @@ module drunk {
 
         // 数据更新
         update(newValue: any) {
-            let data = toList(newValue);
+            let items = RepeatItem.toList(newValue);
+            let isEmpty = !this._itemVms || this._itemVms.length === 0;
+            let last = items.length - 1;
+            let newVms = [];
+            let viewModel;
+            var fragment: DocumentFragment;
 
-            let last = data.length - 1;
-            let isEmpty = !this.itemVms || this.itemVms.length === 0;
-            let vmList = [];
-
-            let viewModel, item, i;
-
-            for (i = 0; i <= last; i++) {
-                item = data[i];
-                viewModel = vmList[i] = this.getItemVm(item, i === last);
-
-                viewModel._isChecked = true;
+            items.forEach((item, index) => {
+                viewModel = newVms[index] = this._getRepeatItem(item, index === last);
 
                 if (isEmpty) {
-                    elementUtil.insertBefore(viewModel.element, this.endedNode);
+                    if (!fragment) {
+                        fragment = document.createDocumentFragment();
+                    }
+                    fragment.appendChild(viewModel.element);
+                }
+                else {
+                    viewModel._isUsed = true;
+                }
+            });
+
+            if (isEmpty) {
+                if (fragment) {
+                    elementUtil.insertAfter(fragment, this.startNode);
                 }
             }
+            else {
+                this._unrealizeUnusedItems();
 
-            if (!isEmpty) {
-                this.releaseVm(this.itemVms);
+                let currElement, itemElement, i;
 
-                let curr, el;
-                
                 let getPrev = (node: Node) => {
-                    curr = node.previousSibling;
-                    while (curr && curr.__disposed) {
-                        curr = curr.previousSibling;
+                    currElement = node.previousSibling;
+                    while (currElement && currElement.__disposed) {
+                        currElement = currElement.previousSibling;
                     }
-                    return curr;
+                    return currElement;
                 }
 
-                i = data.length;
-                curr = getPrev(this.endedNode);
+                i = items.length;
+                currElement = getPrev(this.endedNode);
 
                 while (i--) {
-                    viewModel = vmList[i];
-                    el = viewModel.element;
+                    viewModel = newVms[i];
+                    itemElement = viewModel.element;
 
-                    if (el !== curr) {
-                        elementUtil.insertAfter(el, curr);
+                    if (itemElement !== currElement) {
+                        elementUtil.insertAfter(itemElement, currElement);
                     }
                     else {
-                        curr = getPrev(curr);
+                        currElement = getPrev(currElement);
                     }
                 }
             }
 
-            vmList.forEach(function (viewModel) {
-                viewModel._isChecked = false;
+            newVms.forEach((viewModel) => {
+                viewModel._isUsed = false;
 
                 if (!viewModel._isBinded) {
-                    this.bindingExecutor(viewModel, viewModel.element);
+                    this._bindExecutor(viewModel, viewModel.element);
                     viewModel._isBinded = true;
                 }
-            }, this);
+            });
 
-            this.itemVms = vmList;
+            this._itemVms = newVms;
         },
 
-        getItemVm(item, isLast) {
-            let val = item.val;
-            let isCollection = util.isObject(val) || Array.isArray(val);
+        _getRepeatItem(item, isLast) {
+            let value = item.val;
+            let isCollection = util.isObject(value) || Array.isArray(value);
             let viewModel: RepeatItem;
 
             if (isCollection) {
-                viewModel = val[this.$id];
+                let arr = value[this._nameOfRef];
+                if (arr) {
+                    for (var i = 0; viewModel = arr[i]; i++) {
+                        if (!viewModel._isUsed) {
+                            break;
+                        }
+                    }
+                }
             }
             else {
-                let list = this.cache[val];
+                let list = this._cache[value];
 
                 if (list) {
                     let i = 0;
                     viewModel = list[0];
 
-                    while (viewModel && viewModel._isChecked) {
+                    while (viewModel && viewModel._isUsed) {
                         viewModel = list[++i];
                     }
                 }
             }
 
             if (viewModel) {
-                this.updateItemModel(viewModel, item, isLast);
+                this._updateItemModel(viewModel, item, isLast);
             }
             else {
-                viewModel = this.createItemVm(item, isLast, isCollection);
+                viewModel = this._realizeRepeatItem(item, isLast, isCollection);
             }
 
             return viewModel;
         },
 
-        createItemVm(item: IItemDataDescriptor, isLast: boolean, isCollection: boolean) {
-            let own: IModel = {};
-            let val = item.val;
+        _realizeRepeatItem(item: IItemDataDescriptor, isLast: boolean, isCollection: boolean) {
+            let value = item.val;
+            let options: IModel = {};
 
-            this.updateItemModel(own, item, isLast);
+            this._updateItemModel(options, item, isLast);
 
-            let viewModel = new RepeatItem(this.viewModel, own, this.element.cloneNode(true));
+            let viewModel = new RepeatItem(this.viewModel, options, this.element.cloneNode(true));
 
             if (isCollection) {
-                util.defineProperty(val, this.$id, viewModel);
+                if (!value[this._nameOfRef]) {
+                    util.defineProperty(value, this._nameOfRef, []);
+                }
+                value[this._nameOfRef].push(viewModel);
                 viewModel._isCollection = true;
             }
             else {
-                this.cache[val] = this.cache[val] || [];
-                this.cache[val].push(viewModel);
+                this._cache[value] = this._cache[value] || [];
+                this._cache[value].push(viewModel);
             }
 
             return viewModel;
         },
 
-        updateItemModel(target: any, item: IItemDataDescriptor, isLast: boolean) {
+        _updateItemModel(target: any, item: IItemDataDescriptor, isLast: boolean) {
             target.$odd = 0 === item.idx % 2;
+            target.$even = !target.$odd;
             target.$last = isLast;
             target.$first = 0 === item.idx;
 
@@ -198,24 +216,27 @@ module drunk {
             }
         },
 
-        releaseVm(itemVms: RepeatItem[], force?: boolean) {
-            let cache: {[id: string]: RepeatItem[]} = this.cache;
-            let value = this.param.val;
-            let id = this.$id;
+        _unrealizeUnusedItems(force?: boolean) {
+            let cache: { [id: string]: RepeatItem[] } = this._cache;
+            let nameOfVal = this.param.val;
+            let nameOfRef = this._nameOfRef;
 
-            itemVms.forEach((viewModel: RepeatItem) => {
-                if (viewModel._isChecked && !force) {
+            this._itemVms.forEach((viewModel: RepeatItem, index) => {
+                if (viewModel._isUsed && !force) {
                     return;
                 }
 
-                let val = viewModel[value];
+                let value = viewModel[nameOfVal];
 
                 if (viewModel._isCollection) {
                     // 移除数据对viewModel实例的引用
-                    val[id] = null;
+                    util.removeArrayItem(value[nameOfRef], viewModel);
+                    if (value[nameOfRef]) {
+                        delete value[nameOfRef];
+                    }
                 }
                 else {
-                    util.removeArrayItem(cache[val], viewModel);
+                    util.removeArrayItem(cache[value], viewModel);
                 }
 
                 let element = viewModel.element;
@@ -226,19 +247,19 @@ module drunk {
         },
 
         release() {
-            if (this.itemVms && this.itemVms.length) {
-                this.releaseVm(this.itemVms, true);
+            if (this._itemVms && this._itemVms.length) {
+                this._unrealizeUnusedItems(true);
             }
 
             elementUtil.remove(this.startNode);
-            elementUtil.replace(this.element, this.endedNode);
+            elementUtil.remove(this.endedNode);
 
-            this.cache = null;
-            this.itemVms = null;
+            this._cache = null;
+            this._itemVms = null;
+            this._bindExecutor = null;
             this.startNode = null;
             this.endedNode = null;
             this.element = null;
-            this.bindingExecutor = null;
         }
     };
 
@@ -253,12 +274,12 @@ module drunk {
      * @param {HTMLElement} element     元素对象
      */
     export class RepeatItem extends Component {
-        
+
         _isCollection: boolean;
-        _isChecked: boolean;
-        
+        _isUsed: boolean;
+
         protected _models: IModel[];
-        
+
         constructor(public parent: Component | RepeatItem, ownModel, public element) {
             super(ownModel);
             this.__inheritParentMembers();
@@ -284,11 +305,11 @@ module drunk {
         protected __inheritParentMembers() {
             let parent = this.parent;
             let models = (<RepeatItem>parent)._models;
-            
+
             super.__init(parent._model);
-            
+
             this.filter = parent.filter;
-    
+
             if (models) {
                 models.forEach((model) => {
                     this.__proxyModel(model);
@@ -305,11 +326,11 @@ module drunk {
             Object.keys(model).forEach((name) => {
                 util.proxy(this, name, model);
             });
-            
+
             if (!this._models) {
                 this._models = [];
             }
-            
+
             this._models.push(model);
         }
         
@@ -332,65 +353,68 @@ module drunk {
         __getHandler(name: string) {
             let context: any = this;
             let handler = this[name];
-    
+
             while (!handler && context.parent) {
                 context = context.parent;
                 handler = context[name];
             }
-    
+
             if (!handler) {
                 if (typeof window[name] !== 'function') {
                     throw new Error("Handler not found: " + name);
                 }
-    
+
                 handler = window[name];
                 context = window;
             }
-    
+
             return (...args: any[]) => {
                 return handler.apply(context, args);
             };
         }
-    }
 
-    /*
-     * 把数据转成列表,如果为空则转成空数组
-     */
-    export function toList(target): IItemDataDescriptor[] {
-        let ret: IItemDataDescriptor[] = [];
+        /**
+         * 把数据转成列表,如果为空则转成空数组
+         * @method toList
+         * @static
+         * @param  {any}  target
+         */
+        static toList(target: any): IItemDataDescriptor[] {
+            let ret: IItemDataDescriptor[] = [];
 
-        if (Array.isArray(target)) {
-            target.forEach(function (val, idx) {
-                ret.push({
-                    key: idx,
-                    idx: idx,
-                    val: val
-                });
-            });
-        }
-        else if (util.isObject(target)) {
-            let idx = 0;
-            let key;
-
-            for (key in target) {
-                ret.push({
-                    key: key,
-                    idx: idx++,
-                    val: target[key]
+            if (Array.isArray(target)) {
+                target.forEach(function(val, idx) {
+                    ret.push({
+                        key: idx,
+                        idx: idx,
+                        val: val
+                    });
                 });
             }
-        }
-        else if (typeof target === 'number') {
-            for (let i = 0; i < target; i++) {
-                ret.push({
-                    key: i,
-                    idx: i,
-                    val: i
-                });
-            }
-        }
+            else if (util.isObject(target)) {
+                let idx = 0;
+                let key;
 
-        return ret;
+                for (key in target) {
+                    ret.push({
+                        key: key,
+                        idx: idx++,
+                        val: target[key]
+                    });
+                }
+            }
+            else if (typeof target === 'number') {
+                for (let i = 0; i < target; i++) {
+                    ret.push({
+                        key: i,
+                        idx: i,
+                        val: i
+                    });
+                }
+            }
+
+            return ret;
+        }
     }
 
 }

@@ -137,7 +137,6 @@ module drunk {
         
         /**
          * 组件类，继承ViewModel类，实现了模板的准备和数据的绑定
-         * 
          * @class Component
          * @constructor
          */
@@ -145,6 +144,13 @@ module drunk {
             super(model);
         }
 
+        /**
+         * 属性初始化
+         * @method __init
+         * @override
+         * @private
+         * @param  {IModel}  [model]  model对象
+         */
         protected __init(model?: IModel) {
             super.__init.call(this, model);
 
@@ -165,27 +171,25 @@ module drunk {
                     this.watch(expression, this.watchers[expression]);
                 });
             }
+            
             if (this.data) {
-                // 如果有配置数据源,类似: {
-                //     "matchlist": function () { return drunk.xhr('matchlist.json');  }
-                //     "counter": 0
-                // }
-
                 Object.keys(this.data).forEach(name => {
                     var data = this.data[name];
 
                     if (typeof data === 'function') {
                         // 如果是一个函数,直接调用该函数
-                        data = data();
+                        data = data.call(this);
                     }
                 
                     // 代理该数据字段
                     this.proxy(name);
                 
                     // 不论返回的是什么值,使用promise进行处理
-                    Promise.resolve(data).then(result => {
-                        this[name] = result;
-                    }, (reason) => {
+                    Promise.resolve(data).then(
+                        result => {
+                            this[name] = result;
+                        },
+                        reason => {
                             console.warn("数据准备失败:", reason);
                         });
                 });
@@ -194,7 +198,6 @@ module drunk {
         
         /**
          * 处理模板，并返回模板元素
-         * 
          * @method processTemplate
          * @return {Promise}
          */
@@ -227,6 +230,7 @@ module drunk {
         /**
          * 把组件挂载到元素上
          * @method mount
+         * @param {Node|Node[]} element 要挂在的节点或节点数组
          */
         mount(element: Node | Node[]) {
             console.assert(!this._isMounted, "该组件已有挂载到", this.element);
@@ -262,7 +266,7 @@ module drunk {
 
     export module Component {
 
-        export var defined: { [name: string]: IComponentContructor<any> } = {};
+        export let defined: { [name: string]: IComponentContructor<any> } = {};
         
         /**
          * 自定义一个组件类
@@ -330,6 +334,31 @@ module drunk {
 
             componentCtor.extend = Component.extend;
             defined[name] = componentCtor;
+
+            addHiddenStyleForComponent(name);
+        }
+
+        let cached: { [name: string]: boolean } = {};
+        let styleSheet: any;
+        
+        /**
+         * 设置样式
+         * @method addHiddenStyleForComponent
+         * @private
+         * @param  {string} name  组件名
+         */
+        function addHiddenStyleForComponent(name: string) {
+            if (cached[name]) {
+                return;
+            }
+
+            if (!styleSheet) {
+                let styleElement = document.createElement('style');
+                document.head.appendChild(styleElement);
+                styleSheet = styleElement.sheet;
+            }
+
+            styleSheet.insertRule(name + '{display:none}', styleSheet.cssRules.length);
         }
     }
 }

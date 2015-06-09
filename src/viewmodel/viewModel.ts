@@ -266,7 +266,7 @@ module drunk {
         __getValueByGetter(getter, isInterpolate) {
             var args = [this].concat(util.toArray(arguments).slice(1));
             var value = getter.apply(null, args);
-            return filter.applyFilters.apply(null, [value, getter.filters, this.filter, isInterpolate].concat(args));
+            return filter.pipeFor.apply(null, [value, getter.filters, this.filter, isInterpolate].concat(args));
         };
     }
 }

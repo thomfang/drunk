@@ -20,13 +20,13 @@ module drunk.observable {
      * @return {Observer} 返回一个Observer实例
      */
     export function create<T>(data: ObservableArray<T> | ObservableObject | any): Observer {
-        var isObject = util.isObject(data);
+        let isObject = util.isObject(data);
 
         if (!isObject && !Array.isArray(data)) {
             return;
         }
 
-        var ob: Observer;
+        let ob: Observer;
 
         if (typeof data.__observer__ === 'undefined') {
             // 如果从未创建过observer实例
@@ -69,7 +69,7 @@ module drunk.observable {
      * @param {any}             value  对应字段的数据
      * @param {ObservableObject} data  可观察数据
      */
-    export var onAccessingProperty: (observer: Observer, property: string, value: any, data: ObservableObject) => void;
+    export let onAccessingProperty: (observer: Observer, property: string, value: any, data: ObservableObject) => void;
      
     /**
      * 转换对象属性的getter/setter，使其能在数据更新是能接受到事件
@@ -79,15 +79,15 @@ module drunk.observable {
      * @param {string}           property  JSON对象上的字段
      */
     export function observe(data: ObservableObject, property: string, value): void {
-        var descriptor = Object.getOwnPropertyDescriptor(data, property);
+        let descriptor = Object.getOwnPropertyDescriptor(data, property);
         
         if (descriptor && typeof descriptor.get === 'function' && descriptor.get === descriptor.set) {
             // 如果已经绑定过了， 则不再绑定
             return;
         }
         
-        var dataOb: Observer = create(data);
-        var valueOb: Observer = create(value);
+        let dataOb: Observer = create(data);
+        let valueOb: Observer = create(value);
 
         Object.defineProperty(data, property, {
             enumerable: true,
@@ -113,7 +113,7 @@ module drunk.observable {
                 return value;
             }
             
-            var newValue: any = arguments[0];
+            let newValue: any = arguments[0];
             
             // 有传入参数，则是赋值操作
             if (!isNotEqual(newValue, value)) {
@@ -150,7 +150,7 @@ module drunk.observable {
      * @param {string}  	                     [property] 要通知的字段名，如果该参数不提供，则派发该该数据更新的通知
      */
     export function notify<T>(data: ObservableArray<T> | ObservableObject): void {
-        var ob: Observer = data.__observer__;
+        let ob: Observer = data.__observer__;
 
         if (ob) {
             ob.notify();

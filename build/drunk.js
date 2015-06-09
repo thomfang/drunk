@@ -1623,7 +1623,7 @@ var drunk;
             }
             if (this._getter.filters) {
                 // 派发到各个filter中处理
-                newValue = drunk.filter.applyFilters(newValue, this._getter.filters, this.viewModel.filter, this._isInterpolate, this.viewModel);
+                newValue = drunk.filter.pipeFor(newValue, this._getter.filters, this.viewModel.filter, this._isInterpolate, this.viewModel);
             }
             this.__afterGetValue();
             return newValue;
@@ -2343,7 +2343,7 @@ var drunk;
         ViewModel.prototype.__getValueByGetter = function (getter, isInterpolate) {
             var args = [this].concat(drunk.util.toArray(arguments).slice(1));
             var value = getter.apply(null, args);
-            return drunk.filter.applyFilters.apply(null, [value, getter.filters, this.filter, isInterpolate].concat(args));
+            return drunk.filter.pipeFor.apply(null, [value, getter.filters, this.filter, isInterpolate].concat(args));
         };
         ;
         return ViewModel;
@@ -2675,7 +2675,7 @@ var drunk;
         /**
          * 使用提供的filter列表处理数据
          *
-         * @method applyFilters
+         * @method pipeFor
          * @static
          * @param  {any}            value       输入
          * @param  {FilterDef[]}    filterDefs  filter定义集合
@@ -2683,7 +2683,7 @@ var drunk;
          * @param  {any[]}          ...args     其他参数
          * @return {any}                        过滤后得到的值
          */
-        function applyFilters(value, filterDefs, filterMap, isInterpolate) {
+        function pipeFor(value, filterDefs, filterMap, isInterpolate) {
             var args = [];
             for (var _i = 4; _i < arguments.length; _i++) {
                 args[_i - 4] = arguments[_i];
@@ -2698,7 +2698,7 @@ var drunk;
                     if (!filterDefs[i]) {
                         return item;
                     }
-                    return filter.applyFilters.apply(filter, [item, filterDefs[i], filterMap, false].concat(args));
+                    return filter.pipeFor.apply(filter, [item, filterDefs[i], filterMap, false].concat(args));
                 });
                 // 对所有token求值得到的结果做处理,如果是undefined或null类型直接转成空字符串,避免页面显示出undefined或null
                 return getInterpolateValue(value);
@@ -2718,7 +2718,7 @@ var drunk;
             });
             return value;
         }
-        filter.applyFilters = applyFilters;
+        filter.pipeFor = pipeFor;
         // 判断插值表达式的值个数,如果只有一个,则返回该值,如果有多个,则返回所有值的字符串相加
         function getInterpolateValue(values) {
             if (values.length === 1) {
@@ -2735,7 +2735,7 @@ var drunk;
             escape: /[<>& "']/gm,
             unescape: /&.+?;/g,
             striptags: /(<([^>]+)>)/ig,
-            format: /(YY|M|D|H|m|s)(\1)*/g
+            format: /(yy|M|d|h|m|s)(\1)*/g
         };
         var escapeChars = {
             '&': "&amp;",
@@ -2810,11 +2810,11 @@ var drunk;
             },
             /**
              * 计算输入的长度，支持字符串、数组和对象
-             * @method length
+             * @method size
              * @param  {string|array|object}  input 输入
              * @return {number}  长度
              */
-            length: function (input) {
+            size: function (input) {
                 if (input == null) {
                     return 0;
                 }
@@ -2822,13 +2822,13 @@ var drunk;
                     return input.length;
                 }
                 if (typeof input === 'object') {
-                    var length = 0;
+                    var length_2 = 0;
                     for (var k in input) {
                         if (input.hasOwnProperty(k)) {
-                            length += 1;
+                            length_2 += 1;
                         }
                     }
-                    return length;
+                    return length_2;
                 }
             },
             /**
@@ -2872,12 +2872,12 @@ var drunk;
             },
             /**
              * 在控制台上打印输入
-             * @method debug
+             * @method log
              * @param  {any}  input  输入
              * @return {any}         返回输入的值
              */
-            debug: function (input) {
-                console.log("Current data: ", input);
+            log: function (input) {
+                console.log("[Filter.log]: ", input);
                 return input;
             }
         };
@@ -2897,21 +2897,21 @@ var drunk;
             var s = t.getSeconds();
             return format.replace(reg.format, function (x) {
                 switch (x) {
-                    case "YYYY":
+                    case "yyyy":
                         return y;
-                    case "YY":
+                    case "yy":
                         return y.slice(2);
                     case "MM":
                         return padded(M);
                     case "M":
                         return M;
-                    case "DD":
+                    case "dd":
                         return padded(d);
-                    case "D":
+                    case "d":
                         return d;
-                    case "H":
+                    case "h":
                         return H;
-                    case "HH":
+                    case "hh":
                         return padded(H);
                     case "mm":
                         return padded(m);
@@ -2992,13 +2992,19 @@ var drunk;
         __extends(Component, _super);
         /**
          * 组件类，继承ViewModel类，实现了模板的准备和数据的绑定
-         *
          * @class Component
          * @constructor
          */
         function Component(model) {
             _super.call(this, model);
         }
+        /**
+         * 属性初始化
+         * @method __init
+         * @override
+         * @private
+         * @param  {IModel}  [model]  model对象
+         */
         Component.prototype.__init = function (model) {
             var _this = this;
             _super.prototype.__init.call(this, model);
@@ -3020,15 +3026,11 @@ var drunk;
                 });
             }
             if (this.data) {
-                // 如果有配置数据源,类似: {
-                //     "matchlist": function () { return drunk.xhr('matchlist.json');  }
-                //     "counter": 0
-                // }
                 Object.keys(this.data).forEach(function (name) {
                     var data = _this.data[name];
                     if (typeof data === 'function') {
                         // 如果是一个函数,直接调用该函数
-                        data = data();
+                        data = data.call(_this);
                     }
                     // 代理该数据字段
                     _this.proxy(name);
@@ -3043,7 +3045,6 @@ var drunk;
         };
         /**
          * 处理模板，并返回模板元素
-         *
          * @method processTemplate
          * @return {Promise}
          */
@@ -3069,6 +3070,7 @@ var drunk;
         /**
          * 把组件挂载到元素上
          * @method mount
+         * @param {Node|Node[]} element 要挂在的节点或节点数组
          */
         Component.prototype.mount = function (element) {
             console.assert(!this._isMounted, "该组件已有挂载到", this.element);
@@ -3196,8 +3198,28 @@ var drunk;
             }
             componentCtor.extend = Component.extend;
             Component.defined[name] = componentCtor;
+            addHiddenStyleForComponent(name);
         }
         Component.register = register;
+        var cached = {};
+        var styleSheet;
+        /**
+         * 设置样式
+         * @method addHiddenStyleForComponent
+         * @private
+         * @param  {string} name  组件名
+         */
+        function addHiddenStyleForComponent(name) {
+            if (cached[name]) {
+                return;
+            }
+            if (!styleSheet) {
+                var styleElement = document.createElement('style');
+                document.head.appendChild(styleElement);
+                styleSheet = styleElement.sheet;
+            }
+            styleSheet.insertRule(name + '{display:none}', styleSheet.cssRules.length);
+        }
     })(Component = drunk.Component || (drunk.Component = {}));
 })(drunk || (drunk = {}));
 /// <reference path="../binding" />
@@ -3883,8 +3905,8 @@ var drunk;
 /// <reference path="../../viewmodel/viewmodel" />
 var drunk;
 (function (drunk) {
-    var REPEAT_PREFIX = "__repeat_id";
-    var counter = 0;
+    var repeaterPrefix = "__drunk_repeater_item_";
+    var repeaterCounter = 0;
     var regParam = /\s+in\s+/;
     var regKeyValue = /(\w+)\s*,\s*(\w+)/;
     var RepeatBindingDefinition = {
@@ -3894,9 +3916,9 @@ var drunk;
         init: function () {
             this.createCommentNodes();
             this.parseDefinition();
-            this.$id = REPEAT_PREFIX + counter++;
-            this.cache = {};
-            this.bindingExecutor = drunk.Template.compile(this.element);
+            this._cache = {};
+            this._nameOfRef = repeaterPrefix + repeaterCounter++;
+            this._bindExecutor = drunk.Template.compile(this.element);
         },
         // 创建注释标记标签
         createCommentNodes: function () {
@@ -3931,93 +3953,115 @@ var drunk;
         },
         // 数据更新
         update: function (newValue) {
-            var data = toList(newValue);
-            var last = data.length - 1;
-            var isEmpty = !this.itemVms || this.itemVms.length === 0;
-            var vmList = [];
-            var viewModel, item, i;
-            for (i = 0; i <= last; i++) {
-                item = data[i];
-                viewModel = vmList[i] = this.getItemVm(item, i === last);
-                viewModel._isChecked = true;
-                if (isEmpty) {
-                    drunk.elementUtil.insertBefore(viewModel.element, this.endedNode);
-                }
-            }
-            if (!isEmpty) {
-                this.releaseVm(this.itemVms);
-                var curr, el;
-                var getPrev = function (node) {
-                    curr = node.previousSibling;
-                    while (curr && curr.__disposed) {
-                        curr = curr.previousSibling;
-                    }
-                    return curr;
-                };
-                i = data.length;
-                curr = getPrev(this.endedNode);
-                while (i--) {
-                    viewModel = vmList[i];
-                    el = viewModel.element;
-                    if (el !== curr) {
-                        drunk.elementUtil.insertAfter(el, curr);
-                    }
-                    else {
-                        curr = getPrev(curr);
-                    }
-                }
-            }
-            vmList.forEach(function (viewModel) {
-                viewModel._isChecked = false;
-                if (!viewModel._isBinded) {
-                    this.bindingExecutor(viewModel, viewModel.element);
-                    viewModel._isBinded = true;
-                }
-            }, this);
-            this.itemVms = vmList;
-        },
-        getItemVm: function (item, isLast) {
-            var val = item.val;
-            var isCollection = drunk.util.isObject(val) || Array.isArray(val);
+            var _this = this;
+            var items = RepeatItem.toList(newValue);
+            var isEmpty = !this._itemVms || this._itemVms.length === 0;
+            var last = items.length - 1;
+            var newVms = [];
             var viewModel;
-            if (isCollection) {
-                viewModel = val[this.$id];
+            var fragment;
+            items.forEach(function (item, index) {
+                viewModel = newVms[index] = _this._getRepeatItem(item, index === last);
+                if (isEmpty) {
+                    if (!fragment) {
+                        fragment = document.createDocumentFragment();
+                    }
+                    fragment.appendChild(viewModel.element);
+                }
+                else {
+                    viewModel._isUsed = true;
+                }
+            });
+            if (isEmpty) {
+                if (fragment) {
+                    drunk.elementUtil.insertAfter(fragment, this.startNode);
+                }
             }
             else {
-                var list = this.cache[val];
+                this._unrealizeUnusedItems();
+                var currElement, itemElement, i;
+                var getPrev = function (node) {
+                    currElement = node.previousSibling;
+                    while (currElement && currElement.__disposed) {
+                        currElement = currElement.previousSibling;
+                    }
+                    return currElement;
+                };
+                i = items.length;
+                currElement = getPrev(this.endedNode);
+                while (i--) {
+                    viewModel = newVms[i];
+                    itemElement = viewModel.element;
+                    if (itemElement !== currElement) {
+                        drunk.elementUtil.insertAfter(itemElement, currElement);
+                    }
+                    else {
+                        currElement = getPrev(currElement);
+                    }
+                }
+            }
+            newVms.forEach(function (viewModel) {
+                viewModel._isUsed = false;
+                if (!viewModel._isBinded) {
+                    _this._bindExecutor(viewModel, viewModel.element);
+                    viewModel._isBinded = true;
+                }
+            });
+            this._itemVms = newVms;
+        },
+        _getRepeatItem: function (item, isLast) {
+            var value = item.val;
+            var isCollection = drunk.util.isObject(value) || Array.isArray(value);
+            var viewModel;
+            if (isCollection) {
+                var arr = value[this._nameOfRef];
+                if (arr) {
+                    for (var i = 0; viewModel = arr[i]; i++) {
+                        if (!viewModel._isUsed) {
+                            break;
+                        }
+                    }
+                }
+            }
+            else {
+                var list = this._cache[value];
                 if (list) {
-                    var i = 0;
+                    var i_1 = 0;
                     viewModel = list[0];
-                    while (viewModel && viewModel._isChecked) {
-                        viewModel = list[++i];
+                    while (viewModel && viewModel._isUsed) {
+                        viewModel = list[++i_1];
                     }
                 }
             }
             if (viewModel) {
-                this.updateItemModel(viewModel, item, isLast);
+                this._updateItemModel(viewModel, item, isLast);
             }
             else {
-                viewModel = this.createItemVm(item, isLast, isCollection);
+                viewModel = this._realizeRepeatItem(item, isLast, isCollection);
             }
             return viewModel;
         },
-        createItemVm: function (item, isLast, isCollection) {
-            var own = {};
-            var val = item.val;
-            this.updateItemModel(own, item, isLast);
-            var viewModel = new RepeatItem(this.viewModel, own, this.element.cloneNode(true));
+        _realizeRepeatItem: function (item, isLast, isCollection) {
+            var value = item.val;
+            var options = {};
+            this._updateItemModel(options, item, isLast);
+            var viewModel = new RepeatItem(this.viewModel, options, this.element.cloneNode(true));
             if (isCollection) {
-                drunk.util.defineProperty(val, this.$id, viewModel);
+                if (!value[this._nameOfRef]) {
+                    drunk.util.defineProperty(value, this._nameOfRef, []);
+                }
+                value[this._nameOfRef].push(viewModel);
                 viewModel._isCollection = true;
             }
             else {
-                this.cache[val] = this.cache[val] || [];
-                this.cache[val].push(viewModel);
+                this._cache[value] = this._cache[value] || [];
+                this._cache[value].push(viewModel);
             }
             return viewModel;
         },
-        updateItemModel: function (target, item, isLast) {
+        _updateItemModel: function (target, item, isLast) {
             target.$odd = 0 === item.idx % 2;
+            target.$even = !target.$odd;
             target.$last = isLast;
             target.$first = 0 === item.idx;
             target[this.param.val] = item.val;
@@ -4025,21 +4069,24 @@ var drunk;
                 target[this.param.key] = item.key;
             }
         },
-        releaseVm: function (itemVms, force) {
-            var cache = this.cache;
-            var value = this.param.val;
-            var id = this.$id;
-            itemVms.forEach(function (viewModel) {
-                if (viewModel._isChecked && !force) {
+        _unrealizeUnusedItems: function (force) {
+            var cache = this._cache;
+            var nameOfVal = this.param.val;
+            var nameOfRef = this._nameOfRef;
+            this._itemVms.forEach(function (viewModel, index) {
+                if (viewModel._isUsed && !force) {
                     return;
                 }
-                var val = viewModel[value];
+                var value = viewModel[nameOfVal];
                 if (viewModel._isCollection) {
                     // 移除数据对viewModel实例的引用
-                    val[id] = null;
+                    drunk.util.removeArrayItem(value[nameOfRef], viewModel);
+                    if (value[nameOfRef]) {
+                        delete value[nameOfRef];
+                    }
                 }
                 else {
-                    drunk.util.removeArrayItem(cache[val], viewModel);
+                    drunk.util.removeArrayItem(cache[value], viewModel);
                 }
                 var element = viewModel.element;
                 element.__disposed = true;
@@ -4048,17 +4095,17 @@ var drunk;
             });
         },
         release: function () {
-            if (this.itemVms && this.itemVms.length) {
-                this.releaseVm(this.itemVms, true);
+            if (this._itemVms && this._itemVms.length) {
+                this._unrealizeUnusedItems(true);
             }
             drunk.elementUtil.remove(this.startNode);
-            drunk.elementUtil.replace(this.element, this.endedNode);
-            this.cache = null;
-            this.itemVms = null;
+            drunk.elementUtil.remove(this.endedNode);
+            this._cache = null;
+            this._itemVms = null;
+            this._bindExecutor = null;
             this.startNode = null;
             this.endedNode = null;
             this.element = null;
-            this.bindingExecutor = null;
         }
     };
     drunk.Binding.register("repeat", RepeatBindingDefinition);
@@ -4158,46 +4205,48 @@ var drunk;
                 return handler.apply(context, args);
             };
         };
+        /**
+         * 把数据转成列表,如果为空则转成空数组
+         * @method toList
+         * @static
+         * @param  {any}  target
+         */
+        RepeatItem.toList = function (target) {
+            var ret = [];
+            if (Array.isArray(target)) {
+                target.forEach(function (val, idx) {
+                    ret.push({
+                        key: idx,
+                        idx: idx,
+                        val: val
+                    });
+                });
+            }
+            else if (drunk.util.isObject(target)) {
+                var idx = 0;
+                var key;
+                for (key in target) {
+                    ret.push({
+                        key: key,
+                        idx: idx++,
+                        val: target[key]
+                    });
+                }
+            }
+            else if (typeof target === 'number') {
+                for (var i = 0; i < target; i++) {
+                    ret.push({
+                        key: i,
+                        idx: i,
+                        val: i
+                    });
+                }
+            }
+            return ret;
+        };
         return RepeatItem;
     })(drunk.Component);
     drunk.RepeatItem = RepeatItem;
-    /*
-     * 把数据转成列表,如果为空则转成空数组
-     */
-    function toList(target) {
-        var ret = [];
-        if (Array.isArray(target)) {
-            target.forEach(function (val, idx) {
-                ret.push({
-                    key: idx,
-                    idx: idx,
-                    val: val
-                });
-            });
-        }
-        else if (drunk.util.isObject(target)) {
-            var idx = 0;
-            var key;
-            for (key in target) {
-                ret.push({
-                    key: key,
-                    idx: idx++,
-                    val: target[key]
-                });
-            }
-        }
-        else if (typeof target === 'number') {
-            for (var i = 0; i < target; i++) {
-                ret.push({
-                    key: i,
-                    idx: i,
-                    val: i
-                });
-            }
-        }
-        return ret;
-    }
-    drunk.toList = toList;
 })(drunk || (drunk = {}));
 /// <reference path="../binding" />
 /// <reference path="../../config/config" />
@@ -4243,34 +4292,6 @@ var drunk;
          * @type object
          */
         var actionStates = {};
-        function setState(element, state) {
-            var id = drunk.util.uuid(element);
-            actionStates[id] = state;
-        }
-        Action.setState = setState;
-        /**
-         * 获取节点的动画状态
-         * @method getState
-         * @static
-         * @param  {HTMLElement}  element  元素节点
-         * @return {object}
-         */
-        function getState(element) {
-            var id = drunk.util.uuid(element);
-            return actionStates[id];
-        }
-        Action.getState = getState;
-        /**
-         * 清楚节点的动画状态缓存
-         * @method clearState
-         * @static
-         * @private
-         * @param  {HTMLElement} element
-         */
-        function clearState(element) {
-            var id = drunk.util.uuid(element);
-            actionStates[id] = null;
-        }
         var prefix = null;
         var transitionEndEvent = null;
         var animationEndEvent = null;
@@ -4298,7 +4319,38 @@ var drunk;
                     animationEndEvent = 'animationEnd';
                 }
             }
-            return prefix ? prefix + (property.charAt(0).toUpperCase() + property.slice(1)) : property;
+            if (!prefix) {
+                return property;
+            }
+            return prefix + (property.charAt(0).toUpperCase() + property.slice(1));
+        }
+        function setState(element, state) {
+            var id = drunk.util.uuid(element);
+            actionStates[id] = state;
+        }
+        Action.setState = setState;
+        /**
+         * 获取节点的动画状态
+         * @method getState
+         * @static
+         * @param  {HTMLElement}  element  元素节点
+         * @return {object}
+         */
+        function getState(element) {
+            var id = drunk.util.uuid(element);
+            return actionStates[id];
+        }
+        Action.getState = getState;
+        /**
+         * 清楚节点的动画状态缓存
+         * @method clearState
+         * @static
+         * @private
+         * @param  {HTMLElement} element
+         */
+        function clearState(element) {
+            var id = drunk.util.uuid(element);
+            actionStates[id] = null;
         }
         /**
          * 执行动画,有限判断是否存在js动画,再判断是否是css动画
@@ -4395,8 +4447,8 @@ var drunk;
         /**
          * 注册一个js动画
          * @method register
-         * @param  {string}                 name        动画名称
-         * @param  {IAnimationDefinition}   definition  动画定义
+         * @param  {string}              name        动画名称
+         * @param  {IActionDefinition}   definition  动画定义
          */
         function register(name, definition) {
             if (definitions[name] != null) {
@@ -4405,14 +4457,25 @@ var drunk;
             definitions[name] = definition;
         }
         Action.register = register;
+        /**
+         * 根据名称获取注册的action实现
+         * @method getDefinition
+         * @static
+         * @param  {string}  name  action名称
+         * @return {IActionDefinition}
+         */
+        function getDefinition(name) {
+            return definitions[name];
+        }
+        Action.getDefinition = getDefinition;
     })(Action = drunk.Action || (drunk.Action = {}));
     drunk.Binding.register('action', {
         init: function () {
-            this._runEnterActions = this._runEnterActions.bind(this);
-            this._runLeaveActions = this._runLeaveActions.bind(this);
-            this.element.addEventListener(Action.Event.created, this._runEnterActions, false);
-            this.element.addEventListener(Action.Event.removed, this._runLeaveActions, false);
-            this._runEnterActions();
+            this._runCreatedActions = this._runCreatedActions.bind(this);
+            this._runRemovedActions = this._runRemovedActions.bind(this);
+            this.element.addEventListener(Action.Event.created, this._runCreatedActions, false);
+            this.element.addEventListener(Action.Event.removed, this._runRemovedActions, false);
+            this._runCreatedActions();
         },
         getActions: function () {
             if (!this.expression) {
@@ -4456,15 +4519,15 @@ var drunk;
         release: function () {
             this.runActions(Action.Type.removed);
             this._actions = null;
-            this.element.removeEventListener(Action.Event.created, this._runEnterActions, false);
-            this.element.removeEventListener(Action.Event.removed, this._runLeaveActions, false);
+            this.element.removeEventListener(Action.Event.created, this._runCreatedActions, false);
+            this.element.removeEventListener(Action.Event.removed, this._runRemovedActions, false);
         },
-        _runEnterActions: function () {
+        _runCreatedActions: function () {
             this.cancelPrevAction();
             this.getActions();
             this.runActions(Action.Type.created);
         },
-        _runLeaveActions: function () {
+        _runRemovedActions: function () {
             this.cancelPrevAction();
             this.getActions();
             this.runActions(Action.Type.removed);
@@ -4515,8 +4578,8 @@ var drunk;
         }
     });
     function processAction(element, type) {
-        var evt = document.createEvent("CustomEvent");
-        evt.initEvent(type, true, true);
+        var evt = document.createEvent("Event");
+        evt.initEvent(type, true, false);
         element.dispatchEvent(evt);
         return drunk.Action.processAll(element);
     }

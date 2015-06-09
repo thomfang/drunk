@@ -23,17 +23,17 @@ describe("filter", function () {
         expect(filter.stripslashes("\\\\\'\\\"")).toEqual("\\'\"");
     });
 
-    it("length", function () {
-        expect(filter.length({})).toBe(0);
-        expect(filter.length({a:23})).toBe(1);
+    it("size", function () {
+        expect(filter.size({})).toBe(0);
+        expect(filter.size({a:23})).toBe(1);
 
-        expect(filter.length([])).toBe(0);
-        expect(filter.length([1,2,3])).toBe(3);
+        expect(filter.size([])).toBe(0);
+        expect(filter.size([1,2,3])).toBe(3);
 
-        expect(filter.length("")).toBe(0);
-        expect(filter.length("1234")).toBe(4);
+        expect(filter.size("")).toBe(0);
+        expect(filter.size("1234")).toBe(4);
 
-        expect(filter.length(null)).toBe(0);
+        expect(filter.size(null)).toBe(0);
     });
 
     it("striptags", function () {
@@ -57,7 +57,7 @@ describe("filter", function () {
     it("date", function () {
         var time1  = 1421051645040;
         var time2  = "2015-01-12 16:34";
-        var format = "YYYY/MM/DD HH:mm";
+        var format = "yyyy/MM/dd hh:mm";
         var result = "2015/01/12 16:34";
 
         expect(filter.date(time1, format)).toEqual(result);

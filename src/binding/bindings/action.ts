@@ -6,9 +6,9 @@ module drunk {
 
     /**
      * 动画定义接口
-     * @interface IAnimationDefinition
+     * @interface IActionDefinition
      */
-    export interface IAnimationDefinition {
+    export interface IActionDefinition {
         
         /**
          * 元素被添加进dom时调用的动画方法,会接收元素节点和一个动画完成的回调
@@ -46,7 +46,7 @@ module drunk {
          * @property Type
          * @type object
          */
-        export var Type = {
+        export let Type = {
             created: 'created',
             removed: 'removed'
         };
@@ -56,7 +56,7 @@ module drunk {
          * @property Event
          * @type object
          */
-        export var Event = {
+        export let Event = {
             created: 'drunk:action:created',
             removed: 'drunk:action:removed'
         };
@@ -67,7 +67,7 @@ module drunk {
          * @private
          * @type object
          */
-        let definitions: { [name: string]: IAnimationDefinition } = {};
+        let definitions: { [name: string]: IActionDefinition } = {};
         
         /**
          * 动画状态
@@ -76,6 +76,43 @@ module drunk {
          * @type object
          */
         let actionStates: { [id: number]: IActionState } = {};
+
+        let prefix: string = null;
+        let transitionEndEvent: string = null;
+        let animationEndEvent: string = null;
+
+        function getPropertyName(property: string) {
+            if (prefix === null) {
+                let style = document.body.style;
+
+                if ('webkitAnimationDuration' in style) {
+                    prefix = 'webkit';
+                    transitionEndEvent = 'webkitTransitionEnd';
+                    animationEndEvent = 'webkitAnimationEnd';
+                }
+                else if ('mozAnimationDuration' in style) {
+                    prefix = 'moz';
+                    transitionEndEvent = 'mozTransitionEnd';
+                    animationEndEvent = 'mozAnimationEnd';
+                }
+                else if ('msAnimationDuration' in style) {
+                    prefix = 'ms';
+                    transitionEndEvent = 'msTransitionEnd';
+                    animationEndEvent = 'msAnimationEnd';
+                }
+                else {
+                    prefix = '';
+                    transitionEndEvent = 'transitionEnd';
+                    animationEndEvent = 'animationEnd';
+                }
+            }
+            
+            if (!prefix) {
+                return property;
+            }
+            
+            return prefix + (property.charAt(0).toUpperCase() + property.slice(1));
+        }
 
         export function setState(element: HTMLElement, state: IActionState) {
             let id = util.uuid(element);
@@ -104,39 +141,6 @@ module drunk {
         function clearState(element: HTMLElement) {
             let id = util.uuid(element);
             actionStates[id] = null;
-        }
-
-        var prefix: string = null;
-        var transitionEndEvent: string = null;
-        var animationEndEvent: string = null;
-
-        function getPropertyName(property: string) {
-            if (prefix === null) {
-                var style = document.body.style;
-
-                if ('webkitAnimationDuration' in style) {
-                    prefix = 'webkit';
-                    transitionEndEvent = 'webkitTransitionEnd';
-                    animationEndEvent = 'webkitAnimationEnd';
-                }
-                else if ('mozAnimationDuration' in style) {
-                    prefix = 'moz';
-                    transitionEndEvent = 'mozTransitionEnd';
-                    animationEndEvent = 'mozAnimationEnd';
-                }
-                else if ('msAnimationDuration' in style) {
-                    prefix = 'ms';
-                    transitionEndEvent = 'msTransitionEnd';
-                    animationEndEvent = 'msAnimationEnd';
-                }
-                else {
-                    prefix = '';
-                    transitionEndEvent = 'transitionEnd';
-                    animationEndEvent = 'animationEnd';
-                }
-            }
-
-            return prefix ? prefix + (property.charAt(0).toUpperCase() + property.slice(1)) : property;
         }
         
         /**
@@ -187,7 +191,7 @@ module drunk {
             // 必须先在这里取一次transitionDuration的值,动画才会生效
             let style = getComputedStyle(element, null);
             let transitionExist = style[getPropertyName('transitionDuration')] !== '0s';
-
+            
             state.promise = new Promise((resolve) => {
                 // 给样式赋值后,取animationDuration的值,判断有没有设置animation动画
                 element.classList.add(className);
@@ -238,7 +242,7 @@ module drunk {
          * @return {Promise}
          */
         export function processAll(element: HTMLElement) {
-            var state = getState(element);
+            let state = getState(element);
 
             if (state) {
                 clearState(element);
@@ -251,29 +255,39 @@ module drunk {
         /**
          * 注册一个js动画
          * @method register
-         * @param  {string}                 name        动画名称
-         * @param  {IAnimationDefinition}   definition  动画定义
+         * @param  {string}              name        动画名称
+         * @param  {IActionDefinition}   definition  动画定义
          */
-        export function register(name: string, definition: IAnimationDefinition) {
+        export function register<T extends IActionDefinition>(name: string, definition: T) {
             if (definitions[name] != null) {
                 console.warn(name, "动画已经被覆盖为", definition);
             }
 
             definitions[name] = definition;
         }
-
+        
+        /**
+         * 根据名称获取注册的action实现
+         * @method getDefinition
+         * @static
+         * @param  {string}  name  action名称
+         * @return {IActionDefinition}
+         */
+        export function getDefinition(name: string) {
+            return definitions[name];
+        }
     }
 
     Binding.register('action', {
 
         init() {
-            this._runEnterActions = this._runEnterActions.bind(this);
-            this._runLeaveActions = this._runLeaveActions.bind(this);
+            this._runCreatedActions = this._runCreatedActions.bind(this);
+            this._runRemovedActions = this._runRemovedActions.bind(this);
 
-            this.element.addEventListener(Action.Event.created, this._runEnterActions, false);
-            this.element.addEventListener(Action.Event.removed, this._runLeaveActions, false);
+            this.element.addEventListener(Action.Event.created, this._runCreatedActions, false);
+            this.element.addEventListener(Action.Event.removed, this._runRemovedActions, false);
 
-            this._runEnterActions();
+            this._runCreatedActions();
         },
 
         getActions() {
@@ -281,7 +295,7 @@ module drunk {
                 this._actions = [];
             }
             else {
-                var str = this.viewModel.eval(this.expression, true);
+                let str = this.viewModel.eval(this.expression, true);
                 this._actions = str.split(/\s+/);
             }
         },
@@ -298,7 +312,6 @@ module drunk {
 
             state.promise = new Promise((resolve) => {
                 let index = 0;
-
                 let runAction = () => {
                     let action = actions[index++];
 
@@ -329,17 +342,17 @@ module drunk {
         release() {
             this.runActions(Action.Type.removed);
             this._actions = null;
-            this.element.removeEventListener(Action.Event.created, this._runEnterActions, false);
-            this.element.removeEventListener(Action.Event.removed, this._runLeaveActions, false);
+            this.element.removeEventListener(Action.Event.created, this._runCreatedActions, false);
+            this.element.removeEventListener(Action.Event.removed, this._runRemovedActions, false);
         },
 
-        _runEnterActions() {
+        _runCreatedActions() {
             this.cancelPrevAction();
             this.getActions();
             this.runActions(Action.Type.created);
         },
 
-        _runLeaveActions() {
+        _runRemovedActions() {
             this.cancelPrevAction();
             this.getActions();
             this.runActions(Action.Type.removed);

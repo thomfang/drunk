@@ -18,8 +18,8 @@ describe("Binding.repeat", function () {
         binding.init();
         expect(binding.startNode).toBeDefined();
         expect(binding.endedNode).toBeDefined();
-        expect(binding.cache).toBeDefined();
-        expect(binding.$id).toBeDefined();
+        expect(binding._cache).toBeDefined();
+        expect(binding._nameOfRef).toBeDefined();
         expect(binding.parseDefinition).toHaveBeenCalled();
         expect(binding.param).toEqual({key: undefined, val: "item"});
     });
@@ -51,17 +51,18 @@ describe("Binding.repeat", function () {
             idx: 0,
             val: {}
         };
-        var vm0 = binding.createItemVm(item0, false, true);
+        var vm0 = binding._realizeRepeatItem(item0, false, true);
         
         expect(vm0._models.length).toBe(1);
         expect(vm0._models[0]).toEqual({
             $odd   : true,
             $first : true,
             $last  : false,
+            $even  : false,
             item   : item0.val,
         });
         expect(vm0.parent).toBe(binding.viewModel);
-        expect(item0.val[binding.$id]).toBe(vm0);
+        expect(item0.val[binding._nameOfRef][0]).toBe(vm0);
         expect(vm0.element).toBeDefined();
 
         var item1 = {
@@ -69,16 +70,17 @@ describe("Binding.repeat", function () {
             idx: 1,
             val: 0
         };
-        var vm1 = binding.createItemVm(item1, true, false);
+        var vm1 = binding._realizeRepeatItem(item1, true, false);
         
         expect(vm1._models.length).toBe(1);
         expect(vm1._models[0]).toEqual({
             $odd   : false,
+            $even  : true,
             $first : false,
             $last  : true,
             item   : item1.val,
         });
-        expect(binding.cache[item1.val].length).toBe(1);
+        expect(binding._cache[item1.val].length).toBe(1);
     });
     
     it("should get the existense item view model", function () {
@@ -91,10 +93,10 @@ describe("Binding.repeat", function () {
             val: 0
         };
 
-        var vm = binding.createItemVm(item);
+        var vm = binding._realizeRepeatItem(item);
         vm._isUsing = false;
 
-        expect(binding.getItemVm(item)).toBe(vm);
+        expect(binding._getRepeatItem(item)).toBe(vm);
     });
     
     it("should update item view model with new model", function () {
@@ -108,11 +110,12 @@ describe("Binding.repeat", function () {
             val: 0
         };  
 
-        binding.updateItemModel(vm, item, true);
+        binding._updateItemModel(vm, item, true);
         
         expect(vm.$first).toBe(false);
         expect(vm.$last).toBe(true);
         expect(vm.$odd).toBe(false);
+        expect(vm.$even).toBe(true);
         expect(vm.idx).toBe(1);
         expect(vm.item).toBe(0);
     });
@@ -125,10 +128,10 @@ describe("Binding.repeat", function () {
             
             binding.update(["a", "b"]);
             
-            expect(binding.itemVms[0].element.id).toBe('0');
-            expect(binding.itemVms[0].element.innerHTML).toBe('a');
-            expect(binding.itemVms[1].element.id).toBe('1');
-            expect(binding.itemVms[1].element.innerHTML).toBe('b');
+            expect(binding._itemVms[0].element.id).toBe('0');
+            expect(binding._itemVms[0].element.innerHTML).toBe('a');
+            expect(binding._itemVms[1].element.id).toBe('1');
+            expect(binding._itemVms[1].element.innerHTML).toBe('b');
         });
         
         it("object model", function () {
@@ -138,10 +141,10 @@ describe("Binding.repeat", function () {
             
             binding.update({name: 'test', age: 13});
             
-            expect(binding.itemVms[0].element.id).toBe('name');
-            expect(binding.itemVms[0].element.innerHTML).toBe('test');
-            expect(binding.itemVms[1].element.id).toBe('age');
-            expect(binding.itemVms[1].element.innerHTML).toBe('13');
+            expect(binding._itemVms[0].element.id).toBe('name');
+            expect(binding._itemVms[0].element.innerHTML).toBe('test');
+            expect(binding._itemVms[1].element.id).toBe('age');
+            expect(binding._itemVms[1].element.innerHTML).toBe('13');
         });
         
         it("empty array model", function () {
@@ -150,11 +153,11 @@ describe("Binding.repeat", function () {
             binding.init();
             
             binding.update(["a", "b"]);
-            spyOn(binding, "releaseVm").and.callThrough();
+            spyOn(binding, "_unrealizeUnusedItems").and.callThrough();
             binding.update([]);
             
-            expect(binding.itemVms.length).toBe(0);
-            expect(binding.releaseVm.calls.count()).toBe(1);
+            expect(binding._itemVms.length).toBe(0);
+            expect(binding._unrealizeUnusedItems.calls.count()).toBe(1);
         });
         
         it("empty object model", function () {
@@ -163,14 +166,14 @@ describe("Binding.repeat", function () {
             binding.init();
             
             binding.update({name: 'test', age: 13});
-            spyOn(binding, "getItemVm").and.callThrough();
+            spyOn(binding, "_getRepeatItem").and.callThrough();
             binding.update({});
             
-            expect(binding.itemVms.length).toBe(0);
-            expect(binding.getItemVm.calls.count()).toBe(0);
+            expect(binding._itemVms.length).toBe(0);
+            expect(binding._getRepeatItem.calls.count()).toBe(0);
             
             binding.update();
-            expect(binding.getItemVm.calls.count()).toBe(0);
+            expect(binding._getRepeatItem.calls.count()).toBe(0);
         });
     });
 
@@ -181,15 +184,15 @@ describe("Binding.repeat", function () {
         
         binding.update({name: 'test', age: 13});
 
-        var vms = binding.itemVms;
+        var vms = binding._itemVms;
 
         binding.release();
 
-        expect(binding.itemVms).toBeNull();
+        expect(binding._itemVms).toBeNull();
         expect(binding.element).toBeNull();
         expect(binding.startNode).toBeNull();
         expect(binding.endedNode).toBeNull();
-        expect(binding.cache).toBeNull();
+        expect(binding._cache).toBeNull();
 
         vms.forEach(function (vm) {
             expect(vm._isActived).toBe(false);

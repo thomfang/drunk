@@ -541,7 +541,7 @@ declare module drunk.observable {
      * @param {any}             value  对应字段的数据
      * @param {ObservableObject} data  可观察数据
      */
-    var onAccessingProperty: (observer: Observer, property: string, value: any, data: ObservableObject) => void;
+    let onAccessingProperty: (observer: Observer, property: string, value: any, data: ObservableObject) => void;
     /**
      * 转换对象属性的getter/setter，使其能在数据更新是能接受到事件
      * @static
@@ -1114,7 +1114,7 @@ declare module drunk.filter {
     /**
      * 使用提供的filter列表处理数据
      *
-     * @method applyFilters
+     * @method pipeFor
      * @static
      * @param  {any}            value       输入
      * @param  {FilterDef[]}    filterDefs  filter定义集合
@@ -1122,10 +1122,10 @@ declare module drunk.filter {
      * @param  {any[]}          ...args     其他参数
      * @return {any}                        过滤后得到的值
      */
-    function applyFilters(value: any, filterDefs: any, filterMap: {
+    function pipeFor(value: any, filterDefs: any, filterMap: {
         [name: string]: IFilter;
     }, isInterpolate: boolean, ...args: any[]): any;
-    var filters: {
+    let filters: {
         [name: string]: IFilter;
     };
 }
@@ -1282,15 +1282,20 @@ declare module drunk {
         init: () => void;
         /**
          * 组件类，继承ViewModel类，实现了模板的准备和数据的绑定
-         *
          * @class Component
          * @constructor
          */
         constructor(model?: IModel);
+        /**
+         * 属性初始化
+         * @method __init
+         * @override
+         * @private
+         * @param  {IModel}  [model]  model对象
+         */
         protected __init(model?: IModel): void;
         /**
          * 处理模板，并返回模板元素
-         *
          * @method processTemplate
          * @return {Promise}
          */
@@ -1298,6 +1303,7 @@ declare module drunk {
         /**
          * 把组件挂载到元素上
          * @method mount
+         * @param {Node|Node[]} element 要挂在的节点或节点数组
          */
         mount(element: Node | Node[]): void;
         /**
@@ -1307,7 +1313,7 @@ declare module drunk {
         dispose(): void;
     }
     module Component {
-        var defined: {
+        let defined: {
             [name: string]: IComponentContructor<any>;
         };
         /**
@@ -1570,7 +1576,7 @@ declare module drunk {
         parent: Component | RepeatItem;
         element: any;
         _isCollection: boolean;
-        _isChecked: boolean;
+        _isUsed: boolean;
         protected _models: IModel[];
         constructor(parent: Component | RepeatItem, ownModel: any, element: any);
         /**
@@ -1605,15 +1611,21 @@ declare module drunk {
          * @method __getHandler
          */
         __getHandler(name: string): (...args: any[]) => any;
+        /**
+         * 把数据转成列表,如果为空则转成空数组
+         * @method toList
+         * @static
+         * @param  {any}  target
+         */
+        static toList(target: any): IItemDataDescriptor[];
     }
-    function toList(target: any): IItemDataDescriptor[];
 }
 declare module drunk {
     /**
      * 动画定义接口
-     * @interface IAnimationDefinition
+     * @interface IActionDefinition
      */
-    interface IAnimationDefinition {
+    interface IActionDefinition {
         /**
          * 元素被添加进dom时调用的动画方法,会接收元素节点和一个动画完成的回调
          * @method created
@@ -1646,7 +1658,7 @@ declare module drunk {
          * @property Type
          * @type object
          */
-        var Type: {
+        let Type: {
             created: string;
             removed: string;
         };
@@ -1655,7 +1667,7 @@ declare module drunk {
          * @property Event
          * @type object
          */
-        var Event: {
+        let Event: {
             created: string;
             removed: string;
         };
@@ -1688,10 +1700,18 @@ declare module drunk {
         /**
          * 注册一个js动画
          * @method register
-         * @param  {string}                 name        动画名称
-         * @param  {IAnimationDefinition}   definition  动画定义
+         * @param  {string}              name        动画名称
+         * @param  {IActionDefinition}   definition  动画定义
          */
-        function register(name: string, definition: IAnimationDefinition): void;
+        function register<T extends IActionDefinition>(name: string, definition: T): void;
+        /**
+         * 根据名称获取注册的action实现
+         * @method getDefinition
+         * @static
+         * @param  {string}  name  action名称
+         * @return {IActionDefinition}
+         */
+        function getDefinition(name: string): IActionDefinition;
     }
 }
 /**

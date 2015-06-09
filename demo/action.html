@@ -1,11 +1,14 @@
 <!doctype html>
 <html>
+    
     <head>
         <meta charset="utf-8" />
+        <meta name="viewport" content="initial-scale=1" />
         <title>drunk.Action - demo</title>
         <script src="../build/drunk.js"></script>
         <style>
             .msg {
+                -webkit-transition: all .3s ease;
               transition: all .3s ease;
               height: 0px;
               background-color: #eee;
@@ -17,15 +20,16 @@
                 opacity: 1;
             }
             .msg.expand-removed {
-              height: 0;
-              opacity: 0;
+                height: 0;
+                opacity: 0;
             }
             .animated {
-                  transition: all .3s ease;
-                  height: 0px;
-                  background-color: #eee;
-                  overflow: hidden;
-                  opacity: 0;
+                -webkit-transition: all .3s ease;
+                transition: all .3s ease;
+                height: 0px;
+                background-color: #eee;
+                overflow: hidden;
+                opacity: 0;
             }
             .animated.drunk-created {
                 height: 30px;
@@ -33,7 +37,7 @@
             }
             .animated.drunk-removed {
                 height: 0;
-              opacity: 0;
+                opacity: 0;
             }
             .blackbox {
                 background-color: #333;
@@ -41,15 +45,18 @@
                 height: 100px;
                 transition: all 0.4s cubic-bezier(0, 0, 0, 1);
                 opacity: 0;
+                -webkit-transform: translateX(100px);
                 transform: translateX(100px);
                 margin: 5px 0;
             }
             .blackbox.box-created {
                 opacity: 1;
+                -webkit-transform: translate(0px);
                 transform: translate(0px);
             }
             .blackbox.box-removed {
                 opacity: 0;
+                -webkit-transform: translate(100px);
                 transform: translate(100px);
             }
             
@@ -59,10 +66,12 @@
                 height: 100px;
             }
             .bounce-created {
-              animation: bounce-in .5s none;
+              -webkit-animation: bounce-in .5s;
+              animation: bounce-in .5s;
             }
             .bounce-removed {
-              animation: bounce-out .5s none;
+              -webkit-animation: bounce-out .5s ;
+              animation: bounce-out .5s;
             }
             
             .greenbox {
@@ -70,38 +79,38 @@
                 width: 100px;
                 height: 100px;
             }
-            @keyframes bounce-in {
+            @-webkit-keyframes bounce-in {
               0% {
-                transform: scale(0);
+                -webkit-transform: scale(0);
               }
               50% {
-                transform: scale(1.5);
+                -webkit-transform: scale(1.5);
               }
               100% {
-                transform: scale(1);
+                -webkit-transform: scale(1);
               }
             }
-            @keyframes bounce-out {
+            @-webkit-keyframes bounce-out {
               0% {
-                transform: scale(1);
+                -webkit-transform: scale(1);
               }
               50% {
-                transform: scale(1.5);
+                -webkit-transform: scale(1.5);
               }
               100% {
-                transform: scale(0);
+                -webkit-transform: scale(0);
               }
             }
             
             .slogan {
                 transition: all 0.5s ease-out;
-                transform: translateY(50px);
+                -webkit-transform: translateY(50px);
             }
             .slide-created {
-                transform: translateY(0px);
+                -webkit-transform: translateY(0px);
             }
             .slide-removed {
-                transform: translateY(-50px);
+                -webkit-transform: translateY(-50px);
             }
         </style>
     </head>
@@ -114,23 +123,15 @@
         <button drunk-on="click:list.pop()">从列表中移除一个</button>
         <button drunk-on="click:redBoxVisible = !redBoxVisible">点击切换动画</button>
         <button drunk-on="click:greenBoxVisible = !greenBoxVisible">点击切换动画</button>
-        
         <!--<div class="msg" drunk-if="show" drunk-action="expand">Hello!</div>-->
-        <div class="msg" drunk-show="show" drunk-action="expand">World!</div>
-        
-        <div class="animated" drunk-show='expanded' drunk-action>这是默认样式明</div>
-        
+        <div class="msg" drunk-class="{'expand-created': show, 'expand-removed': !show}">World!</div>
+        <div class="animated" drunk-action drunk-show='expanded'>这是默认样式明</div>
         <div>
             <p class="slogan" drunk-repeat="content in slogan" drunk-action="slide">{{content}}</p>
         </div>
-        
-        
         <div class="blackbox" drunk-repeat="e,i in list" drunk-action="{{i * 0.1}} box bounce"></div>
-        
-        
         <div class="redbox" drunk-if="redBoxVisible" drunk-action="bounce"></div>
         <div class="greenbox" drunk-if="greenBoxVisible" drunk-action="fade"></div>
-        
         <script>
             
             drunk.Action.register('fade', {
