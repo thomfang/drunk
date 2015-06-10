@@ -231,6 +231,9 @@ module drunk.Template {
         });
         
         if (executors.length) {
+            executors.sort((a, b) => {
+                return b.priority - a.priority;
+            });
             // 存在绑定
             return (viewModel: ViewModel, element: any) => {
                 executors.forEach((executor) => {
@@ -243,7 +246,7 @@ module drunk.Template {
     // 生成绑定描述符方法
     function createExecutor(element: any, descriptor: IBindingDefinition): IBindingExecutor {
         var definition = Binding.getDefinintionByName(descriptor.name);
-        var executor: any;
+        var executor: IBindingExecutor;
         
         if (!definition && config.debug) {
             console.warn(descriptor.name, "没有找到该绑定的定义");
@@ -261,6 +264,7 @@ module drunk.Template {
             Binding.create(viewModel, element, descriptor);
         };
         executor.isTerminal = descriptor.isTerminal;
+        executor.priority = definition.priority;
         
         return executor;
     }

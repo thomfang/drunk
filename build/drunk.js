@@ -1924,6 +1924,9 @@ var drunk;
                 }
             });
             if (executors.length) {
+                executors.sort(function (a, b) {
+                    return b.priority - a.priority;
+                });
                 // 存在绑定
                 return function (viewModel, element) {
                     executors.forEach(function (executor) {
@@ -1949,6 +1952,7 @@ var drunk;
                 drunk.Binding.create(viewModel, element, descriptor);
             };
             executor.isTerminal = descriptor.isTerminal;
+            executor.priority = definition.priority;
             return executor;
         }
     })(Template = drunk.Template || (drunk.Template = {}));
@@ -2064,6 +2068,20 @@ var drunk;
         var terminalBindings = [];
         var definitions = {};
         /**
+         * 绑定创建的优先级
+         * @property Priority
+         * @type IPriority
+         */
+        (function (Priority) {
+            Priority[Priority["low"] = -100] = "low";
+            Priority[Priority["high"] = 100] = "high";
+            Priority[Priority["normal"] = 0] = "normal";
+            Priority[Priority["aboveNormal"] = 50] = "aboveNormal";
+            Priority[Priority["belowNormal"] = -50] = "belowNormal";
+        })(Binding.Priority || (Binding.Priority = {}));
+        var Priority = Binding.Priority;
+        ;
+        /**
          * 根据一个绑定原型对象注册一个binding指令
          *
          * @method register
@@ -2072,8 +2090,9 @@ var drunk;
          * @param  {function|Object} def   binding实现的定义对象或绑定的更新函数
          */
         function register(name, definition) {
+            definition.priority = definition.priority || Priority.normal;
             if (definition.isTerminal) {
-                setTernimalBinding(name, definition.priority || 0);
+                setTernimalBinding(name, definition.priority);
             }
             if (definitions[name]) {
                 console.warn(name, "绑定已定义，原定义为：", definitions[name]);
@@ -3507,7 +3526,7 @@ var drunk;
 (function (drunk) {
     drunk.Binding.register("component", {
         isTerminal: true,
-        priority: 80,
+        priority: drunk.Binding.Priority.aboveNormal,
         /*
          * 初始化组件,找到组件类并生成实例,创建组件的绑定
          */
@@ -3675,7 +3694,7 @@ var drunk;
 (function (drunk) {
     drunk.Binding.register("if", {
         isTerminal: true,
-        priority: 100,
+        priority: drunk.Binding.Priority.aboveNormal + 2,
         init: function () {
             this.startNode = document.createComment("if-start: " + this.expression);
             this.endedNode = document.createComment("if-ended: " + this.expression);
@@ -3911,7 +3930,7 @@ var drunk;
     var regKeyValue = /(\w+)\s*,\s*(\w+)/;
     var RepeatBindingDefinition = {
         isTerminal: true,
-        priority: 90,
+        priority: drunk.Binding.Priority.aboveNormal + 1,
         // 初始化绑定
         init: function () {
             this.createCommentNodes();
@@ -4477,16 +4496,19 @@ var drunk;
             this.element.addEventListener(Action.Event.removed, this._runRemovedActions, false);
             this._runCreatedActions();
         },
-        getActions: function () {
+        _parseDefinition: function (actionType) {
             if (!this.expression) {
                 this._actions = [];
             }
             else {
                 var str = this.viewModel.eval(this.expression, true);
                 this._actions = str.split(/\s+/);
+                if (actionType === Action.Type.removed) {
+                    this._actions.reverse();
+                }
             }
         },
-        runActions: function (type) {
+        _runActions: function (type) {
             var element = this.element;
             if (this._actions.length < 2) {
                 return Action.setState(element, Action.run(element, this._actions[0], type));
@@ -4510,28 +4532,28 @@ var drunk;
             });
             Action.setState(element, state);
         },
-        cancelPrevAction: function () {
+        _cancelPrevAction: function () {
             var state = Action.getState(this.element);
             if (state && state.cancel) {
                 state.cancel();
             }
         },
+        _runCreatedActions: function () {
+            this._cancelPrevAction();
+            this._parseDefinition(Action.Type.created);
+            this._runActions(Action.Type.created);
+        },
+        _runRemovedActions: function () {
+            this._cancelPrevAction();
+            this._parseDefinition(Action.Type.removed);
+            this._runActions(Action.Type.removed);
+        },
         release: function () {
-            this.runActions(Action.Type.removed);
+            this._runRemovedActions();
             this._actions = null;
             this.element.removeEventListener(Action.Event.created, this._runCreatedActions, false);
             this.element.removeEventListener(Action.Event.removed, this._runRemovedActions, false);
         },
-        _runCreatedActions: function () {
-            this.cancelPrevAction();
-            this.getActions();
-            this.runActions(Action.Type.created);
-        },
-        _runRemovedActions: function () {
-            this.cancelPrevAction();
-            this.getActions();
-            this.runActions(Action.Type.removed);
-        }
     });
 })(drunk || (drunk = {}));
 /// <reference path="../binding" />
@@ -4567,22 +4589,13 @@ var drunk;
         update: function (isVisible) {
             var style = this.element.style;
             if (!isVisible && style.display !== 'none') {
-                processAction(this.element, drunk.Action.Event.removed).then(function () {
-                    style.display = 'none';
-                });
+                style.display = 'none';
             }
             else if (isVisible && style.display === 'none') {
                 style.display = '';
-                processAction(this.element, drunk.Action.Event.created);
             }
         }
     });
-    function processAction(element, type) {
-        var evt = document.createEvent("Event");
-        evt.initEvent(type, true, false);
-        element.dispatchEvent(evt);
-        return drunk.Action.processAll(element);
-    }
 })(drunk || (drunk = {}));
 /// <reference path="../binding" />
 /// <reference path="../../component/component" />

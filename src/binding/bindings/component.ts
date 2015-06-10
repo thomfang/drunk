@@ -7,7 +7,7 @@ module drunk {
     Binding.register("component", {
 
         isTerminal: true,
-        priority: 80,
+        priority: Binding.Priority.aboveNormal,
 
         /*
          * 初始化组件,找到组件类并生成实例,创建组件的绑定

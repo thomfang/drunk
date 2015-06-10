@@ -124,8 +124,8 @@
         <button drunk-on="click:redBoxVisible = !redBoxVisible">点击切换动画</button>
         <button drunk-on="click:greenBoxVisible = !greenBoxVisible">点击切换动画</button>
         <!--<div class="msg" drunk-if="show" drunk-action="expand">Hello!</div>-->
-        <div class="msg" drunk-class="{'expand-created': show, 'expand-removed': !show}">World!</div>
-        <div class="animated" drunk-action drunk-show='expanded'>这是默认样式明</div>
+        <div class="msg" drunk-class="{'expand-created': show, 'expand-removed': !show}">Hello,drunk.js!</div>
+        <div class="animated" drunk-action drunk-if='expanded'>这里用的是默认的className(drunk-created,drunk-removed)</div>
         <div>
             <p class="slogan" drunk-repeat="content in slogan" drunk-action="slide">{{content}}</p>
         </div>

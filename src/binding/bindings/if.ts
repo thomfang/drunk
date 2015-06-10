@@ -25,7 +25,7 @@ module drunk {
     Binding.register("if", {
 
         isTerminal: true,
-        priority: 100,
+        priority: Binding.Priority.aboveNormal + 2,
 
         init() {
             this.startNode = document.createComment("if-start: " + this.expression);

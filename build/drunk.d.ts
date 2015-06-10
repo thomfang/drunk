@@ -788,6 +788,7 @@ declare module drunk {
     interface IBindingExecutor {
         (viewModel: ViewModel, element: any): void;
         isTerminal?: boolean;
+        priority?: number;
     }
     class Binding {
         viewModel: ViewModel;
@@ -848,6 +849,18 @@ declare module drunk {
         setValue(value: any, isLocked?: boolean): void;
     }
     module Binding {
+        /**
+         * 绑定创建的优先级
+         * @property Priority
+         * @type IPriority
+         */
+        enum Priority {
+            low = -100,
+            high = 100,
+            normal = 0,
+            aboveNormal = 50,
+            belowNormal = -50,
+        }
         /**
          * 根据一个绑定原型对象注册一个binding指令
          *
@@ -1647,6 +1660,14 @@ declare module drunk {
         cancel?(): void;
         promise?: Promise<any>;
     }
+    interface IActionType {
+        created: string;
+        removed: string;
+    }
+    interface IActionEvent {
+        created: string;
+        removed: string;
+    }
     /**
      * 动画模块
      * @module drunk.Action
@@ -1667,10 +1688,7 @@ declare module drunk {
          * @property Event
          * @type object
          */
-        let Event: {
-            created: string;
-            removed: string;
-        };
+        let Event: IActionEvent;
         function setState(element: HTMLElement, state: IActionState): void;
         /**
          * 获取节点的动画状态

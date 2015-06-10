@@ -44,6 +44,7 @@ module drunk {
     export interface IBindingExecutor {
         (viewModel: ViewModel, element: any): void;
         isTerminal?: boolean;
+        priority?: number;
     }
 
     export class Binding {
@@ -186,6 +187,19 @@ module drunk {
         let definitions: { [name: string]: IBindingDefinition } = {};
         
         /**
+         * 绑定创建的优先级
+         * @property Priority
+         * @type IPriority
+         */
+        export enum Priority {
+            low = -100,
+            high = 100,
+            normal = 0,
+            aboveNormal = 50,
+            belowNormal = -50
+        };
+        
+        /**
          * 根据一个绑定原型对象注册一个binding指令
          * 
          * @method register
@@ -194,8 +208,10 @@ module drunk {
          * @param  {function|Object} def   binding实现的定义对象或绑定的更新函数
          */
         export function register<T extends IBindingDefinition>(name: string, definition: T): void {
+            definition.priority = definition.priority || Priority.normal;
+            
             if (definition.isTerminal) {
-                setTernimalBinding(name, definition.priority || 0);
+                setTernimalBinding(name, definition.priority);
             }
 
             if (definitions[name]) {

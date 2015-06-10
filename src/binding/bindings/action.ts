@@ -34,6 +34,16 @@ module drunk {
         promise?: Promise<any>;
     }
 
+    export interface IActionType {
+        created: string;
+        removed: string;
+    }
+    
+    export interface IActionEvent {
+        created: string;
+        removed: string;
+    }
+
     /**
      * 动画模块
      * @module drunk.Action
@@ -56,7 +66,7 @@ module drunk {
          * @property Event
          * @type object
          */
-        export let Event = {
+        export let Event: IActionEvent = {
             created: 'drunk:action:created',
             removed: 'drunk:action:removed'
         };
@@ -106,11 +116,11 @@ module drunk {
                     animationEndEvent = 'animationEnd';
                 }
             }
-            
+
             if (!prefix) {
                 return property;
             }
-            
+
             return prefix + (property.charAt(0).toUpperCase() + property.slice(1));
         }
 
@@ -166,7 +176,7 @@ module drunk {
 
                 return state;
             }
-            
+
             let definition = definitions[detail];
             if (definition) {
                 // 如果有通过js注册的action,优先执行
@@ -191,16 +201,16 @@ module drunk {
             // 必须先在这里取一次transitionDuration的值,动画才会生效
             let style = getComputedStyle(element, null);
             let transitionExist = style[getPropertyName('transitionDuration')] !== '0s';
-            
+
             state.promise = new Promise((resolve) => {
                 // 给样式赋值后,取animationDuration的值,判断有没有设置animation动画
                 element.classList.add(className);
                 let animationExist = style[getPropertyName('animationDuration')] !== '0s';
-                
+
                 if (!transitionExist && !animationExist) {
                     return resolve();
                 }
-                
+
                 function onTransitionEnd() {
                     element.removeEventListener(animationEndEvent, onAnimationEnd, false);
                     element.removeEventListener(transitionEndEvent, onTransitionEnd, false);
@@ -230,7 +240,7 @@ module drunk {
                     element.classList.remove(className);
                 };
             });
-            
+
             return state;
         }
         
@@ -290,17 +300,21 @@ module drunk {
             this._runCreatedActions();
         },
 
-        getActions() {
+        _parseDefinition(actionType: string) {
             if (!this.expression) {
                 this._actions = [];
             }
             else {
-                let str = this.viewModel.eval(this.expression, true);
+                let str: string = this.viewModel.eval(this.expression, true);
                 this._actions = str.split(/\s+/);
+                
+                if (actionType === Action.Type.removed) {
+                    this._actions.reverse();
+                }
             }
         },
 
-        runActions(type: string) {
+        _runActions(type: string) {
             let element = this.element;
 
             if (this._actions.length < 2) {
@@ -332,30 +346,30 @@ module drunk {
             Action.setState(element, state);
         },
 
-        cancelPrevAction() {
+        _cancelPrevAction() {
             let state = Action.getState(this.element);
             if (state && state.cancel) {
                 state.cancel();
             }
         },
 
+        _runCreatedActions() {
+            this._cancelPrevAction();
+            this._parseDefinition(Action.Type.created);
+            this._runActions(Action.Type.created);
+        },
+
+        _runRemovedActions() {
+            this._cancelPrevAction();
+            this._parseDefinition(Action.Type.removed);
+            this._runActions(Action.Type.removed);
+        },
+
         release() {
-            this.runActions(Action.Type.removed);
+            this._runRemovedActions();
             this._actions = null;
             this.element.removeEventListener(Action.Event.created, this._runCreatedActions, false);
             this.element.removeEventListener(Action.Event.removed, this._runRemovedActions, false);
         },
-
-        _runCreatedActions() {
-            this.cancelPrevAction();
-            this.getActions();
-            this.runActions(Action.Type.created);
-        },
-
-        _runRemovedActions() {
-            this.cancelPrevAction();
-            this.getActions();
-            this.runActions(Action.Type.removed);
-        }
     });
 }
