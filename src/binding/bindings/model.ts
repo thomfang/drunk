@@ -27,7 +27,7 @@
  */
 module drunk {
 
-    Binding.register("model", {
+    Binding.define("model", {
 
         init() {
             var tag = this.element.tagName.toLowerCase();

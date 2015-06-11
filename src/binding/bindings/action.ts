@@ -62,16 +62,6 @@ module drunk {
         };
         
         /**
-         * action事件类型
-         * @property Event
-         * @type object
-         */
-        export let Event: IActionEvent = {
-            created: 'drunk:action:created',
-            removed: 'drunk:action:removed'
-        };
-        
-        /**
          * js动画定义
          * @property definitions
          * @private
@@ -145,10 +135,9 @@ module drunk {
          * 清楚节点的动画状态缓存
          * @method clearState
          * @static
-         * @private
          * @param  {HTMLElement} element
          */
-        function clearState(element: HTMLElement) {
+        export function clearState(element: HTMLElement) {
             let id = util.uuid(element);
             actionStates[id] = null;
         }
@@ -253,22 +242,16 @@ module drunk {
          */
         export function processAll(element: HTMLElement) {
             let state = getState(element);
-
-            if (state) {
-                clearState(element);
-                return Promise.resolve(state.promise);
-            }
-
-            return Promise.resolve();
+            return Promise.resolve(state && state.promise);
         }
 
         /**
          * 注册一个js动画
-         * @method register
+         * @method define
          * @param  {string}              name        动画名称
          * @param  {IActionDefinition}   definition  动画定义
          */
-        export function register<T extends IActionDefinition>(name: string, definition: T) {
+        export function define<T extends IActionDefinition>(name: string, definition: T) {
             if (definitions[name] != null) {
                 console.warn(name, "动画已经被覆盖为", definition);
             }
@@ -288,17 +271,20 @@ module drunk {
         }
     }
 
-    Binding.register('action', {
+    /**
+     * action绑定的实现
+     */
+    class ActionBinding {
+        
+        element: HTMLElement;
+        expression: string;
+        viewModel: Component;
+        
+        private _actions: string[];
 
         init() {
-            this._runCreatedActions = this._runCreatedActions.bind(this);
-            this._runRemovedActions = this._runRemovedActions.bind(this);
-
-            this.element.addEventListener(Action.Event.created, this._runCreatedActions, false);
-            this.element.addEventListener(Action.Event.removed, this._runRemovedActions, false);
-
             this._runCreatedActions();
-        },
+        }
 
         _parseDefinition(actionType: string) {
             if (!this.expression) {
@@ -312,7 +298,7 @@ module drunk {
                     this._actions.reverse();
                 }
             }
-        },
+        }
 
         _runActions(type: string) {
             let element = this.element;
@@ -332,6 +318,7 @@ module drunk {
                     if (typeof action === 'undefined') {
                         state.cancel = null;
                         state.promise = null;
+                        Action.clearState(element);
                         return resolve();
                     }
 
@@ -344,32 +331,32 @@ module drunk {
             });
 
             Action.setState(element, state);
-        },
+        }
 
         _cancelPrevAction() {
             let state = Action.getState(this.element);
             if (state && state.cancel) {
                 state.cancel();
             }
-        },
+        }
 
         _runCreatedActions() {
             this._cancelPrevAction();
             this._parseDefinition(Action.Type.created);
             this._runActions(Action.Type.created);
-        },
+        }
 
         _runRemovedActions() {
             this._cancelPrevAction();
             this._parseDefinition(Action.Type.removed);
             this._runActions(Action.Type.removed);
-        },
+        }
 
         release() {
             this._runRemovedActions();
             this._actions = null;
-            this.element.removeEventListener(Action.Event.created, this._runCreatedActions, false);
-            this.element.removeEventListener(Action.Event.removed, this._runRemovedActions, false);
-        },
-    });
+        }
+    }
+    
+    Binding.define('action', ActionBinding.prototype);
 }

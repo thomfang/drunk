@@ -55,7 +55,7 @@ module drunk {
         statement: /(\w+):\s*(.+)/
     };
 
-    Binding.register("on", {
+    Binding.define("on", {
 
         init() {
             var exp = this.expression;

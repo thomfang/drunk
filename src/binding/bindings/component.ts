@@ -4,7 +4,7 @@
 
 module drunk {
     
-    Binding.register("component", {
+    Binding.define("component", {
 
         isTerminal: true,
         priority: Binding.Priority.aboveNormal,

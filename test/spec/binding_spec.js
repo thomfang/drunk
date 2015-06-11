@@ -20,18 +20,11 @@ describe("Binding", function () {
         });
     });
 
-    it("register with object handler", function () {
+    it("define with object handler", function () {
         var handler = {};
-        Binding.register("test", handler);
+        Binding.define("test", handler);
 
         expect(Binding.getDefinintionByName('test')).toBe(handler);
-    });
-
-    it("register only with update function", function () {
-        function testUpdate() { }
-        Binding.register("test", {update: testUpdate});
-
-        expect(Binding.getDefinintionByName('test')).toEqual({update: testUpdate});
     });
 
     it("normal binding", function (done) {

@@ -5,7 +5,7 @@
 
 module drunk {
     
-     Binding.register("transclude", {
+     Binding.define("transclude", {
 
         /*
          * 初始化绑定,先注册transcludeResponse事件用于获取transclude的viewModel和nodelist

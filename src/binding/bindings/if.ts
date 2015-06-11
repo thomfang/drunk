@@ -22,7 +22,7 @@
  */
 module drunk {
 
-    Binding.register("if", {
+    Binding.define("if", {
 
         isTerminal: true,
         priority: Binding.Priority.aboveNormal + 2,

@@ -24,7 +24,7 @@
  */
 module drunk {
 
-    Binding.register("include", {
+    Binding.define("include", {
         
         isActived: true,
         _unbindExecutor: null,

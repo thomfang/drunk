@@ -202,12 +202,12 @@ module drunk {
         /**
          * 根据一个绑定原型对象注册一个binding指令
          * 
-         * @method register
+         * @method define
          * @static
          * @param  {string}          name  指令名
          * @param  {function|Object} def   binding实现的定义对象或绑定的更新函数
          */
-        export function register<T extends IBindingDefinition>(name: string, definition: T): void {
+        export function define<T extends IBindingDefinition>(name: string, definition: T): void {
             definition.priority = definition.priority || Priority.normal;
             
             if (definition.isTerminal) {

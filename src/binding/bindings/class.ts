@@ -57,7 +57,7 @@
  */
 module drunk {
 
-    Binding.register("class", {
+    Binding.define("class", {
         
         update(data: any) {
             let elem = this.element;

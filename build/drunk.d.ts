@@ -864,12 +864,12 @@ declare module drunk {
         /**
          * 根据一个绑定原型对象注册一个binding指令
          *
-         * @method register
+         * @method define
          * @static
          * @param  {string}          name  指令名
          * @param  {function|Object} def   binding实现的定义对象或绑定的更新函数
          */
-        function register<T extends IBindingDefinition>(name: string, definition: T): void;
+        function define<T extends IBindingDefinition>(name: string, definition: T): void;
         /**
          * 根据绑定名获取绑定的定义
          *
@@ -1683,12 +1683,6 @@ declare module drunk {
             created: string;
             removed: string;
         };
-        /**
-         * action事件类型
-         * @property Event
-         * @type object
-         */
-        let Event: IActionEvent;
         function setState(element: HTMLElement, state: IActionState): void;
         /**
          * 获取节点的动画状态
@@ -1698,6 +1692,13 @@ declare module drunk {
          * @return {object}
          */
         function getState(element: HTMLElement): IActionState;
+        /**
+         * 清楚节点的动画状态缓存
+         * @method clearState
+         * @static
+         * @param  {HTMLElement} element
+         */
+        function clearState(element: HTMLElement): void;
         /**
          * 执行动画,有限判断是否存在js动画,再判断是否是css动画
          * @method run
@@ -1717,11 +1718,11 @@ declare module drunk {
         function processAll(element: HTMLElement): Promise<any>;
         /**
          * 注册一个js动画
-         * @method register
+         * @method define
          * @param  {string}              name        动画名称
          * @param  {IActionDefinition}   definition  动画定义
          */
-        function register<T extends IActionDefinition>(name: string, definition: T): void;
+        function define<T extends IActionDefinition>(name: string, definition: T): void;
         /**
          * 根据名称获取注册的action实现
          * @method getDefinition

@@ -134,7 +134,7 @@
         <div class="greenbox" drunk-if="greenBoxVisible" drunk-action="fade"></div>
         <script>
             
-            drunk.Action.register('fade', {
+            drunk.Action.define('fade', {
                 created: function (element, done) {
                     element.style.opacity = 0;
                     

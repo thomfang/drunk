@@ -2084,12 +2084,12 @@ var drunk;
         /**
          * 根据一个绑定原型对象注册一个binding指令
          *
-         * @method register
+         * @method define
          * @static
          * @param  {string}          name  指令名
          * @param  {function|Object} def   binding实现的定义对象或绑定的更新函数
          */
-        function register(name, definition) {
+        function define(name, definition) {
             definition.priority = definition.priority || Priority.normal;
             if (definition.isTerminal) {
                 setTernimalBinding(name, definition.priority);
@@ -2100,7 +2100,7 @@ var drunk;
             }
             definitions[name] = definition;
         }
-        Binding.register = register;
+        Binding.define = define;
         /**
          * 根据绑定名获取绑定的定义
          *
@@ -3295,7 +3295,7 @@ var drunk;
         semic: /\s*;\s*/,
         statement: /(\w+):\s*(.+)/
     };
-    drunk.Binding.register("on", {
+    drunk.Binding.define("on", {
         init: function () {
             var _this = this;
             var exp = this.expression;
@@ -3366,7 +3366,7 @@ var drunk;
             }
         }
     };
-    drunk.Binding.register('attr', AttributeBindingDefinition);
+    drunk.Binding.define('attr', AttributeBindingDefinition);
 })(drunk || (drunk = {}));
 /// <reference path="../binding" />
 /**
@@ -3395,7 +3395,7 @@ var drunk;
  */
 var drunk;
 (function (drunk) {
-    drunk.Binding.register("bind", {
+    drunk.Binding.define("bind", {
         update: function (newValue) {
             newValue = newValue == null ? '' : newValue;
             var el = this.element;
@@ -3474,7 +3474,7 @@ var drunk;
  */
 var drunk;
 (function (drunk) {
-    drunk.Binding.register("class", {
+    drunk.Binding.define("class", {
         update: function (data) {
             var elem = this.element;
             if (Array.isArray(data)) {
@@ -3524,7 +3524,7 @@ var drunk;
 /// <reference path="../../util/elem" />
 var drunk;
 (function (drunk) {
-    drunk.Binding.register("component", {
+    drunk.Binding.define("component", {
         isTerminal: true,
         priority: drunk.Binding.Priority.aboveNormal,
         /*
@@ -3692,7 +3692,7 @@ var drunk;
  */
 var drunk;
 (function (drunk) {
-    drunk.Binding.register("if", {
+    drunk.Binding.define("if", {
         isTerminal: true,
         priority: drunk.Binding.Priority.aboveNormal + 2,
         init: function () {
@@ -3765,7 +3765,7 @@ var drunk;
  */
 var drunk;
 (function (drunk) {
-    drunk.Binding.register("include", {
+    drunk.Binding.define("include", {
         isActived: true,
         _unbindExecutor: null,
         update: function (url) {
@@ -3827,7 +3827,7 @@ var drunk;
  */
 var drunk;
 (function (drunk) {
-    drunk.Binding.register("model", {
+    drunk.Binding.define("model", {
         init: function () {
             var tag = this.element.tagName.toLowerCase();
             switch (tag) {
@@ -4127,7 +4127,7 @@ var drunk;
             this.element = null;
         }
     };
-    drunk.Binding.register("repeat", RepeatBindingDefinition);
+    drunk.Binding.define("repeat", RepeatBindingDefinition);
     /**
      * 用于repeat作用域下的子viewModel
      * @class RepeatItem
@@ -4289,15 +4289,6 @@ var drunk;
             removed: 'removed'
         };
         /**
-         * action事件类型
-         * @property Event
-         * @type object
-         */
-        Action.Event = {
-            created: 'drunk:action:created',
-            removed: 'drunk:action:removed'
-        };
-        /**
          * js动画定义
          * @property definitions
          * @private
@@ -4364,13 +4355,13 @@ var drunk;
          * 清楚节点的动画状态缓存
          * @method clearState
          * @static
-         * @private
          * @param  {HTMLElement} element
          */
         function clearState(element) {
             var id = drunk.util.uuid(element);
             actionStates[id] = null;
         }
+        Action.clearState = clearState;
         /**
          * 执行动画,有限判断是否存在js动画,再判断是否是css动画
          * @method run
@@ -4456,26 +4447,22 @@ var drunk;
          */
         function processAll(element) {
             var state = getState(element);
-            if (state) {
-                clearState(element);
-                return drunk.Promise.resolve(state.promise);
-            }
-            return drunk.Promise.resolve();
+            return drunk.Promise.resolve(state && state.promise);
         }
         Action.processAll = processAll;
         /**
          * 注册一个js动画
-         * @method register
+         * @method define
          * @param  {string}              name        动画名称
          * @param  {IActionDefinition}   definition  动画定义
          */
-        function register(name, definition) {
+        function define(name, definition) {
             if (definitions[name] != null) {
                 console.warn(name, "动画已经被覆盖为", definition);
             }
             definitions[name] = definition;
         }
-        Action.register = register;
+        Action.define = define;
         /**
          * 根据名称获取注册的action实现
          * @method getDefinition
@@ -4488,15 +4475,16 @@ var drunk;
         }
         Action.getDefinition = getDefinition;
     })(Action = drunk.Action || (drunk.Action = {}));
-    drunk.Binding.register('action', {
-        init: function () {
-            this._runCreatedActions = this._runCreatedActions.bind(this);
-            this._runRemovedActions = this._runRemovedActions.bind(this);
-            this.element.addEventListener(Action.Event.created, this._runCreatedActions, false);
-            this.element.addEventListener(Action.Event.removed, this._runRemovedActions, false);
+    /**
+     * action绑定的实现
+     */
+    var ActionBinding = (function () {
+        function ActionBinding() {
+        }
+        ActionBinding.prototype.init = function () {
             this._runCreatedActions();
-        },
-        _parseDefinition: function (actionType) {
+        };
+        ActionBinding.prototype._parseDefinition = function (actionType) {
             if (!this.expression) {
                 this._actions = [];
             }
@@ -4507,8 +4495,8 @@ var drunk;
                     this._actions.reverse();
                 }
             }
-        },
-        _runActions: function (type) {
+        };
+        ActionBinding.prototype._runActions = function (type) {
             var element = this.element;
             if (this._actions.length < 2) {
                 return Action.setState(element, Action.run(element, this._actions[0], type));
@@ -4522,6 +4510,7 @@ var drunk;
                     if (typeof action === 'undefined') {
                         state.cancel = null;
                         state.promise = null;
+                        Action.clearState(element);
                         return resolve();
                     }
                     var actionState = Action.run(element, action, type);
@@ -4531,30 +4520,30 @@ var drunk;
                 runAction();
             });
             Action.setState(element, state);
-        },
-        _cancelPrevAction: function () {
+        };
+        ActionBinding.prototype._cancelPrevAction = function () {
             var state = Action.getState(this.element);
             if (state && state.cancel) {
                 state.cancel();
             }
-        },
-        _runCreatedActions: function () {
+        };
+        ActionBinding.prototype._runCreatedActions = function () {
             this._cancelPrevAction();
             this._parseDefinition(Action.Type.created);
             this._runActions(Action.Type.created);
-        },
-        _runRemovedActions: function () {
+        };
+        ActionBinding.prototype._runRemovedActions = function () {
             this._cancelPrevAction();
             this._parseDefinition(Action.Type.removed);
             this._runActions(Action.Type.removed);
-        },
-        release: function () {
+        };
+        ActionBinding.prototype.release = function () {
             this._runRemovedActions();
             this._actions = null;
-            this.element.removeEventListener(Action.Event.created, this._runCreatedActions, false);
-            this.element.removeEventListener(Action.Event.removed, this._runRemovedActions, false);
-        },
-    });
+        };
+        return ActionBinding;
+    })();
+    drunk.Binding.define('action', ActionBinding.prototype);
 })(drunk || (drunk = {}));
 /// <reference path="../binding" />
 /// <reference path="./action" />
@@ -4585,7 +4574,7 @@ var drunk;
  */
 var drunk;
 (function (drunk) {
-    drunk.Binding.register("show", {
+    drunk.Binding.define("show", {
         update: function (isVisible) {
             var style = this.element.style;
             if (!isVisible && style.display !== 'none') {
@@ -4603,7 +4592,7 @@ var drunk;
 /// <reference path="../../template/compiler" />
 var drunk;
 (function (drunk) {
-    drunk.Binding.register("transclude", {
+    drunk.Binding.define("transclude", {
         /*
          * 初始化绑定,先注册transcludeResponse事件用于获取transclude的viewModel和nodelist
          * 然后发送getTranscludeContext事件通知

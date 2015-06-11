@@ -44,5 +44,5 @@ module drunk {
         }
     };
     
-    Binding.register('attr', AttributeBindingDefinition);
+    Binding.define('attr', AttributeBindingDefinition);
 }

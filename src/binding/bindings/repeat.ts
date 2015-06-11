@@ -263,7 +263,7 @@ module drunk {
         }
     };
 
-    Binding.register("repeat", RepeatBindingDefinition);
+    Binding.define("repeat", RepeatBindingDefinition);
 
     /**
      * 用于repeat作用域下的子viewModel
