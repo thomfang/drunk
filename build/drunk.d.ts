@@ -776,7 +776,7 @@ declare module drunk {
         priority?: number;
         expression?: string;
         retainAttribute?: boolean;
-        init?(): void;
+        init?(parentViewModel?: Component, placeholder?: HTMLElement): void;
         update?(newValue: any, oldValue: any): void;
         release?(): void;
     }
@@ -786,7 +786,7 @@ declare module drunk {
      * @type function
      */
     interface IBindingExecutor {
-        (viewModel: ViewModel, element: any): void;
+        (viewModel: ViewModel, element: any, parentViewModel?: Component, placeHolder?: HTMLElement): void;
         isTerminal?: boolean;
         priority?: number;
     }
@@ -811,7 +811,7 @@ declare module drunk {
          * @type string
          */
         expression: string;
-        init: () => void;
+        init: (parentViewModel?: Component, placeholder?: HTMLElement) => void;
         update: IBindingUpdateAction;
         release: () => void;
         private _isActived;
@@ -833,7 +833,7 @@ declare module drunk {
          * 初始化绑定
          * @method initialize
          */
-        initialize(): void;
+        initialize(parentViewModel?: Component, placeholder?: HTMLElement): any;
         /**
          * 移除绑定并销毁
          * @method teardown
@@ -894,9 +894,8 @@ declare module drunk {
          * @static
          * @param  {ViewModel}   viewModel  ViewModel实例
          * @param  {HTMLElement} element    元素
-         * @return {Promise}                返回promise对象
          */
-        function create(viewModel: ViewModel, element: any, descriptor: IBindingDefinition): Promise<void>;
+        function create(viewModel: Component, element: any, descriptor: IBindingDefinition, parentViewModel?: Component, placeholder?: HTMLElement): any;
     }
 }
 declare module drunk {
@@ -1187,42 +1186,41 @@ declare module drunk {
         extend?<T extends IComponent>(name: string | T, members?: T): IComponentContructor<T>;
         (...args: any[]): void;
     }
+    interface IComponentEvent {
+        created: string;
+        dispose: string;
+        mounted: string;
+    }
     class Component extends ViewModel {
         /**
-         * 获取组件所属的上级的viewModel和组件标签(组件标签类似于:<my-view></my-view>)
-         * @event GET_COMPONENT_CONTEXT
-         * @param {string}  eventName  需要响应的事件名
+         * 组件的事件名称
+         * @property Event
+         * @static
+         * @type  IComponentEvent
          */
-        static GET_COMPONENT_CONTEXT: string;
+        static Event: IComponentEvent;
         /**
-         * 子组件被创建时触发的事件
-         * @event SUB_COMPONENT_CREATED
-         * @param  {Component}  component 触发的回调中得到的组件实例参数
+         * 获取挂在在元素上的viewModel实例
+         * @method getByElement
+         * @static
+         * @param  {any}  element 元素
+         * @return {Component}    viewModel实例
          */
-        static SUB_COMPONENT_CREATED: string;
+        static getByElement(element: any): Component;
         /**
-         * 子组件的与视图挂载并创建绑定之后触发的事件
-         * @event SUB_COMPONENT_MOUNTED
-         * @param  {Component}  component 触发的回调中得到的组件实例参数
+         * 设置element与viewModel的引用
+         * @method setWeakRef
+         * @static
+         * @param  {any}        element    元素
+         * @param  {Component}  viewModel  组件实例
          */
-        static SUB_COMPONENT_MOUNTED: string;
+        static setWeakRef<T extends Component>(element: any, viewModel: T): void;
         /**
-         * 子组件即将被销毁触发的事件
-         * @event SUB_COMPONENT_BEFORE_RELEASE
-         * @param  {Component}  component 触发的回调中得到的组件实例参数
+         * 移除挂载引用
+         * @method removeMountedRef
+         * @param  {any}  element  元素
          */
-        static SUB_COMPONENT_BEFORE_RELEASE: string;
-        /**
-         * 子组件已经释放完毕触发的事件
-         * @event SUB_COMPONENT_RELEASED
-         * @param  {Component}  component 触发的回调中得到的组件实例参数
-         */
-        static SUB_COMPONENT_RELEASED: string;
-        /**
-         * 当前实例挂载到dom上时
-         * @event MOUNTED
-         */
-        static MOUNTED: string;
+        static removeWeakRef(element: any): void;
         /**
          * 组件是否已经挂在到元素上
          * @property _isMounted
@@ -1318,7 +1316,7 @@ declare module drunk {
          * @method mount
          * @param {Node|Node[]} element 要挂在的节点或节点数组
          */
-        mount(element: Node | Node[]): void;
+        mount<T extends Component>(element: Node | Node[], parentViewModel?: T, placeholder?: HTMLElement): void;
         /**
          * 释放组件
          * @method dispose
@@ -1326,9 +1324,13 @@ declare module drunk {
         dispose(): void;
     }
     module Component {
-        let defined: {
-            [name: string]: IComponentContructor<any>;
-        };
+        /**
+         * 根据组件名字获取组件构造函数
+         * @method getComponentByName
+         * @param  {string}  name  组件名
+         * @return {IComponentConstructor}
+         */
+        function getComponentByName(name: string): IComponentContructor<any>;
         /**
          * 自定义一个组件类
          * @method define

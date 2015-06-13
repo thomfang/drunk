@@ -32,18 +32,6 @@ describe("Binding.component", function () {
         binding.viewModel = vm;
     });
     
-    it("component context", function () {
-        binding.component = new MyComponent();
-        binding.element = {};
-        binding.processComponentContextEvent();
-        
-        var spy = jasmine.createSpy("component context callback");
-        binding.component.addListener("test a", spy);
-        binding.component.emit(drunk.Component.GET_COMPONENT_CONTEXT, 'test a');
-        
-        expect(spy).toHaveBeenCalledWith(vm, binding.element);
-    });
-    
     it("component attributes", function (done) {
         binding.element = drunk.elementUtil.create("<my-component template-url='tpl1.html' title='{{a}}' on-click='visible = !visible'></my-component>");
         container.appendChild(binding.element);

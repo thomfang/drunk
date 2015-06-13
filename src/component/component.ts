@@ -19,49 +19,72 @@ module drunk {
         extend?<T extends IComponent>(name: string | T, members?: T): IComponentContructor<T>;
         (...args: any[]): void;
     }
+    
+    export interface IComponentEvent {
+        created: string;
+        dispose: string;
+        mounted: string;
+    }
+    
+    let weakRefMap: {[id: number]: Component} = {};
 
     export class Component extends ViewModel {
         
         /**
-         * 获取组件所属的上级的viewModel和组件标签(组件标签类似于:<my-view></my-view>)
-         * @event GET_COMPONENT_CONTEXT
-         * @param {string}  eventName  需要响应的事件名
+         * 组件的事件名称
+         * @property Event
+         * @static
+         * @type  IComponentEvent
          */
-        static GET_COMPONENT_CONTEXT = "get:component:contenxt";
+        static Event: IComponentEvent = {
+            created: 'created',
+            dispose: 'release',
+            mounted: 'mounted'
+        }
         
         /**
-         * 子组件被创建时触发的事件
-         * @event SUB_COMPONENT_CREATED
-         * @param  {Component}  component 触发的回调中得到的组件实例参数
+         * 获取挂在在元素上的viewModel实例
+         * @method getByElement
+         * @static
+         * @param  {any}  element 元素
+         * @return {Component}    viewModel实例
          */
-        static SUB_COMPONENT_CREATED = "new:sub:component";
+        static getByElement(element: any) {
+            let uid = util.uuid(element);
+            
+            return weakRefMap[uid];
+        }
         
         /**
-         * 子组件的与视图挂载并创建绑定之后触发的事件
-         * @event SUB_COMPONENT_MOUNTED
-         * @param  {Component}  component 触发的回调中得到的组件实例参数
+         * 设置element与viewModel的引用
+         * @method setWeakRef
+         * @static
+         * @param  {any}        element    元素
+         * @param  {Component}  viewModel  组件实例
          */
-        static SUB_COMPONENT_MOUNTED = "sub:component:mounted";
+        static setWeakRef<T extends Component>(element: any, viewModel: T) {
+            let uid = util.uuid(element);
+            
+            if (weakRefMap[uid] !== undefined && weakRefMap[uid] !== viewModel) {
+                console.error(element, '元素尝试挂载到不同的组件实例');
+            }
+            else {
+                weakRefMap[uid] = viewModel;
+            }
+        }
         
         /**
-         * 子组件即将被销毁触发的事件
-         * @event SUB_COMPONENT_BEFORE_RELEASE
-         * @param  {Component}  component 触发的回调中得到的组件实例参数
+         * 移除挂载引用
+         * @method removeMountedRef
+         * @param  {any}  element  元素
          */
-        static SUB_COMPONENT_BEFORE_RELEASE = "sub:component:before:release";
-        
-        /**
-         * 子组件已经释放完毕触发的事件
-         * @event SUB_COMPONENT_RELEASED
-         * @param  {Component}  component 触发的回调中得到的组件实例参数
-         */
-        static SUB_COMPONENT_RELEASED = "sub:component:released";
-        
-        /**
-         * 当前实例挂载到dom上时
-         * @event MOUNTED
-         */
-        static MOUNTED = "component:mounted";
+        static removeWeakRef(element: any) {
+            let uid = util.uuid(element);
+            
+            if (weakRefMap[uid]) {
+                delete weakRefMap[uid];
+            }
+        }
         
         /**
          * 组件是否已经挂在到元素上
@@ -232,21 +255,19 @@ module drunk {
          * @method mount
          * @param {Node|Node[]} element 要挂在的节点或节点数组
          */
-        mount(element: Node | Node[]) {
+        mount<T extends Component>(element: Node | Node[], parentViewModel?: T, placeholder?: HTMLElement) {
             console.assert(!this._isMounted, "该组件已有挂载到", this.element);
 
-            if (element['__viewModel']) {
-                return console.error("Component.$mount(element): 尝试挂载到一个已经挂载过组件实例的元素节点", element);
+            if (Component.getByElement(element)) {
+                return console.error("Component#mount(element): 尝试挂载到一个已经挂载过组件实例的元素节点", element);
             }
 
-            Template.compile(element)(this, element);
+            Template.compile(element)(this, element, parentViewModel, placeholder);
 
-            element['__viewModel'] = this;
+            Component.setWeakRef(element, this);
 
             this.element = element;
             this._isMounted = true;
-
-            this.emit(Component.MOUNTED);
         }
         
         /**
@@ -254,10 +275,12 @@ module drunk {
          * @method dispose
          */
         dispose() {
+            this.emit(Component.Event.dispose);
+            
             super.dispose();
 
             if (this._isMounted) {
-                this.element['__viewModel'] = null;
+                Component.removeWeakRef(this.element);
                 this._isMounted = false;
             }
             this.element = null;
@@ -266,7 +289,24 @@ module drunk {
 
     export module Component {
 
-        export let defined: { [name: string]: IComponentContructor<any> } = {};
+        /**
+         * 定义的组件记录
+         * @property definedComponent
+         * @private
+         * @type {object}
+         */
+        let definedComponentMap: { [name: string]: IComponentContructor<any> } = {};
+        
+        
+        /**
+         * 根据组件名字获取组件构造函数
+         * @method getComponentByName
+         * @param  {string}  name  组件名
+         * @return {IComponentConstructor}
+         */
+        export function getComponentByName(name: string): IComponentContructor<any> {
+            return definedComponentMap[name];
+        }
         
         /**
          * 自定义一个组件类
@@ -328,12 +368,12 @@ module drunk {
         export function register<T>(name: string, componentCtor: IComponentContructor<T>) {
             console.assert(name.indexOf('-') > -1, name, '组件明必须在中间带"-"字符,如"custom-view"');
 
-            if (defined[name] != null) {
+            if (definedComponentMap[name] != null) {
                 console.warn('组件 "' + name + '" 已被覆盖,请确认该操作');
             }
 
             componentCtor.extend = Component.extend;
-            defined[name] = componentCtor;
+            definedComponentMap[name] = componentCtor;
 
             addHiddenStyleForComponent(name);
         }

@@ -11,20 +11,15 @@ module drunk {
          * 初始化绑定,先注册transcludeResponse事件用于获取transclude的viewModel和nodelist
          * 然后发送getTranscludeContext事件通知
          */
-        init() {
-            var eventName = "transclude:setup";
-            this.viewModel.once(eventName, this.setup.bind(this), true);
-            this.viewModel.emit(Component.GET_COMPONENT_CONTEXT, eventName);
-        },
-
-        /*
-         * 设置transclude并创建绑定
-         */
-        setup(viewModel: Component, element: Node) {
-            var nodes = [];
-            var unbinds = [];
-            var transclude = element.childNodes;
-            var fragment = document.createDocumentFragment();
+        init(parentViewModel: Component, placeholder: HTMLElement) {
+            if (!parentViewModel || !placeholder) {
+                throw new Error('未提供父级component实例和组件声明标签');
+            }
+            
+            let nodes = [];
+            let unbinds = [];
+            let transclude = placeholder.childNodes;
+            let fragment = document.createDocumentFragment();
 
             util.toArray(transclude).forEach((node) => {
                 nodes.push(node);
@@ -37,8 +32,8 @@ module drunk {
             nodes.forEach((node) => {
                 // 编译模板病获取绑定创建函数
                 // 保存解绑函数
-                var bind = Template.compile(node);
-                unbinds.push(bind(viewModel, node));
+                let bind = Template.compile(node);
+                unbinds.push(bind(parentViewModel, node));
             });
 
             this.nodes = nodes;

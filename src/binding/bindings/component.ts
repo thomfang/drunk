@@ -13,7 +13,7 @@ module drunk {
          * 初始化组件,找到组件类并生成实例,创建组件的绑定
          */
         init() {
-            let Ctor = Component.defined[this.expression];
+            let Ctor = Component.getComponentByName(this.expression);
 
             if (!Ctor) {
                 throw new Error(this.expression + ": 未找到该组件.");
@@ -22,28 +22,8 @@ module drunk {
             this.component = new Ctor();
             this.unwatches = [];
             
-            this.processComponentContextEvent();
             this.processComponentAttributes();
-            
-            // 触发组件实例创建事件
-            this.viewModel.emit(Component.SUB_COMPONENT_CREATED, this.component);
-            
             return this.processComponentBinding();
-        },
-        
-        processComponentContextEvent() {
-            let element: HTMLElement = this.element;
-            let viewModel: Component = this.viewModel;
-            
-            // 在组件实例上注册getComponentContext事件,
-            // 该事件提供获取组件父级viewModel及element上下文的借口,
-            // 可以在任何地方触发该事件以获取组件相关上下文,
-            // 只要在触发该事件时把特定事件名传递过来,就会触发该事件名并把上下文传递过去
-            this.component.addListener(Component.GET_COMPONENT_CONTEXT, function (eventName) {
-                if (typeof eventName === 'string') {
-                    this.emit(eventName, viewModel, element);
-                }
-            });
         },
         
         /*
@@ -53,52 +33,54 @@ module drunk {
             let element: HTMLElement = this.element;
             let component: Component = this.component;
             
-            if (!element.hasAttributes()) {
-                return;
+            if (element.hasAttributes()) {
+            
+                // 遍历元素上所有的属性做数据准备或数据绑定的处理
+                // 如果某个属性用到插值表达式,如"a={{b}}",则对起进行表达式监听(当b改变时通知component的a属性更新到最新的值)
+                util.toArray(element.attributes).forEach((attr: Attr) => {
+                    let attrName = attr.name;
+                    let attrValue = attr.value;
+                    
+                    if (attrName.indexOf(config.prefix) > -1) {
+                        return console.warn("自定义组件标签上不支持使用绑定语法");
+                    }
+    
+                    if (!attrValue) {
+                        component[attrName] = true;
+                        return;
+                    }
+    
+                    let expression = attrValue.trim();
+                    
+                    if (attrName.indexOf("on-") === 0) {
+                        // on-click="doSomething()"
+                        // => "click", "doSomething()"
+                        attrName = util.camelCase(attrName.slice(3));
+                        return this.registerComponentEvent(attrName, expression);
+                    }
+                    
+                    attrName = util.camelCase(attrName);
+                    
+                    if (!parser.hasInterpolation(expression)) {
+                        // 没有插值表达式
+                        // title="someConstantValue"
+                        component[attrName] = attrValue;
+                        return;
+                    }
+                    
+                    // title="{{somelet}}"
+                    this.watchExpressionForComponent(attrName, expression);
+                });
             }
             
-            // 遍历元素上所有的属性做数据准备或数据绑定的处理
-            // 如果某个属性用到插值表达式,如"a={{b}}",则对起进行表达式监听(当b改变时通知component的a属性更新到最新的值)
-            util.toArray(element.attributes).forEach((attr: Attr) => {
-                let attrName = attr.name;
-                let attrValue = attr.value;
-                
-                if (attrName.indexOf(config.prefix) > -1) {
-                    return console.warn("自定义组件标签上不支持使用绑定语法");
-                }
-
-                if (!attrValue) {
-                    component[attrName] = true;
-                    return;
-                }
-
-                let expression = attrValue.trim();
-                
-                if (attrName.indexOf("on-") === 0) {
-                    // on-click="doSomething()"
-                    // => "click", "doSomething()"
-                    attrName = util.camelCase(attrName.slice(3));
-                    return this.registerComponentEvent(attrName, expression);
-                }
-                
-                attrName = util.camelCase(attrName);
-                
-                if (!parser.hasInterpolation(expression)) {
-                    // 没有插值表达式
-                    // title="someConstantValue"
-                    component[attrName] = attrValue;
-                    return;
-                }
-                
-                // title="{{somelet}}"
-                this.watchExpressionForComponent(attrName, expression);
-            });
+            component.emit(Component.Event.created, component);
         },
         
         /*
          * 处理组件的视图于数据绑定
          */
         processComponentBinding() {
+            let element: HTMLElement = this.element;
             let component: Component = this.component;
             let viewModel: Component = this.viewModel;
             
@@ -107,14 +89,10 @@ module drunk {
                     return;
                 }
                 
-                elementUtil.replace(template, this.element);
-                component.mount(template);
-                
-                // 触发组件已经挂载到元素上的事件
-                viewModel.emit(Component.SUB_COMPONENT_MOUNTED, component);
+                elementUtil.replace(template, element);
+                component.mount(template, viewModel, element);
             }).catch(function (reason) {
-                console.warn("组件挂载失败,错误信息:");
-                console.warn(reason);
+                console.warn("组件挂载失败,错误信息:\n", reason);
             });
         },
         
@@ -155,21 +133,19 @@ module drunk {
          * 组件释放
          */
         release() {
-            // 触发组件即将释放事件
-            this.viewModel.emit(Component.SUB_COMPONENT_BEFORE_RELEASE, this.component);
-            
-            if (this.component.element) {
-                elementUtil.remove(this.component.element);
-            }
+            let component = this.component;
+            let element = component.element;
             
             // 组件实例释放
-            this.component.dispose();
+            component.emit(Component.Event.dispose, component);
+            component.dispose();
             
             // 移除所有的属性监控
             this.unwatches.forEach(unwatch => unwatch());
             
-            // 触发组件已经释放完毕事件
-            this.viewModel.emit(Component.SUB_COMPONENT_RELEASED, this.component);
+            if (element) {
+                elementUtil.remove(element);
+            }
             
             // 移除所有引用
             this.component = null;

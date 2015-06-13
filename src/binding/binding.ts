@@ -31,7 +31,7 @@ module drunk {
         expression?: string;
         retainAttribute?: boolean;
 
-        init?(): void;
+        init?(parentViewModel?: Component, placeholder?: HTMLElement): void;
         update?(newValue: any, oldValue: any): void;
         release?(): void;
     }
@@ -42,7 +42,7 @@ module drunk {
      * @type function
      */
     export interface IBindingExecutor {
-        (viewModel: ViewModel, element: any): void;
+        (viewModel: ViewModel, element: any, parentViewModel?: Component, placeHolder?: HTMLElement): void;
         isTerminal?: boolean;
         priority?: number;
     }
@@ -70,7 +70,7 @@ module drunk {
          */
         expression: string;
 
-        init: () => void;
+        init: (parentViewModel?: Component, placeholder?: HTMLElement) => void;
         update: IBindingUpdateAction;
         release: () => void;
 
@@ -97,9 +97,9 @@ module drunk {
          * 初始化绑定
          * @method initialize
          */
-        initialize(): void {
+        initialize(parentViewModel?: Component, placeholder?: HTMLElement) {
             if (this.init) {
-                this.init();
+                this.init(parentViewModel, placeholder);
             }
             
             this._isActived = true;
@@ -144,6 +144,8 @@ module drunk {
             if (this._unwatch) {
                 this._unwatch();
             }
+            
+            Component.removeWeakRef(this.element);
             
             this._unwatch = null;
             this._update = null;
@@ -252,14 +254,14 @@ module drunk {
          * @static
          * @param  {ViewModel}   viewModel  ViewModel实例
          * @param  {HTMLElement} element    元素
-         * @return {Promise}                返回promise对象
          */
-        export function create(viewModel: ViewModel, element: any, descriptor: IBindingDefinition) {
+        export function create(viewModel: Component, element: any, descriptor: IBindingDefinition, parentViewModel?: Component, placeholder?: HTMLElement) {
             let binding: Binding = new Binding(viewModel, element, descriptor);
 
             util.addArrayItem(viewModel._bindings, binding);
+            Component.setWeakRef(element, viewModel);
 
-            return Promise.resolve(binding.initialize());
+            return binding.initialize(parentViewModel, placeholder);
         }
         
         /**

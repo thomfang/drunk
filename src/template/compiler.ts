@@ -32,16 +32,16 @@ module drunk.Template {
             childExecutor = compileNodeList(node.childNodes);
         }
         
-        return (viewModel: ViewModel, element: any) => {
+        return (viewModel: ViewModel, element: any, parentViewModel?: Component, placeholder?: HTMLElement) => {
             var allBindings = viewModel._bindings;
             var startIndex: number = allBindings.length;
             var bindingList: Binding[];
             
             if (executor) {
-                executor(viewModel, element);
+                executor(viewModel, element, parentViewModel, placeholder);
             }
             if (childExecutor) {
-                childExecutor(viewModel, element.childNodes);
+                childExecutor(viewModel, element.childNodes, parentViewModel, placeholder);
             }
             
             bindingList = viewModel._bindings.slice(startIndex);
@@ -89,7 +89,7 @@ module drunk.Template {
         });
         
         if (executors.length > 1) {
-            return (viewModel: ViewModel, nodes: any) => {
+            return (viewModel: ViewModel, nodes: any, parentViewModel?: Component, placeholder?: HTMLElement) => {
                 if (nodes.length * 2 !== executors.length) {
                     throw new Error("创建绑定之前,节点已经被动态修改");
                 }
@@ -103,10 +103,10 @@ module drunk.Template {
                     childExecutor = executors[i++];
                     
                     if (nodeExecutor) {
-                        nodeExecutor(viewModel, node);
+                        nodeExecutor(viewModel, node, parentViewModel, placeholder);
                     }
                     if (childExecutor) {
-                        childExecutor(viewModel, node.childNodes);
+                        childExecutor(viewModel, node.childNodes, parentViewModel, placeholder);
                     }
                 });
             };
@@ -235,9 +235,9 @@ module drunk.Template {
                 return b.priority - a.priority;
             });
             // 存在绑定
-            return (viewModel: ViewModel, element: any) => {
+            return (viewModel: Component, element: any, parentViewModel?: Component, placeholder?: HTMLElement) => {
                 executors.forEach((executor) => {
-                    executor(viewModel, element);
+                    executor(viewModel, element, parentViewModel, placeholder);
                 });
             };
         }
@@ -260,8 +260,8 @@ module drunk.Template {
         
         util.extend(descriptor, definition);
         
-        executor = (viewModel, element) => {
-            Binding.create(viewModel, element, descriptor);
+        executor = (viewModel, element, parentViewModel?: Component, placeholder?: HTMLElement) => {
+            Binding.create(viewModel, element, descriptor, parentViewModel, placeholder);
         };
         executor.isTerminal = descriptor.isTerminal;
         executor.priority = definition.priority;

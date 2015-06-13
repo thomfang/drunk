@@ -53,7 +53,7 @@ describe("Component", function () {
         });
 
         expect(MyView.prototype.name).toBe('my-view');
-        expect(drunk.Component.defined['my-view']).toBe(MyView);
+        expect(drunk.Component.getComponentByName('my-view')).toBe(MyView);
     });
 
     it("mount element", function (done) {
@@ -61,7 +61,7 @@ describe("Component", function () {
 
         expect(view.element).toBe(elem);
         expect(view._isMounted).toBe(true);
-        expect(elem.__viewModel).toBe(view);
+        expect(drunk.Component.getByElement(elem)).toBe(view);
 
 
         var spy = jasmine.createSpy();
@@ -113,7 +113,7 @@ describe("Component", function () {
 
 
         expect(view.element).toBeNull();
-        expect(elem.__viewModel).toBeNull();
+        expect(drunk.Component.getByElement(elem)).toBeUndefined();
     });
 
 });

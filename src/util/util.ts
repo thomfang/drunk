@@ -21,7 +21,7 @@ module drunk.util {
      */
     export function uuid(target: any): number {
         if (typeof target[nameOfUid] === 'undefined') {
-            target[nameOfUid] = counter++;
+            defineProperty(target, nameOfUid, counter++);
         }
         return target[nameOfUid];
     }
