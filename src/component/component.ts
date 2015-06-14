@@ -19,72 +19,14 @@ module drunk {
         extend?<T extends IComponent>(name: string | T, members?: T): IComponentContructor<T>;
         (...args: any[]): void;
     }
-    
+
     export interface IComponentEvent {
         created: string;
         dispose: string;
         mounted: string;
     }
-    
-    let weakRefMap: {[id: number]: Component} = {};
 
     export class Component extends ViewModel {
-        
-        /**
-         * 组件的事件名称
-         * @property Event
-         * @static
-         * @type  IComponentEvent
-         */
-        static Event: IComponentEvent = {
-            created: 'created',
-            dispose: 'release',
-            mounted: 'mounted'
-        }
-        
-        /**
-         * 获取挂在在元素上的viewModel实例
-         * @method getByElement
-         * @static
-         * @param  {any}  element 元素
-         * @return {Component}    viewModel实例
-         */
-        static getByElement(element: any) {
-            let uid = util.uuid(element);
-            
-            return weakRefMap[uid];
-        }
-        
-        /**
-         * 设置element与viewModel的引用
-         * @method setWeakRef
-         * @static
-         * @param  {any}        element    元素
-         * @param  {Component}  viewModel  组件实例
-         */
-        static setWeakRef<T extends Component>(element: any, viewModel: T) {
-            let uid = util.uuid(element);
-            
-            if (weakRefMap[uid] !== undefined && weakRefMap[uid] !== viewModel) {
-                console.error(element, '元素尝试挂载到不同的组件实例');
-            }
-            else {
-                weakRefMap[uid] = viewModel;
-            }
-        }
-        
-        /**
-         * 移除挂载引用
-         * @method removeMountedRef
-         * @param  {any}  element  元素
-         */
-        static removeWeakRef(element: any) {
-            let uid = util.uuid(element);
-            
-            if (weakRefMap[uid]) {
-                delete weakRefMap[uid];
-            }
-        }
         
         /**
          * 组件是否已经挂在到元素上
@@ -194,7 +136,7 @@ module drunk {
                     this.watch(expression, this.watchers[expression]);
                 });
             }
-            
+
             if (this.data) {
                 Object.keys(this.data).forEach(name => {
                     var data = this.data[name];
@@ -276,7 +218,7 @@ module drunk {
          */
         dispose() {
             this.emit(Component.Event.dispose);
-            
+
             super.dispose();
 
             if (this._isMounted) {
@@ -288,6 +230,64 @@ module drunk {
     }
 
     export module Component {
+
+        let weakRefMap: { [id: number]: Component } = {};
+        
+        /**
+         * 组件的事件名称
+         * @property Event
+         * @static
+         * @type  IComponentEvent
+         */
+        export let Event: IComponentEvent = {
+            created: 'created',
+            dispose: 'release',
+            mounted: 'mounted'
+        }
+        
+        /**
+         * 获取挂在在元素上的viewModel实例
+         * @method getByElement
+         * @static
+         * @param  {any}  element 元素
+         * @return {Component}    viewModel实例
+         */
+        export function getByElement(element: any) {
+            let uid = util.uuid(element);
+
+            return weakRefMap[uid];
+        }
+        
+        /**
+         * 设置element与viewModel的引用
+         * @method setWeakRef
+         * @static
+         * @param  {any}        element    元素
+         * @param  {Component}  viewModel  组件实例
+         */
+        export function setWeakRef<T extends Component>(element: any, viewModel: T) {
+            let uid = util.uuid(element);
+
+            if (weakRefMap[uid] !== undefined && weakRefMap[uid] !== viewModel) {
+                console.error(element, '元素尝试挂载到不同的组件实例');
+            }
+            else {
+                weakRefMap[uid] = viewModel;
+            }
+        }
+        
+        /**
+         * 移除挂载引用
+         * @method removeMountedRef
+         * @param  {any}  element  元素
+         */
+        export function removeWeakRef(element: any) {
+            let uid = util.uuid(element);
+
+            if (weakRefMap[uid]) {
+                delete weakRefMap[uid];
+            }
+        }
 
         /**
          * 定义的组件记录
@@ -378,7 +378,7 @@ module drunk {
             addHiddenStyleForComponent(name);
         }
 
-        let cached: { [name: string]: boolean } = {};
+        let record: { [name: string]: boolean } = {};
         let styleSheet: any;
         
         /**
@@ -388,7 +388,7 @@ module drunk {
          * @param  {string} name  组件名
          */
         function addHiddenStyleForComponent(name: string) {
-            if (cached[name]) {
+            if (record[name]) {
                 return;
             }
 

@@ -2,15 +2,14 @@
 /// <reference path="../util/xhr.ts" />
 /// <reference path="../cache/cache" />
 
-
 /**
  * @module drunk.Template
  * @class Template
  */
 module drunk.Template {
     
-    var cache = new Cache<string>();
-    var loading = new Cache<Promise<string>>();
+    var cache = new Cache<string>(50);
+    var loading: {[key: string]: Promise<string>} = {};
     
     /**
      * 加载模板，先尝试从script标签上查找，找不到再发送ajax请求，
@@ -34,26 +33,17 @@ module drunk.Template {
             return Promise.resolve(template);
         }
         
-        var promise = loading.get(urlOrId);
+        var promise = loading[urlOrId];
         
         if (!promise) {
             promise = util.ajax<string>({url: urlOrId}).then(template => {
                 cache.set(urlOrId, template);
-                loading.remove(urlOrId);
+                delete loading[urlOrId];
                 return template;
             });
-            loading.set(urlOrId, promise);
+            loading[urlOrId] = promise;
         }
         
         return promise;
-    }
-    
-    /**
-     * 清空加载的模板字符串缓存
-     * @method cleanupCache
-     * @static
-     */
-    export function cleanupCache() {
-        cache.cleanup();
     }
 }

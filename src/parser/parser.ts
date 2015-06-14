@@ -41,36 +41,21 @@ module drunk.parser {
         'let', 'abstract', 'import', 'yield', 'arguments'
     ];
     
-    let tokenCache = new Cache<any[]>();
-    let getterCache = new Cache<IGetter>();
-    let setterCache = new Cache<ISetter>();
-    let filterCache = new Cache<IFilterCache>();
-    let expressionCache = new Cache<IGetter>();
-    let identifierCache = new Cache<any>();
-    let interpolateGetterCache = new Cache<IGetter>();
+    let tokenCache = new Cache<any[]>(500);
+    let getterCache = new Cache<IGetter>(500);
+    let setterCache = new Cache<ISetter>(500);
+    let filterCache = new Cache<IFilterCache>(500);
+    let expressionCache = new Cache<IGetter>(500);
+    let identifierCache = new Cache<any>(500);
+    let interpolateGetterCache = new Cache<IGetter>(500);
     
-    let regIdentifier = /("|').*?\1|[a-zA-Z$_][a-z0-9A-Z$_]*/g;
-    let regFilter = /("|').*?\1|\|\||\|\s*([a-zA-Z$_][a-z0-9A-Z$_]*)(:[^|]*)?/g;
-    let regInterpolate = /\{\{([^{]+)\}\}/g;
-    let regBrackets = /^\([^)]*\)/;
-    let regObjectKey = /[{,]\s*$/;
-    let regColon = /^\s*:/;
-    let regAnychar = /\S+/;
-    
-    /**
-     * 清空parser所创建的缓存
-     * @method cleanupCache
-     * @static
-     */
-    export function cleanupCache() {
-        tokenCache.cleanup();
-        getterCache.cleanup();
-        setterCache.cleanup();
-        filterCache.cleanup();
-        expressionCache.cleanup();
-        identifierCache.cleanup();
-        interpolateGetterCache.cleanup();
-    }
+    let reIdentifier = /("|').*?\1|[a-zA-Z$_][a-z0-9A-Z$_]*/g;
+    let reFilter = /("|').*?\1|\|\||\|\s*([a-zA-Z$_][a-z0-9A-Z$_]*)(:[^|]*)?/g;
+    let reInterpolate = /\{\{([^{]+)\}\}/g;
+    let reBrackets = /^\([^)]*\)/;
+    let reObjectKey = /[{,]\s*$/;
+    let reColon = /^\s*:/;
+    let reAnychar = /\S+/;
 
     // 解析filter定义
     function parseFilterDef(str: string, skipSetter: boolean = false) {
@@ -78,7 +63,7 @@ module drunk.parser {
             let def: Array<filter.FilterDef> = [];
             let idx: number;
             
-            str.replace(regFilter, ($0, quote, name, args, i) => {
+            str.replace(reFilter, ($0, quote, name, args, i) => {
                 if (!name) {
                     return $0;
                 }
@@ -110,24 +95,24 @@ module drunk.parser {
     
     // 断言非空字符串
     function assertNotEmptyString(target: string, message: string): void {
-        if (!(typeof target === 'string' && regAnychar.test(target))) {
+        if (!(typeof target === 'string' && reAnychar.test(target))) {
             throw new Error(message + ": 表达式为空");
         }
     }
     
     // 是否是对象的key
     function isObjectKey(str: string): boolean {
-        return str.match(regObjectKey) != null;
+        return str.match(reObjectKey) != null;
     }
 
     // 前一个字符是否是冒号
     function isColon(str: string): boolean {
-        return str.match(regColon) != null;
+        return str.match(reColon) != null;
     }
 
     // 是否是一个方法调用
     function isCallFunction(str: string): boolean {
-        return str.match(regBrackets) != null;
+        return str.match(reBrackets) != null;
     }
     
     // 解析所有的标记并对表达式进行格式化
@@ -139,7 +124,7 @@ module drunk.parser {
             let proxies = [];
             let identifiers = [];
 
-            let formated = str.replace(regIdentifier, function (x, p, i) {
+            let formated = str.replace(reIdentifier, function (x, p, i) {
                 if (p === '"' || p === "'" || str[i - 1] === '.') {
                     // 如果是字符串: "aaa"
                     // 或对象的属性: .aaa
@@ -313,7 +298,7 @@ module drunk.parser {
             
             let index = 0;
             let length = expression.length;
-            expression.replace(regInterpolate, ($0, exp, i) => {
+            expression.replace(reInterpolate, ($0, exp, i) => {
                 if (i > index) {
                     tokens.push(expression.slice(index, i));
                 }
@@ -346,7 +331,7 @@ module drunk.parser {
      * @return {boolean}      返回结果
      */
     export function hasInterpolation(str: string): boolean {
-        return typeof str === 'string' && str.match(regAnychar) !== null && str.match(regInterpolate) !== null;
+        return typeof str === 'string' && str.match(reAnychar) !== null && str.match(reInterpolate) !== null;
     }
     
     // 根据token生成getter函数

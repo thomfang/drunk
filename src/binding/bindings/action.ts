@@ -4,44 +4,23 @@
 
 module drunk {
 
-    /**
-     * 动画定义接口
-     * @interface IActionDefinition
-     */
-    export interface IActionDefinition {
-        
-        /**
-         * 元素被添加进dom时调用的动画方法,会接收元素节点和一个动画完成的回调
-         * @method created
-         * @param  {HTMLElement}  element           元素节点
-         * @param  {function}     onDoneCallback    动画完成的回调
-         * @return {function}     返回一取消动画继续执行的方法
-         */
-        created(element: HTMLElement, onDoneCallback: Function): () => void;
-        
-        /**
-         * 元素被移除时调用的动画方法,会接收元素节点和一个动画完成的回调
-         * @method removed
-         * @param  {HTMLElement}  element           元素节点
-         * @param  {function}     onDoneCallback    动画完成的回调
-         * @return {function}     返回一取消动画继续执行的方法
-         */
-        removed(element: HTMLElement, onDoneCallback: Function): () => void;
+    export interface IActionExecutor {
+        (element: HTMLElement, ondone: Function): () => void;
     }
 
-    export interface IActionState {
-        cancel?(): void;
-        promise?: Promise<any>;
+    export interface IActionDefinition {
+        created: IActionExecutor;
+        removed: IActionExecutor;
     }
 
     export interface IActionType {
         created: string;
         removed: string;
     }
-    
-    export interface IActionEvent {
-        created: string;
-        removed: string;
+
+    export interface IAction {
+        cancel?(): void;
+        promise?: Promise<any>;
     }
 
     /**
@@ -63,83 +42,90 @@ module drunk {
         
         /**
          * js动画定义
-         * @property definitions
+         * @property definitionMap
          * @private
          * @type object
          */
-        let definitions: { [name: string]: IActionDefinition } = {};
+        let definitionMap: { [name: string]: IActionDefinition } = {};
         
         /**
          * 动画状态
-         * @property actionStates
+         * @property actionMap
          * @private
          * @type object
          */
-        let actionStates: { [id: number]: IActionState } = {};
+        let actionMap: { [id: number]: IAction } = {};
 
-        let prefix: string = null;
+        let propertyPrefix: string = null;
         let transitionEndEvent: string = null;
         let animationEndEvent: string = null;
 
         function getPropertyName(property: string) {
-            if (prefix === null) {
+            if (propertyPrefix === null) {
                 let style = document.body.style;
 
                 if ('webkitAnimationDuration' in style) {
-                    prefix = 'webkit';
+                    propertyPrefix = 'webkit';
                     transitionEndEvent = 'webkitTransitionEnd';
                     animationEndEvent = 'webkitAnimationEnd';
                 }
                 else if ('mozAnimationDuration' in style) {
-                    prefix = 'moz';
-                    transitionEndEvent = 'mozTransitionEnd';
-                    animationEndEvent = 'mozAnimationEnd';
+                    propertyPrefix = 'moz';
                 }
                 else if ('msAnimationDuration' in style) {
-                    prefix = 'ms';
-                    transitionEndEvent = 'msTransitionEnd';
-                    animationEndEvent = 'msAnimationEnd';
+                    propertyPrefix = 'ms';
                 }
                 else {
-                    prefix = '';
-                    transitionEndEvent = 'transitionEnd';
-                    animationEndEvent = 'animationEnd';
+                    propertyPrefix = '';
+                }
+
+                if (!transitionEndEvent && !animationEndEvent) {
+                    // 只有webkit的浏览器是用特定的事件,其他的浏览器统一用一下两个事件
+                    transitionEndEvent = 'transitionend';
+                    animationEndEvent = 'animationend';
                 }
             }
 
-            if (!prefix) {
+            if (!propertyPrefix) {
                 return property;
             }
 
-            return prefix + (property.charAt(0).toUpperCase() + property.slice(1));
+            return propertyPrefix + (property.charAt(0).toUpperCase() + property.slice(1));
         }
 
-        export function setState(element: HTMLElement, state: IActionState) {
+        /**
+         * 设置当前正在执行的action
+         * @method setCurrentAction
+         * @static
+         * @param  {HTMLElement}  element 元素节点
+         * @param  {IAction}      action  action描述
+         */
+        export function setCurrentAction(element: HTMLElement, action: IAction) {
             let id = util.uuid(element);
-            actionStates[id] = state;
+            actionMap[id] = action;
         }
         
         /**
-         * 获取节点的动画状态
-         * @method getState
+         * 获取元素当前的action对象
+         * @method getCurrentAction
          * @static
          * @param  {HTMLElement}  element  元素节点
-         * @return {object}
+         * @return {IAction}
          */
-        export function getState(element: HTMLElement) {
+        export function getCurrentAction(element: HTMLElement) {
             let id = util.uuid(element);
-            return actionStates[id];
+            return actionMap[id];
         }
         
         /**
-         * 清楚节点的动画状态缓存
-         * @method clearState
+         * 移除当前元素的动画引用
+         * @method removeRef
          * @static
          * @param  {HTMLElement} element
          */
-        export function clearState(element: HTMLElement) {
+        export function removeRef(element: HTMLElement) {
             let id = util.uuid(element);
-            actionStates[id] = null;
+            actionMap[id] = null;
         }
         
         /**
@@ -151,39 +137,55 @@ module drunk {
          * @param  {string}         type       动画的类型(created或removed)
          */
         export function run(element: HTMLElement, detail: string, type: string) {
-            let state: IActionState = {};
-
             if (!isNaN(Number(detail))) {
                 // 如果是一个数字,则为延时等待操作
-                state.promise = new Promise((resolve) => {
-                    let timerid;
-                    state.cancel = () => {
-                        clearTimeout(timerid);
-                    };
-                    timerid = setTimeout(resolve, (<any>detail) * 1000);
-                });
-
-                return state;
+                return wait(<any>detail * 1000);
             }
 
-            let definition = definitions[detail];
+            let definition = definitionMap[detail];
             if (definition) {
                 // 如果有通过js注册的action,优先执行
-                let action = definition[type];
-
-                state.promise = new Promise((resolve) => {
-                    state.cancel = action(element, () => {
-                        state.cancel = null;
-                        state.promise = null;
-                        resolve();
-                    });
-                });
-
-                return state;
+                return runJavascriptAction(element, definition, type);
             }
 
+            return runCSSAnimation(element, detail, type);
+        }
+
+        function wait(time: number) {
+            let action: IAction = {};
+            
+            action.promise = new Promise((resolve) => {
+                let timerid;
+                action.cancel = () => {
+                    clearTimeout(timerid);
+                    action.cancel = null;
+                    action.promise = null;
+                };
+                timerid = setTimeout(resolve, time);
+            });
+
+            return action;
+        }
+
+        function runJavascriptAction(element: HTMLElement, definition: IActionDefinition, type) {
+            let action: IAction = {};
+            let executor: IActionExecutor = definition[type];
+
+            action.promise = new Promise((resolve) => {
+                action.cancel = executor(element, () => {
+                    action.cancel = null;
+                    action.promise = null;
+                    resolve();
+                });
+            });
+
+            return action;
+        }
+
+        function runCSSAnimation(element: HTMLElement, detail: string, type: string) {
             detail = detail ? detail + '-' : config.prefix;
 
+            let action: IAction = {};
             let className = detail + type;
             
             // 如果transitionDuration或animationDuration都不为0s的话说明已经设置了该属性
@@ -191,7 +193,7 @@ module drunk {
             let style = getComputedStyle(element, null);
             let transitionExist = style[getPropertyName('transitionDuration')] !== '0s';
 
-            state.promise = new Promise((resolve) => {
+            action.promise = new Promise((resolve) => {
                 // 给样式赋值后,取animationDuration的值,判断有没有设置animation动画
                 element.classList.add(className);
                 let animationExist = style[getPropertyName('animationDuration')] !== '0s';
@@ -199,12 +201,12 @@ module drunk {
                 if (!transitionExist && !animationExist) {
                     return resolve();
                 }
+                
+                element.style[getPropertyName('animationFillMode')] = 'both';
 
                 function onTransitionEnd() {
                     element.removeEventListener(animationEndEvent, onAnimationEnd, false);
                     element.removeEventListener(transitionEndEvent, onTransitionEnd, false);
-                    state.cancel = null;
-                    state.promise = null;
 
                     if (type === Type.removed) {
                         element.classList.remove(detail + Type.created, className);
@@ -214,23 +216,22 @@ module drunk {
                 function onAnimationEnd() {
                     element.removeEventListener(transitionEndEvent, onTransitionEnd, false);
                     element.removeEventListener(animationEndEvent, onAnimationEnd, false);
-                    element.classList.remove(className);
-                    state.cancel = null;
-                    state.promise = null;
                     resolve();
                 }
 
                 element.addEventListener(animationEndEvent, onAnimationEnd, false);
                 element.addEventListener(transitionEndEvent, onTransitionEnd, false);
 
-                state.cancel = () => {
+                action.cancel = () => {
                     element.removeEventListener(transitionEndEvent, onTransitionEnd, false);
                     element.removeEventListener(animationEndEvent, onAnimationEnd, false);
                     element.classList.remove(className);
+                    action.cancel = null;
+                    action.promise = null;
                 };
             });
 
-            return state;
+            return action;
         }
         
         /**
@@ -241,7 +242,7 @@ module drunk {
          * @return {Promise}
          */
         export function processAll(element: HTMLElement) {
-            let state = getState(element);
+            let state = getCurrentAction(element);
             return Promise.resolve(state && state.promise);
         }
 
@@ -252,11 +253,11 @@ module drunk {
          * @param  {IActionDefinition}   definition  动画定义
          */
         export function define<T extends IActionDefinition>(name: string, definition: T) {
-            if (definitions[name] != null) {
+            if (definitionMap[name] != null) {
                 console.warn(name, "动画已经被覆盖为", definition);
             }
 
-            definitions[name] = definition;
+            definitionMap[name] = definition;
         }
         
         /**
@@ -267,7 +268,7 @@ module drunk {
          * @return {IActionDefinition}
          */
         export function getDefinition(name: string) {
-            return definitions[name];
+            return definitionMap[name];
         }
     }
 
@@ -275,15 +276,15 @@ module drunk {
      * action绑定的实现
      */
     class ActionBinding {
-        
+
         element: HTMLElement;
         expression: string;
         viewModel: Component;
-        
+
         private _actions: string[];
 
         init() {
-            this._runCreatedActions();
+            this._runActionByType(Action.Type.created);
         }
 
         _parseDefinition(actionType: string) {
@@ -293,7 +294,7 @@ module drunk {
             else {
                 let str: string = this.viewModel.eval(this.expression, true);
                 this._actions = str.split(/\s+/);
-                
+
                 if (actionType === Action.Type.removed) {
                     this._actions.reverse();
                 }
@@ -304,59 +305,53 @@ module drunk {
             let element = this.element;
 
             if (this._actions.length < 2) {
-                return Action.setState(element, Action.run(element, this._actions[0], type));
+                let action = Action.run(element, this._actions[0], type);
+                action.promise.then(() => {
+                    Action.removeRef(element);
+                });
+                return Action.setCurrentAction(element, action);
             }
 
-            let state: IActionState = {};
+            let action: IAction = {};
             let actions = this._actions;
 
-            state.promise = new Promise((resolve) => {
+            action.promise = new Promise((resolve) => {
                 let index = 0;
                 let runAction = () => {
-                    let action = actions[index++];
+                    let detail = actions[index++];
 
-                    if (typeof action === 'undefined') {
-                        state.cancel = null;
-                        state.promise = null;
-                        Action.clearState(element);
+                    if (typeof detail === 'undefined') {
+                        action.cancel = null;
+                        action.promise = null;
+                        Action.removeRef(element);
                         return resolve();
                     }
 
-                    let actionState = Action.run(element, action, type);
+                    let actionState = Action.run(element, detail, type);
                     actionState.promise.then(runAction);
-                    state.cancel = actionState.cancel;
+                    action.cancel = actionState.cancel;
                 };
 
                 runAction();
             });
 
-            Action.setState(element, state);
+            Action.setCurrentAction(element, action);
         }
 
-        _cancelPrevAction() {
-            let state = Action.getState(this.element);
+        _runActionByType(type: string) {
+            let state = Action.getCurrentAction(this.element);
             if (state && state.cancel) {
                 state.cancel();
             }
-        }
-
-        _runCreatedActions() {
-            this._cancelPrevAction();
-            this._parseDefinition(Action.Type.created);
-            this._runActions(Action.Type.created);
-        }
-
-        _runRemovedActions() {
-            this._cancelPrevAction();
-            this._parseDefinition(Action.Type.removed);
-            this._runActions(Action.Type.removed);
+            this._parseDefinition(type);
+            this._runActions(type);
         }
 
         release() {
-            this._runRemovedActions();
+            this._runActionByType(Action.Type.removed);
             this._actions = null;
         }
     }
-    
+
     Binding.define('action', ActionBinding.prototype);
 }

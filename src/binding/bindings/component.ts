@@ -89,8 +89,23 @@ module drunk {
                     return;
                 }
                 
-                elementUtil.replace(template, element);
+                let container = document.createElement('div');
+                let isNodeArray = Array.isArray(template);
+                
+                if (isNodeArray) {
+                    (<Array<Node>>template).forEach((node) => {
+                        container.appendChild(node);
+                    });
+                }
+                else {
+                    container.appendChild(<Node>template);
+                }
+                
                 component.mount(template, viewModel, element);
+                
+                let nodeList = util.toArray(container.childNodes);
+                elementUtil.replace(nodeList, element);
+                container = null;
             }).catch(function (reason) {
                 console.warn("组件挂载失败,错误信息:\n", reason);
             });
@@ -104,7 +119,7 @@ module drunk {
             let func = parser.parse(expression);
             
             // 事件的处理函数,会生成一个$event对象,在表达式中可以访问该对象.
-            // $events对象有type和args两个字段,args字段是组件派发这个事件所传递的参数的列表
+            // $event对象有type和args两个字段,args字段是组件派发这个事件所传递的参数的列表
             let handler = function (...args: any[]) {
                 func.call(undefined, viewModel, {
                     type: eventName,

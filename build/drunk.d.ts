@@ -47,25 +47,51 @@ declare module drunk.config {
 }
 declare module drunk {
     /**
-     * 简单缓存类,提供简单的设置获取移除和清空功能
+     * LRU Cache类
      * @module drunk.cache
      * @class Cache
      */
     class Cache<T> {
         /**
-         * 清空所有缓存实例
-         * @method cleanup
-         * @static
-         */
-        static cleanup(): void;
-        /**
-         * 存储中心
-         * @property _store
+         * 缓存节点的hash表
+         * @property _cacheMap
          * @private
          * @type object
          */
-        private _store;
-        constructor();
+        private _cacheMap;
+        /**
+         * 缓存头部
+         * @property _head
+         * @private
+         * @type ICacheNode
+         */
+        private _head;
+        /**
+         * 缓存尾部
+         * @property _tail
+         * @private
+         * @type ICacheNode
+         */
+        private _tail;
+        /**
+         * 缓存容量
+         * @property _capacity
+         * @private
+         * @type number
+         */
+        private _capacity;
+        /**
+         * 缓存节点计数
+         * @property _count
+         * @private
+         * @type number
+         */
+        private _count;
+        /**
+         * @constructor
+         * @param  {number} capacity  容量值
+         */
+        constructor(capacity: number);
         /**
          * 根据key获取缓存的值
          * @method get
@@ -81,16 +107,19 @@ declare module drunk {
          */
         set(key: string, value: T): void;
         /**
-         * 移除对应字段的缓存
-         * @method remove
-         * @param  {string}  key  要移除的字段
+         * 把节点放到头部
+         * @method _putToHead
+         * @private
+         * @param  {ICacheNode}  cacheNode  缓存节点
          */
-        remove(key: string): void;
+        private _putToHead(cacheNode);
         /**
-         * 清空该实例下所有的缓存
-         * @method cleanup
+         * 移除最后一个节点
+         * @method _removeTail
+         * @private
+         * @return  {string}  返回移除的节点的key
          */
-        cleanup(): void;
+        private _removeTail();
     }
 }
 /**
@@ -836,7 +865,7 @@ declare module drunk {
         initialize(parentViewModel?: Component, placeholder?: HTMLElement): any;
         /**
          * 移除绑定并销毁
-         * @method teardown
+         * @method dispose
          */
         dispose(): void;
         /**
@@ -849,6 +878,30 @@ declare module drunk {
         setValue(value: any, isLocked?: boolean): void;
     }
     module Binding {
+        /**
+         * 获取元素的所有绑定实例
+         * @method getAllBindingsByElement
+         * @static
+         * @param  {Node}  element  元素节点
+         * @return {Array<Binding>}
+         */
+        function getAllBindingsByElement(element: Node): Binding[];
+        /**
+         * 添加引用
+         * @method setWeakRef
+         * @static
+         * @param  {Node}     element  元素节点
+         * @param  {Binding}  binding  绑定实例
+         */
+        function setWeakRef(element: Node, binding: Binding): void;
+        /**
+         * 移除引用
+         * @method removeWeakRef
+         * @static
+         * @param  {Node}     element  元素节点
+         * @param  {Binding}  binding  绑定实例
+         */
+        function removeWeakRef(element: Node, binding: Binding): void;
         /**
          * 绑定创建的优先级
          * @property Priority
@@ -1051,12 +1104,6 @@ declare module drunk.parser {
         (viewModel: ViewModel, value: any): any;
     }
     /**
-     * 清空parser所创建的缓存
-     * @method cleanupCache
-     * @static
-     */
-    function cleanupCache(): void;
-    /**
      * 解析表达式
      * @method parse
      * @static
@@ -1155,12 +1202,6 @@ declare module drunk.Template {
      * @returns {Promise}           一个 promise 对象promise的返回值为模板字符串
      */
     function load(urlOrId: string): Promise<string>;
-    /**
-     * 清空加载的模板字符串缓存
-     * @method cleanupCache
-     * @static
-     */
-    function cleanupCache(): void;
 }
 declare module drunk {
     interface IComponent {
@@ -1192,35 +1233,6 @@ declare module drunk {
         mounted: string;
     }
     class Component extends ViewModel {
-        /**
-         * 组件的事件名称
-         * @property Event
-         * @static
-         * @type  IComponentEvent
-         */
-        static Event: IComponentEvent;
-        /**
-         * 获取挂在在元素上的viewModel实例
-         * @method getByElement
-         * @static
-         * @param  {any}  element 元素
-         * @return {Component}    viewModel实例
-         */
-        static getByElement(element: any): Component;
-        /**
-         * 设置element与viewModel的引用
-         * @method setWeakRef
-         * @static
-         * @param  {any}        element    元素
-         * @param  {Component}  viewModel  组件实例
-         */
-        static setWeakRef<T extends Component>(element: any, viewModel: T): void;
-        /**
-         * 移除挂载引用
-         * @method removeMountedRef
-         * @param  {any}  element  元素
-         */
-        static removeWeakRef(element: any): void;
         /**
          * 组件是否已经挂在到元素上
          * @property _isMounted
@@ -1324,6 +1336,35 @@ declare module drunk {
         dispose(): void;
     }
     module Component {
+        /**
+         * 组件的事件名称
+         * @property Event
+         * @static
+         * @type  IComponentEvent
+         */
+        let Event: IComponentEvent;
+        /**
+         * 获取挂在在元素上的viewModel实例
+         * @method getByElement
+         * @static
+         * @param  {any}  element 元素
+         * @return {Component}    viewModel实例
+         */
+        function getByElement(element: any): Component;
+        /**
+         * 设置element与viewModel的引用
+         * @method setWeakRef
+         * @static
+         * @param  {any}        element    元素
+         * @param  {Component}  viewModel  组件实例
+         */
+        function setWeakRef<T extends Component>(element: any, viewModel: T): void;
+        /**
+         * 移除挂载引用
+         * @method removeMountedRef
+         * @param  {any}  element  元素
+         */
+        function removeWeakRef(element: any): void;
         /**
          * 根据组件名字获取组件构造函数
          * @method getComponentByName
@@ -1636,39 +1677,20 @@ declare module drunk {
     }
 }
 declare module drunk {
-    /**
-     * 动画定义接口
-     * @interface IActionDefinition
-     */
-    interface IActionDefinition {
-        /**
-         * 元素被添加进dom时调用的动画方法,会接收元素节点和一个动画完成的回调
-         * @method created
-         * @param  {HTMLElement}  element           元素节点
-         * @param  {function}     onDoneCallback    动画完成的回调
-         * @return {function}     返回一取消动画继续执行的方法
-         */
-        created(element: HTMLElement, onDoneCallback: Function): () => void;
-        /**
-         * 元素被移除时调用的动画方法,会接收元素节点和一个动画完成的回调
-         * @method removed
-         * @param  {HTMLElement}  element           元素节点
-         * @param  {function}     onDoneCallback    动画完成的回调
-         * @return {function}     返回一取消动画继续执行的方法
-         */
-        removed(element: HTMLElement, onDoneCallback: Function): () => void;
+    interface IActionExecutor {
+        (element: HTMLElement, ondone: Function): () => void;
     }
-    interface IActionState {
-        cancel?(): void;
-        promise?: Promise<any>;
+    interface IActionDefinition {
+        created: IActionExecutor;
+        removed: IActionExecutor;
     }
     interface IActionType {
         created: string;
         removed: string;
     }
-    interface IActionEvent {
-        created: string;
-        removed: string;
+    interface IAction {
+        cancel?(): void;
+        promise?: Promise<any>;
     }
     /**
      * 动画模块
@@ -1685,22 +1707,29 @@ declare module drunk {
             created: string;
             removed: string;
         };
-        function setState(element: HTMLElement, state: IActionState): void;
         /**
-         * 获取节点的动画状态
-         * @method getState
+         * 设置当前正在执行的action
+         * @method setCurrentAction
+         * @static
+         * @param  {HTMLElement}  element 元素节点
+         * @param  {IAction}      action  action描述
+         */
+        function setCurrentAction(element: HTMLElement, action: IAction): void;
+        /**
+         * 获取元素当前的action对象
+         * @method getCurrentAction
          * @static
          * @param  {HTMLElement}  element  元素节点
-         * @return {object}
+         * @return {IAction}
          */
-        function getState(element: HTMLElement): IActionState;
+        function getCurrentAction(element: HTMLElement): IAction;
         /**
-         * 清楚节点的动画状态缓存
-         * @method clearState
+         * 移除当前元素的动画引用
+         * @method removeRef
          * @static
          * @param  {HTMLElement} element
          */
-        function clearState(element: HTMLElement): void;
+        function removeRef(element: HTMLElement): void;
         /**
          * 执行动画,有限判断是否存在js动画,再判断是否是css动画
          * @method run
@@ -1709,7 +1738,7 @@ declare module drunk {
          * @param  {string}         detail     动画的信息,动画名或延迟时间
          * @param  {string}         type       动画的类型(created或removed)
          */
-        function run(element: HTMLElement, detail: string, type: string): IActionState;
+        function run(element: HTMLElement, detail: string, type: string): IAction;
         /**
          * 判断是否有动画正在处理,返回一个动画执行完成的promise对象
          * @method processAll

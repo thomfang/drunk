@@ -1,33 +1,68 @@
 module drunk {
-    
-    var cacheList: Cache<any>[] = [];
+
+    interface ICacheNode {
+        prev: ICacheNode;
+        next: ICacheNode;
+        key: string;
+        value: any;
+    }
     
     /**
-     * 简单缓存类,提供简单的设置获取移除和清空功能
+     * LRU Cache类
      * @module drunk.cache
      * @class Cache
      */
     export class Cache<T> {
         
         /**
-         * 清空所有缓存实例
-         * @method cleanup
-         * @static
-         */
-        static cleanup() {
-            cacheList.forEach(cache => cache.cleanup());
-        }
-        
-        /**
-         * 存储中心
-         * @property _store
+         * 缓存节点的hash表
+         * @property _cacheMap
          * @private
          * @type object
          */
-        private _store: {[key: string]: T} = {};
+        private _cacheMap: { [key: string]: ICacheNode } = {};
         
-        constructor() {
-            cacheList.push(this);
+        /**
+         * 缓存头部
+         * @property _head
+         * @private
+         * @type ICacheNode
+         */
+        private _head: ICacheNode = null;
+        
+        /**
+         * 缓存尾部
+         * @property _tail
+         * @private
+         * @type ICacheNode
+         */
+        private _tail: ICacheNode = null;
+        
+        /**
+         * 缓存容量
+         * @property _capacity
+         * @private
+         * @type number
+         */
+        private _capacity: number;
+        
+        /**
+         * 缓存节点计数
+         * @property _count
+         * @private
+         * @type number
+         */
+        private _count: number = 0;
+
+        /**
+         * @constructor
+         * @param  {number} capacity  容量值
+         */
+        constructor(capacity: number) {
+            if (capacity < 1) {
+                throw new Error('缓存容量必须大于0');
+            }
+            this._capacity = capacity;
         }
         
         /**
@@ -37,7 +72,15 @@ module drunk {
          * @return {T}
          */
         get(key: string): T {
-            return this._store[key];
+            let cacheNode = this._cacheMap[key];
+            
+            if (!cacheNode) {
+                return;
+            }
+            
+            this._putToHead(cacheNode);
+            
+            return cacheNode.value;
         }
         
         /**
@@ -47,26 +90,85 @@ module drunk {
          * @param  {any}     value 要缓存的值
          */
         set(key: string, value: T) {
-            this._store[key] = value;
+            let cacheNode = this._cacheMap[key];
+            
+            if (cacheNode) {
+                cacheNode.value = value;
+            }
+            else if (this._count < this._capacity) {
+                cacheNode = this._cacheMap[key] = {
+                    prev: null,
+                    next: null,
+                    key: key,
+                    value: value
+                };
+                
+                this._putToHead(cacheNode);
+                this._count += 1;
+            }
+            else {
+                cacheNode = this._cacheMap[key] = {
+                    prev: null,
+                    next: null,
+                    key: key,
+                    value: value
+                };
+                
+                this._putToHead(cacheNode);
+                this._removeTail();
+            }
         }
         
         /**
-         * 移除对应字段的缓存
-         * @method remove
-         * @param  {string}  key  要移除的字段
+         * 把节点放到头部
+         * @method _putToHead
+         * @private
+         * @param  {ICacheNode}  cacheNode  缓存节点
          */
-        remove(key: string) {
-            delete this._store[key];
+        private _putToHead(cacheNode: ICacheNode) {
+            if (cacheNode === this._head) {
+                return;
+            }
+            
+            if (cacheNode.prev != null) {
+                cacheNode.prev.next = cacheNode.next;
+            }
+            if (cacheNode.next != null) {
+                cacheNode.next.prev = cacheNode.prev;
+            }
+            
+            if (this._tail === cacheNode) {
+                this._tail = cacheNode.prev;
+            }
+            
+            cacheNode.prev = null;
+            cacheNode.next = this._head;
+            
+            if (this._head) {
+                this._head.prev = cacheNode;
+            }
+            else {
+                this._tail = cacheNode;
+            }
+            this._head = cacheNode;
         }
         
         /**
-         * 清空该实例下所有的缓存
-         * @method cleanup
+         * 移除最后一个节点
+         * @method _removeTail
+         * @private
+         * @return  {string}  返回移除的节点的key
          */
-        cleanup() {
-            Object.keys(this._store).forEach(key => {
-                delete this._store[key];
-            });
+        private _removeTail() {
+            let tail = this._tail;
+            
+            this._tail = tail.prev;
+            
+            tail.prev.next = tail.next;
+            tail.prev = null;
+            tail.next = null;
+            
+            delete this._cacheMap[tail.key];
         }
     }
 }

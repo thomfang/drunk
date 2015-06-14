@@ -101,23 +101,23 @@ module drunk {
             if (this.init) {
                 this.init(parentViewModel, placeholder);
             }
-            
+
             this._isActived = true;
-    
+
             if (!this.update) {
                 return;
             }
-            
+
             let expression = this.expression;
             let isInterpolate = this.isInterpolate;
             let viewModel = this.viewModel;
             let getter = parser.parseGetter(expression, isInterpolate);
-            
+
             if (!getter.dynamic) {
                 // 如果只是一个静态表达式直接取值更新
                 return this.update(viewModel.eval(expression, isInterpolate), undefined);
             }
-    
+
             this._update = (newValue, oldValue) => {
                 if (!this._isActived || this._isLocked) {
                     this._isLocked = false;
@@ -125,13 +125,13 @@ module drunk {
                 }
                 this.update(newValue, oldValue);
             }
-    
+
             this._unwatch = viewModel.watch(expression, this._update, this.isDeepWatch, true);
         }
         
         /**
          * 移除绑定并销毁
-         * @method teardown
+         * @method dispose
          */
         dispose(): void {
             if (!this._isActived) {
@@ -140,17 +140,17 @@ module drunk {
             if (this.release) {
                 this.release();
             }
-            
+
             if (this._unwatch) {
                 this._unwatch();
             }
             
-            Component.removeWeakRef(this.element);
-            
+            Binding.removeWeakRef(this.element, this);
+
             this._unwatch = null;
             this._update = null;
             this._isActived = false;
-            
+
             this.element = null;
             this.expression = null;
             this.viewModel = null;
@@ -186,7 +186,66 @@ module drunk {
          * @type Array<string>
          */
         let terminalBindings: string[] = [];
+        
         let definitions: { [name: string]: IBindingDefinition } = {};
+
+        let weakRefMap: { [id: number]: Array<Binding> } = {};
+        
+        /**
+         * 获取元素的所有绑定实例
+         * @method getAllBindingsByElement
+         * @static
+         * @param  {Node}  element  元素节点
+         * @return {Array<Binding>}
+         */
+        export function getAllBindingsByElement(element: Node) {
+            let id = util.uuid(element);
+            let bindings = weakRefMap[id];
+            
+            if (bindings) {
+                return bindings.slice();
+            }
+        }
+        
+        /**
+         * 添加引用
+         * @method setWeakRef
+         * @static
+         * @param  {Node}     element  元素节点
+         * @param  {Binding}  binding  绑定实例
+         */
+        export function setWeakRef(element: Node, binding: Binding) {
+            let id = util.uuid(element);
+            
+            if (!weakRefMap[id]) {
+                weakRefMap[id] = [];
+            }
+            
+            util.addArrayItem(weakRefMap[id], binding);
+        }
+        
+        /**
+         * 移除引用
+         * @method removeWeakRef
+         * @static
+         * @param  {Node}     element  元素节点
+         * @param  {Binding}  binding  绑定实例
+         */
+        export function removeWeakRef(element: Node, binding: Binding) {
+            let id = util.uuid(element);
+            let bindings = weakRefMap[id];
+            
+            if (!bindings) {
+                return;
+            }
+            
+            util.removeArrayItem(bindings, binding);
+            
+            if (bindings.length === 0) {
+                weakRefMap[id] = null;
+                Component.removeWeakRef(element);
+            }
+        }
         
         /**
          * 绑定创建的优先级
@@ -211,13 +270,13 @@ module drunk {
          */
         export function define<T extends IBindingDefinition>(name: string, definition: T): void {
             definition.priority = definition.priority || Priority.normal;
-            
+
             if (definition.isTerminal) {
                 setTernimalBinding(name, definition.priority);
             }
 
             if (definitions[name]) {
-                console.warn(name, "绑定已定义，原定义为：", definitions[name]);
+                console.warn(name, "绑定原已定义为：", definitions[name]);
                 console.warn("替换为", definition);
             }
 
@@ -259,6 +318,7 @@ module drunk {
             let binding: Binding = new Binding(viewModel, element, descriptor);
 
             util.addArrayItem(viewModel._bindings, binding);
+            Binding.setWeakRef(element, binding);
             Component.setWeakRef(element, viewModel);
 
             return binding.initialize(parentViewModel, placeholder);
