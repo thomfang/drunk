@@ -50,7 +50,7 @@
  */
 module drunk {
 
-    var reg = {
+    let reg = {
         semic: /\s*;\s*/,
         statement: /(\w+):\s*(.+)/
     };
@@ -58,13 +58,13 @@ module drunk {
     Binding.define("on", {
 
         init() {
-            var exp = this.expression;
+            let exp = this.expression;
             this.events = exp.split(reg.semic).map(str => this.parseEvent(str));
         },
 
         parseEvent(str: string) {
-            var matches = str.match(reg.statement);
-            var prefix = config.prefix;
+            let matches = str.match(reg.statement);
+            let prefix = config.prefix;
 
             console.assert(matches !== null,
                 "非法的 " + prefix + 'on 绑定表达式, ', str ,'正确的用法如下:\n',
@@ -73,10 +73,10 @@ module drunk {
                 prefix + 'on="eventType: callback($event, $el)"\n'
             );
 
-            var self = this;
-            var type = matches[1];
-            var expr = matches[2];
-            var func = parser.parse(expr.trim());
+            let self = this;
+            let type = matches[1];
+            let expr = matches[2];
+            let func = parser.parse(expr.trim());
 
             function handler(e: Event) {
                 func.call(null, self.viewModel, e, self.element);

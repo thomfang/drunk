@@ -30,7 +30,7 @@ module drunk {
     Binding.define("model", {
 
         init() {
-            var tag = this.element.tagName.toLowerCase();
+            let tag = this.element.tagName.toLowerCase();
             switch (tag) {
                 case "input":
                     this.initInput();
@@ -48,7 +48,7 @@ module drunk {
         },
 
         initInput() {
-            var type = this.element.type;
+            let type = this.element.type;
             switch (type) {
                 case "checkbox":
                     this.initCheckbox();

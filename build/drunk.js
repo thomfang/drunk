@@ -198,7 +198,7 @@ var drunk;
                     }
                     ended = true;
                 };
-                for (var i = 0, thenable; i < len; i++) {
+                for (var i = 0, thenable = void 0; i < len; i++) {
                     thenable = iterable[i];
                     if (!isThenable(thenable)) {
                         resolve(thenable);
@@ -3487,7 +3487,7 @@ var drunk;
         }
         element.setAttribute(name, value);
     }
-    var AttributeBindingDefinition = {
+    drunk.Binding.define('attr', {
         update: function (newValue) {
             var _this = this;
             if (this.attrName) {
@@ -3500,8 +3500,7 @@ var drunk;
                 });
             }
         }
-    };
-    drunk.Binding.define('attr', AttributeBindingDefinition);
+    });
 })(drunk || (drunk = {}));
 /// <reference path="../binding" />
 /**
@@ -4486,7 +4485,7 @@ var drunk;
         }
         Action.getCurrentAction = getCurrentAction;
         /**
-         * 移除当前元素的动画引用
+         * 移除当前元素的action引用
          * @method removeRef
          * @static
          * @param  {HTMLElement} element
@@ -4497,12 +4496,12 @@ var drunk;
         }
         Action.removeRef = removeRef;
         /**
-         * 执行动画,有限判断是否存在js动画,再判断是否是css动画
+         * 执行单个action,优先判断是否存在js定义的action,再判断是否是css动画
          * @method run
          * @static
          * @param  {HTMLElement}    element    元素对象
-         * @param  {string}         detail     动画的信息,动画名或延迟时间
-         * @param  {string}         type       动画的类型(created或removed)
+         * @param  {string}         detail     action的信息,动画名或延迟时间
+         * @param  {string}         type       action的类型(created或removed)
          */
         function run(element, detail, type) {
             if (!isNaN(Number(detail))) {
@@ -4514,7 +4513,7 @@ var drunk;
                 // 如果有通过js注册的action,优先执行
                 return runJavascriptAction(element, definition, type);
             }
-            return runCSSAnimation(element, detail, type);
+            return runMaybeCSSAnimation(element, detail, type);
         }
         Action.run = run;
         function wait(time) {
@@ -4534,15 +4533,18 @@ var drunk;
             var action = {};
             var executor = definition[type];
             action.promise = new drunk.Promise(function (resolve) {
-                action.cancel = executor(element, function () {
-                    action.cancel = null;
-                    action.promise = null;
+                var cancel = executor(element, function () {
                     resolve();
                 });
+                action.cancel = function () {
+                    action.cancel = null;
+                    action.promise = null;
+                    cancel();
+                };
             });
             return action;
         }
-        function runCSSAnimation(element, detail, type) {
+        function runMaybeCSSAnimation(element, detail, type) {
             detail = detail ? detail + '-' : drunk.config.prefix;
             var action = {};
             var className = detail + type;
@@ -4555,6 +4557,7 @@ var drunk;
                 element.classList.add(className);
                 var animationExist = style[getPropertyName('animationDuration')] !== '0s';
                 if (!transitionExist && !animationExist) {
+                    // 如果为设置动画直接返回resolve状态
                     return resolve();
                 }
                 element.style[getPropertyName('animationFillMode')] = 'both';
@@ -4584,19 +4587,19 @@ var drunk;
             return action;
         }
         /**
-         * 判断是否有动画正在处理,返回一个动画执行完成的promise对象
+         * 判断元素是否正在处理action,返回promise对象
          * @method processAll
          * @static
          * @param  {HTMLElement}  element 元素节点
          * @return {Promise}
          */
         function processAll(element) {
-            var state = getCurrentAction(element);
-            return drunk.Promise.resolve(state && state.promise);
+            var currentAction = getCurrentAction(element);
+            return drunk.Promise.resolve(currentAction && currentAction.promise);
         }
         Action.processAll = processAll;
         /**
-         * 注册一个js动画
+         * 注册一个js action
          * @method define
          * @param  {string}              name        动画名称
          * @param  {IActionDefinition}   definition  动画定义
@@ -4644,36 +4647,40 @@ var drunk;
         ActionBinding.prototype._runActions = function (type) {
             var element = this.element;
             if (this._actions.length < 2) {
-                var action_1 = Action.run(element, this._actions[0], type);
-                action_1.promise.then(function () {
+                var action = Action.run(element, this._actions[0], type);
+                action.promise.then(function () {
                     Action.removeRef(element);
                 });
-                return Action.setCurrentAction(element, action_1);
+                return Action.setCurrentAction(element, action);
             }
-            var action = {};
+            var actionQueue = {};
             var actions = this._actions;
-            action.promise = new drunk.Promise(function (resolve) {
+            actionQueue.promise = new drunk.Promise(function (resolve) {
                 var index = 0;
                 var runAction = function () {
                     var detail = actions[index++];
                     if (typeof detail === 'undefined') {
-                        action.cancel = null;
-                        action.promise = null;
+                        actionQueue.cancel = null;
+                        actionQueue.promise = null;
                         Action.removeRef(element);
                         return resolve();
                     }
-                    var actionState = Action.run(element, detail, type);
-                    actionState.promise.then(runAction);
-                    action.cancel = actionState.cancel;
+                    var currentAction = Action.run(element, detail, type);
+                    currentAction.promise.then(runAction);
+                    actionQueue.cancel = function () {
+                        currentAction.cancel();
+                        actionQueue.cancel = null;
+                        actionQueue.promise = null;
+                    };
                 };
                 runAction();
             });
-            Action.setCurrentAction(element, action);
+            Action.setCurrentAction(element, actionQueue);
         };
         ActionBinding.prototype._runActionByType = function (type) {
-            var state = Action.getCurrentAction(this.element);
-            if (state && state.cancel) {
-                state.cancel();
+            var currentAction = Action.getCurrentAction(this.element);
+            if (currentAction && currentAction.cancel) {
+                currentAction.cancel();
             }
             this._parseDefinition(type);
             this._runActions(type);

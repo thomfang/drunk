@@ -1724,23 +1724,23 @@ declare module drunk {
          */
         function getCurrentAction(element: HTMLElement): IAction;
         /**
-         * 移除当前元素的动画引用
+         * 移除当前元素的action引用
          * @method removeRef
          * @static
          * @param  {HTMLElement} element
          */
         function removeRef(element: HTMLElement): void;
         /**
-         * 执行动画,有限判断是否存在js动画,再判断是否是css动画
+         * 执行单个action,优先判断是否存在js定义的action,再判断是否是css动画
          * @method run
          * @static
          * @param  {HTMLElement}    element    元素对象
-         * @param  {string}         detail     动画的信息,动画名或延迟时间
-         * @param  {string}         type       动画的类型(created或removed)
+         * @param  {string}         detail     action的信息,动画名或延迟时间
+         * @param  {string}         type       action的类型(created或removed)
          */
         function run(element: HTMLElement, detail: string, type: string): IAction;
         /**
-         * 判断是否有动画正在处理,返回一个动画执行完成的promise对象
+         * 判断元素是否正在处理action,返回promise对象
          * @method processAll
          * @static
          * @param  {HTMLElement}  element 元素节点
@@ -1748,7 +1748,7 @@ declare module drunk {
          */
         function processAll(element: HTMLElement): Promise<any>;
         /**
-         * 注册一个js动画
+         * 注册一个js action
          * @method define
          * @param  {string}              name        动画名称
          * @param  {IActionDefinition}   definition  动画定义

@@ -18,10 +18,6 @@
  */
 module drunk {
     
-    interface IAttributeBindingDefinition extends IBindingDefinition {
-        attrName?: string;
-    }
-    
     function setAttribute(element: HTMLElement, name: string, value: any) {
         if (name === 'src' || name === 'href') {
             value = value == null ? '' : value;
@@ -29,7 +25,7 @@ module drunk {
         element.setAttribute(name, value);
     }
     
-    var AttributeBindingDefinition: IAttributeBindingDefinition = {
+    Binding.define('attr', {
         
         update(newValue: any) {
             if (this.attrName) {
@@ -42,7 +38,5 @@ module drunk {
                 });
             }
         }
-    };
-    
-    Binding.define('attr', AttributeBindingDefinition);
+    });
 }

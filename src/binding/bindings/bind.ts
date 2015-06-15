@@ -31,7 +31,7 @@ module drunk {
         update(newValue: any) {
             newValue = newValue == null ? '' : newValue;
 
-            var el = this.element;
+            let el = this.element;
 
             if (el.nodeType === 3) {
                 el.nodeValue = newValue;

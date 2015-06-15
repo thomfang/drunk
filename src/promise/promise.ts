@@ -69,10 +69,10 @@ module drunk {
     }
 
     function handleThenable<R>(thenable: any, promise: Promise<R>) {
-        var toResolve = (value: any) => {
+        let toResolve = (value: any) => {
             resolvePromise(promise, value);
         };
-        var toReject = (reason: any) => {
+        let toReject = (reason: any) => {
             rejectPromise(promise, reason);
         };
         
@@ -99,14 +99,14 @@ module drunk {
         promise._value = value;
 
         nextTick(() => {
-            var arr = promise._listeners;
-            var len = arr.length;
+            let arr = promise._listeners;
+            let len = arr.length;
 
             if (!len) {
                 return;
             }
 
-            for (var i = 0; i < len; i += 3) {
+            for (let i = 0; i < len; i += 3) {
                 invokeCallback(state, arr[i], arr[i + state], value);
             }
 
@@ -119,9 +119,9 @@ module drunk {
     }
 
     function invokeCallback<R>(state: PromiseState, promise: Promise<R>, callback: () => void, value: any) {
-        var hasCallback = typeof callback === 'function';
-        var done = false;
-        var fail = false;
+        let hasCallback = typeof callback === 'function';
+        let done = false;
+        let fail = false;
 
         if (hasCallback) {
             try {
@@ -162,8 +162,8 @@ module drunk {
     // 第二个 item 为fulfillment 回调
     // 第三个 item 为 rejection 回调
     function subscribe<R>(promise: Promise<R>, subPromise: Promise<R>, onFulfillment: (value: any) => any, onRejection: (reason: any) => any) {
-        var arr = promise._listeners;
-        var len = arr.length;
+        let arr = promise._listeners;
+        let len = arr.length;
 
         arr[len + PromiseState.PENDING] = subPromise;
         arr[len + PromiseState.RESOLVED] = onFulfillment;
@@ -174,12 +174,12 @@ module drunk {
 
         static all<R>(iterable: any[]): Promise<R[]> {
             return new Promise((resolve, reject) => {
-                var len: number = iterable.length;
-                var count: number = 0;
-                var result: any[] = [];
-                var rejected: boolean = false;
+                let len: number = iterable.length;
+                let count: number = 0;
+                let result: any[] = [];
+                let rejected: boolean = false;
 
-                var check = (i: number, value: any) => {
+                let check = (i: number, value: any) => {
                     result[i] = value;
 
                     if (++count === len) {
@@ -222,10 +222,10 @@ module drunk {
 
         static race<R>(iterable: any[]): Promise<R> {
             return new Promise((resolve, reject) => {
-                var len = iterable.length;
-                var ended = false;
+                let len = iterable.length;
+                let ended = false;
 
-                var check = (value: any, rejected?: boolean) => {
+                let check = (value: any, rejected?: boolean) => {
                     if (rejected) {
                         reject(value);
                     }
@@ -235,7 +235,7 @@ module drunk {
                     ended = true;
                 };
 
-                for (var i = 0, thenable: any; i < len; i++) {
+                for (let i = 0, thenable: any; i < len; i++) {
                     thenable = iterable[i];
 
                     if (!isThenable(thenable)) {
@@ -262,7 +262,7 @@ module drunk {
         }
 
         static resolve<R>(value?: R | IThenable<R>): Promise<R> {
-            var promise = new Promise(noop);
+            let promise = new Promise(noop);
 
             if (!isThenable(value)) {
                 promise._state = PromiseState.RESOLVED;
@@ -275,7 +275,7 @@ module drunk {
         }
 
         static reject<R>(reason?: R | IThenable<R>): Promise<R> {
-            var promise = new Promise(noop);
+            let promise = new Promise(noop);
 
             if (!isThenable(reason)) {
                 promise._state = PromiseState.REJECTED;
@@ -303,8 +303,8 @@ module drunk {
         }
 
         then<U>(onFulfillment?: (value: R) => U | IThenable<U>, onRejection?: (reason: any) => U | IThenable<U>): Promise<U> {
-            var state = this._state;
-            var value = this._value;
+            let state = this._state;
+            let value = this._value;
 
             if (state === PromiseState.RESOLVED && !onFulfillment) {
                 return Promise.resolve(value);
@@ -313,10 +313,10 @@ module drunk {
                 return Promise.reject(value);
             }
 
-            var promise = new Promise(noop);
+            let promise = new Promise(noop);
 
             if (state) {
-                var callback = arguments[state - 1];
+                let callback = arguments[state - 1];
 
                 nextTick(() => {
                     invokeCallback(state, promise, callback, value);
