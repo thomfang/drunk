@@ -516,6 +516,7 @@ var drunk;
                 Object.keys(target).forEach(function (name) {
                     ret[name] = deepClone(target[name]);
                 });
+                return ret;
             }
             return target;
         }

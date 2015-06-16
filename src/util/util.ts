@@ -76,6 +76,7 @@ module drunk.util {
             Object.keys(target).forEach(name => {
                 ret[name] = deepClone(target[name]);
             });
+            return ret;
         }
         return target;
     }
