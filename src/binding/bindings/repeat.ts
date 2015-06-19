@@ -84,15 +84,13 @@ module drunk {
 
             items.forEach((item, index) => {
                 viewModel = newVms[index] = this._getRepeatItem(item, index === last);
+                viewModel._isUsed = true;
 
                 if (isEmpty) {
                     if (!fragment) {
                         fragment = document.createDocumentFragment();
                     }
                     fragment.appendChild(viewModel.element);
-                }
-                else {
-                    viewModel._isUsed = true;
                 }
             });
 
@@ -323,8 +321,8 @@ module drunk {
          * @protected
          */
         protected __proxyModel(model: IModel) {
-            Object.keys(model).forEach((name) => {
-                util.proxy(this, name, model);
+            Object.keys(model).forEach((property) => {
+                util.proxy(this, property, model);
             });
 
             if (!this._models) {
@@ -340,8 +338,8 @@ module drunk {
          * @override
          */
         proxy(property: string) {
-            if (util.proxy(this, name, this._model)) {
-                this.parent.proxy(name);
+            if (util.proxy(this, property, this._model)) {
+                this.parent.proxy(property);
             }
         }
         
@@ -350,21 +348,21 @@ module drunk {
          * @override
          * @method __getHandler
          */
-        __getHandler(name: string) {
+        __getHandler(handlerName: string) {
             let context: any = this;
-            let handler = this[name];
+            let handler = this[handlerName];
 
             while (!handler && context.parent) {
                 context = context.parent;
-                handler = context[name];
+                handler = context[handlerName];
             }
 
             if (!handler) {
-                if (typeof window[name] !== 'function') {
-                    throw new Error("Handler not found: " + name);
+                if (typeof window[handlerName] !== 'function') {
+                    throw new Error("Handler not found: " + handlerName);
                 }
 
-                handler = window[name];
+                handler = window[handlerName];
                 context = window;
             }
 

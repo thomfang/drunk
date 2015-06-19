@@ -752,7 +752,7 @@ var drunk;
             return this;
         };
         /**
-         * 获取指定事件类型的所有listener
+         * 获取指定事件类型的所有listener回调
          * @method listeners
          * @param  {string}  type  事件类型
          * @return {Array<IEventListener>}
@@ -1829,7 +1829,7 @@ var drunk;
             if (isArray) {
                 executor = compileNodeList(node);
             }
-            else if (!isTerminal && node.tagName !== 'SCRIPT' && node.hasChildNodes()) {
+            else if (!isTerminal && isNeedCompileChild(node)) {
                 childExecutor = compileNodeList(node.childNodes);
             }
             return function (viewModel, element, parentViewModel, placeholder) {
@@ -1872,7 +1872,7 @@ var drunk;
                 var executor;
                 var childExecutor;
                 executor = compileNode(node);
-                if (!(executor && executor.isTerminal) && node.hasChildNodes()) {
+                if (!(executor && executor.isTerminal) && isNeedCompileChild(node)) {
                     childExecutor = compileNodeList(node.childNodes);
                 }
                 executors.push(executor, childExecutor);
@@ -1898,16 +1898,24 @@ var drunk;
                 };
             }
         }
+        // 判断是否可以编译childNodes
+        function isNeedCompileChild(node) {
+            return node.tagName !== 'SCRIPT' && node.hasChildNodes();
+        }
         // 编译元素的绑定并创建绑定描述符
         function compileElement(element) {
             var executor;
+            var tagName = element.tagName.toLowerCase();
+            if (tagName.indexOf('-') > 0) {
+                element.setAttribute(drunk.config.prefix + 'component', tagName);
+            }
             if (element.hasAttributes()) {
                 // 如果元素上有属性， 先判断是否存在终止型绑定指令
                 // 如果不存在则判断是否有普通的绑定指令
                 executor = processTerminalBinding(element) || processNormalBinding(element);
             }
             if (element.tagName === 'TEXTAREA') {
-                // 如果是textarea， 它的值有可能存在插值表达式， 比如 "the textarea value with {{some_var}}"
+                // 如果是textarea， 它的值有可能存在插值表达式， 比如 "the textarea value with {{some_let}}"
                 // 第一次进行绑定先换成插值表达式
                 var originExecutor = executor;
                 executor = function (viewModel, textarea) {
@@ -2343,15 +2351,15 @@ var drunk;
          * 代理某个属性到最新的IModel上
          *
          * @method proxy
-         * @param  {string}  name  需要代理的属性名
+         * @param  {string}  property  需要代理的属性名
          */
-        ViewModel.prototype.proxy = function (name) {
-            var value = this[name];
+        ViewModel.prototype.proxy = function (property) {
+            var value = this[property];
             if (value === undefined) {
-                value = this._model[name];
+                value = this._model[property];
             }
-            if (drunk.util.proxy(this, name, this._model)) {
-                this._model.setProperty(name, value);
+            if (drunk.util.proxy(this, property, this._model)) {
+                this._model.setProperty(property, value);
             }
         };
         /**
@@ -3123,7 +3131,7 @@ var drunk;
          * 属性初始化
          * @method __init
          * @override
-         * @private
+         * @protected
          * @param  {IModel}  [model]  model对象
          */
         Component.prototype.__init = function (model) {
@@ -3191,14 +3199,16 @@ var drunk;
         /**
          * 把组件挂载到元素上
          * @method mount
-         * @param {Node|Node[]} element 要挂在的节点或节点数组
+         * @param {Node|Node[]} element         要挂在的节点或节点数组
+         * @param {Component}   ownerViewModel  父级viewModel实例
+         * @param {HTMLElement} placeholder     组件占位标签
          */
-        Component.prototype.mount = function (element, parentViewModel, placeholder) {
+        Component.prototype.mount = function (element, ownerViewModel, placeholder) {
             console.assert(!this._isMounted, "该组件已有挂载到", this.element);
             if (Component.getByElement(element)) {
                 return console.error("Component#mount(element): 尝试挂载到一个已经挂载过组件实例的元素节点", element);
             }
-            drunk.Template.compile(element)(this, element, parentViewModel, placeholder);
+            drunk.Template.compile(element)(this, element, ownerViewModel, placeholder);
             Component.setWeakRef(element, this);
             this.element = element;
             this._isMounted = true;
@@ -4109,14 +4119,12 @@ var drunk;
             var fragment;
             items.forEach(function (item, index) {
                 viewModel = newVms[index] = _this._getRepeatItem(item, index === last);
+                viewModel._isUsed = true;
                 if (isEmpty) {
                     if (!fragment) {
                         fragment = document.createDocumentFragment();
                     }
                     fragment.appendChild(viewModel.element);
-                }
-                else {
-                    viewModel._isUsed = true;
                 }
             });
             if (isEmpty) {
@@ -4307,8 +4315,8 @@ var drunk;
          */
         RepeatItem.prototype.__proxyModel = function (model) {
             var _this = this;
-            Object.keys(model).forEach(function (name) {
-                drunk.util.proxy(_this, name, model);
+            Object.keys(model).forEach(function (property) {
+                drunk.util.proxy(_this, property, model);
             });
             if (!this._models) {
                 this._models = [];
@@ -4321,8 +4329,8 @@ var drunk;
          * @override
          */
         RepeatItem.prototype.proxy = function (property) {
-            if (drunk.util.proxy(this, name, this._model)) {
-                this.parent.proxy(name);
+            if (drunk.util.proxy(this, property, this._model)) {
+                this.parent.proxy(property);
             }
         };
         /**
@@ -4330,18 +4338,18 @@ var drunk;
          * @override
          * @method __getHandler
          */
-        RepeatItem.prototype.__getHandler = function (name) {
+        RepeatItem.prototype.__getHandler = function (handlerName) {
             var context = this;
-            var handler = this[name];
+            var handler = this[handlerName];
             while (!handler && context.parent) {
                 context = context.parent;
-                handler = context[name];
+                handler = context[handlerName];
             }
             if (!handler) {
-                if (typeof window[name] !== 'function') {
-                    throw new Error("Handler not found: " + name);
+                if (typeof window[handlerName] !== 'function') {
+                    throw new Error("Handler not found: " + handlerName);
                 }
-                handler = window[name];
+                handler = window[handlerName];
                 context = window;
             }
             return function () {

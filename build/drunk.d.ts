@@ -292,7 +292,7 @@ declare module drunk {
          */
         emit(type: string, ...args: any[]): EventEmitter;
         /**
-         * 获取指定事件类型的所有listener
+         * 获取指定事件类型的所有listener回调
          * @method listeners
          * @param  {string}  type  事件类型
          * @return {Array<IEventListener>}
@@ -1023,9 +1023,9 @@ declare module drunk {
          * 代理某个属性到最新的IModel上
          *
          * @method proxy
-         * @param  {string}  name  需要代理的属性名
+         * @param  {string}  property  需要代理的属性名
          */
-        proxy(name: string): void;
+        proxy(property: string): void;
         /**
          * 执行表达式并返回结果
          *
@@ -1313,7 +1313,7 @@ declare module drunk {
          * 属性初始化
          * @method __init
          * @override
-         * @private
+         * @protected
          * @param  {IModel}  [model]  model对象
          */
         protected __init(model?: IModel): void;
@@ -1326,9 +1326,11 @@ declare module drunk {
         /**
          * 把组件挂载到元素上
          * @method mount
-         * @param {Node|Node[]} element 要挂在的节点或节点数组
+         * @param {Node|Node[]} element         要挂在的节点或节点数组
+         * @param {Component}   ownerViewModel  父级viewModel实例
+         * @param {HTMLElement} placeholder     组件占位标签
          */
-        mount<T extends Component>(element: Node | Node[], parentViewModel?: T, placeholder?: HTMLElement): void;
+        mount<T extends Component>(element: Node | Node[], ownerViewModel?: T, placeholder?: HTMLElement): void;
         /**
          * 释放组件
          * @method dispose
@@ -1395,7 +1397,7 @@ declare module drunk {
          * @param  {string}   name          组件名
          * @param  {function} componentCtor 组件类
          */
-        function register<T>(name: string, componentCtor: IComponentContructor<T>): void;
+        function register(name: string, componentCtor: any): void;
     }
 }
 /**
@@ -1666,7 +1668,7 @@ declare module drunk {
          * @override
          * @method __getHandler
          */
-        __getHandler(name: string): (...args: any[]) => any;
+        __getHandler(handlerName: string): (...args: any[]) => any;
         /**
          * 把数据转成列表,如果为空则转成空数组
          * @method toList

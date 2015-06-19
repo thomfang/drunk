@@ -131,7 +131,7 @@ module drunk {
         }
         
         /**
-         * 获取指定事件类型的所有listener
+         * 获取指定事件类型的所有listener回调
          * @method listeners
          * @param  {string}  type  事件类型
          * @return {Array<IEventListener>}

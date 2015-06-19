@@ -86,6 +86,33 @@ describe("Template", function () {
             expect(vm._bindings.length).toBe(1);
             expect(vm._bindings[0].name).toBe("bind");
         });
+        
+        it("compile a custom component", function () {
+            drunk.Component.define('todo-app', {});
+            var element = elementUtil.create("<todo-app template='<div></div>'></todo-app>");
+
+            var bindExecutor = compile(element);
+
+            expect(typeof bindExecutor).toBe("function");
+
+            bindExecutor(vm, element);
+
+            expect(vm._bindings.length).toBe(1);
+            expect(vm._bindings[0].name).toBe("component");
+        });
+        
+        it("should only compile one terminal binding when two terminal bindings exist", function () {
+            var element = elementUtil.create("<todo-app drunk-repeat='i in 5' template='<div></div>'></todo-app>");
+
+            var bindExecutor = compile(element);
+
+            expect(typeof bindExecutor).toBe("function");
+
+            bindExecutor(vm, element);
+
+            expect(vm._bindings.length).toBe(1);
+            expect(vm._bindings[0].name).toBe("repeat");
+        });
 
         it("should return unbind bindings function", function () {
             var element = elementUtil.create("<div drunk-class='item' style='color:{{color}};' drunk-on='click:a++'></div>");

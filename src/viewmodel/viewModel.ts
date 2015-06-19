@@ -102,17 +102,17 @@ module drunk {
          * 代理某个属性到最新的IModel上
          * 
          * @method proxy
-         * @param  {string}  name  需要代理的属性名
+         * @param  {string}  property  需要代理的属性名
          */
-        proxy(name: string): void {
-            var value = this[name];
+        proxy(property: string): void {
+            var value = this[property];
         
             if (value === undefined) {
-                value = this._model[name];
+                value = this._model[property];
             }
             
-            if (util.proxy(this, name, this._model)) {
-                this._model.setProperty(name, value);
+            if (util.proxy(this, property, this._model)) {
+                this._model.setProperty(property, value);
             }
         }
         

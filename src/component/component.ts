@@ -113,7 +113,7 @@ module drunk {
          * 属性初始化
          * @method __init
          * @override
-         * @private
+         * @protected
          * @param  {IModel}  [model]  model对象
          */
         protected __init(model?: IModel) {
@@ -184,7 +184,7 @@ module drunk {
             }
 
             templateUrl = this.templateUrl;
-
+            
             if (typeof templateUrl === 'string') {
                 return Template.load(templateUrl).then(elementUtil.create).catch(onFailed);
             }
@@ -195,16 +195,18 @@ module drunk {
         /**
          * 把组件挂载到元素上
          * @method mount
-         * @param {Node|Node[]} element 要挂在的节点或节点数组
+         * @param {Node|Node[]} element         要挂在的节点或节点数组
+         * @param {Component}   ownerViewModel  父级viewModel实例
+         * @param {HTMLElement} placeholder     组件占位标签
          */
-        mount<T extends Component>(element: Node | Node[], parentViewModel?: T, placeholder?: HTMLElement) {
+        mount<T extends Component>(element: Node | Node[], ownerViewModel?: T, placeholder?: HTMLElement) {
             console.assert(!this._isMounted, "该组件已有挂载到", this.element);
 
             if (Component.getByElement(element)) {
                 return console.error("Component#mount(element): 尝试挂载到一个已经挂载过组件实例的元素节点", element);
             }
 
-            Template.compile(element)(this, element, parentViewModel, placeholder);
+            Template.compile(element)(this, element, ownerViewModel, placeholder);
 
             Component.setWeakRef(element, this);
 
@@ -365,7 +367,7 @@ module drunk {
          * @param  {string}   name          组件名
          * @param  {function} componentCtor 组件类
          */
-        export function register<T>(name: string, componentCtor: IComponentContructor<T>) {
+        export function register(name: string, componentCtor: any) {
             console.assert(name.indexOf('-') > -1, name, '组件明必须在中间带"-"字符,如"custom-view"');
 
             if (definedComponentMap[name] != null) {

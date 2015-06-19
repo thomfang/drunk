@@ -1,0 +1,63 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>drunk.Component - demo</title>
+        <script src="../build/drunk.js"></script>
+        
+        <style>
+            .hide {display: none;}
+            .strike {text-decoration: line-through;}
+        </style>
+    </head>
+    <body>
+        
+        <input type="text" drunk-model="content" drunk-on='keyup: $event.keyCode === 13 && addTodo()'/>
+        
+        <todo-item drunk-repeat="todo in todoList" content="{{todo.title}}" completed="{{todo.completed}}">
+        </todo-item>
+        
+        <script type='text/tpl' id="todo-item">
+            <p drunk-class="{strike: completed}">
+                <button drunk-on="click: completed = !completed">{{completed ? '取消' : '完成'}}</button>
+                {{content}}
+            </p>
+        </script>
+        
+        <script>
+            
+            drunk.Component.define('todo-item', {   
+                templateUrl: 'todo-item'
+            });
+            
+            var TodoApp = drunk.Component.extend({
+                
+                init: function () {
+                    this.todoList = [];
+                },
+                
+                handlers: {
+                    
+                    addTodo: function () {
+                        if (!this.content) {
+                            return;
+                        }
+                        
+                        this.todoList.push({
+                            title: this.content,
+                            completed: false
+                        });
+                        
+                        this.content = '';
+                    }
+                }
+            });
+            
+            // drunk.config.debug = true;
+            
+            var app = new TodoApp();
+            
+            app.mount(document.body);
+        </script>
+    </body>
+</html>
