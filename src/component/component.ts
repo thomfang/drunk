@@ -94,19 +94,20 @@ module drunk {
         watchers: { [expression: string]: (newValue: any, oldValue: any) => void };
         
         /**
-         * 实例创建时会调用的初始化方法
-         * @property init
-         * @type function
-         */
-        init: () => void;
-        
-        /**
          * 组件类，继承ViewModel类，实现了模板的准备和数据的绑定
          * @class Component
          * @constructor
          */
         constructor(model?: IModel) {
             super(model);
+        }
+        
+        /**
+         * 实例创建时会调用的初始化方法,派生类可覆盖该方法
+         * @method init
+         */
+        init() {
+            
         }
 
         /**
@@ -126,15 +127,6 @@ module drunk {
             if (this.handlers) {
                 // 如果配置了事件处理函数
                 util.extend(this, this.handlers);
-            }
-            if (this.init) {
-                this.init();
-            }
-            if (this.watchers) {
-                // 如果配置了监控器
-                Object.keys(this.watchers).forEach((expression) => {
-                    this.watch(expression, this.watchers[expression]);
-                });
             }
 
             if (this.data) {
@@ -157,6 +149,15 @@ module drunk {
                         reason => {
                             console.warn("数据准备失败:", reason);
                         });
+                });
+            }
+            
+            this.init();
+            
+            if (this.watchers) {
+                // 如果配置了监控器
+                Object.keys(this.watchers).forEach((expression) => {
+                    this.watch(expression, this.watchers[expression]);
                 });
             }
         }

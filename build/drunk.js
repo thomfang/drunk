@@ -3128,6 +3128,12 @@ var drunk;
             _super.call(this, model);
         }
         /**
+         * 实例创建时会调用的初始化方法,派生类可覆盖该方法
+         * @method init
+         */
+        Component.prototype.init = function () {
+        };
+        /**
          * 属性初始化
          * @method __init
          * @override
@@ -3145,15 +3151,6 @@ var drunk;
                 // 如果配置了事件处理函数
                 drunk.util.extend(this, this.handlers);
             }
-            if (this.init) {
-                this.init();
-            }
-            if (this.watchers) {
-                // 如果配置了监控器
-                Object.keys(this.watchers).forEach(function (expression) {
-                    _this.watch(expression, _this.watchers[expression]);
-                });
-            }
             if (this.data) {
                 Object.keys(this.data).forEach(function (name) {
                     var data = _this.data[name];
@@ -3169,6 +3166,13 @@ var drunk;
                     }, function (reason) {
                         console.warn("数据准备失败:", reason);
                     });
+                });
+            }
+            this.init();
+            if (this.watchers) {
+                // 如果配置了监控器
+                Object.keys(this.watchers).forEach(function (expression) {
+                    _this.watch(expression, _this.watchers[expression]);
                 });
             }
         };

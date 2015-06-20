@@ -1298,17 +1298,16 @@ declare module drunk {
             [expression: string]: (newValue: any, oldValue: any) => void;
         };
         /**
-         * 实例创建时会调用的初始化方法
-         * @property init
-         * @type function
-         */
-        init: () => void;
-        /**
          * 组件类，继承ViewModel类，实现了模板的准备和数据的绑定
          * @class Component
          * @constructor
          */
         constructor(model?: IModel);
+        /**
+         * 实例创建时会调用的初始化方法,派生类可覆盖该方法
+         * @method init
+         */
+        init(): void;
         /**
          * 属性初始化
          * @method __init
