@@ -246,7 +246,9 @@ module drunk {
                     handler = window[handlerName];
                     context = window;
                 }
-                throw new Error(handlerName + ": 没有找到该事件处理方法");
+                else {
+                    throw new Error(handlerName + ": 没有找到该事件处理方法");
+                }
             }
             
             return (...args: any[]) => {
