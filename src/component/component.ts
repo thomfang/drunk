@@ -1,5 +1,6 @@
 /// <reference path="../viewmodel/viewmodel" />
 /// <reference path="../template/loader" />
+/// <reference path="../config/config" />
 
 module drunk {
 
@@ -403,5 +404,8 @@ module drunk {
 
             styleSheet.insertRule(name + '{display:none}', styleSheet.cssRules.length);
         }
+        
+        // 注册内置的组件标签
+        register(config.prefix + 'view', Component);
     }
 }

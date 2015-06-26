@@ -810,14 +810,25 @@ var drunk;
          * @param  {string}  html  html字符串
          * @return {Node|Node[]}          创建好的html元素
          */
-        function create(html) {
+        function create(htmlString) {
             var div = document.createElement("div");
-            var str = html.trim();
+            var str = htmlString.trim();
             console.assert(str.length > 0, "HTML是空的");
-            div.innerHTML = str;
+            html(div, str);
             return div.childNodes.length === 1 ? div.firstChild : drunk.util.toArray(div.childNodes);
         }
         elementUtil.create = create;
+        /**
+         * 设置元素的innerHTML
+         * @static
+         * @method html
+         * @param  {HTMLElement}  container  元素
+         * @param  {string}       value      值
+         */
+        function html(container, value) {
+            container.innerHTML = value;
+        }
+        elementUtil.html = html;
         /**
          * 在旧的元素节点前插入新的元素节点
          * @static
@@ -1447,14 +1458,17 @@ var drunk;
          * @param {any}   value  要移除的值
          */
         function removeAllItem(array, value) {
-            var index = array.indexOf(value);
-            var removed = false;
-            while (index > -1) {
-                Array.prototype.splice.call(array, index, 1);
-                index = array.indexOf(value);
-                removed = true;
-            }
-            if (removed) {
+            var removeItemIndexs = [];
+            var step = 0;
+            array.forEach(function (item, index) {
+                if (value === item) {
+                    removeItemIndexs.push(index - step++);
+                }
+            });
+            if (removeItemIndexs.length) {
+                removeItemIndexs.forEach(function (index) {
+                    array.splice(index, 1);
+                });
                 observable.notify(array);
             }
         }
@@ -2216,7 +2230,6 @@ var drunk;
         ;
         /**
          * 根据一个绑定原型对象注册一个binding指令
-         *
          * @method define
          * @static
          * @param  {string}          name  指令名
@@ -2236,7 +2249,6 @@ var drunk;
         Binding.define = define;
         /**
          * 根据绑定名获取绑定的定义
-         *
          * @method getDefinitionByName
          * @static
          * @param  {string}  name      绑定的名称
@@ -2248,7 +2260,6 @@ var drunk;
         Binding.getDefinintionByName = getDefinintionByName;
         /**
          * 获取已经根据优先级排序的终止型绑定的名称列表
-         *
          * @method getTerminalBindings
          * @static
          * @return {array}  返回绑定名称列表
@@ -2259,7 +2270,6 @@ var drunk;
         Binding.getTerminalBindings = getTerminalBindings;
         /**
          * 创建viewModel与模板元素的绑定
-         *
          * @method create
          * @static
          * @param  {ViewModel}   viewModel  ViewModel实例
@@ -2275,7 +2285,6 @@ var drunk;
         Binding.create = create;
         /**
          * 设置终止型的绑定，根据提供的优先级对终止型绑定列表进行排序，优先级高的绑定会先于优先级的绑定创建
-         *
          * @method setEnding
          * @private
          * @static
@@ -3115,8 +3124,190 @@ var drunk;
         Template.load = load;
     })(Template = drunk.Template || (drunk.Template = {}));
 })(drunk || (drunk = {}));
+/// <reference path="./loader" />
+/// <reference path="../util/elem" />
+/// <reference path="../cache/cache" />
+/// <reference path="../promise/promise" />
+var drunk;
+(function (drunk) {
+    var Template;
+    (function (Template) {
+        var cacheStore = new drunk.Cache(50);
+        var styleRecord = {};
+        var linkRecord = {};
+        var scriptRecord = {};
+        /**
+         * 把模块连接渲染为documentFragment,会对样式和脚本进行处理,避免重复加载,如果提供宿主容器元素,则会把
+         * 模板渲染到改容器中
+         * @method renderFragment
+         * @static
+         * @param  {string}       href              模板连接
+         * @param  {HTMLElement}  [hostedElement]   容器元素
+         * @param  {boolean}      [useCache]        是否使用缓存还是重新加载
+         * @return {Promise}
+         */
+        function renderFragment(href, hostedElement, useCache) {
+            var fragmentId = href.toLowerCase();
+            var fragmentPromise = cacheStore.get(fragmentId);
+            if (!useCache || !fragmentPromise) {
+                fragmentPromise = populateDocument(href);
+                cacheStore.set(fragmentId, fragmentPromise);
+            }
+            return fragmentPromise.then(function (fragment) {
+                var newFragment = fragment.cloneNode(true);
+                if (hostedElement) {
+                    hostedElement.appendChild(newFragment);
+                    return hostedElement;
+                }
+                return newFragment;
+            });
+        }
+        Template.renderFragment = renderFragment;
+        /**
+         * 创建一个htmlDocument并加载模板
+         */
+        function populateDocument(href) {
+            initialize();
+            var htmlDoc = document.implementation.createHTMLDocument("frag");
+            var base = htmlDoc.createElement("base");
+            var anchor = htmlDoc.createElement("a");
+            htmlDoc.head.appendChild(base);
+            htmlDoc.body.appendChild(anchor);
+            base.href = document.location.href;
+            anchor.setAttribute("href", href);
+            base.href = anchor.href;
+            return Template.load(href).then(function (template) {
+                drunk.elementUtil.html(htmlDoc.documentElement, template);
+                htmlDoc.head.appendChild(base);
+            }).then(function () {
+                return processDocument(htmlDoc, href);
+            });
+        }
+        /**
+         * 处理模板的资源
+         */
+        function processDocument(htmlDoc, href) {
+            var body = htmlDoc.body;
+            var lastNonInlineScriptPromise = drunk.Promise.resolve();
+            var promiseList = [];
+            drunk.util.toArray(htmlDoc.querySelectorAll('link[type="text/css"], link[rel="stylesheet"]')).forEach(addLink);
+            drunk.util.toArray(htmlDoc.getElementsByTagName('style')).forEach(function (styleTag, index) { return addStyle(styleTag, href, index); });
+            drunk.util.toArray(htmlDoc.getElementsByTagName('script')).forEach(function (scriptTag, index) {
+                var result = addScript(scriptTag, href, index, lastNonInlineScriptPromise);
+                if (result) {
+                    if (!result.inline) {
+                        lastNonInlineScriptPromise = result.promise;
+                    }
+                    promiseList.push(result.promise);
+                }
+            });
+            drunk.util.toArray(htmlDoc.getElementsByTagName('img')).forEach(function (img) { return img.src = img.src; });
+            drunk.util.toArray(htmlDoc.getElementsByTagName('a')).forEach(function (a) {
+                // href为#开头的不用去更新属性
+                if (a.href !== '') {
+                    var href_1 = a.getAttribute('href');
+                    if (href_1 && href_1[0] !== '#') {
+                        a.href = href_1;
+                    }
+                }
+            });
+            return drunk.Promise.all(promiseList).then(function () {
+                var fragment = document.createDocumentFragment();
+                var imported = document.importNode(body, true);
+                while (imported.childNodes.length > 0) {
+                    fragment.appendChild(imported.firstChild);
+                }
+                return fragment;
+            });
+        }
+        /**
+         * 添加外链样式
+         */
+        function addLink(tag) {
+            var tagUid = tag.href.toLowerCase();
+            if (!linkRecord[tagUid]) {
+                linkRecord[tagUid] = true;
+                var newLink = tag.cloneNode(false);
+                newLink.href = tag.href;
+                document.head.appendChild(newLink);
+            }
+            drunk.elementUtil.remove(tag);
+        }
+        /**
+         * 添加内链样式
+         */
+        function addStyle(tag, fragmentHref, position) {
+            var tagUid = (fragmentHref + 'style[' + position + ']').toLowerCase();
+            if (!styleRecord[tagUid]) {
+                styleRecord[tagUid] = true;
+                document.head.appendChild(tag.cloneNode(true));
+            }
+            drunk.elementUtil.remove(tag);
+        }
+        /**
+         * 添加脚本
+         */
+        function addScript(tag, fragmentHref, position, lastNonInlineScriptPromise) {
+            var tagUid = tag.src;
+            var inline = !tagUid;
+            if (inline) {
+                tagUid = fragmentHref + 'script[' + position + ']';
+            }
+            tagUid = tagUid.toLowerCase();
+            tag.parentNode.removeChild(tag);
+            if (!scriptRecord[tagUid]) {
+                var newScript = document.createElement('script');
+                var promise;
+                scriptRecord[tagUid] = true;
+                newScript.setAttribute('type', tag.type || 'text/javascript');
+                newScript.setAttribute('async', 'false');
+                if (tag.id) {
+                    newScript.setAttribute('id', tag.id);
+                }
+                if (inline) {
+                    var text = tag.text;
+                    promise = lastNonInlineScriptPromise.then(function () {
+                        newScript.text = text;
+                    }).catch(function (e) {
+                        // console.warn('脚本加载错误:', e);
+                    });
+                }
+                else {
+                    promise = new drunk.Promise(function (resolve) {
+                        newScript.onload = newScript.onerror = function () {
+                            resolve();
+                        };
+                        newScript.setAttribute('src', tag.src);
+                    });
+                }
+                document.head.appendChild(newScript);
+                return {
+                    promise: promise,
+                    inline: inline
+                };
+            }
+        }
+        var initialized = false;
+        /**
+         * 标记已经存在于页面上的脚本和样式
+         */
+        function initialize() {
+            if (initialized) {
+                return;
+            }
+            drunk.util.toArray(document.getElementsByTagName('script')).forEach(function (e) {
+                scriptRecord[e.src.toLowerCase()] = true;
+            });
+            drunk.util.toArray(document.querySelectorAll('link[rel="stylesheet"], link[type="text/css"]')).forEach(function (e) {
+                linkRecord[e.href.toLowerCase()] = true;
+            });
+            initialized = true;
+        }
+    })(Template = drunk.Template || (drunk.Template = {}));
+})(drunk || (drunk = {}));
 /// <reference path="../viewmodel/viewmodel" />
 /// <reference path="../template/loader" />
+/// <reference path="../config/config" />
 var drunk;
 (function (drunk) {
     var Component = (function (_super) {
@@ -3391,6 +3582,8 @@ var drunk;
             }
             styleSheet.insertRule(name + '{display:none}', styleSheet.cssRules.length);
         }
+        // 注册内置的组件标签
+        register(drunk.config.prefix + 'view', Component);
     })(Component = drunk.Component || (drunk.Component = {}));
 })(drunk || (drunk = {}));
 /// <reference path="../binding" />
@@ -3399,16 +3592,15 @@ var drunk;
 /// <reference path="../../config/config" />
 /**
  * 事件绑定,语法:
- *     * 单个事件
+ *     - 单个事件
  *              'eventType: expression'  如 'click: visible = !visible'
  *              'eventType: callback()'  如 'click: onclick()'
- *     * 多个事件,使用分号隔开
+ *     - 多个事件,使用分号隔开
  *              'eventType: expression; eventType2: callback()' 如  'mousedown: visible = true; mouseup: visible = false'
- *     * 一个事件里多个表达式,使用逗号隔开
+ *     - 一个事件里多个表达式,使用逗号隔开
  *              'eventType: expression1, callback()' 如 'click: visible = true, onclick()'
  * @class drunk-on
  * @constructor
- * @show
  * @example
          <html>
             <style>
@@ -3462,10 +3654,10 @@ var drunk;
             var expr = matches[2];
             var func = drunk.parser.parse(expr.trim());
             function handler(e) {
-                func.call(null, self.viewModel, e, self.element);
                 if (drunk.config.debug) {
                     console.log(type + ': ' + expr);
                 }
+                func.call(null, self.viewModel, e, self.element);
             }
             drunk.elementUtil.addListener(this.element, type, handler);
             return { type: type, handler: handler };

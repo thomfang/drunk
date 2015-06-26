@@ -331,7 +331,15 @@ declare module drunk.elementUtil {
      * @param  {string}  html  html字符串
      * @return {Node|Node[]}          创建好的html元素
      */
-    function create(html: string): Node | Node[];
+    function create(htmlString: string): Node | Node[];
+    /**
+     * 设置元素的innerHTML
+     * @static
+     * @method html
+     * @param  {HTMLElement}  container  元素
+     * @param  {string}       value      值
+     */
+    function html(container: HTMLElement, value: string): void;
     /**
      * 在旧的元素节点前插入新的元素节点
      * @static
@@ -815,7 +823,7 @@ declare module drunk {
      * @type function
      */
     interface IBindingExecutor {
-        (viewModel: ViewModel, element: any, parentViewModel?: Component, placeHolder?: HTMLElement): void;
+        (viewModel: ViewModel, element: any, parentViewModel?: Component, placeHolder?: HTMLElement): any;
         isTerminal?: boolean;
         priority?: number;
     }
@@ -916,7 +924,6 @@ declare module drunk {
         }
         /**
          * 根据一个绑定原型对象注册一个binding指令
-         *
          * @method define
          * @static
          * @param  {string}          name  指令名
@@ -925,7 +932,6 @@ declare module drunk {
         function define<T extends IBindingDefinition>(name: string, definition: T): void;
         /**
          * 根据绑定名获取绑定的定义
-         *
          * @method getDefinitionByName
          * @static
          * @param  {string}  name      绑定的名称
@@ -934,7 +940,6 @@ declare module drunk {
         function getDefinintionByName(name: string): IBindingDefinition;
         /**
          * 获取已经根据优先级排序的终止型绑定的名称列表
-         *
          * @method getTerminalBindings
          * @static
          * @return {array}  返回绑定名称列表
@@ -942,7 +947,6 @@ declare module drunk {
         function getTerminalBindings(): string[];
         /**
          * 创建viewModel与模板元素的绑定
-         *
          * @method create
          * @static
          * @param  {ViewModel}   viewModel  ViewModel实例
@@ -1096,7 +1100,7 @@ declare module drunk {
 declare module drunk.parser {
     interface IGetter {
         (viewModel: ViewModel, ...args: Array<any>): any;
-        filters?: Array<filter.FilterDef>;
+        filters?: Array<filter.IFilterDef>;
         dynamic?: boolean;
         isInterpolate?: boolean;
     }
@@ -1166,7 +1170,7 @@ declare module drunk.filter {
     interface IFilter {
         (...args: any[]): any;
     }
-    interface FilterDef {
+    interface IFilterDef {
         name: string;
         param?: parser.IGetter;
     }
@@ -1202,6 +1206,19 @@ declare module drunk.Template {
      * @returns {Promise}           一个 promise 对象promise的返回值为模板字符串
      */
     function load(urlOrId: string): Promise<string>;
+}
+declare module drunk.Template {
+    /**
+     * 把模块连接渲染为documentFragment,会对样式和脚本进行处理,避免重复加载,如果提供宿主容器元素,则会把
+     * 模板渲染到改容器中
+     * @method renderFragment
+     * @static
+     * @param  {string}       href              模板连接
+     * @param  {HTMLElement}  [hostedElement]   容器元素
+     * @param  {boolean}      [useCache]        是否使用缓存还是重新加载
+     * @return {Promise}
+     */
+    function renderFragment(href: string, hostedElement?: HTMLElement, useCache?: boolean): Promise<Node>;
 }
 declare module drunk {
     interface IComponent {
@@ -1401,16 +1418,15 @@ declare module drunk {
 }
 /**
  * 事件绑定,语法:
- *     * 单个事件
+ *     - 单个事件
  *              'eventType: expression'  如 'click: visible = !visible'
  *              'eventType: callback()'  如 'click: onclick()'
- *     * 多个事件,使用分号隔开
+ *     - 多个事件,使用分号隔开
  *              'eventType: expression; eventType2: callback()' 如  'mousedown: visible = true; mouseup: visible = false'
- *     * 一个事件里多个表达式,使用逗号隔开
+ *     - 一个事件里多个表达式,使用逗号隔开
  *              'eventType: expression1, callback()' 如 'click: visible = true, onclick()'
  * @class drunk-on
  * @constructor
- * @show
  * @example
          <html>
             <style>

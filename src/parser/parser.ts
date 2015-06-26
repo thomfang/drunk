@@ -11,7 +11,7 @@ module drunk.parser {
     
     export interface IGetter {
         (viewModel: ViewModel, ...args: Array<any>): any;
-        filters?: Array<filter.FilterDef>;
+        filters?: Array<filter.IFilterDef>;
         dynamic?: boolean;
         isInterpolate?: boolean;
     }
@@ -22,7 +22,7 @@ module drunk.parser {
     
     interface IFilterCache {
         input: string;
-        filters: Array<filter.FilterDef>;
+        filters: Array<filter.IFilterDef>;
     }
     
     let eventName = "$event";
@@ -60,7 +60,7 @@ module drunk.parser {
     // 解析filter定义
     function parseFilterDef(str: string, skipSetter: boolean = false) {
         if (!filterCache.get(str)) {
-            let def: Array<filter.FilterDef> = [];
+            let def: Array<filter.IFilterDef> = [];
             let idx: number;
             
             str.replace(reFilter, ($0, quote, name, args, i) => {

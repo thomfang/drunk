@@ -210,7 +210,7 @@ describe("observable", function () {
     
     it("ObservableArray.removeAllItem", function () {
         var arr = [1, 2, 3, 4, 2, 454, 22, 2, 0];
-        var ob = observable.create(arr);
+        observable.create(arr);
 
         spyOn(arr, "splice").and.callThrough();
         arr.removeAllItem(2);

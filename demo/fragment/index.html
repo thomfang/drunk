@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+    
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="initial-scale=1" />
+        <title>render template to fragment - demo</title>
+        <script src="../../build/drunk.js"></script>
+    </head>
+    
+    <body>
+        
+        <div id='container'></div>
+        
+        <script>
+            var view;
+            drunk.Template.renderFragment('./myview.html', document.getElementById('container')).then(function (e) {
+                view = new MyView();
+                view.mount(e);
+            });
+        
+        </script>
+    </body>
+</html>

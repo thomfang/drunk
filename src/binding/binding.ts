@@ -42,7 +42,7 @@ module drunk {
      * @type function
      */
     export interface IBindingExecutor {
-        (viewModel: ViewModel, element: any, parentViewModel?: Component, placeHolder?: HTMLElement): void;
+        (viewModel: ViewModel, element: any, parentViewModel?: Component, placeHolder?: HTMLElement): any;
         isTerminal?: boolean;
         priority?: number;
     }
@@ -262,7 +262,6 @@ module drunk {
         
         /**
          * 根据一个绑定原型对象注册一个binding指令
-         * 
          * @method define
          * @static
          * @param  {string}          name  指令名
@@ -285,7 +284,6 @@ module drunk {
         
         /**
          * 根据绑定名获取绑定的定义
-         * 
          * @method getDefinitionByName
          * @static
          * @param  {string}  name      绑定的名称
@@ -297,7 +295,6 @@ module drunk {
         
         /**
          * 获取已经根据优先级排序的终止型绑定的名称列表
-         * 
          * @method getTerminalBindings
          * @static
          * @return {array}  返回绑定名称列表
@@ -308,7 +305,6 @@ module drunk {
         
         /**
          * 创建viewModel与模板元素的绑定
-         * 
          * @method create
          * @static
          * @param  {ViewModel}   viewModel  ViewModel实例
@@ -326,7 +322,6 @@ module drunk {
         
         /**
          * 设置终止型的绑定，根据提供的优先级对终止型绑定列表进行排序，优先级高的绑定会先于优先级的绑定创建
-         * 
          * @method setEnding
          * @private
          * @static

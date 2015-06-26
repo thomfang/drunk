@@ -6,16 +6,15 @@
 
 /**
  * 事件绑定,语法:
- *     * 单个事件
+ *     - 单个事件
  *              'eventType: expression'  如 'click: visible = !visible'
  *              'eventType: callback()'  如 'click: onclick()'
- *     * 多个事件,使用分号隔开
+ *     - 多个事件,使用分号隔开
  *              'eventType: expression; eventType2: callback()' 如  'mousedown: visible = true; mouseup: visible = false'
- *     * 一个事件里多个表达式,使用逗号隔开
+ *     - 一个事件里多个表达式,使用逗号隔开
  *              'eventType: expression1, callback()' 如 'click: visible = true, onclick()'
  * @class drunk-on
  * @constructor
- * @show
  * @example
          <html>
             <style>
@@ -79,10 +78,10 @@ module drunk {
             let func = parser.parse(expr.trim());
 
             function handler(e: Event) {
-                func.call(null, self.viewModel, e, self.element);
                 if (config.debug) {
                     console.log(type + ': ' + expr);
                 }
+                func.call(null, self.viewModel, e, self.element);
             }
 
             elementUtil.addListener(this.element, type, handler);

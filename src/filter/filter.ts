@@ -19,7 +19,7 @@ module drunk.filter {
         (...args: any[]): any;
     }
 
-    export interface FilterDef {
+    export interface IFilterDef {
         name: string;
         param?: parser.IGetter;
     }

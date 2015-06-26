@@ -25,6 +25,7 @@
         "src/parser/parser.ts",
         "src/template/compiler.ts",
         "src/template/loader.ts",
+        "src/template/fragment.ts",
         "src/watcher/watcher.ts",
         "src/viewmodel/viewmodel.ts",
         "src/component/component.ts",

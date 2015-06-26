@@ -16,15 +16,26 @@ module drunk.elementUtil {
      * @param  {string}  html  html字符串
      * @return {Node|Node[]}          创建好的html元素
      */
-    export function create(html: string): Node | Node[] {
+    export function create(htmlString: string): Node | Node[] {
         var div = document.createElement("div");
-        var str = html.trim();
+        var str = htmlString.trim();
 
         console.assert(str.length > 0, "HTML是空的");
 
-        div.innerHTML = str;
+        html(div, str);
 
         return div.childNodes.length === 1 ? div.firstChild : util.toArray(div.childNodes);
+    }
+    
+    /**
+     * 设置元素的innerHTML
+     * @static
+     * @method html
+     * @param  {HTMLElement}  container  元素
+     * @param  {string}       value      值
+     */
+    export function html(container: HTMLElement, value: string) {
+        container.innerHTML = value;
     }
 
     /**

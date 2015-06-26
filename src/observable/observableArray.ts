@@ -99,16 +99,19 @@ module drunk.observable {
      * @param {any}   value  要移除的值
      */
     export function removeAllItem<T>(array: ObservableArray<T>, value: any): void {
-        var index: number = array.indexOf(value);
-        var removed: boolean = false;
-
-        while (index > -1) {
-            Array.prototype.splice.call(array, index, 1);
-            index = array.indexOf(value);
-            removed = true;
-        }
+        let removeItemIndexs: number[] = [];
+        let step = 0;
         
-        if (removed) {
+        array.forEach((item, index) => {
+            if (value === item) {
+                removeItemIndexs.push(index - step++);
+            }
+        });
+        
+        if (removeItemIndexs.length) {
+            removeItemIndexs.forEach(index => {
+                array.splice(index, 1);
+            });
             notify(array);
         }
     }
