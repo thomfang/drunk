@@ -9,7 +9,7 @@ module drunk {
     
     /**
      * LRU Cache类
-     * @module drunk.cache
+     * @module drunk.Cache
      * @class Cache
      */
     export class Cache<T> {

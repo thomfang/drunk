@@ -48,7 +48,7 @@ declare module drunk.config {
 declare module drunk {
     /**
      * LRU Cache类
-     * @module drunk.cache
+     * @module drunk.Cache
      * @class Cache
      */
     class Cache<T> {

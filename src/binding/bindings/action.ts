@@ -137,7 +137,7 @@ module drunk {
          * @param  {string}         type       action的类型(created或removed)
          */
         export function run(element: HTMLElement, detail: string, type: string) {
-            if (!isNaN(Number(detail))) {
+            if (isNumber(detail)) {
                 // 如果是一个数字,则为延时等待操作
                 return wait(<any>detail * 1000);
             }
@@ -219,6 +219,7 @@ module drunk {
                     resolve();
                 }
                 function onAnimationEnd() {
+                    element.classList.remove(className);
                     element.removeEventListener(transitionEndEvent, onTransitionEnd, false);
                     element.removeEventListener(animationEndEvent, onAnimationEnd, false);
                     resolve();
@@ -286,7 +287,7 @@ module drunk {
         expression: string;
         viewModel: Component;
 
-        private _actions: string[];
+        private _actionNames: string[];
 
         init() {
             this._runActionByType(Action.Type.created);
@@ -294,23 +295,28 @@ module drunk {
 
         _parseDefinition(actionType: string) {
             if (!this.expression) {
-                this._actions = [];
+                this._actionNames = [];
             }
             else {
                 let str: string = this.viewModel.eval(this.expression, true);
-                this._actions = str.split(/\s+/);
+                this._actionNames = str.split(/\s+/);
 
                 if (actionType === Action.Type.removed) {
-                    this._actions.reverse();
+                    this._actionNames.reverse();
                 }
+            }
+            
+            let actions = this._actionNames;
+            while (isNumber(actions[actions.length - 1])) {
+                actions.pop();
             }
         }
 
         _runActions(type: string) {
             let element = this.element;
 
-            if (this._actions.length < 2) {
-                let action = Action.run(element, this._actions[0], type);
+            if (this._actionNames.length < 2) {
+                let action = Action.run(element, this._actionNames[0], type);
                 action.promise.then(() => {
                     Action.removeRef(element);
                 });
@@ -318,7 +324,7 @@ module drunk {
             }
 
             let actionQueue: IAction = {};
-            let actions = this._actions;
+            let actions = this._actionNames;
 
             actionQueue.promise = new Promise((resolve) => {
                 let index = 0;
@@ -358,8 +364,12 @@ module drunk {
 
         release() {
             this._runActionByType(Action.Type.removed);
-            this._actions = null;
+            this._actionNames = null;
         }
+    }
+    
+    function isNumber(value: any) {
+        return !isNaN(parseFloat(value));
     }
 
     Binding.define('action', ActionBinding.prototype);

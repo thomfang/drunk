@@ -299,7 +299,7 @@ var drunk;
 (function (drunk) {
     /**
      * LRU Cache类
-     * @module drunk.cache
+     * @module drunk.Cache
      * @class Cache
      */
     var Cache = (function () {
@@ -4711,7 +4711,7 @@ var drunk;
          * @param  {string}         type       action的类型(created或removed)
          */
         function run(element, detail, type) {
-            if (!isNaN(Number(detail))) {
+            if (isNumber(detail)) {
                 // 如果是一个数字,则为延时等待操作
                 return wait(detail * 1000);
             }
@@ -4777,6 +4777,7 @@ var drunk;
                     resolve();
                 }
                 function onAnimationEnd() {
+                    element.classList.remove(className);
                     element.removeEventListener(transitionEndEvent, onTransitionEnd, false);
                     element.removeEventListener(animationEndEvent, onAnimationEnd, false);
                     resolve();
@@ -4841,27 +4842,31 @@ var drunk;
         };
         ActionBinding.prototype._parseDefinition = function (actionType) {
             if (!this.expression) {
-                this._actions = [];
+                this._actionNames = [];
             }
             else {
                 var str = this.viewModel.eval(this.expression, true);
-                this._actions = str.split(/\s+/);
+                this._actionNames = str.split(/\s+/);
                 if (actionType === Action.Type.removed) {
-                    this._actions.reverse();
+                    this._actionNames.reverse();
                 }
+            }
+            var actions = this._actionNames;
+            while (isNumber(actions[actions.length - 1])) {
+                actions.pop();
             }
         };
         ActionBinding.prototype._runActions = function (type) {
             var element = this.element;
-            if (this._actions.length < 2) {
-                var action = Action.run(element, this._actions[0], type);
+            if (this._actionNames.length < 2) {
+                var action = Action.run(element, this._actionNames[0], type);
                 action.promise.then(function () {
                     Action.removeRef(element);
                 });
                 return Action.setCurrentAction(element, action);
             }
             var actionQueue = {};
-            var actions = this._actions;
+            var actions = this._actionNames;
             actionQueue.promise = new drunk.Promise(function (resolve) {
                 var index = 0;
                 var runAction = function () {
@@ -4894,10 +4899,13 @@ var drunk;
         };
         ActionBinding.prototype.release = function () {
             this._runActionByType(Action.Type.removed);
-            this._actions = null;
+            this._actionNames = null;
         };
         return ActionBinding;
     })();
+    function isNumber(value) {
+        return !isNaN(parseFloat(value));
+    }
     drunk.Binding.define('action', ActionBinding.prototype);
 })(drunk || (drunk = {}));
 /// <reference path="../binding" />
