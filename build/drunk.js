@@ -3231,7 +3231,7 @@ var drunk;
                 newLink.href = tag.href;
                 document.head.appendChild(newLink);
             }
-            drunk.elementUtil.remove(tag);
+            tag.parentNode.removeChild(tag);
         }
         /**
          * 添加内链样式
@@ -3242,7 +3242,7 @@ var drunk;
                 styleRecord[tagUid] = true;
                 document.head.appendChild(tag.cloneNode(true));
             }
-            drunk.elementUtil.remove(tag);
+            tag.parentNode.removeChild(tag);
         }
         /**
          * 添加脚本

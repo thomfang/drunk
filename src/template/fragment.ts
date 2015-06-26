@@ -122,7 +122,7 @@ module drunk.Template {
             document.head.appendChild(newLink);
         }
         
-        elementUtil.remove(tag);
+        tag.parentNode.removeChild(tag);
     }
     
     /**
@@ -136,7 +136,7 @@ module drunk.Template {
             document.head.appendChild(tag.cloneNode(true));
         }
         
-        elementUtil.remove(tag);
+        tag.parentNode.removeChild(tag);
     }
     
     /**
