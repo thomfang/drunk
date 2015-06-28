@@ -129,11 +129,13 @@ module drunk.Template {
      * 添加内链样式
      */
     function addStyle(tag: HTMLStyleElement, fragmentHref: string, position: number) {
-        let tagUid = (fragmentHref + 'style[' + position + ']').toLowerCase();
+        let tagUid = (fragmentHref + '  style[' + position + ']').toLowerCase();
         
         if (!styleRecord[tagUid]) {
+            let newStyle: any = tag.cloneNode(true);
             styleRecord[tagUid] = true;
-            document.head.appendChild(tag.cloneNode(true));
+            newStyle.setAttribute('__', tagUid);
+            document.head.appendChild(newStyle);
         }
         
         tag.parentNode.removeChild(tag);
@@ -147,7 +149,7 @@ module drunk.Template {
         let inline = !tagUid;
         
         if (inline) {
-            tagUid = fragmentHref + 'script[' + position + ']';
+            tagUid = fragmentHref + '  script[' + position + ']';
         }
         tagUid = tagUid.toLowerCase();
         tag.parentNode.removeChild(tag);
@@ -171,6 +173,7 @@ module drunk.Template {
                 }).catch((e) => {
                     // console.warn('脚本加载错误:', e);
                 });
+                newScript.setAttribute('__', tagUid);
             }
             else {
                 promise = new Promise((resolve) => {

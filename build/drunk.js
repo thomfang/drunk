@@ -2660,7 +2660,8 @@ var drunk;
                 return Function.apply(Function, args);
             }
             catch (err) {
-                console.error('解析错误\n\n', '非法的表达式"' + expression + '", 尝试解析后的结果为:\n\n', args[args.length - 1], '\n\n', err.stack);
+                console.error('解析表达式错误\n\n', '表达式"' + expression + '", 尝试解析后的结果为:\n\n', args[args.length - 1], '\n\n');
+                throw err;
             }
         }
         /**
@@ -3237,10 +3238,12 @@ var drunk;
          * 添加内链样式
          */
         function addStyle(tag, fragmentHref, position) {
-            var tagUid = (fragmentHref + 'style[' + position + ']').toLowerCase();
+            var tagUid = (fragmentHref + '  style[' + position + ']').toLowerCase();
             if (!styleRecord[tagUid]) {
+                var newStyle = tag.cloneNode(true);
                 styleRecord[tagUid] = true;
-                document.head.appendChild(tag.cloneNode(true));
+                newStyle.setAttribute('__', tagUid);
+                document.head.appendChild(newStyle);
             }
             tag.parentNode.removeChild(tag);
         }
@@ -3251,7 +3254,7 @@ var drunk;
             var tagUid = tag.src;
             var inline = !tagUid;
             if (inline) {
-                tagUid = fragmentHref + 'script[' + position + ']';
+                tagUid = fragmentHref + '  script[' + position + ']';
             }
             tagUid = tagUid.toLowerCase();
             tag.parentNode.removeChild(tag);
@@ -3271,6 +3274,7 @@ var drunk;
                     }).catch(function (e) {
                         // console.warn('脚本加载错误:', e);
                     });
+                    newScript.setAttribute('__', tagUid);
                 }
                 else {
                     promise = new drunk.Promise(function (resolve) {
@@ -3867,29 +3871,71 @@ var drunk;
 /// <reference path="../../util/elem" />
 var drunk;
 (function (drunk) {
-    drunk.Binding.define("component", {
-        isTerminal: true,
-        priority: drunk.Binding.Priority.aboveNormal,
-        /*
+    var reOneInterpolate = /^\{\{([^{]+)\}\}$/;
+    /**
+     * @module drunk.Binding
+     * @class ComponentBinding
+     */
+    var ComponentBinding = (function () {
+        function ComponentBinding() {
+        }
+        /**
          * 初始化组件,找到组件类并生成实例,创建组件的绑定
          */
-        init: function () {
+        ComponentBinding.prototype.init = function () {
             var Ctor = drunk.Component.getComponentByName(this.expression);
+            var src = this.element.getAttribute('src');
+            this.element.removeAttribute('src');
             if (!Ctor) {
-                throw new Error(this.expression + ": 未找到该组件.");
+                if (!src) {
+                    throw new Error(this.expression + ": 未找到该组件.");
+                }
+                return this.initAsyncComponent(src);
             }
             this.component = new Ctor();
             this.unwatches = [];
             this.processComponentAttributes();
             return this.processComponentBinding();
-        },
-        /*
+        };
+        /**
+         * 初始化异步组件,先加载为fragment,再设置为组件的element,在进行初始化
+         */
+        ComponentBinding.prototype.initAsyncComponent = function (src) {
+            var _this = this;
+            return drunk.Template.renderFragment(src, null, true).then(function (fragment) {
+                var Ctor = drunk.Component.getComponentByName(_this.expression);
+                if (!Ctor) {
+                    throw new Error(_this.expression + ": 未找到该组件.");
+                }
+                _this.unwatches = [];
+                _this.component = new Ctor();
+                _this.component.element = drunk.util.toArray(fragment.childNodes);
+                _this.processComponentAttributes();
+                return _this.processComponentBinding();
+            });
+        };
+        /**
+         * 获取双向绑定的属性名
+         */
+        ComponentBinding.prototype.getTwowayBindingAttrMap = function () {
+            var result = this.element.getAttribute('two-way');
+            var marked = {};
+            this.element.removeAttribute('two-way');
+            if (result) {
+                result.trim().split(/\s+/).forEach(function (str) {
+                    marked[drunk.util.camelCase(str)] = true;
+                });
+            }
+            return marked;
+        };
+        /**
          * 为组件准备数据和绑定事件
          */
-        processComponentAttributes: function () {
+        ComponentBinding.prototype.processComponentAttributes = function () {
             var _this = this;
             var element = this.element;
             var component = this.component;
+            var twowayBindingAttrMap = this.getTwowayBindingAttrMap();
             if (element.hasAttributes()) {
                 // 遍历元素上所有的属性做数据准备或数据绑定的处理
                 // 如果某个属性用到插值表达式,如"a={{b}}",则对起进行表达式监听(当b改变时通知component的a属性更新到最新的值)
@@ -3918,15 +3964,15 @@ var drunk;
                         return;
                     }
                     // title="{{somelet}}"
-                    _this.watchExpressionForComponent(attrName, expression);
+                    _this.watchExpressionForComponent(attrName, expression, twowayBindingAttrMap[attrName]);
                 });
             }
             component.emit(drunk.Component.Event.created, component);
-        },
-        /*
-         * 处理组件的视图于数据绑定
+        };
+        /**
+         * 处理组件的视图与数据绑定
          */
-        processComponentBinding: function () {
+        ComponentBinding.prototype.processComponentBinding = function () {
             var _this = this;
             var element = this.element;
             var component = this.component;
@@ -3949,45 +3995,62 @@ var drunk;
                 var nodeList = drunk.util.toArray(container.childNodes);
                 drunk.elementUtil.replace(nodeList, element);
                 container = null;
-            }).catch(function (reason) {
-                console.warn("组件挂载失败,错误信息:\n", reason);
+            }).catch(function (error) {
+                console.warn("组件创建失败:\n", error);
             });
-        },
-        /*
+        };
+        /**
          * 注册组件的事件
          */
-        registerComponentEvent: function (eventName, expression) {
+        ComponentBinding.prototype.registerComponentEvent = function (eventName, expression) {
             var viewModel = this.viewModel;
             var func = drunk.parser.parse(expression);
-            // 事件的处理函数,会生成一个$event对象,在表达式中可以访问该对象.
-            // $event对象有type和args两个字段,args字段是组件派发这个事件所传递的参数的列表
-            var handler = function () {
+            this.component.addListener(eventName, function () {
                 var args = [];
                 for (var _i = 0; _i < arguments.length; _i++) {
                     args[_i - 0] = arguments[_i];
                 }
+                // 事件的处理函数,会生成一个$event对象,在表达式中可以访问该对象.
+                // $event对象有type和args两个字段,args字段是组件派发这个事件所传递的参数的列表
                 func.call(undefined, viewModel, {
                     type: eventName,
                     args: args
                 });
-            };
-            this.component.addListener(eventName, handler);
-        },
-        /*
+            });
+        };
+        /**
          * 监控绑定表达式,表达式里任意数据更新时,同步到component的指定属性
          */
-        watchExpressionForComponent: function (property, expression) {
+        ComponentBinding.prototype.watchExpressionForComponent = function (property, expression, isTwoway) {
             var viewModel = this.viewModel;
             var component = this.component;
-            var unwatch = viewModel.watch(expression, function (newValue) {
+            var locked = false;
+            var unwatch;
+            if (isTwoway) {
+                var result = expression.match(reOneInterpolate);
+                if (!result) {
+                    throw new Error(expression + ': 该表达式不能进行双向绑定');
+                }
+                var ownerProperty = result[1].trim();
+                unwatch = component.watch(property, function (newValue) {
+                    if (isTwoway && locked) {
+                        locked = false;
+                        return;
+                    }
+                    viewModel.setValue(ownerProperty, newValue);
+                });
+                this.unwatches.push(unwatch);
+            }
+            unwatch = viewModel.watch(expression, function (newValue) {
                 component[property] = newValue;
-            }, true, true);
+                locked = true;
+            }, false, true);
             this.unwatches.push(unwatch);
-        },
-        /*
+        };
+        /**
          * 组件释放
          */
-        release: function () {
+        ComponentBinding.prototype.release = function () {
             var component = this.component;
             var element = component.element;
             // 组件实例释放
@@ -4002,8 +4065,12 @@ var drunk;
             this.component = null;
             this.unwatches = null;
             this.isDisposed = true;
-        }
-    });
+        };
+        return ComponentBinding;
+    })();
+    ComponentBinding.prototype.isTerminal = true;
+    ComponentBinding.prototype.priority = drunk.Binding.Priority.aboveNormal;
+    drunk.Binding.define('component', ComponentBinding.prototype);
 })(drunk || (drunk = {}));
 /// <reference path="../binding" />
 /// <reference path="../../util/elem" />
@@ -4758,7 +4825,9 @@ var drunk;
             // 如果transitionDuration或animationDuration都不为0s的话说明已经设置了该属性
             // 必须先在这里取一次transitionDuration的值,动画才会生效
             var style = getComputedStyle(element, null);
-            var transitionExist = style[getPropertyName('transitionDuration')] !== '0s';
+            var transitionDuration = style[getPropertyName('transitionDuration')];
+            var transitionExist = transitionDuration !== '0s';
+            var transitionTimerid;
             action.promise = new drunk.Promise(function (resolve) {
                 // 给样式赋值后,取animationDuration的值,判断有没有设置animation动画
                 element.classList.add(className);
@@ -4769,6 +4838,7 @@ var drunk;
                 }
                 element.style[getPropertyName('animationFillMode')] = 'both';
                 function onTransitionEnd() {
+                    clearTimeout(transitionTimerid);
                     element.removeEventListener(animationEndEvent, onAnimationEnd, false);
                     element.removeEventListener(transitionEndEvent, onTransitionEnd, false);
                     if (type === Action.Type.removed) {
@@ -4784,7 +4854,13 @@ var drunk;
                 }
                 element.addEventListener(animationEndEvent, onAnimationEnd, false);
                 element.addEventListener(transitionEndEvent, onTransitionEnd, false);
+                if (transitionExist) {
+                    // 加一个定时器,避免当前属性与transitionend状态下属性的值没有变化时不会触发transitionend事件,
+                    // 这里要设置一个定时器保证该事件的触发
+                    transitionTimerid = setTimeout(onTransitionEnd, parseFloat(transitionDuration) * 1000);
+                }
                 action.cancel = function () {
+                    clearTimeout(transitionTimerid);
                     element.removeEventListener(transitionEndEvent, onTransitionEnd, false);
                     element.removeEventListener(animationEndEvent, onAnimationEnd, false);
                     element.classList.remove(className);

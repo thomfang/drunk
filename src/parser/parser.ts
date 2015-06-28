@@ -183,11 +183,11 @@ module drunk.parser {
         }
         catch (err) {
             console.error(
-                '解析错误\n\n',
-                '非法的表达式"' + expression + '", 尝试解析后的结果为:\n\n',
-                args[args.length - 1], '\n\n',
-                err.stack
+                '解析表达式错误\n\n',
+                '表达式"' + expression + '", 尝试解析后的结果为:\n\n',
+                args[args.length - 1], '\n\n'
             );
+            throw err;
         }
     }
     

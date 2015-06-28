@@ -10,12 +10,24 @@
             .strike {text-decoration: line-through;}
         </style>
     </head>
+    
     <body>
         
         <input type="text" drunk-model="content" drunk-on='keyup: $event.keyCode === 13 && addTodo()'/>
         
         <todo-item drunk-repeat="todo in todoList" content="{{todo.title}}" completed="{{todo.completed}}">
         </todo-item>
+        
+        <button drunk-on="click: alertview1Visible = !alertview1Visible">
+            {{ alertview1Visible ? 'hide' : 'show' }} alerv-view 
+        </button>
+        
+        <alert-view src="./alert.html"
+            title="Title 1"
+            content="This is alert content 1"
+            two-way="visible"
+            visible="{{alertview1Visible}}">
+        </alert-view>
         
         <script type='text/tpl' id="todo-item">
             <p drunk-class="{strike: completed}">

@@ -195,7 +195,9 @@ module drunk {
             // 如果transitionDuration或animationDuration都不为0s的话说明已经设置了该属性
             // 必须先在这里取一次transitionDuration的值,动画才会生效
             let style = getComputedStyle(element, null);
-            let transitionExist = style[getPropertyName('transitionDuration')] !== '0s';
+            let transitionDuration = style[getPropertyName('transitionDuration')];
+            let transitionExist = transitionDuration !== '0s';
+            let transitionTimerid;
 
             action.promise = new Promise((resolve) => {
                 // 给样式赋值后,取animationDuration的值,判断有没有设置animation动画
@@ -210,6 +212,7 @@ module drunk {
                 element.style[getPropertyName('animationFillMode')] = 'both';
 
                 function onTransitionEnd() {
+                    clearTimeout(transitionTimerid);
                     element.removeEventListener(animationEndEvent, onAnimationEnd, false);
                     element.removeEventListener(transitionEndEvent, onTransitionEnd, false);
 
@@ -227,8 +230,15 @@ module drunk {
 
                 element.addEventListener(animationEndEvent, onAnimationEnd, false);
                 element.addEventListener(transitionEndEvent, onTransitionEnd, false);
+                
+                if (transitionExist) {
+                    // 加一个定时器,避免当前属性与transitionend状态下属性的值没有变化时不会触发transitionend事件,
+                    // 这里要设置一个定时器保证该事件的触发
+                    transitionTimerid = setTimeout(onTransitionEnd, parseFloat(transitionDuration) * 1000);
+                }
 
                 action.cancel = () => {
+                    clearTimeout(transitionTimerid);
                     element.removeEventListener(transitionEndEvent, onTransitionEnd, false);
                     element.removeEventListener(animationEndEvent, onAnimationEnd, false);
                     element.classList.remove(className);
