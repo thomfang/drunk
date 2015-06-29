@@ -1,3 +1,6 @@
+/**
+ * @module drunk.Promise
+ */
 declare module drunk {
     interface IThenable<R> {
         then<U>(onFulfillment?: (value: R) => U | IThenable<U>, onRejection?: (error: any) => U | IThenable<U>): IThenable<U>;
@@ -10,6 +13,9 @@ declare module drunk {
         RESOLVED = 1,
         REJECTED = 2,
     }
+    /**
+     * @class Promise
+     */
     class Promise<R> implements IThenable<R> {
         static all<R>(iterable: any[]): Promise<R[]>;
         static race<R>(iterable: any[]): Promise<R>;
@@ -18,6 +24,9 @@ declare module drunk {
         _state: PromiseState;
         _value: any;
         _listeners: any[];
+        /**
+         * @constructor
+         */
         constructor(executor: IPromiseExecutor<R>);
         then<U>(onFulfillment?: (value: R) => U | IThenable<U>, onRejection?: (reason: any) => U | IThenable<U>): Promise<U>;
         catch<U>(onRejection?: (reason: any) => U | IThenable<U>): Promise<U>;
@@ -347,7 +356,7 @@ declare module drunk.elementUtil {
      * @param  {Node}  newNode  新的节点
      * @param  {Node}  oldNode  旧的节点
      */
-    function insertBefore(newNode: Node, oldNode: Node): void;
+    function insertBefore(newNode: any, oldNode: Node): void;
     /**
      * 在旧的元素节点后插入新的元素节点
      * @static
@@ -355,14 +364,14 @@ declare module drunk.elementUtil {
      * @param  {Node}  newNode  新的节点
      * @param  {Node}  oldNode  旧的节点
      */
-    function insertAfter(newNode: Node, oldNode: Node): void;
+    function insertAfter(newNode: any, oldNode: Node): void;
     /**
      * 移除元素节点
      * @static
      * @method remove
      * @param  {Node|Node[]}  target  节点
      */
-    function remove(target: Node | Node[]): Promise<any>;
+    function remove(target: any): Promise<any>;
     /**
      * 新的节点替换旧的节点
      * @static
@@ -370,7 +379,7 @@ declare module drunk.elementUtil {
      * @param  {Node}  newNode  新的节点
      * @param  {Node}  oldNode  旧的节点
      */
-    function replace(newNode: Node | Node[], oldNode: Node): void;
+    function replace(newNode: any, oldNode: Node): void;
     /**
      * 为节点注册事件监听
      * @static
@@ -604,7 +613,6 @@ declare module drunk.observable {
  * 转换后的可以监控数组
  * 除了有常规数组的所有方法外还添加了几个工具方法，并在某些修改自身的方法调用后对新数据进行处理和
  * 发送数据更新的通知。
- *
  * @private
  * @class ObservableArray
  * @for observable
@@ -622,7 +630,6 @@ declare module drunk.observable {
     }
     /**
      * 数组转换成observable后指向的原型对象
-     *
      * @property ObservableArrayPrototype
      * @static
      * @for observable
@@ -630,7 +637,6 @@ declare module drunk.observable {
     var ObservableArrayPrototype: ObservableArray<any>;
     /**
      * 设置数组指定数组下标的值，并发送数组更新通知
-     *
      * @static
      * @method setAt
      * @param {array}  array   observableArray类型的数组
@@ -640,7 +646,6 @@ declare module drunk.observable {
     function setAt<T>(array: ObservableArray<T>, index: number, value: T): void;
     /**
      * 根据索引移除数组中的元素，并发送数组更新通知
-     *
      * @static
      * @for observable
      * @method removeAt
@@ -651,7 +656,6 @@ declare module drunk.observable {
     function removeAt<T>(array: ObservableArray<T>, index: number): T;
     /**
      * 删除数组中出现的一个指定值，并发送数组更新通知
-     *
      * @static
      * @for observable
      * @method removeItem
@@ -661,7 +665,6 @@ declare module drunk.observable {
     function removeItem<T>(array: ObservableArray<T>, value: any): void;
     /**
      * 删除数组中所有的指定值，并发送数组更新通知
-     *
      * @static
      * @for observable
      * @method removeAllItem
@@ -669,6 +672,13 @@ declare module drunk.observable {
      * @param {any}   value  要移除的值
      */
     function removeAllItem<T>(array: ObservableArray<T>, value: any): void;
+    /**
+     * 删除所有数组元素
+     * @method removeAll
+     * @static
+     * @param  {array}  array
+     */
+    function removeAll<T>(array: ObservableArray<T>): void;
 }
 declare module drunk {
     class Watcher {
@@ -1650,6 +1660,8 @@ declare module drunk {
         element: any;
         _isCollection: boolean;
         _isUsed: boolean;
+        _placeholder: Comment;
+        _element: any;
         protected _models: IModel[];
         constructor(parent: Component | RepeatItem, ownModel: any, element: any);
         /**
@@ -1684,6 +1696,10 @@ declare module drunk {
          * @method __getHandler
          */
         __getHandler(handlerName: string): (...args: any[]) => any;
+        /**
+         * @override
+         */
+        dispose(): void;
         /**
          * 把数据转成列表,如果为空则转成空数组
          * @method toList
@@ -1756,14 +1772,6 @@ declare module drunk {
          * @param  {string}         type       action的类型(created或removed)
          */
         function run(element: HTMLElement, detail: string, type: string): IAction;
-        /**
-         * 判断元素是否正在处理action,返回promise对象
-         * @method processAll
-         * @static
-         * @param  {HTMLElement}  element 元素节点
-         * @return {Promise}
-         */
-        function processAll(element: HTMLElement): Promise<any>;
         /**
          * 注册一个js action
          * @method define

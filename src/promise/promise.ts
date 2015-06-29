@@ -1,3 +1,6 @@
+/**
+ * @module drunk.Promise
+ */
 module drunk {
 
     export interface IThenable<R> {
@@ -151,7 +154,6 @@ module drunk {
         else if (state === PromiseState.RESOLVED) {
             publish(promise, value, state);
         }
-        // Else the next promise rejected with the new value.
         else {
             rejectPromise(promise, value);
         }
@@ -170,6 +172,9 @@ module drunk {
         arr[len + PromiseState.REJECTED] = onRejection;
     }
 
+    /**
+     * @class Promise
+     */
     export class Promise<R> implements IThenable<R> {
 
         static all<R>(iterable: any[]): Promise<R[]> {
@@ -291,6 +296,9 @@ module drunk {
         _value: any;
         _listeners: any[] = [];
 
+        /**
+         * @constructor
+         */
         constructor(executor: IPromiseExecutor<R>) {
             if (typeof executor !== 'function') {
                 throw new TypeError("Promise constructor takes a function argument");

@@ -13,7 +13,7 @@ module drunk {
     class ComponentBinding {
 
         expression: string;
-        viewModel: Component;
+        viewModel: RepeatItem;
         element: HTMLElement;
         
         component: Component;
@@ -27,16 +27,15 @@ module drunk {
          * 初始化组件,找到组件类并生成实例,创建组件的绑定
          */
         init() {
-            let Ctor = Component.getComponentByName(this.expression);
             let src = this.element.getAttribute('src');
-
             this.element.removeAttribute('src');
-
-            if (!Ctor) {
-                if (!src) {
-                    throw new Error(this.expression + ": 未找到该组件.");
-                }
+            if (src) {
                 return this.initAsyncComponent(src);
+            }
+            
+            let Ctor = Component.getComponentByName(this.expression);
+            if (!Ctor) {
+                throw new Error(this.expression + ": 未找到该组件.");
             }
 
             this.component = new Ctor();
@@ -159,10 +158,14 @@ module drunk {
                 }
 
                 component.mount(template, viewModel, element);
-
+                
                 let nodeList = util.toArray(container.childNodes);
                 elementUtil.replace(nodeList, element);
                 container = null;
+                
+                if (viewModel instanceof RepeatItem) {
+                    viewModel._element = nodeList;
+                }
             }).catch((error) => {
                 console.warn("组件创建失败:\n", error);
             });

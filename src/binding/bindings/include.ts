@@ -47,7 +47,7 @@ module drunk {
                 return;
             }
             
-            this.element.innerHTML = template;
+            elementUtil.html(this.element, template);
             this._unbindExecutor = Template.compile(this.element)(this.viewModel, this.element);
         },
         
@@ -61,8 +61,8 @@ module drunk {
         release() {
             this.unbind();
             this.url = null;
-            this.element.innerHTML = "";
             this.isActived = false;
+            elementUtil.html(this.element, '');
         }
     });
 

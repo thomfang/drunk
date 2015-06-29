@@ -57,7 +57,6 @@ module drunk {
             if (params.indexOf(',') > 0) {
                 let matches = params.match(regKeyValue);
                 console.assert(matches, '错误的', config.prefix + 'repeat 表达式: ', expression);
-                // params = params.split(regComma);
                 key = matches[2];
                 value = matches[1];
             }
@@ -101,31 +100,59 @@ module drunk {
             }
             else {
                 this._unrealizeUnusedItems();
-
-                let currElement, itemElement, i;
-
-                let getPrev = (node: Node) => {
-                    currElement = node.previousSibling;
-                    while (currElement && currElement.__disposed) {
-                        currElement = currElement.previousSibling;
+                
+                let index = items.length;
+                let placeholder;
+                let viewModel: RepeatItem;
+                
+                let prev = (node) => {
+                    placeholder = node.previousSibling;
+                    while (placeholder && (placeholder.nodeType !== 8 || placeholder.textContent != 'repeat-item')) {
+                        placeholder = placeholder.previousSibling;
                     }
-                    return currElement;
-                }
-
-                i = items.length;
-                currElement = getPrev(this.endedNode);
-
-                while (i--) {
-                    viewModel = newVms[i];
-                    itemElement = viewModel.element;
-
-                    if (itemElement !== currElement) {
-                        elementUtil.insertAfter(itemElement, currElement);
+                    if (!placeholder) {
+                        placeholder = this.startNode;
+                    }
+                };
+                
+                prev(this.endedNode);
+                
+                while (index--) {
+                    viewModel = newVms[index];
+                    
+                    if (viewModel._placeholder !== placeholder) {
+                        elementUtil.insertAfter(viewModel._placeholder, placeholder);
+                        elementUtil.insertAfter(viewModel._element, viewModel._placeholder);
                     }
                     else {
-                        currElement = getPrev(currElement);
+                        prev(placeholder);
                     }
                 }
+
+                // let currElement, itemElement, i;
+
+                // let getPrev = (node: Node) => {
+                //     currElement = node.previousSibling;
+                //     while (currElement && currElement.__disposed) {
+                //         currElement = currElement.previousSibling;
+                //     }
+                //     return currElement;
+                // }
+
+                // i = items.length;
+                // currElement = getPrev(this.endedNode);
+
+                // while (i--) {
+                //     viewModel = newVms[i];
+                //     itemElement = viewModel.element;
+
+                //     if (itemElement !== currElement) {
+                //         elementUtil.insertAfter(itemElement, currElement);
+                //     }
+                //     else {
+                //         currElement = getPrev(currElement);
+                //     }
+                // }
             }
 
             newVms.forEach((viewModel) => {
@@ -237,9 +264,12 @@ module drunk {
                     util.removeArrayItem(cache[value], viewModel);
                 }
 
-                let element = viewModel.element;
-                element.__disposed = true;
+                let element = viewModel._element;
+                let placeholder: any = viewModel._placeholder;
+                placeholder.textContent = 'disposed repeat item';
+                
                 viewModel.dispose();
+                elementUtil.remove(placeholder);
                 elementUtil.remove(element);
             });
         },
@@ -275,11 +305,14 @@ module drunk {
 
         _isCollection: boolean;
         _isUsed: boolean;
+        _placeholder: Comment = document.createComment('repeat-item');
+        _element: any;
 
         protected _models: IModel[];
 
         constructor(public parent: Component | RepeatItem, ownModel, public element) {
             super(ownModel);
+            this._element = element;
             this.__inheritParentMembers();
         }
         
@@ -370,6 +403,15 @@ module drunk {
                 return handler.apply(context, args);
             };
         }
+        
+        /**
+         * @override
+         */
+        dispose() {
+            super.dispose();
+            this._placeholder = null;
+            this._element = null;
+        }
 
         /**
          * 把数据转成列表,如果为空则转成空数组
@@ -381,7 +423,7 @@ module drunk {
             let ret: IItemDataDescriptor[] = [];
 
             if (Array.isArray(target)) {
-                target.forEach(function(val, idx) {
+                target.forEach((val, idx) => {
                     ret.push({
                         key: idx,
                         idx: idx,

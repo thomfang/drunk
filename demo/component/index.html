@@ -15,7 +15,7 @@
         
         <input type="text" drunk-model="content" drunk-on='keyup: $event.keyCode === 13 && addTodo()'/>
         
-        <todo-item drunk-repeat="todo in todoList" content="{{todo.title}}" completed="{{todo.completed}}">
+        <todo-item drunk-repeat="todo,index in todoList" content="{{todo.title}}" index="{{index}}" completed="{{todo.completed}}" on-remove="todoList.splice($event.args[0], 1)">
         </todo-item>
         
         <button drunk-on="click: alertview1Visible = !alertview1Visible">
@@ -32,6 +32,7 @@
         <script type='text/tpl' id="todo-item">
             <p drunk-class="{strike: completed}">
                 <button drunk-on="click: completed = !completed">{{completed ? '取消' : '完成'}}</button>
+                <button drunk-on="click: emit('remove', index)">删除</button>
                 {{content}}
             </p>
         </script>
@@ -55,13 +56,13 @@
                             return;
                         }
                         
-                        this.todoList.push({
+                        this.todoList.unshift({
                             title: this.content,
                             completed: false
                         });
                         
                         this.content = '';
-                    }
+                    },
                 }
             });
             

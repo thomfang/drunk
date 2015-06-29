@@ -249,18 +249,6 @@ module drunk {
 
             return action;
         }
-        
-        /**
-         * 判断元素是否正在处理action,返回promise对象
-         * @method processAll
-         * @static
-         * @param  {HTMLElement}  element 元素节点
-         * @return {Promise}
-         */
-        export function processAll(element: HTMLElement) {
-            let currentAction = getCurrentAction(element);
-            return Promise.resolve(currentAction && currentAction.promise);
-        }
 
         /**
          * 注册一个js action

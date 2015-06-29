@@ -45,10 +45,18 @@ module drunk.elementUtil {
      * @param  {Node}  newNode  新的节点
      * @param  {Node}  oldNode  旧的节点
      */
-    export function insertBefore(newNode: Node, oldNode: Node): void {
-        if (oldNode.parentNode) {
-            oldNode.parentNode.insertBefore(newNode, oldNode);
+    export function insertBefore(newNode: any, oldNode: Node): void {
+        if (!oldNode.parentNode) {
+            return;
         }
+        
+        if (!Array.isArray(newNode)) {
+            newNode = [newNode];
+        }
+        let parent = oldNode.parentNode;
+        newNode.forEach((node) => {
+            parent.insertBefore(node, oldNode);
+        });
     }
 
     /**
@@ -58,11 +66,22 @@ module drunk.elementUtil {
      * @param  {Node}  newNode  新的节点
      * @param  {Node}  oldNode  旧的节点
      */
-    export function insertAfter(newNode: Node, oldNode: Node): void {
+    export function insertAfter(newNode: any, oldNode: Node): void {
+        if (!oldNode.parentNode) {
+            return;
+        }
+        
+        if (!Array.isArray(newNode)) {
+            newNode = [newNode];
+        }
         if (oldNode.nextSibling) {
             insertBefore(newNode, oldNode.nextSibling);
-        } else {
-            oldNode.parentNode.appendChild(newNode);
+        }
+        else {
+            let parent = oldNode.parentNode;
+            newNode.forEach((node) => {
+                parent.appendChild(node);
+            });
         }
     }
 
@@ -72,22 +91,26 @@ module drunk.elementUtil {
      * @method remove
      * @param  {Node|Node[]}  target  节点
      */
-    export function remove(target: Node | Node[]): Promise<any> {
-        if (Array.isArray(target)) {
-            return Promise.all((<Array<Node>>target).map(node => {
-                return removeAfterActionEnd(node);
-            }));
+    export function remove(target: any): Promise<any> {
+        if (!Array.isArray(target)) {
+            target = [target];
         }
-        else if ((<Node>target).parentNode) {
-            return removeAfterActionEnd(target);
-        }
+        return Promise.all(target.map(node => {
+            return removeAfterActionEnd(node);
+        }));
     }
     
     function removeAfterActionEnd(node: any) {
         if (node.parentNode) {
-            return Action.processAll(node).then(() => {
+            let currentAction = Action.getCurrentAction(node);
+            if (currentAction && currentAction.promise) {
+                return currentAction.promise.then(() => {
+                    node.parentNode.removeChild(node);
+                });
+            }
+            else {
                 node.parentNode.removeChild(node);
-            });
+            }
         }
     }
 
@@ -98,22 +121,20 @@ module drunk.elementUtil {
      * @param  {Node}  newNode  新的节点
      * @param  {Node}  oldNode  旧的节点
      */
-    export function replace(newNode: Node | Node[], oldNode: Node): void {
-        var parent = oldNode.parentNode;
-            
-        if (!parent) {
+    export function replace(newNode: any, oldNode: Node): void {
+        if (!oldNode.parentNode) {
             return;
         }
         
-        if (Array.isArray(newNode)) {
-            (<Array<Node>>newNode).forEach(function (node) {
-                parent.insertBefore(node, oldNode);
-            });
-            parent.removeChild(oldNode);
+        if (!Array.isArray(newNode)) {
+            newNode = [newNode];
         }
-        else {
-            parent.replaceChild((<Node>newNode), oldNode);
-        }
+        
+        let parent = oldNode.parentNode;
+        newNode.forEach((node) => {
+            parent.insertBefore(node, oldNode);
+        });
+        parent.removeChild(oldNode);
     }
     
     /**

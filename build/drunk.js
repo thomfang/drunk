@@ -1,3 +1,6 @@
+/**
+ * @module drunk.Promise
+ */
 var drunk;
 (function (drunk) {
     (function (PromiseState) {
@@ -136,7 +139,13 @@ var drunk;
         arr[len + PromiseState.RESOLVED] = onFulfillment;
         arr[len + PromiseState.REJECTED] = onRejection;
     }
+    /**
+     * @class Promise
+     */
     var Promise = (function () {
+        /**
+         * @constructor
+         */
         function Promise(executor) {
             this._state = PromiseState.PENDING;
             this._listeners = [];
@@ -837,9 +846,16 @@ var drunk;
          * @param  {Node}  oldNode  旧的节点
          */
         function insertBefore(newNode, oldNode) {
-            if (oldNode.parentNode) {
-                oldNode.parentNode.insertBefore(newNode, oldNode);
+            if (!oldNode.parentNode) {
+                return;
             }
+            if (!Array.isArray(newNode)) {
+                newNode = [newNode];
+            }
+            var parent = oldNode.parentNode;
+            newNode.forEach(function (node) {
+                parent.insertBefore(node, oldNode);
+            });
         }
         elementUtil.insertBefore = insertBefore;
         /**
@@ -850,11 +866,20 @@ var drunk;
          * @param  {Node}  oldNode  旧的节点
          */
         function insertAfter(newNode, oldNode) {
+            if (!oldNode.parentNode) {
+                return;
+            }
+            if (!Array.isArray(newNode)) {
+                newNode = [newNode];
+            }
             if (oldNode.nextSibling) {
                 insertBefore(newNode, oldNode.nextSibling);
             }
             else {
-                oldNode.parentNode.appendChild(newNode);
+                var parent_1 = oldNode.parentNode;
+                newNode.forEach(function (node) {
+                    parent_1.appendChild(node);
+                });
             }
         }
         elementUtil.insertAfter = insertAfter;
@@ -865,21 +890,25 @@ var drunk;
          * @param  {Node|Node[]}  target  节点
          */
         function remove(target) {
-            if (Array.isArray(target)) {
-                return drunk.Promise.all(target.map(function (node) {
-                    return removeAfterActionEnd(node);
-                }));
+            if (!Array.isArray(target)) {
+                target = [target];
             }
-            else if (target.parentNode) {
-                return removeAfterActionEnd(target);
-            }
+            return drunk.Promise.all(target.map(function (node) {
+                return removeAfterActionEnd(node);
+            }));
         }
         elementUtil.remove = remove;
         function removeAfterActionEnd(node) {
             if (node.parentNode) {
-                return drunk.Action.processAll(node).then(function () {
+                var currentAction = drunk.Action.getCurrentAction(node);
+                if (currentAction && currentAction.promise) {
+                    return currentAction.promise.then(function () {
+                        node.parentNode.removeChild(node);
+                    });
+                }
+                else {
                     node.parentNode.removeChild(node);
-                });
+                }
             }
         }
         /**
@@ -890,19 +919,17 @@ var drunk;
          * @param  {Node}  oldNode  旧的节点
          */
         function replace(newNode, oldNode) {
-            var parent = oldNode.parentNode;
-            if (!parent) {
+            if (!oldNode.parentNode) {
                 return;
             }
-            if (Array.isArray(newNode)) {
-                newNode.forEach(function (node) {
-                    parent.insertBefore(node, oldNode);
-                });
-                parent.removeChild(oldNode);
+            if (!Array.isArray(newNode)) {
+                newNode = [newNode];
             }
-            else {
-                parent.replaceChild(newNode, oldNode);
-            }
+            var parent = oldNode.parentNode;
+            newNode.forEach(function (node) {
+                parent.insertBefore(node, oldNode);
+            });
+            parent.removeChild(oldNode);
         }
         elementUtil.replace = replace;
         /**
@@ -1383,7 +1410,6 @@ var drunk;
  * 转换后的可以监控数组
  * 除了有常规数组的所有方法外还添加了几个工具方法，并在某些修改自身的方法调用后对新数据进行处理和
  * 发送数据更新的通知。
- *
  * @private
  * @class ObservableArray
  * @for observable
@@ -1394,7 +1420,6 @@ var drunk;
     (function (observable) {
         /**
          * 数组转换成observable后指向的原型对象
-         *
          * @property ObservableArrayPrototype
          * @static
          * @for observable
@@ -1402,7 +1427,6 @@ var drunk;
         observable.ObservableArrayPrototype = Object.create(Array.prototype);
         /**
          * 设置数组指定数组下标的值，并发送数组更新通知
-         *
          * @static
          * @method setAt
          * @param {array}  array   observableArray类型的数组
@@ -1418,7 +1442,6 @@ var drunk;
         observable.setAt = setAt;
         /**
          * 根据索引移除数组中的元素，并发送数组更新通知
-         *
          * @static
          * @for observable
          * @method removeAt
@@ -1437,7 +1460,6 @@ var drunk;
         observable.removeAt = removeAt;
         /**
          * 删除数组中出现的一个指定值，并发送数组更新通知
-         *
          * @static
          * @for observable
          * @method removeItem
@@ -1450,7 +1472,6 @@ var drunk;
         observable.removeItem = removeItem;
         /**
          * 删除数组中所有的指定值，并发送数组更新通知
-         *
          * @static
          * @for observable
          * @method removeAllItem
@@ -1474,8 +1495,20 @@ var drunk;
         }
         observable.removeAllItem = removeAllItem;
         /**
+         * 删除所有数组元素
+         * @method removeAll
+         * @static
+         * @param  {array}  array
+         */
+        function removeAll(array) {
+            if (array.length) {
+                array.length = 0;
+                observable.notify(array);
+            }
+        }
+        observable.removeAll = removeAll;
+        /**
          * 根据下标设置数组的值，并发送数据更新的通知
-         *
          * @for ObservableArray
          * @method setAt
          * @param  {number}  index  数组下标
@@ -1486,7 +1519,6 @@ var drunk;
         });
         /**
          * 根据下标移除数组的值，并发送数据更新的通知
-         *
          * @for ObservableArray
          * @method removeAt
          * @param  {number}  index  数组下标
@@ -1496,7 +1528,6 @@ var drunk;
         });
         /**
          * 移除指定的值，并发送数据更新的通知
-         *
          * @for ObservableArray
          * @method removeItem
          * @param  {any}  value  指定值
@@ -1506,13 +1537,19 @@ var drunk;
         });
         /**
          * 移除数组中所有指定的值，并发送数据更新的通知
-         *
          * @for ObservableArray
          * @method removeAllItem
          * @param  {any}  value  指定值
          */
         drunk.util.defineProperty(observable.ObservableArrayPrototype, "removeAllItem", function removeAllObservableArrayItem(value) {
             return removeAllItem(this, value);
+        });
+        /**
+         * 删除所有数组元素
+         * @method removeAll
+         */
+        drunk.util.defineProperty(observable.ObservableArrayPrototype, 'removeAll', function () {
+            return removeAll(this);
         });
         /*
          * 调用原生方法并发送通知
@@ -3883,14 +3920,14 @@ var drunk;
          * 初始化组件,找到组件类并生成实例,创建组件的绑定
          */
         ComponentBinding.prototype.init = function () {
-            var Ctor = drunk.Component.getComponentByName(this.expression);
             var src = this.element.getAttribute('src');
             this.element.removeAttribute('src');
-            if (!Ctor) {
-                if (!src) {
-                    throw new Error(this.expression + ": 未找到该组件.");
-                }
+            if (src) {
                 return this.initAsyncComponent(src);
+            }
+            var Ctor = drunk.Component.getComponentByName(this.expression);
+            if (!Ctor) {
+                throw new Error(this.expression + ": 未找到该组件.");
             }
             this.component = new Ctor();
             this.unwatches = [];
@@ -3995,6 +4032,9 @@ var drunk;
                 var nodeList = drunk.util.toArray(container.childNodes);
                 drunk.elementUtil.replace(nodeList, element);
                 container = null;
+                if (viewModel instanceof drunk.RepeatItem) {
+                    viewModel._element = nodeList;
+                }
             }).catch(function (error) {
                 console.warn("组件创建失败:\n", error);
             });
@@ -4185,7 +4225,7 @@ var drunk;
             if (!this.isActived) {
                 return;
             }
-            this.element.innerHTML = template;
+            drunk.elementUtil.html(this.element, template);
             this._unbindExecutor = drunk.Template.compile(this.element)(this.viewModel, this.element);
         },
         unbind: function () {
@@ -4197,8 +4237,8 @@ var drunk;
         release: function () {
             this.unbind();
             this.url = null;
-            this.element.innerHTML = "";
             this.isActived = false;
+            drunk.elementUtil.html(this.element, '');
         }
     });
 })(drunk || (drunk = {}));
@@ -4360,7 +4400,6 @@ var drunk;
             if (params.indexOf(',') > 0) {
                 var matches = params.match(regKeyValue);
                 console.assert(matches, '错误的', drunk.config.prefix + 'repeat 表达式: ', expression);
-                // params = params.split(regComma);
                 key = matches[2];
                 value = matches[1];
             }
@@ -4399,24 +4438,27 @@ var drunk;
             }
             else {
                 this._unrealizeUnusedItems();
-                var currElement, itemElement, i;
-                var getPrev = function (node) {
-                    currElement = node.previousSibling;
-                    while (currElement && currElement.__disposed) {
-                        currElement = currElement.previousSibling;
+                var index = items.length;
+                var placeholder;
+                var viewModel_1;
+                var prev = function (node) {
+                    placeholder = node.previousSibling;
+                    while (placeholder && (placeholder.nodeType !== 8 || placeholder.textContent != 'repeat-item')) {
+                        placeholder = placeholder.previousSibling;
                     }
-                    return currElement;
+                    if (!placeholder) {
+                        placeholder = _this.startNode;
+                    }
                 };
-                i = items.length;
-                currElement = getPrev(this.endedNode);
-                while (i--) {
-                    viewModel = newVms[i];
-                    itemElement = viewModel.element;
-                    if (itemElement !== currElement) {
-                        drunk.elementUtil.insertAfter(itemElement, currElement);
+                prev(this.endedNode);
+                while (index--) {
+                    viewModel_1 = newVms[index];
+                    if (viewModel_1._placeholder !== placeholder) {
+                        drunk.elementUtil.insertAfter(viewModel_1._placeholder, placeholder);
+                        drunk.elementUtil.insertAfter(viewModel_1._element, viewModel_1._placeholder);
                     }
                     else {
-                        currElement = getPrev(currElement);
+                        prev(placeholder);
                     }
                 }
             }
@@ -4508,9 +4550,11 @@ var drunk;
                 else {
                     drunk.util.removeArrayItem(cache[value], viewModel);
                 }
-                var element = viewModel.element;
-                element.__disposed = true;
+                var element = viewModel._element;
+                var placeholder = viewModel._placeholder;
+                placeholder.textContent = 'disposed repeat item';
                 viewModel.dispose();
+                drunk.elementUtil.remove(placeholder);
                 drunk.elementUtil.remove(element);
             });
         },
@@ -4543,6 +4587,8 @@ var drunk;
             _super.call(this, ownModel);
             this.parent = parent;
             this.element = element;
+            this._placeholder = document.createComment('repeat-item');
+            this._element = element;
             this.__inheritParentMembers();
         }
         /**
@@ -4624,6 +4670,14 @@ var drunk;
                 }
                 return handler.apply(context, args);
             };
+        };
+        /**
+         * @override
+         */
+        RepeatItem.prototype.dispose = function () {
+            _super.prototype.dispose.call(this);
+            this._placeholder = null;
+            this._element = null;
         };
         /**
          * 把数据转成列表,如果为空则转成空数组
@@ -4870,18 +4924,6 @@ var drunk;
             });
             return action;
         }
-        /**
-         * 判断元素是否正在处理action,返回promise对象
-         * @method processAll
-         * @static
-         * @param  {HTMLElement}  element 元素节点
-         * @return {Promise}
-         */
-        function processAll(element) {
-            var currentAction = getCurrentAction(element);
-            return drunk.Promise.resolve(currentAction && currentAction.promise);
-        }
-        Action.processAll = processAll;
         /**
          * 注册一个js action
          * @method define
