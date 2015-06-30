@@ -263,7 +263,6 @@ module drunk {
             this._bindExecutor = null;
             this.startNode = null;
             this.endedNode = null;
-            this.element = null;
         }
     };
 
