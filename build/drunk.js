@@ -4429,6 +4429,7 @@ var drunk;
                         fragment = document.createDocumentFragment();
                     }
                     fragment.appendChild(viewModel.element);
+                    fragment.appendChild(viewModel._placeholder);
                 }
             });
             if (isEmpty) {
@@ -4455,7 +4456,7 @@ var drunk;
                     viewModel_1 = newVms[index];
                     if (viewModel_1._placeholder !== placeholder) {
                         drunk.elementUtil.insertAfter(viewModel_1._placeholder, placeholder);
-                        drunk.elementUtil.insertAfter(viewModel_1._element, viewModel_1._placeholder);
+                        drunk.elementUtil.insertBefore(viewModel_1._element, viewModel_1._placeholder);
                     }
                     else {
                         prev(placeholder);

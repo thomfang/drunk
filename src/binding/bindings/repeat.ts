@@ -78,7 +78,7 @@ module drunk {
             let isEmpty = !this._itemVms || this._itemVms.length === 0;
             let last = items.length - 1;
             let newVms = [];
-            let viewModel;
+            let viewModel: RepeatItem;
             var fragment: DocumentFragment;
 
             items.forEach((item, index) => {
@@ -90,6 +90,7 @@ module drunk {
                         fragment = document.createDocumentFragment();
                     }
                     fragment.appendChild(viewModel.element);
+                    fragment.appendChild(viewModel._placeholder);
                 }
             });
 
@@ -122,37 +123,12 @@ module drunk {
                     
                     if (viewModel._placeholder !== placeholder) {
                         elementUtil.insertAfter(viewModel._placeholder, placeholder);
-                        elementUtil.insertAfter(viewModel._element, viewModel._placeholder);
+                        elementUtil.insertBefore(viewModel._element, viewModel._placeholder);
                     }
                     else {
                         prev(placeholder);
                     }
                 }
-
-                // let currElement, itemElement, i;
-
-                // let getPrev = (node: Node) => {
-                //     currElement = node.previousSibling;
-                //     while (currElement && currElement.__disposed) {
-                //         currElement = currElement.previousSibling;
-                //     }
-                //     return currElement;
-                // }
-
-                // i = items.length;
-                // currElement = getPrev(this.endedNode);
-
-                // while (i--) {
-                //     viewModel = newVms[i];
-                //     itemElement = viewModel.element;
-
-                //     if (itemElement !== currElement) {
-                //         elementUtil.insertAfter(itemElement, currElement);
-                //     }
-                //     else {
-                //         currElement = getPrev(currElement);
-                //     }
-                // }
             }
 
             newVms.forEach((viewModel) => {
