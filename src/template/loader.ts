@@ -8,8 +8,7 @@
  */
 module drunk.Template {
     
-    var cache = new Cache<string>(50);
-    var loading: {[key: string]: Promise<string>} = {};
+    let cacheStore = new Cache<any>(50);
     
     /**
      * 加载模板，先尝试从script标签上查找，找不到再发送ajax请求，
@@ -20,29 +19,21 @@ module drunk.Template {
      * @returns {Promise}           一个 promise 对象promise的返回值为模板字符串
      */
     export function load(urlOrId: string): Promise<string> {
-        var template = cache.get(urlOrId);
-        var node;
+        let template = cacheStore.get(urlOrId);
 
         if (template != null) {
             return Promise.resolve(template);
         }
         
-        if ((node = document.getElementById(urlOrId)) && node.innerHTML) {
+        let node = document.getElementById(urlOrId);
+        if (node && node.innerHTML) {
             template = node.innerHTML;
-            cache.set(urlOrId, template);
+            cacheStore.set(urlOrId, template);
             return Promise.resolve(template);
         }
         
-        var promise = loading[urlOrId];
-        
-        if (!promise) {
-            promise = util.ajax<string>({url: urlOrId}).then(template => {
-                cache.set(urlOrId, template);
-                delete loading[urlOrId];
-                return template;
-            });
-            loading[urlOrId] = promise;
-        }
+        let promise: Promise<string> = util.ajax<string>({url: urlOrId});
+        cacheStore.set(urlOrId, promise);
         
         return promise;
     }

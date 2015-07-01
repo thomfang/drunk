@@ -61,7 +61,7 @@ module drunk.observable {
      * @returns {any}         返回移除的值
      */
     export function removeAt<T>(array: ObservableArray<T>, index: number): T {
-        var result: T;
+        let result: T;
 
         if (index > -1 && index < array.length) {
             result = Array.prototype.splice.call(array, index, 1)[0];
@@ -176,7 +176,7 @@ module drunk.observable {
      * 调用原生方法并发送通知
      */
     function executeArrayMethodAndNotify<T>(array: ObservableArray<T>, methodName: string, args: any[], callback?: () => void): any {
-        var result = Array.prototype[methodName].apply(array, args);
+        let result = Array.prototype[methodName].apply(array, args);
 
         if (callback) {
             callback();

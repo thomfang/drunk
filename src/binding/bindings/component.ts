@@ -33,7 +33,7 @@ module drunk {
                 return this.initAsyncComponent(src);
             }
             
-            let Ctor = Component.getComponentByName(this.expression);
+            let Ctor = Component.getByName(this.expression);
             if (!Ctor) {
                 throw new Error(this.expression + ": 未找到该组件.");
             }
@@ -50,7 +50,7 @@ module drunk {
          */
         initAsyncComponent(src: string) {
             return Template.renderFragment(src, null, true).then((fragment) => {
-                let Ctor = Component.getComponentByName(this.expression);
+                let Ctor = Component.getByName(this.expression);
                 if (!Ctor) {
                     throw new Error(this.expression + ": 未找到该组件.");
                 }

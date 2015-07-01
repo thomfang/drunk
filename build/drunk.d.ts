@@ -1395,11 +1395,11 @@ declare module drunk {
         function removeWeakRef(element: any): void;
         /**
          * 根据组件名字获取组件构造函数
-         * @method getComponentByName
+         * @method getByName
          * @param  {string}  name  组件名
          * @return {IComponentConstructor}
          */
-        function getComponentByName(name: string): IComponentContructor<any>;
+        function getByName(name: string): IComponentContructor<any>;
         /**
          * 自定义一个组件类
          * @method define

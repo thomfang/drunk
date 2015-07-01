@@ -3127,8 +3127,7 @@ var drunk;
 (function (drunk) {
     var Template;
     (function (Template) {
-        var cache = new drunk.Cache(50);
-        var loading = {};
+        var cacheStore = new drunk.Cache(50);
         /**
          * 加载模板，先尝试从script标签上查找，找不到再发送ajax请求，
          * 加载到的模板字符串会进行缓存
@@ -3138,25 +3137,18 @@ var drunk;
          * @returns {Promise}           一个 promise 对象promise的返回值为模板字符串
          */
         function load(urlOrId) {
-            var template = cache.get(urlOrId);
-            var node;
+            var template = cacheStore.get(urlOrId);
             if (template != null) {
                 return drunk.Promise.resolve(template);
             }
-            if ((node = document.getElementById(urlOrId)) && node.innerHTML) {
+            var node = document.getElementById(urlOrId);
+            if (node && node.innerHTML) {
                 template = node.innerHTML;
-                cache.set(urlOrId, template);
+                cacheStore.set(urlOrId, template);
                 return drunk.Promise.resolve(template);
             }
-            var promise = loading[urlOrId];
-            if (!promise) {
-                promise = drunk.util.ajax({ url: urlOrId }).then(function (template) {
-                    cache.set(urlOrId, template);
-                    delete loading[urlOrId];
-                    return template;
-                });
-                loading[urlOrId] = promise;
-            }
+            var promise = drunk.util.ajax({ url: urlOrId });
+            cacheStore.set(urlOrId, promise);
             return promise;
         }
         Template.load = load;
@@ -3456,7 +3448,7 @@ var drunk;
          * @method dispose
          */
         Component.prototype.dispose = function () {
-            this.emit(Component.Event.dispose);
+            this.emit(Component.Event.dispose, this);
             _super.prototype.dispose.call(this);
             if (this._isMounted) {
                 Component.removeWeakRef(this.element);
@@ -3531,14 +3523,14 @@ var drunk;
         var definedComponentMap = {};
         /**
          * 根据组件名字获取组件构造函数
-         * @method getComponentByName
+         * @method getByName
          * @param  {string}  name  组件名
          * @return {IComponentConstructor}
          */
-        function getComponentByName(name) {
+        function getByName(name) {
             return definedComponentMap[name];
         }
-        Component.getComponentByName = getComponentByName;
+        Component.getByName = getByName;
         /**
          * 自定义一个组件类
          * @method define
@@ -3925,7 +3917,7 @@ var drunk;
             if (src) {
                 return this.initAsyncComponent(src);
             }
-            var Ctor = drunk.Component.getComponentByName(this.expression);
+            var Ctor = drunk.Component.getByName(this.expression);
             if (!Ctor) {
                 throw new Error(this.expression + ": 未找到该组件.");
             }
@@ -3940,7 +3932,7 @@ var drunk;
         ComponentBinding.prototype.initAsyncComponent = function (src) {
             var _this = this;
             return drunk.Template.renderFragment(src, null, true).then(function (fragment) {
-                var Ctor = drunk.Component.getComponentByName(_this.expression);
+                var Ctor = drunk.Component.getByName(_this.expression);
                 if (!Ctor) {
                     throw new Error(_this.expression + ": 未找到该组件.");
                 }

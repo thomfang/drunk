@@ -221,7 +221,7 @@ module drunk {
          * @method dispose
          */
         dispose() {
-            this.emit(Component.Event.dispose);
+            this.emit(Component.Event.dispose, this);
 
             super.dispose();
 
@@ -304,11 +304,11 @@ module drunk {
         
         /**
          * 根据组件名字获取组件构造函数
-         * @method getComponentByName
+         * @method getByName
          * @param  {string}  name  组件名
          * @return {IComponentConstructor}
          */
-        export function getComponentByName(name: string): IComponentContructor<any> {
+        export function getByName(name: string): IComponentContructor<any> {
             return definedComponentMap[name];
         }
         
