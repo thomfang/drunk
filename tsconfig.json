@@ -12,7 +12,7 @@
         "src/promise/promise.ts",
         "src/config/config.ts",
         "src/cache/cache.ts",
-        "src/events/events.ts",
+        "src/events/eventemitter.ts",
         "src/util/util.ts",
         "src/util/elem.ts",
         "src/util/querystring.ts",

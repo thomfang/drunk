@@ -4,7 +4,7 @@
 /// <reference path="../watcher/watcher.ts" />
 /// <reference path="../binding/binding.ts" />
 /// <reference path="../filter/filter" />
-/// <reference path="../events/events" />
+/// <reference path="../events/eventemitter" />
 
 module drunk {
 
