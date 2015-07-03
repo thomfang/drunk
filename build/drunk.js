@@ -1100,6 +1100,212 @@ var drunk;
         util.ajax = ajax;
     })(util = drunk.util || (drunk.util = {}));
 })(drunk || (drunk = {}));
+/// <reference path="../promise/promise" />
+/// <reference path="../util/util" />
+/// <reference path="../events/eventemitter" />
+var drunk;
+(function (drunk) {
+    var scheduler;
+    (function (scheduler) {
+        (function (Priority) {
+            Priority[Priority["max"] = 15] = "max";
+            Priority[Priority["high"] = 13] = "high";
+            Priority[Priority["aboveNormal"] = 9] = "aboveNormal";
+            Priority[Priority["normal"] = 0] = "normal";
+            Priority[Priority["belowNormal"] = -9] = "belowNormal";
+            Priority[Priority["idle"] = -13] = "idle";
+            Priority[Priority["min"] = -15] = "min";
+        })(scheduler.Priority || (scheduler.Priority = {}));
+        var Priority = scheduler.Priority;
+        ;
+        var isRunning = false;
+        var immediateYield = false;
+        var drainEventEmitter = new drunk.EventEmitter();
+        var TIME_SLICE = 30;
+        var PRIORITY_TAIL = Priority.min - 1;
+        var drainPriorityQueue = [];
+        var jobStore = {};
+        for (var i = Priority.min; i <= Priority.max; i++) {
+            jobStore[i] = [];
+        }
+        function getJobListAtPriority(priority) {
+            return jobStore[priority];
+        }
+        function getHighestPriority() {
+            for (var priority = Priority.max; priority >= Priority.min; priority--) {
+                if (jobStore[priority].length) {
+                    return priority;
+                }
+            }
+            return PRIORITY_TAIL;
+        }
+        function getHighestPriorityJobList() {
+            return jobStore[getHighestPriority()];
+        }
+        function addJobToQueue(job) {
+            var jobList = getJobListAtPriority(job.priority);
+            jobList.push(job);
+            if (job.priority > getHighestPriority()) {
+                immediateYield = true;
+            }
+            startRunning();
+        }
+        function clampPriority(priority) {
+            priority = priority || Priority.normal;
+            return Math.min(Priority.max, Math.max(Priority.min, priority));
+        }
+        function run() {
+            if (isRunning) {
+                return;
+            }
+            if (drainPriorityQueue.length && getHighestPriority() === PRIORITY_TAIL) {
+                return drainPriorityQueue.forEach(function (priority) { return drainEventEmitter.emit(String(priority)); });
+            }
+            isRunning = true;
+            immediateYield = false;
+            var endTime = Date.now() + TIME_SLICE;
+            function shouldYield() {
+                if (immediateYield) {
+                    return true;
+                }
+                if (drainPriorityQueue.length) {
+                    return false;
+                }
+                return Date.now() > endTime;
+            }
+            while (getHighestPriority() >= Priority.min && !shouldYield()) {
+                var jobList = getHighestPriorityJobList();
+                var currJob = jobList.shift();
+                do {
+                    currJob._execute(shouldYield);
+                    currJob = jobList.shift();
+                } while (currJob && !immediateYield);
+                notifyDrainPriority();
+            }
+            immediateYield = false;
+            isRunning = false;
+            if (getHighestPriority() > PRIORITY_TAIL) {
+                startRunning();
+            }
+        }
+        function notifyDrainPriority() {
+            var count = 0;
+            var highestPriority = getHighestPriority();
+            drainPriorityQueue.forEach(function (priority) {
+                if (priority > highestPriority) {
+                    count += 1;
+                    drainEventEmitter.emit(String(priority));
+                }
+            });
+            if (count > 0) {
+                drainPriorityQueue.splice(0, count);
+            }
+        }
+        function startRunning() {
+            if (!isRunning) {
+                setTimeout(run, 0);
+            }
+        }
+        var Job = (function () {
+            function Job(_work, _priority, _context) {
+                this._work = _work;
+                this._priority = _priority;
+                this._context = _context;
+            }
+            Object.defineProperty(Job.prototype, "priority", {
+                get: function () {
+                    return this._priority;
+                },
+                set: function (value) {
+                    this._priority = clampPriority(value);
+                },
+                enumerable: true,
+                configurable: true
+            });
+            Job.prototype.cancel = function () {
+                this._remove();
+                this._release();
+            };
+            Job.prototype.pause = function () {
+                this._remove();
+                this._isPaused = true;
+            };
+            Job.prototype.resume = function () {
+                if (this._isPaused) {
+                    addJobToQueue(this);
+                    this._isPaused = false;
+                }
+            };
+            Job.prototype._execute = function (shouldYield) {
+                var jobInfo = new JobInfo(shouldYield);
+                var work = this._work;
+                var context = this._context;
+                var priority = this._priority;
+                this._release();
+                work.call(context, jobInfo);
+                jobInfo._setPublicApiDisabled();
+                if (jobInfo._result) {
+                    this._work = jobInfo._result;
+                    this._priority = priority;
+                    this._context = context;
+                    addJobToQueue(this);
+                }
+            };
+            Job.prototype._remove = function () {
+                var jobList = getJobListAtPriority(this.priority);
+                drunk.util.removeArrayItem(jobList, this);
+            };
+            Job.prototype._release = function () {
+                this._work = null;
+                this._context = null;
+                this._priority = null;
+            };
+            return Job;
+        })();
+        var JobInfo = (function () {
+            function JobInfo(_shouldYield) {
+                this._shouldYield = _shouldYield;
+            }
+            Object.defineProperty(JobInfo.prototype, "shouldYield", {
+                get: function () {
+                    this._throwIfDisabled();
+                    return this._shouldYield();
+                },
+                enumerable: true,
+                configurable: true
+            });
+            JobInfo.prototype.setWork = function (work) {
+                this._throwIfDisabled();
+                this._result = work;
+            };
+            JobInfo.prototype.setPromise = function (promise) {
+                this._throwIfDisabled();
+                this._result = promise;
+            };
+            JobInfo.prototype._setPublicApiDisabled = function () {
+                this._publicApiDisabled = true;
+            };
+            JobInfo.prototype._throwIfDisabled = function () {
+                if (this._publicApiDisabled) {
+                    throw new Error('The APIs of this JobInfo object are disabled');
+                }
+            };
+            return JobInfo;
+        })();
+        function schedule(work, priority, context) {
+            var job = new Job(work, clampPriority(priority), context);
+            addJobToQueue(job);
+            return job;
+        }
+        scheduler.schedule = schedule;
+        function requestDrain(priority, callback) {
+            drunk.util.addArrayItem(drainPriorityQueue, priority);
+            drainPriorityQueue.sort();
+            drainEventEmitter.once(String(priority), callback);
+        }
+        scheduler.requestDrain = requestDrain;
+    })(scheduler = drunk.scheduler || (drunk.scheduler = {}));
+})(drunk || (drunk = {}));
 /// <reference path="../util/util.ts" />
 /// <reference path="./observable.ts" />
 /**
@@ -1193,7 +1399,7 @@ var drunk;
 /// <reference path="../util/util.ts" />
 /// <reference path="./observableArray.ts" />
 /// <reference path="./observableObject.ts" />
-/// <reference path="../events/events" />
+/// <reference path="../events/eventemitter" />
 var __extends = this.__extends || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
@@ -2354,7 +2560,7 @@ var drunk;
 /// <reference path="../watcher/watcher.ts" />
 /// <reference path="../binding/binding.ts" />
 /// <reference path="../filter/filter" />
-/// <reference path="../events/events" />
+/// <reference path="../events/eventemitter" />
 var drunk;
 (function (drunk) {
     var counter = 0;

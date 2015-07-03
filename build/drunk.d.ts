@@ -476,6 +476,28 @@ declare module drunk.util {
      */
     function ajax<T>(options: IAjaxOptions): Promise<T>;
 }
+declare module drunk.scheduler {
+    interface IJob {
+        priority: Priority;
+        cancel(): void;
+        pause(): void;
+        resume(): void;
+    }
+    interface IJobInfo {
+        shouldYield: boolean;
+    }
+    enum Priority {
+        max = 15,
+        high = 13,
+        aboveNormal = 9,
+        normal = 0,
+        belowNormal = -9,
+        idle = -13,
+        min = -15,
+    }
+    function schedule(work: (jobInfo: IJobInfo) => any, priority?: Priority, context?: any): IJob;
+    function requestDrain(priority: Priority, callback: () => any): void;
+}
 /**
  * @module drunk.observable
  * @class observable
