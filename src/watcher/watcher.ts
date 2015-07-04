@@ -2,6 +2,7 @@
 /// <reference path="../promise/promise.ts" />
 /// <reference path="../parser/parser.ts" />
 /// <reference path="../observable/observable.ts" />
+/// <reference path="../scheduler/scheduler" />
 
 module drunk {
 
@@ -26,7 +27,7 @@ module drunk {
         private _tmpObservers: { [id: string]: observable.Observer };
         private _tmpProperties: { [number: string]: {[property: string]: boolean}};
 
-        private _timerid: number;
+        private _runActionJob: scheduler.IJob;
         private _getter: parser.IGetter;
         
         /**
@@ -102,8 +103,11 @@ module drunk {
          * @method __propertyChanged
          */
         __propertyChanged(): void {
-            clearTimeout(this._timerid);
-            this._timerid = util.nextTick(this.__runActions, this);
+            if (this._runActionJob) {
+                this._runActionJob.cancel();
+            }
+            
+            scheduler.schedule(this.__runActions, scheduler.Priority.aboveNormal, this);
         }
         
         /**
@@ -142,6 +146,11 @@ module drunk {
                     this._observers[id].removeListener(property, this.__propertyChanged);
                 });
             });
+            
+            if (this._runActionJob) {
+                this._runActionJob.cancel();
+                this._runActionJob = null;
+            }
 
             let key: string = Watcher.getNameOfKey(this.expression, this.isDeepWatch);
             this.viewModel._watchers[key] = null;

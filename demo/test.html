@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+    
+    <head>
+        <meta name="viewport" content="initial-scale=1,maximum-scale=1,minimum-scale=1" />
+        <meta charset="utf-8" />
+        <title>test</title>
+        <script src="../build/drunk.js"></script>
+        <style>
+            .test {
+                width:320px;height:50px;background: black;
+            }
+        </style>
+    </head>
+    
+    <body>
+        
+        <p>document.appendChild:<span id='a'></span></p>
+        <p>document fragment:<span id='b'></span></p>
+        <p>promise:<span id='c'></span></p>
+        
+        <script type="text/javascript">
+        var div = document.createElement('div');
+        div.className = 'test';
+        
+        var counter = 10000;
+        
+        // var start = Date.now();
+        // var promise = drunk.Promise.resolve();
+        // var promises = [];
+        // function createNode() {
+        //     console.log(1);
+        //     document.body.appendChild(div.cloneNode(true));
+        // }
+        // for (var i = 0; i < counter; i++) {
+        //     // promises.push(promise.then(createNode));
+        //     promise = promise.then(createNode);
+        // }
+        // promise.then(function () {
+        //     document.getElementById('c').innerHTML = (Date.now() - start) + 'ms';
+        // });
+        
+        
+        var startA = Date.now();
+        for (var i = 0; i < counter; i++) {
+            document.body.appendChild(div.cloneNode(true));
+        }
+        drunk.util.nextTick(function () {
+            document.getElementById('a').innerHTML = (Date.now() - startA) + 'ms';
+            
+            var frag = document.createDocumentFragment();
+            var startB = Date.now();
+            for (var i = 0; i < counter; i++) {
+                frag.appendChild(div.cloneNode(true));
+            }
+            document.body.appendChild(frag);
+            
+            drunk.util.nextTick(function () {
+                document.getElementById('b').innerHTML = (Date.now() - startB) + 'ms';
+            });
+        });
+        
+        
+        </script>
+    </body>
+
+</html>

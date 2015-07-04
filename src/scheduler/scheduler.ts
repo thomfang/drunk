@@ -15,6 +15,11 @@ module drunk.scheduler {
         shouldYield: boolean;
     }
     
+    /**
+     * 调度器优先级
+     * @property Priority
+     * @type enum
+     */
     export enum Priority {
         max = 15,
         high = 13,
@@ -121,11 +126,14 @@ module drunk.scheduler {
         let count = 0;
         let highestPriority = getHighestPriority();
         
-        drainPriorityQueue.forEach((priority) => {
+        drainPriorityQueue.some((priority) => {
             if (priority > highestPriority) {
                 count += 1;
                 drainEventEmitter.emit(String(priority));
+                return true;
             }
+            
+            return false;
         });
         
         if (count > 0) {

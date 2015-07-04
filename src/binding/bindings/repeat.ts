@@ -3,6 +3,7 @@
 /// <reference path="../../component/component" />
 /// <reference path="../../template/compiler" />
 /// <reference path="../../viewmodel/viewmodel" />
+/// <reference path="../../scheduler/scheduler" />
 
  
 module drunk {
@@ -245,8 +246,11 @@ module drunk {
                 placeholder.textContent = 'disposed repeat item';
                 
                 viewModel.dispose();
-                elementUtil.remove(placeholder);
-                elementUtil.remove(element);
+                
+                scheduler.schedule(() => {
+                    elementUtil.remove(placeholder);
+                    elementUtil.remove(element);
+                }, scheduler.Priority.idle);
             });
         },
 

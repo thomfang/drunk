@@ -230,16 +230,6 @@ declare module drunk.util {
      * @return {boolean}           如果已经代理过,则不再代理该属性
      */
     function proxy(a: Object, property: string, b: Object): boolean;
-    /**
-     * 设置函数在下一帧执行
-     *
-     * @static
-     * @method nextTick
-     * @param  {function}  callback  回调函数
-     * @param  {any}       [sender]  函数执行时要bind的对象
-     * @return {number}              返回定时器的id
-     */
-    function nextTick(callback: () => void, sender?: any): number;
 }
 declare module drunk {
     interface IEventListener {
@@ -486,6 +476,11 @@ declare module drunk.scheduler {
     interface IJobInfo {
         shouldYield: boolean;
     }
+    /**
+     * 调度器优先级
+     * @property Priority
+     * @type enum
+     */
     enum Priority {
         max = 15,
         high = 13,
@@ -722,7 +717,7 @@ declare module drunk {
         private _properties;
         private _tmpObservers;
         private _tmpProperties;
-        private _timerid;
+        private _runActionJob;
         private _getter;
         /**
          * 表达式求值的结果

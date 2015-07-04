@@ -630,20 +630,6 @@ var drunk;
             return true;
         }
         util.proxy = proxy;
-        /**
-         * 设置函数在下一帧执行
-         *
-         * @static
-         * @method nextTick
-         * @param  {function}  callback  回调函数
-         * @param  {any}       [sender]  函数执行时要bind的对象
-         * @return {number}              返回定时器的id
-         */
-        function nextTick(callback, sender) {
-            if (sender === void 0) { sender = null; }
-            return setTimeout(callback.bind(sender), 0);
-        }
-        util.nextTick = nextTick;
     })(util = drunk.util || (drunk.util = {}));
 })(drunk || (drunk = {}));
 /// <reference path="../util/util.ts" />
@@ -1107,6 +1093,11 @@ var drunk;
 (function (drunk) {
     var scheduler;
     (function (scheduler) {
+        /**
+         * 调度器优先级
+         * @property Priority
+         * @type enum
+         */
         (function (Priority) {
             Priority[Priority["max"] = 15] = "max";
             Priority[Priority["high"] = 13] = "high";
@@ -1191,11 +1182,13 @@ var drunk;
         function notifyDrainPriority() {
             var count = 0;
             var highestPriority = getHighestPriority();
-            drainPriorityQueue.forEach(function (priority) {
+            drainPriorityQueue.some(function (priority) {
                 if (priority > highestPriority) {
                     count += 1;
                     drainEventEmitter.emit(String(priority));
+                    return true;
                 }
+                return false;
             });
             if (count > 0) {
                 drainPriorityQueue.splice(0, count);
@@ -1813,6 +1806,7 @@ var drunk;
 /// <reference path="../promise/promise.ts" />
 /// <reference path="../parser/parser.ts" />
 /// <reference path="../observable/observable.ts" />
+/// <reference path="../scheduler/scheduler" />
 var drunk;
 (function (drunk) {
     var Watcher = (function () {
@@ -1891,8 +1885,10 @@ var drunk;
          * @method __propertyChanged
          */
         Watcher.prototype.__propertyChanged = function () {
-            clearTimeout(this._timerid);
-            this._timerid = drunk.util.nextTick(this.__runActions, this);
+            if (this._runActionJob) {
+                this._runActionJob.cancel();
+            }
+            drunk.scheduler.schedule(this.__runActions, drunk.scheduler.Priority.aboveNormal, this);
         };
         /**
          * 立即获取最新的数据判断并判断是否已经更新，如果已经更新，执行所有的回调
@@ -1927,6 +1923,10 @@ var drunk;
                     _this._observers[id].removeListener(property, _this.__propertyChanged);
                 });
             });
+            if (this._runActionJob) {
+                this._runActionJob.cancel();
+                this._runActionJob = null;
+            }
             var key = Watcher.getNameOfKey(this.expression, this.isDeepWatch);
             this.viewModel._watchers[key] = null;
             this.value = null;
@@ -4563,6 +4563,7 @@ var drunk;
 /// <reference path="../../component/component" />
 /// <reference path="../../template/compiler" />
 /// <reference path="../../viewmodel/viewmodel" />
+/// <reference path="../../scheduler/scheduler" />
 var drunk;
 (function (drunk) {
     var repeaterPrefix = "__drunk_repeater_item_";
@@ -4753,8 +4754,10 @@ var drunk;
                 var placeholder = viewModel._placeholder;
                 placeholder.textContent = 'disposed repeat item';
                 viewModel.dispose();
-                drunk.elementUtil.remove(placeholder);
-                drunk.elementUtil.remove(element);
+                drunk.scheduler.schedule(function () {
+                    drunk.elementUtil.remove(placeholder);
+                    drunk.elementUtil.remove(element);
+                }, drunk.scheduler.Priority.idle);
             });
         },
         release: function () {

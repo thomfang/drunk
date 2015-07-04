@@ -184,17 +184,4 @@ module drunk.util {
         
         return true;
     }
-
-    /**
-     * 设置函数在下一帧执行
-     * 
-     * @static
-     * @method nextTick
-     * @param  {function}  callback  回调函数
-     * @param  {any}       [sender]  函数执行时要bind的对象
-     * @return {number}              返回定时器的id
-     */
-    export function nextTick(callback: () => void, sender: any = null): number {
-        return setTimeout(callback.bind(sender), 0);
-    }
 }
