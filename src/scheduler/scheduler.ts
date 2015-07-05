@@ -188,13 +188,25 @@ module drunk.scheduler {
             this._release();
             
             work.call(context, jobInfo);
-            jobInfo._setPublicApiDisabled();
             
-            if (jobInfo._result) {
-                this._work = jobInfo._result;
-                this._priority = priority;
-                this._context = context;
-                addJobToQueue(this);
+            let result: any = jobInfo._result;
+            jobInfo._release();
+            
+            if (result) {
+                if (typeof result === 'function') {
+                    this._work = result;
+                    this._priority = priority;
+                    this._context = context;
+                    addJobToQueue(this);
+                }
+                else {
+                    (<Promise<Function>>result).then((newWork: (IJobInfo) => any) => {
+                        this._work = newWork;
+                        this._priority = priority;
+                        this._context = context;
+                        addJobToQueue(this);
+                    });
+                }
             }
         }
         
@@ -214,7 +226,7 @@ module drunk.scheduler {
         
         private _publicApiDisabled: boolean;
         
-        _result: any;
+        _result: Function | Promise<Function>;
         
         constructor(private _shouldYield: () => boolean) {
             
@@ -235,8 +247,9 @@ module drunk.scheduler {
             this._result = promise;
         }
         
-        _setPublicApiDisabled() {
+        _release() {
             this._publicApiDisabled = true;
+            this._result = null;
         }
         
         private _throwIfDisabled() {

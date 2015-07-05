@@ -1,0 +1,64 @@
+<!doctype html>
+<html>
+    
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="initial-scale=1" />
+        <title>scheduler - demo</title>
+        <script src="../../build/drunk.js"></script>
+    </head>
+    
+    <body>
+        
+        <div id='container'>
+            <div id="tpl">
+                <h2>Title</h2>
+                <section>Some content here</section>
+            </div>
+        </div>
+        
+        <script>
+            /// <reference path="../../build/drunk.d.ts" />
+            
+            var container = document.getElementById('container');
+            var tplNode = document.getElementById('tpl');
+            var totalCount = 100000;
+            
+            function createNodesByCount(count) {
+                
+                drunk.scheduler.schedule(function (jobInfo) {
+                    var i = 0;
+                    var start = Date.now();
+                    for (; i < count; i++) {
+                        if (jobInfo.shouldYield) {
+                            jobInfo.setPromise(drunk.Promise.resolve(newWork));
+                            console.log(Date.now() - start);
+                            break;
+                        }
+                        else {
+                            var newNode = tplNode.cloneNode(true);
+                            container.appendChild(newNode);
+                        }
+                    }
+                    
+                    function newWork() {
+                        console.log(i, count - i);
+                        createNodesByCount(count - i);
+                    }
+                }, drunk.scheduler.Priority.normal);
+            }
+            
+            // function createNodesByCount(count) {
+            //     for (var i = 0; i < count; i++) {
+            //         var newNode = tplNode.cloneNode(true);
+            //         container.appendChild(newNode);
+            //     }
+            // }
+            
+            setTimeout(function () {
+                createNodesByCount(totalCount);
+            }, 1000);
+        
+        </script>
+    </body>
+</html>

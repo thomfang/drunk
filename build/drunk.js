@@ -1230,18 +1230,30 @@ var drunk;
                 }
             };
             Job.prototype._execute = function (shouldYield) {
+                var _this = this;
                 var jobInfo = new JobInfo(shouldYield);
                 var work = this._work;
                 var context = this._context;
                 var priority = this._priority;
                 this._release();
                 work.call(context, jobInfo);
-                jobInfo._setPublicApiDisabled();
-                if (jobInfo._result) {
-                    this._work = jobInfo._result;
-                    this._priority = priority;
-                    this._context = context;
-                    addJobToQueue(this);
+                var result = jobInfo._result;
+                jobInfo._release();
+                if (result) {
+                    if (typeof result === 'function') {
+                        this._work = result;
+                        this._priority = priority;
+                        this._context = context;
+                        addJobToQueue(this);
+                    }
+                    else {
+                        result.then(function (newWork) {
+                            _this._work = newWork;
+                            _this._priority = priority;
+                            _this._context = context;
+                            addJobToQueue(_this);
+                        });
+                    }
                 }
             };
             Job.prototype._remove = function () {
@@ -1275,8 +1287,9 @@ var drunk;
                 this._throwIfDisabled();
                 this._result = promise;
             };
-            JobInfo.prototype._setPublicApiDisabled = function () {
+            JobInfo.prototype._release = function () {
                 this._publicApiDisabled = true;
+                this._result = null;
             };
             JobInfo.prototype._throwIfDisabled = function () {
                 if (this._publicApiDisabled) {
