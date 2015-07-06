@@ -119,8 +119,8 @@
         <button drunk-on="click:show = !show">点击切换文本展示</button>
         <button drunk-on="click:expanded = !expanded">点击切换文本展示</button>
         <button drunk-on="click:list.unshift({})">从列表头部添加一个</button>
-        <button drunk-on="click:list.push({})">从列表尾部添加一个</button>
-        <button drunk-on="click:list.pop()">从列表中移除一个</button>
+        <button drunk-on="click:list.push({}), count += 1">从列表尾部添加一个</button>
+        <button drunk-on="click:list.pop(),count -= 1">从列表中移除一个</button>
         <button drunk-on="click:redBoxVisible = !redBoxVisible">点击切换动画</button>
         <button drunk-on="click:greenBoxVisible = !greenBoxVisible">点击切换动画</button>
         <!--<div class="msg" drunk-if="show" drunk-action="expand">Hello!</div>-->
@@ -182,7 +182,8 @@
             var app = new drunk.Component({
                 list: [1,2,3],
                 sloganList: ['123', '234', '345'],
-                slogan: []
+                slogan: [],
+                count: 1000
             });
             app.mount(document.body);
         </script>

@@ -466,32 +466,63 @@ declare module drunk.util {
      */
     function ajax<T>(options: IAjaxOptions): Promise<T>;
 }
-declare module drunk.scheduler {
-    interface IJob {
-        priority: Priority;
-        cancel(): void;
-        pause(): void;
-        resume(): void;
-    }
-    interface IJobInfo {
-        shouldYield: boolean;
-    }
+/**
+ * @module drunk.scheduler
+ */
+declare module drunk {
     /**
-     * 调度器优先级
-     * @property Priority
-     * @type enum
+     * @class Scheduler
      */
-    enum Priority {
-        max = 15,
-        high = 13,
-        aboveNormal = 9,
-        normal = 0,
-        belowNormal = -9,
-        idle = -13,
-        min = -15,
+    class Scheduler {
+        /**
+         * 调度方法
+         * @method schedule
+         * @static
+         * @param  {Scheduler.IWork}     work        调度的执行函数
+         * @param  {Scheduler.Priority}  [priority]  优先级
+         * @param  {any}       [context]   上下文
+         * @return {Scheduler.IJob}                  生成的工作对象
+         */
+        static schedule(work: Scheduler.IWork, priority?: Scheduler.Priority, context?: any): Scheduler.IJob;
+        /**
+         * @method requestDrain
+         * @static
+         * @param  {Scheduler.Priority}  priority  优先级
+         * @param  {function}  callback  回调
+         */
+        static requestDrain(priority: Scheduler.Priority, callback: () => any): void;
     }
-    function schedule(work: (jobInfo: IJobInfo) => any, priority?: Priority, context?: any): IJob;
-    function requestDrain(priority: Priority, callback: () => any): void;
+    module Scheduler {
+        interface IJob {
+            priority: Priority;
+            completed: boolean;
+            cancel(): void;
+            pause(): void;
+            resume(): void;
+        }
+        interface IJobInfo {
+            shouldYield: boolean;
+            setWork(work: (jobInfo: IJobInfo) => any): void;
+            setPromise(promise: Promise<Scheduler.IWork>): void;
+        }
+        interface IWork {
+            (jobInfo: IJobInfo): any;
+        }
+        /**
+         * 调度器优先级
+         * @property Scheduler.Priority
+         * @type enum
+         */
+        enum Priority {
+            max = 15,
+            high = 13,
+            aboveNormal = 9,
+            normal = 0,
+            belowNormal = -9,
+            idle = -13,
+            min = -15,
+        }
+    }
 }
 /**
  * @module drunk.observable
@@ -764,11 +795,11 @@ declare module drunk {
         __propertyChanged(): void;
         /**
          * 立即获取最新的数据判断并判断是否已经更新，如果已经更新，执行所有的回调
-         * @method __runActions
+         * @method __flush
          * @private
          * @return {Promise} 等待所有回调执行完毕的promise对象
          */
-        __runActions(): void;
+        __flush(): void;
         /**
          * 释放引用和内存
          * @method dispose
@@ -1610,26 +1641,6 @@ declare module drunk {
  */
 declare module drunk {
 }
-/**
- * 引入指定url的html字符串模板
- * @class drunk-include
- * @constructor
- * @show
- * @example
-        <html>
-            <section>
-                <p>以下是标签中的模板</p>
-                <div drunk-include="'tpl'"></div>
-            </section>
-            <div id="tpl" type="text/template" style="display:none">
-                <div>这里是script 标签的模板</div>
-            </div>
-        </html>
-        
-        <script>
-            new drunk.Component().mount(document.querySelector("section"));
-        </script>
- */
 declare module drunk {
 }
 /**
@@ -1674,13 +1685,13 @@ declare module drunk {
      */
     class RepeatItem extends Component {
         parent: Component | RepeatItem;
-        element: any;
         _isCollection: boolean;
         _isUsed: boolean;
+        _isBinded: boolean;
         _placeholder: Comment;
         _element: any;
         protected _models: IModel[];
-        constructor(parent: Component | RepeatItem, ownModel: any, element: any);
+        constructor(parent: Component | RepeatItem, ownModel: any);
         /**
          * 这里只初始化私有model
          * @method __init

@@ -27,7 +27,7 @@ module drunk {
         private _tmpObservers: { [id: string]: observable.Observer };
         private _tmpProperties: { [number: string]: {[property: string]: boolean}};
 
-        private _runActionJob: scheduler.IJob;
+        private _runActionJob: Scheduler.IJob;
         private _getter: parser.IGetter;
         
         /**
@@ -107,16 +107,16 @@ module drunk {
                 this._runActionJob.cancel();
             }
             
-            scheduler.schedule(this.__runActions, scheduler.Priority.aboveNormal, this);
+            Scheduler.schedule(this.__flush, Scheduler.Priority.aboveNormal, this);
         }
         
         /**
          * 立即获取最新的数据判断并判断是否已经更新，如果已经更新，执行所有的回调
-         * @method __runActions
+         * @method __flush
          * @private
          * @return {Promise} 等待所有回调执行完毕的promise对象
          */
-        __runActions(): void {
+        __flush(): void {
             if (!this._isActived) {
                 return;
             }

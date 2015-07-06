@@ -2,26 +2,6 @@
 /// <reference path="../../template/loader" />
 /// <reference path="../../template/compiler" />
 
-/**
- * 引入指定url的html字符串模板
- * @class drunk-include
- * @constructor
- * @show
- * @example
-        <html>
-            <section>
-                <p>以下是标签中的模板</p>
-                <div drunk-include="'tpl'"></div>
-            </section>
-            <div id="tpl" type="text/template" style="display:none">
-                <div>这里是script 标签的模板</div>
-            </div>
-        </html>
-        
-        <script>
-            new drunk.Component().mount(document.querySelector("section"));
-        </script>
- */
 module drunk {
 
     Binding.define("include", {
@@ -35,10 +15,15 @@ module drunk {
             }
             
             this.unbind();
+            this.url = url;
 
             if (url) {
-                this.url = url;
-                return Template.load(url).then(this.createBinding.bind(this));
+                Template.load(url).then(this.createBinding.bind(this));
+            }
+            else {
+                util.toArray(this.element.childNodes).forEach((child) => {
+                    elementUtil.remove(child);
+                });
             }
         },
 
@@ -62,7 +47,6 @@ module drunk {
             this.unbind();
             this.url = null;
             this.isActived = false;
-            elementUtil.html(this.element, '');
         }
     });
 

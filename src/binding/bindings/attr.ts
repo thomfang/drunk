@@ -1,21 +1,6 @@
 /// <reference path="../binding" />
 /// <reference path="../../util/util" />
 
-/**
- * 元素属性绑定,可以设置元素的attribute类型
- * @class drunk-attr
- * @constructor
- * @show
- * @example
- *       <html>
- *       <div drunk-attr="{style: customStyle}"></div>
- *       </html>
- *       <script>
- *       var myView = new drunk.Component();
- *       myView.mount(document.body);
- *       myView.customStyle = "background:red;width:200px;height:100px;";
- *       </script>
- */
 module drunk {
     
     function setAttribute(element: HTMLElement, name: string, value: any) {

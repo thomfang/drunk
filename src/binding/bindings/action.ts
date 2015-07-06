@@ -1,6 +1,7 @@
 /// <reference path="../binding" />
 /// <reference path="../../config/config" />
 /// <reference path="../../promise/promise" />
+/// <reference path="../../scheduler/scheduler" />
 
 module drunk {
 
@@ -266,12 +267,12 @@ module drunk {
         
         /**
          * 根据名称获取注册的action实现
-         * @method getDefinition
+         * @method getByName
          * @static
          * @param  {string}  name  action名称
          * @return {IActionDefinition}
          */
-        export function getDefinition(name: string) {
+        export function getByName(name: string) {
             return definitionMap[name];
         }
     }
@@ -286,9 +287,13 @@ module drunk {
         viewModel: Component;
 
         private _actionNames: string[];
+        private _actionJob: Scheduler.IJob;
 
         init() {
-            this._runActionByType(Action.Type.created);
+            this._actionJob = Scheduler.schedule(() => {
+                this._runActionByType(Action.Type.created);
+                this._actionJob = null;
+            }, Scheduler.Priority.normal);
         }
 
         _parseDefinition(actionType: string) {
@@ -361,8 +366,14 @@ module drunk {
         }
 
         release() {
+            if (this._actionJob) {
+                this._actionJob.cancel();
+            }
+            
             this._runActionByType(Action.Type.removed);
+            
             this._actionNames = null;
+            this._actionJob = null;
         }
     }
     

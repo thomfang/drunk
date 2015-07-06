@@ -1089,13 +1089,50 @@ var drunk;
 /// <reference path="../promise/promise" />
 /// <reference path="../util/util" />
 /// <reference path="../events/eventemitter" />
+/**
+ * @module drunk.scheduler
+ */
 var drunk;
 (function (drunk) {
-    var scheduler;
-    (function (scheduler) {
+    /**
+     * @class Scheduler
+     */
+    var Scheduler = (function () {
+        function Scheduler() {
+        }
+        /**
+         * 调度方法
+         * @method schedule
+         * @static
+         * @param  {Scheduler.IWork}     work        调度的执行函数
+         * @param  {Scheduler.Priority}  [priority]  优先级
+         * @param  {any}       [context]   上下文
+         * @return {Scheduler.IJob}                  生成的工作对象
+         */
+        Scheduler.schedule = function (work, priority, context) {
+            var job = new Job(work, clampPriority(priority), context);
+            addJobToQueue(job);
+            return job;
+        };
+        /**
+         * @method requestDrain
+         * @static
+         * @param  {Scheduler.Priority}  priority  优先级
+         * @param  {function}  callback  回调
+         */
+        Scheduler.requestDrain = function (priority, callback) {
+            drunk.util.addArrayItem(drainPriorityQueue, priority);
+            drainPriorityQueue.sort();
+            drainEventEmitter.once(String(priority), callback);
+        };
+        return Scheduler;
+    })();
+    drunk.Scheduler = Scheduler;
+    var Scheduler;
+    (function (Scheduler) {
         /**
          * 调度器优先级
-         * @property Priority
+         * @property Scheduler.Priority
          * @type enum
          */
         (function (Priority) {
@@ -1106,211 +1143,208 @@ var drunk;
             Priority[Priority["belowNormal"] = -9] = "belowNormal";
             Priority[Priority["idle"] = -13] = "idle";
             Priority[Priority["min"] = -15] = "min";
-        })(scheduler.Priority || (scheduler.Priority = {}));
-        var Priority = scheduler.Priority;
+        })(Scheduler.Priority || (Scheduler.Priority = {}));
+        var Priority = Scheduler.Priority;
         ;
-        var isRunning = false;
-        var immediateYield = false;
-        var drainEventEmitter = new drunk.EventEmitter();
-        var TIME_SLICE = 30;
-        var PRIORITY_TAIL = Priority.min - 1;
-        var drainPriorityQueue = [];
-        var jobStore = {};
-        for (var i = Priority.min; i <= Priority.max; i++) {
-            jobStore[i] = [];
+    })(Scheduler = drunk.Scheduler || (drunk.Scheduler = {}));
+    var Job = (function () {
+        function Job(_work, _priority, _context) {
+            this._work = _work;
+            this._priority = _priority;
+            this._context = _context;
         }
-        function getJobListAtPriority(priority) {
-            return jobStore[priority];
-        }
-        function getHighestPriority() {
-            for (var priority = Priority.max; priority >= Priority.min; priority--) {
-                if (jobStore[priority].length) {
-                    return priority;
-                }
-            }
-            return PRIORITY_TAIL;
-        }
-        function getHighestPriorityJobList() {
-            return jobStore[getHighestPriority()];
-        }
-        function addJobToQueue(job) {
-            var jobList = getJobListAtPriority(job.priority);
-            jobList.push(job);
-            if (job.priority > getHighestPriority()) {
-                immediateYield = true;
-            }
-            startRunning();
-        }
-        function clampPriority(priority) {
-            priority = priority || Priority.normal;
-            return Math.min(Priority.max, Math.max(Priority.min, priority));
-        }
-        function run() {
-            if (isRunning) {
+        Object.defineProperty(Job.prototype, "priority", {
+            get: function () {
+                return this._priority;
+            },
+            set: function (value) {
+                this._priority = clampPriority(value);
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Job.prototype.cancel = function () {
+            if (this.completed) {
                 return;
             }
-            if (drainPriorityQueue.length && getHighestPriority() === PRIORITY_TAIL) {
-                return drainPriorityQueue.forEach(function (priority) { return drainEventEmitter.emit(String(priority)); });
+            this._remove();
+            this._release();
+        };
+        Job.prototype.pause = function () {
+            if (this.completed) {
+                return;
             }
-            isRunning = true;
-            immediateYield = false;
-            var endTime = Date.now() + TIME_SLICE;
-            function shouldYield() {
-                if (immediateYield) {
-                    return true;
-                }
-                if (drainPriorityQueue.length) {
-                    return false;
-                }
-                return Date.now() > endTime;
+            this._remove();
+            this._isPaused = true;
+        };
+        Job.prototype.resume = function () {
+            if (!this.completed && this._isPaused) {
+                addJobToQueue(this);
+                this._isPaused = false;
             }
-            while (getHighestPriority() >= Priority.min && !shouldYield()) {
-                var jobList = getHighestPriorityJobList();
-                var currJob = jobList.shift();
-                do {
-                    currJob._execute(shouldYield);
-                    currJob = jobList.shift();
-                } while (currJob && !immediateYield);
-                notifyDrainPriority();
-            }
-            immediateYield = false;
-            isRunning = false;
-            if (getHighestPriority() > PRIORITY_TAIL) {
-                startRunning();
-            }
-        }
-        function notifyDrainPriority() {
-            var count = 0;
-            var highestPriority = getHighestPriority();
-            drainPriorityQueue.some(function (priority) {
-                if (priority > highestPriority) {
-                    count += 1;
-                    drainEventEmitter.emit(String(priority));
-                    return true;
-                }
-                return false;
-            });
-            if (count > 0) {
-                drainPriorityQueue.splice(0, count);
-            }
-        }
-        function startRunning() {
-            if (!isRunning) {
-                setTimeout(run, 0);
-            }
-        }
-        var Job = (function () {
-            function Job(_work, _priority, _context) {
-                this._work = _work;
-                this._priority = _priority;
-                this._context = _context;
-            }
-            Object.defineProperty(Job.prototype, "priority", {
-                get: function () {
-                    return this._priority;
-                },
-                set: function (value) {
-                    this._priority = clampPriority(value);
-                },
-                enumerable: true,
-                configurable: true
-            });
-            Job.prototype.cancel = function () {
-                this._remove();
-                this._release();
-            };
-            Job.prototype.pause = function () {
-                this._remove();
-                this._isPaused = true;
-            };
-            Job.prototype.resume = function () {
-                if (this._isPaused) {
+        };
+        Job.prototype._execute = function (shouldYield) {
+            var _this = this;
+            var jobInfo = new JobInfo(shouldYield);
+            var work = this._work;
+            var context = this._context;
+            var priority = this._priority;
+            this._release();
+            work.call(context, jobInfo);
+            var result = jobInfo._result;
+            jobInfo._release();
+            if (result) {
+                if (typeof result === 'function') {
+                    this._work = result;
+                    this._priority = priority;
+                    this._context = context;
                     addJobToQueue(this);
-                    this._isPaused = false;
                 }
-            };
-            Job.prototype._execute = function (shouldYield) {
-                var _this = this;
-                var jobInfo = new JobInfo(shouldYield);
-                var work = this._work;
-                var context = this._context;
-                var priority = this._priority;
-                this._release();
-                work.call(context, jobInfo);
-                var result = jobInfo._result;
-                jobInfo._release();
-                if (result) {
-                    if (typeof result === 'function') {
-                        this._work = result;
-                        this._priority = priority;
-                        this._context = context;
-                        addJobToQueue(this);
-                    }
-                    else {
-                        result.then(function (newWork) {
-                            _this._work = newWork;
-                            _this._priority = priority;
-                            _this._context = context;
-                            addJobToQueue(_this);
-                        });
-                    }
+                else {
+                    result.then(function (newWork) {
+                        _this._work = newWork;
+                        _this._priority = priority;
+                        _this._context = context;
+                        addJobToQueue(_this);
+                    });
                 }
-            };
-            Job.prototype._remove = function () {
-                var jobList = getJobListAtPriority(this.priority);
-                drunk.util.removeArrayItem(jobList, this);
-            };
-            Job.prototype._release = function () {
-                this._work = null;
-                this._context = null;
-                this._priority = null;
-            };
-            return Job;
-        })();
-        var JobInfo = (function () {
-            function JobInfo(_shouldYield) {
-                this._shouldYield = _shouldYield;
             }
-            Object.defineProperty(JobInfo.prototype, "shouldYield", {
-                get: function () {
-                    this._throwIfDisabled();
-                    return this._shouldYield();
-                },
-                enumerable: true,
-                configurable: true
-            });
-            JobInfo.prototype.setWork = function (work) {
-                this._throwIfDisabled();
-                this._result = work;
-            };
-            JobInfo.prototype.setPromise = function (promise) {
-                this._throwIfDisabled();
-                this._result = promise;
-            };
-            JobInfo.prototype._release = function () {
-                this._publicApiDisabled = true;
-                this._result = null;
-            };
-            JobInfo.prototype._throwIfDisabled = function () {
-                if (this._publicApiDisabled) {
-                    throw new Error('The APIs of this JobInfo object are disabled');
-                }
-            };
-            return JobInfo;
-        })();
-        function schedule(work, priority, context) {
-            var job = new Job(work, clampPriority(priority), context);
-            addJobToQueue(job);
-            return job;
+            else {
+                this.completed = true;
+            }
+        };
+        Job.prototype._remove = function () {
+            var jobList = getJobListAtPriority(this.priority);
+            drunk.util.removeArrayItem(jobList, this);
+        };
+        Job.prototype._release = function () {
+            this._work = null;
+            this._context = null;
+            this._priority = null;
+        };
+        return Job;
+    })();
+    var JobInfo = (function () {
+        function JobInfo(_shouldYield) {
+            this._shouldYield = _shouldYield;
         }
-        scheduler.schedule = schedule;
-        function requestDrain(priority, callback) {
-            drunk.util.addArrayItem(drainPriorityQueue, priority);
-            drainPriorityQueue.sort();
-            drainEventEmitter.once(String(priority), callback);
+        Object.defineProperty(JobInfo.prototype, "shouldYield", {
+            get: function () {
+                this._throwIfDisabled();
+                return this._shouldYield();
+            },
+            enumerable: true,
+            configurable: true
+        });
+        JobInfo.prototype.setWork = function (work) {
+            this._throwIfDisabled();
+            this._result = work;
+        };
+        JobInfo.prototype.setPromise = function (promise) {
+            this._throwIfDisabled();
+            this._result = promise;
+        };
+        JobInfo.prototype._release = function () {
+            this._publicApiDisabled = true;
+            this._result = null;
+        };
+        JobInfo.prototype._throwIfDisabled = function () {
+            if (this._publicApiDisabled) {
+                throw new Error('The APIs of this JobInfo object are disabled');
+            }
+        };
+        return JobInfo;
+    })();
+    var isRunning = false;
+    var immediateYield = false;
+    var drainEventEmitter = new drunk.EventEmitter();
+    var TIME_SLICE = 30;
+    var PRIORITY_TAIL = Scheduler.Priority.min - 1;
+    var drainPriorityQueue = [];
+    var jobStore = {};
+    for (var i = Scheduler.Priority.min; i <= Scheduler.Priority.max; i++) {
+        jobStore[i] = [];
+    }
+    function getJobListAtPriority(priority) {
+        return jobStore[priority];
+    }
+    function getHighestPriority() {
+        for (var priority = Scheduler.Priority.max; priority >= Scheduler.Priority.min; priority--) {
+            if (jobStore[priority].length) {
+                return priority;
+            }
         }
-        scheduler.requestDrain = requestDrain;
-    })(scheduler = drunk.scheduler || (drunk.scheduler = {}));
+        return PRIORITY_TAIL;
+    }
+    function getHighestPriorityJobList() {
+        return jobStore[getHighestPriority()];
+    }
+    function addJobToQueue(job) {
+        var jobList = getJobListAtPriority(job.priority);
+        jobList.push(job);
+        if (job.priority > getHighestPriority()) {
+            immediateYield = true;
+        }
+        startRunning();
+    }
+    function clampPriority(priority) {
+        priority = priority || Scheduler.Priority.normal;
+        return Math.min(Scheduler.Priority.max, Math.max(Scheduler.Priority.min, priority));
+    }
+    function run() {
+        if (isRunning) {
+            return;
+        }
+        if (drainPriorityQueue.length && getHighestPriority() === PRIORITY_TAIL) {
+            return drainPriorityQueue.forEach(function (priority) { return drainEventEmitter.emit(String(priority)); });
+        }
+        isRunning = true;
+        immediateYield = false;
+        var endTime = Date.now() + TIME_SLICE;
+        function shouldYield() {
+            if (immediateYield) {
+                return true;
+            }
+            if (drainPriorityQueue.length) {
+                return false;
+            }
+            return Date.now() > endTime;
+        }
+        while (getHighestPriority() >= Scheduler.Priority.min && !shouldYield()) {
+            var jobList = getHighestPriorityJobList();
+            var currJob = jobList.shift();
+            do {
+                currJob._execute(shouldYield);
+                currJob = jobList.shift();
+            } while (currJob && !immediateYield);
+            notifyDrainPriority();
+        }
+        immediateYield = false;
+        isRunning = false;
+        if (getHighestPriority() > PRIORITY_TAIL) {
+            startRunning();
+        }
+    }
+    function notifyDrainPriority() {
+        var count = 0;
+        var highestPriority = getHighestPriority();
+        drainPriorityQueue.some(function (priority) {
+            if (priority > highestPriority) {
+                count += 1;
+                drainEventEmitter.emit(String(priority));
+                return true;
+            }
+            return false;
+        });
+        if (count > 0) {
+            drainPriorityQueue.splice(0, count);
+        }
+    }
+    function startRunning() {
+        if (!isRunning) {
+            setTimeout(run, 0);
+        }
+    }
 })(drunk || (drunk = {}));
 /// <reference path="../util/util.ts" />
 /// <reference path="./observable.ts" />
@@ -1819,7 +1853,7 @@ var drunk;
 /// <reference path="../promise/promise.ts" />
 /// <reference path="../parser/parser.ts" />
 /// <reference path="../observable/observable.ts" />
-/// <reference path="../scheduler/scheduler" />
+/// <reference path="../Scheduler/Scheduler" />
 var drunk;
 (function (drunk) {
     var Watcher = (function () {
@@ -1901,15 +1935,15 @@ var drunk;
             if (this._runActionJob) {
                 this._runActionJob.cancel();
             }
-            drunk.scheduler.schedule(this.__runActions, drunk.scheduler.Priority.aboveNormal, this);
+            drunk.Scheduler.schedule(this.__flush, drunk.Scheduler.Priority.aboveNormal, this);
         };
         /**
          * 立即获取最新的数据判断并判断是否已经更新，如果已经更新，执行所有的回调
-         * @method __runActions
+         * @method __flush
          * @private
          * @return {Promise} 等待所有回调执行完毕的promise对象
          */
-        Watcher.prototype.__runActions = function () {
+        Watcher.prototype.__flush = function () {
             if (!this._isActived) {
                 return;
             }
@@ -4397,26 +4431,6 @@ var drunk;
 /// <reference path="../binding" />
 /// <reference path="../../template/loader" />
 /// <reference path="../../template/compiler" />
-/**
- * 引入指定url的html字符串模板
- * @class drunk-include
- * @constructor
- * @show
- * @example
-        <html>
-            <section>
-                <p>以下是标签中的模板</p>
-                <div drunk-include="'tpl'"></div>
-            </section>
-            <div id="tpl" type="text/template" style="display:none">
-                <div>这里是script 标签的模板</div>
-            </div>
-        </html>
-        
-        <script>
-            new drunk.Component().mount(document.querySelector("section"));
-        </script>
- */
 var drunk;
 (function (drunk) {
     drunk.Binding.define("include", {
@@ -4427,9 +4441,14 @@ var drunk;
                 return;
             }
             this.unbind();
+            this.url = url;
             if (url) {
-                this.url = url;
-                return drunk.Template.load(url).then(this.createBinding.bind(this));
+                drunk.Template.load(url).then(this.createBinding.bind(this));
+            }
+            else {
+                drunk.util.toArray(this.element.childNodes).forEach(function (child) {
+                    drunk.elementUtil.remove(child);
+                });
             }
         },
         createBinding: function (template) {
@@ -4449,7 +4468,6 @@ var drunk;
             this.unbind();
             this.url = null;
             this.isActived = false;
-            drunk.elementUtil.html(this.element, '');
         }
     });
 })(drunk || (drunk = {}));
@@ -4576,217 +4594,9 @@ var drunk;
 /// <reference path="../../component/component" />
 /// <reference path="../../template/compiler" />
 /// <reference path="../../viewmodel/viewmodel" />
-/// <reference path="../../scheduler/scheduler" />
+/// <reference path="../../Scheduler/Scheduler" />
 var drunk;
 (function (drunk) {
-    var repeaterPrefix = "__drunk_repeater_item_";
-    var repeaterCounter = 0;
-    var regParam = /\s+in\s+/;
-    var regKeyValue = /(\w+)\s*,\s*(\w+)/;
-    var RepeatBindingDefinition = {
-        isTerminal: true,
-        priority: drunk.Binding.Priority.aboveNormal + 1,
-        // 初始化绑定
-        init: function () {
-            this.createCommentNodes();
-            this.parseDefinition();
-            this._cache = {};
-            this._nameOfRef = repeaterPrefix + repeaterCounter++;
-            this._bindExecutor = drunk.Template.compile(this.element);
-        },
-        // 创建注释标记标签
-        createCommentNodes: function () {
-            this.startNode = document.createComment('repeat-start: ' + this.expression);
-            this.endedNode = document.createComment('repeat-ended: ' + this.expression);
-            drunk.elementUtil.insertBefore(this.startNode, this.element);
-            drunk.elementUtil.replace(this.endedNode, this.element);
-        },
-        // 解析表达式定义
-        parseDefinition: function () {
-            var expression = this.expression;
-            var parts = expression.split(regParam);
-            console.assert(parts.length === 2, '错误的', drunk.config.prefix + 'repeat 表达式: ', expression);
-            var params = parts[0];
-            var key;
-            var value;
-            if (params.indexOf(',') > 0) {
-                var matches = params.match(regKeyValue);
-                console.assert(matches, '错误的', drunk.config.prefix + 'repeat 表达式: ', expression);
-                key = matches[2];
-                value = matches[1];
-            }
-            else {
-                value = params;
-            }
-            this.param = {
-                key: key,
-                val: value
-            };
-            this.expression = parts[1].trim();
-        },
-        // 数据更新
-        update: function (newValue) {
-            var _this = this;
-            var items = RepeatItem.toList(newValue);
-            var isEmpty = !this._itemVms || this._itemVms.length === 0;
-            var last = items.length - 1;
-            var newVms = [];
-            var viewModel;
-            var fragment;
-            items.forEach(function (item, index) {
-                viewModel = newVms[index] = _this._getRepeatItem(item, index === last);
-                viewModel._isUsed = true;
-                if (isEmpty) {
-                    if (!fragment) {
-                        fragment = document.createDocumentFragment();
-                    }
-                    fragment.appendChild(viewModel.element);
-                    fragment.appendChild(viewModel._placeholder);
-                }
-            });
-            if (isEmpty) {
-                if (fragment) {
-                    drunk.elementUtil.insertAfter(fragment, this.startNode);
-                }
-            }
-            else {
-                this._unrealizeUnusedItems();
-                var index = items.length;
-                var placeholder;
-                var viewModel_1;
-                var prev = function (node) {
-                    placeholder = node.previousSibling;
-                    while (placeholder && (placeholder.nodeType !== 8 || placeholder.textContent != 'repeat-item')) {
-                        placeholder = placeholder.previousSibling;
-                    }
-                    if (!placeholder) {
-                        placeholder = _this.startNode;
-                    }
-                };
-                prev(this.endedNode);
-                while (index--) {
-                    viewModel_1 = newVms[index];
-                    if (viewModel_1._placeholder !== placeholder) {
-                        drunk.elementUtil.insertAfter(viewModel_1._placeholder, placeholder);
-                        drunk.elementUtil.insertBefore(viewModel_1._element, viewModel_1._placeholder);
-                    }
-                    else {
-                        prev(placeholder);
-                    }
-                }
-            }
-            newVms.forEach(function (viewModel) {
-                viewModel._isUsed = false;
-                if (!viewModel._isBinded) {
-                    _this._bindExecutor(viewModel, viewModel.element);
-                    viewModel._isBinded = true;
-                }
-            });
-            this._itemVms = newVms;
-        },
-        _getRepeatItem: function (item, isLast) {
-            var value = item.val;
-            var isCollection = drunk.util.isObject(value) || Array.isArray(value);
-            var viewModel;
-            if (isCollection) {
-                var arr = value[this._nameOfRef];
-                if (arr) {
-                    for (var i = 0; viewModel = arr[i]; i++) {
-                        if (!viewModel._isUsed) {
-                            break;
-                        }
-                    }
-                }
-            }
-            else {
-                var list = this._cache[value];
-                if (list) {
-                    var i_1 = 0;
-                    viewModel = list[0];
-                    while (viewModel && viewModel._isUsed) {
-                        viewModel = list[++i_1];
-                    }
-                }
-            }
-            if (viewModel) {
-                this._updateItemModel(viewModel, item, isLast);
-            }
-            else {
-                viewModel = this._realizeRepeatItem(item, isLast, isCollection);
-            }
-            return viewModel;
-        },
-        _realizeRepeatItem: function (item, isLast, isCollection) {
-            var value = item.val;
-            var options = {};
-            this._updateItemModel(options, item, isLast);
-            var viewModel = new RepeatItem(this.viewModel, options, this.element.cloneNode(true));
-            if (isCollection) {
-                if (!value[this._nameOfRef]) {
-                    drunk.util.defineProperty(value, this._nameOfRef, []);
-                }
-                value[this._nameOfRef].push(viewModel);
-                viewModel._isCollection = true;
-            }
-            else {
-                this._cache[value] = this._cache[value] || [];
-                this._cache[value].push(viewModel);
-            }
-            return viewModel;
-        },
-        _updateItemModel: function (target, item, isLast) {
-            target.$odd = 0 === item.idx % 2;
-            target.$even = !target.$odd;
-            target.$last = isLast;
-            target.$first = 0 === item.idx;
-            target[this.param.val] = item.val;
-            if (this.param.key) {
-                target[this.param.key] = item.key;
-            }
-        },
-        _unrealizeUnusedItems: function (force) {
-            var cache = this._cache;
-            var nameOfVal = this.param.val;
-            var nameOfRef = this._nameOfRef;
-            this._itemVms.forEach(function (viewModel, index) {
-                if (viewModel._isUsed && !force) {
-                    return;
-                }
-                var value = viewModel[nameOfVal];
-                if (viewModel._isCollection) {
-                    // 移除数据对viewModel实例的引用
-                    drunk.util.removeArrayItem(value[nameOfRef], viewModel);
-                    if (value[nameOfRef]) {
-                        delete value[nameOfRef];
-                    }
-                }
-                else {
-                    drunk.util.removeArrayItem(cache[value], viewModel);
-                }
-                var element = viewModel._element;
-                var placeholder = viewModel._placeholder;
-                placeholder.textContent = 'disposed repeat item';
-                viewModel.dispose();
-                drunk.scheduler.schedule(function () {
-                    drunk.elementUtil.remove(placeholder);
-                    drunk.elementUtil.remove(element);
-                }, drunk.scheduler.Priority.idle);
-            });
-        },
-        release: function () {
-            if (this._itemVms && this._itemVms.length) {
-                this._unrealizeUnusedItems(true);
-            }
-            drunk.elementUtil.remove(this.startNode);
-            drunk.elementUtil.remove(this.endedNode);
-            this._cache = null;
-            this._itemVms = null;
-            this._bindExecutor = null;
-            this.startNode = null;
-            this.endedNode = null;
-        }
-    };
-    drunk.Binding.define("repeat", RepeatBindingDefinition);
     /**
      * 用于repeat作用域下的子viewModel
      * @class RepeatItem
@@ -4797,12 +4607,10 @@ var drunk;
      */
     var RepeatItem = (function (_super) {
         __extends(RepeatItem, _super);
-        function RepeatItem(parent, ownModel, element) {
+        function RepeatItem(parent, ownModel) {
             _super.call(this, ownModel);
             this.parent = parent;
-            this.element = element;
             this._placeholder = document.createComment('repeat-item');
-            this._element = element;
             this.__inheritParentMembers();
         }
         /**
@@ -4935,10 +4743,229 @@ var drunk;
         return RepeatItem;
     })(drunk.Component);
     drunk.RepeatItem = RepeatItem;
+    var repeaterPrefix = "__drunk_repeater_item_";
+    var repeaterCounter = 0;
+    var regParam = /\s+in\s+/;
+    var regKeyValue = /(\w+)\s*,\s*(\w+)/;
+    var RepeatBinding = (function () {
+        function RepeatBinding() {
+        }
+        // 初始化绑定
+        RepeatBinding.prototype.init = function () {
+            this.createCommentNodes();
+            this.parseDefinition();
+            this._cache = {};
+            this._nameOfRef = repeaterPrefix + repeaterCounter++;
+            this._bindExecutor = drunk.Template.compile(this.element);
+        };
+        // 创建注释标记标签
+        RepeatBinding.prototype.createCommentNodes = function () {
+            this._startNode = document.createComment('repeat-start: ' + this.expression);
+            this._endedNode = document.createComment('repeat-ended: ' + this.expression);
+            drunk.elementUtil.insertBefore(this._startNode, this.element);
+            drunk.elementUtil.replace(this._endedNode, this.element);
+        };
+        // 解析表达式定义
+        RepeatBinding.prototype.parseDefinition = function () {
+            var expression = this.expression;
+            var parts = expression.split(regParam);
+            console.assert(parts.length === 2, '错误的', drunk.config.prefix + 'repeat 表达式: ', expression);
+            var params = parts[0];
+            var key;
+            var value;
+            if (params.indexOf(',') > 0) {
+                var matches = params.match(regKeyValue);
+                console.assert(matches, '错误的', drunk.config.prefix + 'repeat 表达式: ', expression);
+                key = matches[2];
+                value = matches[1];
+            }
+            else {
+                value = params;
+            }
+            this._param = {
+                key: key,
+                val: value
+            };
+            this.expression = parts[1].trim();
+        };
+        // 数据更新
+        RepeatBinding.prototype.update = function (newValue) {
+            var _this = this;
+            if (this._renderJob) {
+                this._renderJob.cancel();
+            }
+            var items = RepeatItem.toList(newValue);
+            var isEmpty = !this._itemVms || this._itemVms.length === 0;
+            var last = items.length - 1;
+            var newVms = [];
+            var itemVm;
+            var fragment;
+            items.forEach(function (item, index) {
+                itemVm = newVms[index] = _this._getRepeatItem(item, index === last);
+                itemVm._isUsed = true;
+            });
+            if (!isEmpty) {
+                this._unrealizeUnusedItems();
+            }
+            newVms.forEach(function (itemVm) { return itemVm._isUsed = false; });
+            this._itemVms = newVms;
+            var index = 0;
+            var length = items.length;
+            var placeholder;
+            var next = function (node) {
+                placeholder = node.nextSibling;
+                while (placeholder && (placeholder.nodeType !== 8 || placeholder.textContent != 'repeat-item')) {
+                    placeholder = placeholder.nextSibling;
+                }
+                if (!placeholder) {
+                    placeholder = _this._endedNode;
+                }
+            };
+            var renderItems = function (jobInfo) {
+                var viewModel;
+                while (index < length) {
+                    viewModel = newVms[index++];
+                    if (viewModel._placeholder !== placeholder) {
+                        drunk.elementUtil.insertBefore(viewModel._placeholder, placeholder);
+                        if (!viewModel._isBinded) {
+                            viewModel.element = viewModel._element = _this.element.cloneNode(true);
+                            drunk.elementUtil.insertAfter(viewModel._element, viewModel._placeholder);
+                            _this._bindExecutor(viewModel, viewModel.element);
+                            viewModel._isBinded = true;
+                        }
+                        else {
+                            drunk.elementUtil.insertBefore(viewModel._element, viewModel._placeholder);
+                        }
+                        if (jobInfo.shouldYield && index < length) {
+                            _this._renderJob = jobInfo.setPromise(drunk.Promise.resolve(renderItems));
+                            return;
+                        }
+                    }
+                    else {
+                        next(placeholder);
+                    }
+                }
+                _this._renderJob = null;
+            };
+            next(this._startNode);
+            drunk.Scheduler.schedule(renderItems, drunk.Scheduler.Priority.aboveNormal);
+        };
+        RepeatBinding.prototype._getRepeatItem = function (item, isLast) {
+            var value = item.val;
+            var isCollection = drunk.util.isObject(value) || Array.isArray(value);
+            var viewModel;
+            if (isCollection) {
+                var arr = value[this._nameOfRef];
+                if (arr) {
+                    for (var i = 0; viewModel = arr[i]; i++) {
+                        if (!viewModel._isUsed) {
+                            break;
+                        }
+                    }
+                }
+            }
+            else {
+                var list = this._cache[value];
+                if (list) {
+                    var i_1 = 0;
+                    viewModel = list[0];
+                    while (viewModel && viewModel._isUsed) {
+                        viewModel = list[++i_1];
+                    }
+                }
+            }
+            if (viewModel) {
+                this._updateItemModel(viewModel, item, isLast);
+            }
+            else {
+                viewModel = this._realizeRepeatItem(item, isLast, isCollection);
+            }
+            return viewModel;
+        };
+        RepeatBinding.prototype._realizeRepeatItem = function (item, isLast, isCollection) {
+            var value = item.val;
+            var options = {};
+            this._updateItemModel(options, item, isLast);
+            var viewModel = new RepeatItem(this.viewModel, options);
+            if (isCollection) {
+                if (!value[this._nameOfRef]) {
+                    drunk.util.defineProperty(value, this._nameOfRef, []);
+                }
+                value[this._nameOfRef].push(viewModel);
+                viewModel._isCollection = true;
+            }
+            else {
+                this._cache[value] = this._cache[value] || [];
+                this._cache[value].push(viewModel);
+            }
+            return viewModel;
+        };
+        RepeatBinding.prototype._updateItemModel = function (target, item, isLast) {
+            target.$odd = 0 === item.idx % 2;
+            target.$even = !target.$odd;
+            target.$last = isLast;
+            target.$first = 0 === item.idx;
+            target[this._param.val] = item.val;
+            if (this._param.key) {
+                target[this._param.key] = item.key;
+            }
+        };
+        RepeatBinding.prototype._unrealizeUnusedItems = function (force) {
+            var cache = this._cache;
+            var nameOfVal = this._param.val;
+            var nameOfRef = this._nameOfRef;
+            this._itemVms.forEach(function (viewModel, index) {
+                if (viewModel._isUsed && !force) {
+                    return;
+                }
+                var value = viewModel[nameOfVal];
+                if (viewModel._isCollection) {
+                    // 移除数据对viewModel实例的引用
+                    drunk.util.removeArrayItem(value[nameOfRef], viewModel);
+                    if (value[nameOfRef]) {
+                        delete value[nameOfRef];
+                    }
+                }
+                else {
+                    drunk.util.removeArrayItem(cache[value], viewModel);
+                }
+                var element = viewModel._element;
+                var placeholder = viewModel._placeholder;
+                placeholder.textContent = 'disposed repeat item';
+                viewModel.dispose();
+                drunk.Scheduler.schedule(function () {
+                    drunk.elementUtil.remove(placeholder);
+                    drunk.elementUtil.remove(element);
+                }, drunk.Scheduler.Priority.normal);
+            });
+        };
+        RepeatBinding.prototype.release = function () {
+            if (this._itemVms && this._itemVms.length) {
+                this._unrealizeUnusedItems(true);
+            }
+            if (this._renderJob) {
+                this._renderJob.cancel();
+                this._renderJob = null;
+            }
+            drunk.elementUtil.remove(this._startNode);
+            drunk.elementUtil.remove(this._endedNode);
+            this._cache = null;
+            this._itemVms = null;
+            this._bindExecutor = null;
+            this._startNode = null;
+            this._endedNode = null;
+        };
+        return RepeatBinding;
+    })();
+    ;
+    RepeatBinding.prototype.isTerminal = true;
+    RepeatBinding.prototype.priority = drunk.Binding.Priority.aboveNormal + 1;
+    drunk.Binding.define("repeat", RepeatBinding.prototype);
 })(drunk || (drunk = {}));
 /// <reference path="../binding" />
 /// <reference path="../../config/config" />
 /// <reference path="../../promise/promise" />
+/// <reference path="../../Scheduler/Scheduler" />
 var drunk;
 (function (drunk) {
     /**
@@ -5170,7 +5197,11 @@ var drunk;
         function ActionBinding() {
         }
         ActionBinding.prototype.init = function () {
-            this._runActionByType(Action.Type.created);
+            var _this = this;
+            this._actionJob = drunk.Scheduler.schedule(function () {
+                _this._runActionByType(Action.Type.created);
+                _this._actionJob = null;
+            }, drunk.Scheduler.Priority.normal);
         };
         ActionBinding.prototype._parseDefinition = function (actionType) {
             if (!this.expression) {
@@ -5230,8 +5261,12 @@ var drunk;
             this._runActions(type);
         };
         ActionBinding.prototype.release = function () {
+            if (this._actionJob) {
+                this._actionJob.cancel();
+            }
             this._runActionByType(Action.Type.removed);
             this._actionNames = null;
+            this._actionJob = null;
         };
         return ActionBinding;
     })();

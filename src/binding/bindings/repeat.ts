@@ -4,7 +4,6 @@
 /// <reference path="../../template/compiler" />
 /// <reference path="../../viewmodel/viewmodel" />
 /// <reference path="../../scheduler/scheduler" />
-
  
 module drunk {
 
@@ -13,264 +12,6 @@ module drunk {
         idx: number;
         val: any;
     }
-
-    let repeaterPrefix = "__drunk_repeater_item_";
-    let repeaterCounter = 0;
-
-    let regParam = /\s+in\s+/;
-    let regKeyValue = /(\w+)\s*,\s*(\w+)/;
-
-    let RepeatBindingDefinition: IBindingDefinition = {
-
-        isTerminal: true,
-        priority: Binding.Priority.aboveNormal + 1,
-
-        // 初始化绑定
-        init() {
-            this.createCommentNodes();
-            this.parseDefinition();
-
-            this._cache = {};
-            this._nameOfRef = repeaterPrefix + repeaterCounter++;
-            this._bindExecutor = Template.compile(this.element);
-        },
-        
-        // 创建注释标记标签
-        createCommentNodes() {
-            this.startNode = document.createComment('repeat-start: ' + this.expression);
-            this.endedNode = document.createComment('repeat-ended: ' + this.expression);
-
-            elementUtil.insertBefore(this.startNode, this.element);
-            elementUtil.replace(this.endedNode, this.element);
-        },
-
-        // 解析表达式定义
-        parseDefinition() {
-            let expression: string = this.expression;
-            let parts = expression.split(regParam);
-
-            console.assert(parts.length === 2, '错误的', config.prefix + 'repeat 表达式: ', expression);
-
-            let params: any = parts[0];
-            let key: string;
-            let value: string;
-
-            if (params.indexOf(',') > 0) {
-                let matches = params.match(regKeyValue);
-                console.assert(matches, '错误的', config.prefix + 'repeat 表达式: ', expression);
-                key = matches[2];
-                value = matches[1];
-            }
-            else {
-                value = params;
-            }
-
-            this.param = {
-                key: key,
-                val: value
-            };
-
-            this.expression = parts[1].trim();
-        },
-
-        // 数据更新
-        update(newValue: any) {
-            let items = RepeatItem.toList(newValue);
-            let isEmpty = !this._itemVms || this._itemVms.length === 0;
-            let last = items.length - 1;
-            let newVms = [];
-            let viewModel: RepeatItem;
-            var fragment: DocumentFragment;
-
-            items.forEach((item, index) => {
-                viewModel = newVms[index] = this._getRepeatItem(item, index === last);
-                viewModel._isUsed = true;
-
-                if (isEmpty) {
-                    if (!fragment) {
-                        fragment = document.createDocumentFragment();
-                    }
-                    fragment.appendChild(viewModel.element);
-                    fragment.appendChild(viewModel._placeholder);
-                }
-            });
-
-            if (isEmpty) {
-                if (fragment) {
-                    elementUtil.insertAfter(fragment, this.startNode);
-                }
-            }
-            else {
-                this._unrealizeUnusedItems();
-                
-                let index = items.length;
-                let placeholder;
-                let viewModel: RepeatItem;
-                
-                let prev = (node) => {
-                    placeholder = node.previousSibling;
-                    while (placeholder && (placeholder.nodeType !== 8 || placeholder.textContent != 'repeat-item')) {
-                        placeholder = placeholder.previousSibling;
-                    }
-                    if (!placeholder) {
-                        placeholder = this.startNode;
-                    }
-                };
-                
-                prev(this.endedNode);
-                
-                while (index--) {
-                    viewModel = newVms[index];
-                    
-                    if (viewModel._placeholder !== placeholder) {
-                        elementUtil.insertAfter(viewModel._placeholder, placeholder);
-                        elementUtil.insertBefore(viewModel._element, viewModel._placeholder);
-                    }
-                    else {
-                        prev(placeholder);
-                    }
-                }
-            }
-
-            newVms.forEach((viewModel) => {
-                viewModel._isUsed = false;
-
-                if (!viewModel._isBinded) {
-                    this._bindExecutor(viewModel, viewModel.element);
-                    viewModel._isBinded = true;
-                }
-            });
-
-            this._itemVms = newVms;
-        },
-
-        _getRepeatItem(item, isLast) {
-            let value = item.val;
-            let isCollection = util.isObject(value) || Array.isArray(value);
-            let viewModel: RepeatItem;
-
-            if (isCollection) {
-                let arr = value[this._nameOfRef];
-                if (arr) {
-                    for (var i = 0; viewModel = arr[i]; i++) {
-                        if (!viewModel._isUsed) {
-                            break;
-                        }
-                    }
-                }
-            }
-            else {
-                let list = this._cache[value];
-
-                if (list) {
-                    let i = 0;
-                    viewModel = list[0];
-
-                    while (viewModel && viewModel._isUsed) {
-                        viewModel = list[++i];
-                    }
-                }
-            }
-
-            if (viewModel) {
-                this._updateItemModel(viewModel, item, isLast);
-            }
-            else {
-                viewModel = this._realizeRepeatItem(item, isLast, isCollection);
-            }
-
-            return viewModel;
-        },
-
-        _realizeRepeatItem(item: IItemDataDescriptor, isLast: boolean, isCollection: boolean) {
-            let value = item.val;
-            let options: IModel = {};
-
-            this._updateItemModel(options, item, isLast);
-
-            let viewModel = new RepeatItem(this.viewModel, options, this.element.cloneNode(true));
-
-            if (isCollection) {
-                if (!value[this._nameOfRef]) {
-                    util.defineProperty(value, this._nameOfRef, []);
-                }
-                value[this._nameOfRef].push(viewModel);
-                viewModel._isCollection = true;
-            }
-            else {
-                this._cache[value] = this._cache[value] || [];
-                this._cache[value].push(viewModel);
-            }
-
-            return viewModel;
-        },
-
-        _updateItemModel(target: any, item: IItemDataDescriptor, isLast: boolean) {
-            target.$odd = 0 === item.idx % 2;
-            target.$even = !target.$odd;
-            target.$last = isLast;
-            target.$first = 0 === item.idx;
-
-            target[this.param.val] = item.val;
-
-            if (this.param.key) {
-                target[this.param.key] = item.key;
-            }
-        },
-
-        _unrealizeUnusedItems(force?: boolean) {
-            let cache: { [id: string]: RepeatItem[] } = this._cache;
-            let nameOfVal = this.param.val;
-            let nameOfRef = this._nameOfRef;
-
-            this._itemVms.forEach((viewModel: RepeatItem, index) => {
-                if (viewModel._isUsed && !force) {
-                    return;
-                }
-
-                let value = viewModel[nameOfVal];
-
-                if (viewModel._isCollection) {
-                    // 移除数据对viewModel实例的引用
-                    util.removeArrayItem(value[nameOfRef], viewModel);
-                    if (value[nameOfRef]) {
-                        delete value[nameOfRef];
-                    }
-                }
-                else {
-                    util.removeArrayItem(cache[value], viewModel);
-                }
-
-                let element = viewModel._element;
-                let placeholder: any = viewModel._placeholder;
-                placeholder.textContent = 'disposed repeat item';
-                
-                viewModel.dispose();
-                
-                scheduler.schedule(() => {
-                    elementUtil.remove(placeholder);
-                    elementUtil.remove(element);
-                }, scheduler.Priority.idle);
-            });
-        },
-
-        release() {
-            if (this._itemVms && this._itemVms.length) {
-                this._unrealizeUnusedItems(true);
-            }
-
-            elementUtil.remove(this.startNode);
-            elementUtil.remove(this.endedNode);
-
-            this._cache = null;
-            this._itemVms = null;
-            this._bindExecutor = null;
-            this.startNode = null;
-            this.endedNode = null;
-        }
-    };
-
-    Binding.define("repeat", RepeatBindingDefinition);
 
     /**
      * 用于repeat作用域下的子viewModel
@@ -284,14 +25,14 @@ module drunk {
 
         _isCollection: boolean;
         _isUsed: boolean;
+        _isBinded: boolean;
         _placeholder: Comment = document.createComment('repeat-item');
         _element: any;
 
         protected _models: IModel[];
 
-        constructor(public parent: Component | RepeatItem, ownModel, public element) {
+        constructor(public parent: Component | RepeatItem, ownModel) {
             super(ownModel);
-            this._element = element;
             this.__inheritParentMembers();
         }
         
@@ -436,4 +177,286 @@ module drunk {
         }
     }
 
+    let repeaterPrefix = "__drunk_repeater_item_";
+    let repeaterCounter = 0;
+
+    let regParam = /\s+in\s+/;
+    let regKeyValue = /(\w+)\s*,\s*(\w+)/;
+
+    class RepeatBinding implements IBindingDefinition {
+        
+        isTerminal: boolean;
+        priority: Binding.Priority;
+        
+        element: any;
+        viewModel: Component;
+        expression: string;
+        
+        private _startNode: Node;
+        private _endedNode: Node;
+        private _param: {key?: string; val: string};
+        private _cache: any;
+        private _nameOfRef: string;
+        private _bindExecutor: IBindingExecutor;
+        private _itemVms: RepeatItem[];
+        private _renderJob: Scheduler.IJob;
+
+        // 初始化绑定
+        init() {
+            this.createCommentNodes();
+            this.parseDefinition();
+
+            this._cache = {};
+            this._nameOfRef = repeaterPrefix + repeaterCounter++;
+            this._bindExecutor = Template.compile(this.element);
+        }
+        
+        // 创建注释标记标签
+        createCommentNodes() {
+            this._startNode = document.createComment('repeat-start: ' + this.expression);
+            this._endedNode = document.createComment('repeat-ended: ' + this.expression);
+
+            elementUtil.insertBefore(this._startNode, this.element);
+            elementUtil.replace(this._endedNode, this.element);
+        }
+
+        // 解析表达式定义
+        parseDefinition() {
+            let expression: string = this.expression;
+            let parts = expression.split(regParam);
+
+            console.assert(parts.length === 2, '错误的', config.prefix + 'repeat 表达式: ', expression);
+
+            let params: any = parts[0];
+            let key: string;
+            let value: string;
+
+            if (params.indexOf(',') > 0) {
+                let matches = params.match(regKeyValue);
+                console.assert(matches, '错误的', config.prefix + 'repeat 表达式: ', expression);
+                key = matches[2];
+                value = matches[1];
+            }
+            else {
+                value = params;
+            }
+
+            this._param = {
+                key: key,
+                val: value
+            };
+
+            this.expression = parts[1].trim();
+        }
+
+        // 数据更新
+        update(newValue: any) {
+            if (this._renderJob) {
+                this._renderJob.cancel();
+            }
+            
+            let items = RepeatItem.toList(newValue);
+            let isEmpty = !this._itemVms || this._itemVms.length === 0;
+            let last = items.length - 1;
+            let newVms = [];
+            let itemVm: RepeatItem;
+            let fragment: DocumentFragment;
+
+            items.forEach((item, index) => {
+                itemVm = newVms[index] = this._getRepeatItem(item, index === last);
+                itemVm._isUsed = true;
+            });
+            
+            if (!isEmpty) {
+                this._unrealizeUnusedItems();
+            }
+            
+            newVms.forEach(itemVm => itemVm._isUsed = false);
+            this._itemVms = newVms;
+            
+            let index = 0;
+            let length = items.length;
+            let placeholder;
+                
+            let next = (node: Node) => {
+                placeholder = node.nextSibling;
+                while (placeholder && (placeholder.nodeType !== 8 || placeholder.textContent != 'repeat-item')) {
+                    placeholder = placeholder.nextSibling;
+                }
+                if (!placeholder) {
+                    placeholder = this._endedNode;
+                }
+            };
+            
+            let renderItems = (jobInfo) => {
+                let viewModel: RepeatItem;
+                
+                while (index < length) {
+                    viewModel = newVms[index++];
+                    
+                    if (viewModel._placeholder !== placeholder) {
+                        elementUtil.insertBefore(viewModel._placeholder, placeholder);
+                        
+                        if (!viewModel._isBinded) {
+                            viewModel.element = viewModel._element = this.element.cloneNode(true);
+                            elementUtil.insertAfter(viewModel._element, viewModel._placeholder);
+                            
+                            this._bindExecutor(viewModel, viewModel.element);
+                            viewModel._isBinded = true;
+                        }
+                        else {
+                            elementUtil.insertBefore(viewModel._element, viewModel._placeholder);
+                        }
+                        
+                        if (jobInfo.shouldYield && index < length) {
+                            this._renderJob = jobInfo.setPromise(Promise.resolve(renderItems));
+                            return;
+                        }
+                    }
+                    else {
+                        next(placeholder);
+                    }
+                }
+                
+                this._renderJob = null;
+            };
+                
+            next(this._startNode);
+            Scheduler.schedule(renderItems, Scheduler.Priority.aboveNormal);
+        }
+
+        _getRepeatItem(item, isLast) {
+            let value = item.val;
+            let isCollection = util.isObject(value) || Array.isArray(value);
+            let viewModel: RepeatItem;
+
+            if (isCollection) {
+                let arr = value[this._nameOfRef];
+                if (arr) {
+                    for (var i = 0; viewModel = arr[i]; i++) {
+                        if (!viewModel._isUsed) {
+                            break;
+                        }
+                    }
+                }
+            }
+            else {
+                let list = this._cache[value];
+
+                if (list) {
+                    let i = 0;
+                    viewModel = list[0];
+
+                    while (viewModel && viewModel._isUsed) {
+                        viewModel = list[++i];
+                    }
+                }
+            }
+
+            if (viewModel) {
+                this._updateItemModel(viewModel, item, isLast);
+            }
+            else {
+                viewModel = this._realizeRepeatItem(item, isLast, isCollection);
+            }
+
+            return viewModel;
+        }
+
+        _realizeRepeatItem(item: IItemDataDescriptor, isLast: boolean, isCollection: boolean) {
+            let value = item.val;
+            let options: IModel = {};
+
+            this._updateItemModel(options, item, isLast);
+
+            let viewModel = new RepeatItem(this.viewModel, options);
+
+            if (isCollection) {
+                if (!value[this._nameOfRef]) {
+                    util.defineProperty(value, this._nameOfRef, []);
+                }
+                value[this._nameOfRef].push(viewModel);
+                viewModel._isCollection = true;
+            }
+            else {
+                this._cache[value] = this._cache[value] || [];
+                this._cache[value].push(viewModel);
+            }
+
+            return viewModel;
+        }
+
+        _updateItemModel(target: any, item: IItemDataDescriptor, isLast: boolean) {
+            target.$odd = 0 === item.idx % 2;
+            target.$even = !target.$odd;
+            target.$last = isLast;
+            target.$first = 0 === item.idx;
+
+            target[this._param.val] = item.val;
+
+            if (this._param.key) {
+                target[this._param.key] = item.key;
+            }
+        }
+
+        _unrealizeUnusedItems(force?: boolean) {
+            let cache: { [id: string]: RepeatItem[] } = this._cache;
+            let nameOfVal = this._param.val;
+            let nameOfRef = this._nameOfRef;
+
+            this._itemVms.forEach((viewModel: RepeatItem, index) => {
+                if (viewModel._isUsed && !force) {
+                    return;
+                }
+
+                let value = viewModel[nameOfVal];
+
+                if (viewModel._isCollection) {
+                    // 移除数据对viewModel实例的引用
+                    util.removeArrayItem(value[nameOfRef], viewModel);
+                    if (value[nameOfRef]) {
+                        delete value[nameOfRef];
+                    }
+                }
+                else {
+                    util.removeArrayItem(cache[value], viewModel);
+                }
+
+                let element = viewModel._element;
+                let placeholder: any = viewModel._placeholder;
+                placeholder.textContent = 'disposed repeat item';
+                
+                viewModel.dispose();
+                
+                Scheduler.schedule(() => {
+                    elementUtil.remove(placeholder);
+                    elementUtil.remove(element);
+                }, Scheduler.Priority.normal);
+            });
+        }
+
+        release() {
+            if (this._itemVms && this._itemVms.length) {
+                this._unrealizeUnusedItems(true);
+            }
+            if (this._renderJob) {
+                this._renderJob.cancel();
+                this._renderJob = null;
+            }
+
+            elementUtil.remove(this._startNode);
+            elementUtil.remove(this._endedNode);
+
+            this._cache = null;
+            this._itemVms = null;
+            this._bindExecutor = null;
+            this._startNode = null;
+            this._endedNode = null;
+        }
+    };
+    
+    RepeatBinding.prototype.isTerminal = true;
+    RepeatBinding.prototype.priority = Binding.Priority.aboveNormal + 1;
+
+    Binding.define("repeat", RepeatBinding.prototype);
 }
