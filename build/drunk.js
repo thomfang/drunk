@@ -443,7 +443,123 @@ var drunk;
     })();
     drunk.Cache = Cache;
 })(drunk || (drunk = {}));
+/// <reference path="./util" />
+/**
+ * 搜索字符串解析模块
+ * @module drunk.querystring
+ * @class querystring
+ */
+var drunk;
+(function (drunk) {
+    var querystring;
+    (function (querystring) {
+        /**
+         * 解析字符串生成一个键值对表
+         * @method parse
+         * @static
+         * @param  {string}  str  搜索字符串
+         * @return {Object}
+         */
+        function parse(str) {
+            str = decodeURIComponent(str);
+            var ret = {};
+            str.split('&').forEach(function (pair) {
+                var arr = pair.split('=');
+                ret[arr[0]] = arr[1];
+            });
+            return ret;
+        }
+        querystring.parse = parse;
+        /**
+         * 把一个键值对表转化为搜索字符串
+         * @method stringify
+         * @static
+         * @param  {Object} obj 键值对表
+         * @return {string}
+         */
+        function stringify(obj) {
+            return Object.keys(obj).map(function (key) { return key + '=' + encodeURIComponent(obj[key]); }).join('&');
+        }
+        querystring.stringify = stringify;
+    })(querystring = drunk.querystring || (drunk.querystring = {}));
+})(drunk || (drunk = {}));
+/// <reference path="./util" />
+/// <reference path="./querystring" />
+/// <reference path="../promise/promise" />
+/**
+ * @module drunk.util
+ * @class util
+ */
+var drunk;
+(function (drunk) {
+    /**
+     * XMLHTTP request工具方法
+     * @static
+     * @method xhr
+     * @param  {object}     	options                     配置参数
+     * @param  {string}         options.url                 请求的url
+     * @param  {string}         [options.type]              请求的类型(GET或POST)
+     * @param  {string|object}  [options.data]              要发送的数据
+     * @param  {object}         [options.headers]           请求头配置
+     * @param  {object}         [options.xhrFields]         withCredentials配置
+     * @param  {boolean}        [options.withCredentials]   withCredentials配置
+     * @param  {string}         [options.contentType]       请求的content-type
+     * @param  {string}         [options.dataType]          接受的数据类型(目前只支持json)
+     * @return {Promise}                                    一个promise实例
+     */
+    function xhr(options) {
+        var xhr = new XMLHttpRequest();
+        if (typeof options.url !== 'string') {
+            throw new Error('发送ajax请求失败:url未提供');
+        }
+        return new drunk.Promise(function (resolve, reject) {
+            var url = options.url;
+            var type = (options.type || 'GET').toUpperCase();
+            var headers = options.headers || {};
+            var data = options.data;
+            var contentType = options.contentType || 'application/x-www-form-urlencoded; charset=UTF-8';
+            if (drunk.util.isObject(data)) {
+                if (options.contentType && options.contentType.match(/^json$/i)) {
+                    data = JSON.stringify(data);
+                }
+                else {
+                    data = drunk.querystring.stringify(data);
+                    if (type === 'GET') {
+                        url += (url.indexOf('?') === -1 ? '?' : '&') + data;
+                        data = null;
+                    }
+                }
+            }
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                    if (xhr.status >= 200 && xhr.status < 300 || xhr.status === 304) {
+                        var res = xhr.responseText;
+                        xhr = null;
+                        resolve(options.dataType === 'json' ? JSON.parse(res) : res);
+                    }
+                    else {
+                        reject(xhr);
+                    }
+                }
+            };
+            xhr.onerror = function () {
+                reject(xhr);
+            };
+            xhr.open((type).toUpperCase(), url, true);
+            if (options.withCredentials || (options.xhrFields && options.xhrFields.withCredentials)) {
+                xhr.withCredentials = true;
+            }
+            xhr.setRequestHeader("Content-Type", contentType);
+            Object.keys(headers).forEach(function (name) {
+                xhr.setRequestHeader(name, headers[name]);
+            });
+            xhr.send(data);
+        });
+    }
+    drunk.xhr = xhr;
+})(drunk || (drunk = {}));
 /// <reference path="../promise/promise.ts" />
+/// <reference path="./xhr" />
 /**
  * 工具方法模块
  *
@@ -630,6 +746,32 @@ var drunk;
             return true;
         }
         util.proxy = proxy;
+        /**
+         * 创建一个异步工作
+         * @method execAsyncWork
+         * @static
+         * @param  {function}  work       回调函数
+         * @param  {any}       [context]  上下文对象
+         * @return {IAsyncJob}            返回一个带有cancel方法的job对象
+         */
+        function execAsyncWork(work, context) {
+            var timerId;
+            var job = {
+                completed: false,
+                cancel: function () {
+                    if (!job.completed) {
+                        clearTimeout(timerId);
+                    }
+                }
+            };
+            timerId = setTimeout(function () {
+                work.call(context);
+                job.completed = true;
+            }, 0);
+            return job;
+        }
+        util.execAsyncWork = execAsyncWork;
+        util.ajax = drunk.xhr;
     })(util = drunk.util || (drunk.util = {}));
 })(drunk || (drunk = {}));
 /// <reference path="../util/util.ts" />
@@ -653,12 +795,12 @@ var drunk;
         }
         /**
          * 注册事件
-         * @method addListener
+         * @method $addListener
          * @param  {string}          type       事件类型
          * @param  {IEventListener}   listener   事件回调
          * @return {EventEmitter}
          */
-        EventEmitter.prototype.addListener = function (type, listener) {
+        EventEmitter.prototype.$addListener = function (type, listener) {
             var store = getStore(this);
             if (!store[type]) {
                 store[type] = [];
@@ -667,35 +809,35 @@ var drunk;
             return this;
         };
         /**
-         * 注册事件,addListener方法的别名
-         * @method on
+         * 注册事件,$addListener方法的别名
+         * @method $on
          * @param  {string}           type       事件类型
          * @param  {IEventListener}   listener   事件回调
          * @return {EventEmitter}
          */
-        EventEmitter.prototype.on = function (type, listener) {
-            return this.addListener(type, listener);
+        EventEmitter.prototype.$on = function (type, listener) {
+            return this.$addListener(type, listener);
         };
         /**
          * 注册一次性事件
-         * @method once
+         * @method $once
          * @param  {string}         type      事件类型
          * @param  {IEventListener} listener  事件回调
          * @return {EventEmitter}
          */
-        EventEmitter.prototype.once = function (type, listener) {
+        EventEmitter.prototype.$once = function (type, listener) {
             listener.__isOnce = true;
-            this.addListener(type, listener);
+            this.$addListener(type, listener);
             return this;
         };
         /**
          * 移除指定类型的事件监听
-         * @method removeListener
+         * @method $removeListener
          * @param  {string}         type     事件类型
          * @param  {IEventListener}  listener 事件回调
          * @return {EventEmitter}
          */
-        EventEmitter.prototype.removeListener = function (type, listener) {
+        EventEmitter.prototype.$removeListener = function (type, listener) {
             var store = getStore(this);
             var listeners = store[type];
             if (!listeners || !listeners.length) {
@@ -706,11 +848,11 @@ var drunk;
         };
         /**
          * 移除所有指定类型的事件,或当事件类型未提供时,移除所有该实例上所有的事件
-         * @method removeAllListeners
+         * @method $removeAllListeners
          * @param  {string}  [type]  事件类型
          * @return {EventEmitter}
          */
-        EventEmitter.prototype.removeAllListeners = function (type) {
+        EventEmitter.prototype.$removeAllListeners = function (type) {
             if (!type) {
                 EventEmitter.cleanup(this);
             }
@@ -722,12 +864,12 @@ var drunk;
         /**
          * 派发指定类型事件
          *
-         * @method emit
+         * @method $emit
          * @param  {string}  type        事件类型
          * @param  {any[]}   [...args]    其他参数
          * @return {EventEmitter}
          */
-        EventEmitter.prototype.emit = function (type) {
+        EventEmitter.prototype.$emit = function (type) {
             var _this = this;
             var args = [];
             for (var _i = 1; _i < arguments.length; _i++) {
@@ -748,11 +890,11 @@ var drunk;
         };
         /**
          * 获取指定事件类型的所有listener回调
-         * @method listeners
+         * @method $listeners
          * @param  {string}  type  事件类型
          * @return {Array<IEventListener>}
          */
-        EventEmitter.prototype.listeners = function (type) {
+        EventEmitter.prototype.$listeners = function (type) {
             var listeners = getStore(this)[type];
             return listeners ? listeners.slice() : [];
         };
@@ -787,310 +929,10 @@ var drunk;
     drunk.EventEmitter = EventEmitter;
 })(drunk || (drunk = {}));
 /// <reference path="../promise/promise" />
-/**
- * DOM操作的工具方法模块
- *
- * @module drunk.elementUtil
- * @main
- * @class ElementUtil
- */
-var drunk;
-(function (drunk) {
-    var elementUtil;
-    (function (elementUtil) {
-        /**
-         * 根据提供的html字符串创建html元素
-         * @static
-         * @method create
-         * @param  {string}  html  html字符串
-         * @return {Node|Node[]}          创建好的html元素
-         */
-        function create(htmlString) {
-            var div = document.createElement("div");
-            var str = htmlString.trim();
-            console.assert(str.length > 0, "HTML是空的");
-            html(div, str);
-            return div.childNodes.length === 1 ? div.firstChild : drunk.util.toArray(div.childNodes);
-        }
-        elementUtil.create = create;
-        /**
-         * 设置元素的innerHTML
-         * @static
-         * @method html
-         * @param  {HTMLElement}  container  元素
-         * @param  {string}       value      值
-         */
-        function html(container, value) {
-            container.innerHTML = value;
-        }
-        elementUtil.html = html;
-        /**
-         * 在旧的元素节点前插入新的元素节点
-         * @static
-         * @method insertBefore
-         * @param  {Node}  newNode  新的节点
-         * @param  {Node}  oldNode  旧的节点
-         */
-        function insertBefore(newNode, oldNode) {
-            if (!oldNode.parentNode) {
-                return;
-            }
-            if (!Array.isArray(newNode)) {
-                newNode = [newNode];
-            }
-            var parent = oldNode.parentNode;
-            newNode.forEach(function (node) {
-                parent.insertBefore(node, oldNode);
-            });
-        }
-        elementUtil.insertBefore = insertBefore;
-        /**
-         * 在旧的元素节点后插入新的元素节点
-         * @static
-         * @method insertAfter
-         * @param  {Node}  newNode  新的节点
-         * @param  {Node}  oldNode  旧的节点
-         */
-        function insertAfter(newNode, oldNode) {
-            if (!oldNode.parentNode) {
-                return;
-            }
-            if (!Array.isArray(newNode)) {
-                newNode = [newNode];
-            }
-            if (oldNode.nextSibling) {
-                insertBefore(newNode, oldNode.nextSibling);
-            }
-            else {
-                var parent_1 = oldNode.parentNode;
-                newNode.forEach(function (node) {
-                    parent_1.appendChild(node);
-                });
-            }
-        }
-        elementUtil.insertAfter = insertAfter;
-        /**
-         * 移除元素节点
-         * @static
-         * @method remove
-         * @param  {Node|Node[]}  target  节点
-         */
-        function remove(target) {
-            if (!Array.isArray(target)) {
-                target = [target];
-            }
-            return drunk.Promise.all(target.map(function (node) {
-                return removeAfterActionEnd(node);
-            }));
-        }
-        elementUtil.remove = remove;
-        function removeAfterActionEnd(node) {
-            if (node.parentNode) {
-                var currentAction = drunk.Action.getCurrentAction(node);
-                if (currentAction && currentAction.promise) {
-                    return currentAction.promise.then(function () {
-                        node.parentNode.removeChild(node);
-                    });
-                }
-                else {
-                    node.parentNode.removeChild(node);
-                }
-            }
-        }
-        /**
-         * 新的节点替换旧的节点
-         * @static
-         * @method replace
-         * @param  {Node}  newNode  新的节点
-         * @param  {Node}  oldNode  旧的节点
-         */
-        function replace(newNode, oldNode) {
-            if (!oldNode.parentNode) {
-                return;
-            }
-            if (!Array.isArray(newNode)) {
-                newNode = [newNode];
-            }
-            var parent = oldNode.parentNode;
-            newNode.forEach(function (node) {
-                parent.insertBefore(node, oldNode);
-            });
-            parent.removeChild(oldNode);
-        }
-        elementUtil.replace = replace;
-        /**
-         * 为节点注册事件监听
-         * @static
-         * @method addListener
-         * @param  {HTMLElement} element  元素
-         * @param  {string}      type     事件名
-         * @param  {function}    listener 事件处理函数
-         */
-        function addListener(element, type, listener) {
-            element.addEventListener(type, listener, false);
-        }
-        elementUtil.addListener = addListener;
-        /**
-         * 移除节点的事件监听
-         * @static
-         * @method removeListener
-         * @param  {HTMLElement} element  元素
-         * @param  {string}      type     事件名
-         * @param  {function}    listener 事件处理函数
-         */
-        function removeListener(element, type, listener) {
-            element.removeEventListener(type, listener, false);
-        }
-        elementUtil.removeListener = removeListener;
-        /**
-         * 添加样式
-         * @static
-         * @method addClass
-         * @param  {HTMLElement}  element    元素
-         * @param  {string}       token      样式名
-         */
-        function addClass(element, token) {
-            var list = token.trim().split(/\s+/);
-            element.classList.add.apply(element.classList, list);
-        }
-        elementUtil.addClass = addClass;
-        /**
-         * 移除样式
-         * @static
-         * @method removeClass
-         * @param  {HTMLElement}  element    元素
-         * @param  {string}       token      样式名
-         */
-        function removeClass(element, token) {
-            var list = token.trim().split(/\s+/);
-            element.classList.remove.apply(element.classList, list);
-        }
-        elementUtil.removeClass = removeClass;
-    })(elementUtil = drunk.elementUtil || (drunk.elementUtil = {}));
-})(drunk || (drunk = {}));
-/// <reference path="./util" />
-/**
- * 搜索字符串解析模块
- * @module drunk.querystring
- * @class querystring
- */
-var drunk;
-(function (drunk) {
-    var querystring;
-    (function (querystring) {
-        /**
-         * 解析字符串生成一个键值对表
-         * @method parse
-         * @static
-         * @param  {string}  str  搜索字符串
-         * @return {Object}
-         */
-        function parse(str) {
-            str = decodeURIComponent(str);
-            var ret = {};
-            str.split('&').forEach(function (pair) {
-                var arr = pair.split('=');
-                ret[arr[0]] = arr[1];
-            });
-            return ret;
-        }
-        querystring.parse = parse;
-        /**
-         * 把一个键值对表转化为搜索字符串
-         * @method stringify
-         * @static
-         * @param  {Object} obj 键值对表
-         * @return {string}
-         */
-        function stringify(obj) {
-            return Object.keys(obj).map(function (key) { return key + '=' + encodeURIComponent(obj[key]); }).join('&');
-        }
-        querystring.stringify = stringify;
-    })(querystring = drunk.querystring || (drunk.querystring = {}));
-})(drunk || (drunk = {}));
-/// <reference path="./util" />
-/// <reference path="./querystring" />
-/// <reference path="../promise/promise" />
-/**
- * @module drunk.util
- * @class util
- */
-var drunk;
-(function (drunk) {
-    var util;
-    (function (util) {
-        /**
-         * Ajax工具方法
-         * @static
-         * @method ajax
-         * @param  {object}     	options                     配置参数
-         * @param  {string}         options.url                 请求的url
-         * @param  {string}         [options.type]              请求的类型(GET或POST)
-         * @param  {string|object}  [options.data]              要发送的数据
-         * @param  {object}         [options.headers]           请求头配置
-         * @param  {object}         [options.xhrFields]         withCredentials配置
-         * @param  {boolean}        [options.withCredentials]   withCredentials配置
-         * @param  {string}         [options.contentType]       请求的content-type
-         * @param  {string}         [options.dataType]          接受的数据类型(目前只支持json)
-         * @return {Promise}                                    一个promise实例
-         */
-        function ajax(options) {
-            var xhr = new XMLHttpRequest();
-            if (typeof options.url !== 'string') {
-                throw new Error('发送ajax请求失败:url未提供');
-            }
-            return new drunk.Promise(function (resolve, reject) {
-                var url = options.url;
-                var type = (options.type || 'GET').toUpperCase();
-                var headers = options.headers || {};
-                var data = options.data;
-                var contentType = options.contentType || 'application/x-www-form-urlencoded; charset=UTF-8';
-                if (util.isObject(data)) {
-                    if (options.contentType && options.contentType.match(/^json$/i)) {
-                        data = JSON.stringify(data);
-                    }
-                    else {
-                        data = drunk.querystring.stringify(data);
-                        if (type === 'GET') {
-                            url += (url.indexOf('?') === -1 ? '?' : '&') + data;
-                            data = null;
-                        }
-                    }
-                }
-                xhr.onreadystatechange = function () {
-                    if (xhr.readyState === 4) {
-                        if (xhr.status >= 200 && xhr.status < 300 || xhr.status === 304) {
-                            var res = xhr.responseText;
-                            xhr = null;
-                            resolve(options.dataType === 'json' ? JSON.parse(res) : res);
-                        }
-                        else {
-                            reject(xhr);
-                        }
-                    }
-                };
-                xhr.onerror = function () {
-                    reject(xhr);
-                };
-                xhr.open((type).toUpperCase(), url, true);
-                if (options.withCredentials || (options.xhrFields && options.xhrFields.withCredentials)) {
-                    xhr.withCredentials = true;
-                }
-                xhr.setRequestHeader("Content-Type", contentType);
-                Object.keys(headers).forEach(function (name) {
-                    xhr.setRequestHeader(name, headers[name]);
-                });
-                xhr.send(data);
-            });
-        }
-        util.ajax = ajax;
-    })(util = drunk.util || (drunk.util = {}));
-})(drunk || (drunk = {}));
-/// <reference path="../promise/promise" />
 /// <reference path="../util/util" />
 /// <reference path="../events/eventemitter" />
 /**
- * @module drunk.scheduler
+ * @module drunk.Scheduler
  */
 var drunk;
 (function (drunk) {
@@ -1104,9 +946,9 @@ var drunk;
          * 调度方法
          * @method schedule
          * @static
-         * @param  {Scheduler.IWork}     work        调度的执行函数
+         * @param  {Scheduler.IWork}      work       调度的执行函数
          * @param  {Scheduler.Priority}  [priority]  优先级
-         * @param  {any}       [context]   上下文
+         * @param  {any}                 [context]   上下文
          * @return {Scheduler.IJob}                  生成的工作对象
          */
         Scheduler.schedule = function (work, priority, context) {
@@ -1123,7 +965,7 @@ var drunk;
         Scheduler.requestDrain = function (priority, callback) {
             drunk.util.addArrayItem(drainPriorityQueue, priority);
             drainPriorityQueue.sort();
-            drainEventEmitter.once(String(priority), callback);
+            drainEventEmitter.$once(String(priority), callback);
         };
         return Scheduler;
     })();
@@ -1164,21 +1006,21 @@ var drunk;
             configurable: true
         });
         Job.prototype.cancel = function () {
-            if (this.completed) {
+            if (this.completed || this._cancelled) {
                 return;
             }
             this._remove();
             this._release();
         };
         Job.prototype.pause = function () {
-            if (this.completed) {
+            if (this.completed || this._cancelled) {
                 return;
             }
             this._remove();
             this._isPaused = true;
         };
         Job.prototype.resume = function () {
-            if (!this.completed && this._isPaused) {
+            if (!this.completed && !this._cancelled && this._isPaused) {
                 addJobToQueue(this);
                 this._isPaused = false;
             }
@@ -1202,6 +1044,9 @@ var drunk;
                 }
                 else {
                     result.then(function (newWork) {
+                        if (_this._cancelled) {
+                            return;
+                        }
                         _this._work = newWork;
                         _this._priority = priority;
                         _this._context = context;
@@ -1296,7 +1141,7 @@ var drunk;
             return;
         }
         if (drainPriorityQueue.length && getHighestPriority() === PRIORITY_TAIL) {
-            return drainPriorityQueue.forEach(function (priority) { return drainEventEmitter.emit(String(priority)); });
+            return drainPriorityQueue.forEach(function (priority) { return drainEventEmitter.$emit(String(priority)); });
         }
         isRunning = true;
         immediateYield = false;
@@ -1331,7 +1176,7 @@ var drunk;
         drainPriorityQueue.some(function (priority) {
             if (priority > highestPriority) {
                 count += 1;
-                drainEventEmitter.emit(String(priority));
+                drainEventEmitter.$emit(String(priority));
                 return true;
             }
             return false;
@@ -1342,7 +1187,7 @@ var drunk;
     }
     function startRunning() {
         if (!isRunning) {
-            setTimeout(run, 0);
+            drunk.util.execAsyncWork(run);
         }
     }
 })(drunk || (drunk = {}));
@@ -1369,12 +1214,12 @@ var drunk;
          *
          * @static
          * @for observable
-         * @method setProperty
+         * @method $set
          * @param {ObservableObject} data   JSON对象或已经为observable的JSON对象
          * @param {string}           name   字段名
          * @param {any}              value  值
          */
-        function setProperty(data, name, value) {
+        function $set(data, name, value) {
             var descriptor = Object.getOwnPropertyDescriptor(data, name);
             if (!descriptor || (!descriptor.get && !descriptor.set)) {
                 var oldValue = data[name];
@@ -1387,24 +1232,24 @@ var drunk;
                 data[name] = value;
             }
         }
-        observable.setProperty = setProperty;
+        observable.$set = $set;
         /**
          * 移除对象属性，并会发送更新的消息
          *
          * @static
          * @for observable
-         * @method removeProperty
+         * @method $remove
          * @param {ObservableObject}  data  JSON对象或已经为observable的JSON对象
          * @param {string}            name  字段名
          */
-        function removeProperty(data, name) {
+        function $remove(data, name) {
             if (!data.hasOwnProperty(name)) {
                 return;
             }
             delete data[name];
             observable.notify(data);
         }
-        observable.removeProperty = removeProperty;
+        observable.$remove = $remove;
         /**
          * 对象转换成observable后指向的原型对象
          *
@@ -1417,22 +1262,22 @@ var drunk;
          * 设置对象的指定字段的值
          *
          * @for ObservableObject
-         * @method setProperty
+         * @method $set
          * @param  {string}  name  字段名
          * @param  {any}     value 值
          */
-        drunk.util.defineProperty(observable.ObservableObjectPrototype, "setProperty", function setObservableObjectProperty(name, value) {
-            setProperty(this, name, value);
+        drunk.util.defineProperty(observable.ObservableObjectPrototype, "$set", function setObservableObjectProperty(name, value) {
+            $set(this, name, value);
         });
         /**
          * 删除对象的指定字段的值
          *
          * @for ObservableObject
-         * @method removeProperty
+         * @method $remove
          * @param  {string}  name  字段名
          */
-        drunk.util.defineProperty(observable.ObservableObjectPrototype, "removeProperty", function removeObservableObjectProperty(name) {
-            removeProperty(this, name);
+        drunk.util.defineProperty(observable.ObservableObjectPrototype, "$remove", function removeObservableObjectProperty(name) {
+            $remove(this, name);
         });
     })(observable = drunk.observable || (drunk.observable = {}));
 })(drunk || (drunk = {}));
@@ -1508,6 +1353,7 @@ var drunk;
 /// <reference path="./observableArray.ts" />
 /// <reference path="./observableObject.ts" />
 /// <reference path="./observer.ts" />
+/// <reference path="../events/eventemitter" />
 /**
  * observable模块的工具方法，用于创建可观察的数据，数据绑定等
  *
@@ -1622,7 +1468,7 @@ var drunk;
             // 假设value是一个数组，当数组添加了一个新的item时，
             // 告知data的observer实例派发property改变的通知
             function propertyChanged() {
-                dataOb.emit(property);
+                dataOb.$emit(property);
             }
         }
         observable.observe = observe;
@@ -1674,28 +1520,28 @@ var drunk;
         /**
          * 设置数组指定数组下标的值，并发送数组更新通知
          * @static
-         * @method setAt
+         * @method $setAt
          * @param {array}  array   observableArray类型的数组
          * @param {number} index   要设置的数组下标
          * @param {any}    value   要设置的值
          */
-        function setAt(array, index, value) {
+        function $setAt(array, index, value) {
             if (index > array.length) {
                 array.length = index + 1;
             }
             array.splice(index, 1, value);
         }
-        observable.setAt = setAt;
+        observable.$setAt = $setAt;
         /**
          * 根据索引移除数组中的元素，并发送数组更新通知
          * @static
          * @for observable
-         * @method removeAt
+         * @method $removeAt
          * @param {array}  array  observableArray类型的数组
          * @param {number} index  要移除的下标
          * @returns {any}         返回移除的值
          */
-        function removeAt(array, index) {
+        function $removeAt(array, index) {
             var result;
             if (index > -1 && index < array.length) {
                 result = Array.prototype.splice.call(array, index, 1)[0];
@@ -1703,43 +1549,43 @@ var drunk;
             }
             return result;
         }
-        observable.removeAt = removeAt;
+        observable.$removeAt = $removeAt;
         /**
          * 删除数组中出现的一个指定值，并发送数组更新通知
          * @static
          * @for observable
-         * @method removeItem
+         * @method $removeItem
          * @param {array} array  observableArray类型的数组
          * @param {any}   value  要移除的值
          */
-        function removeItem(array, value) {
+        function $removeItem(array, value) {
             drunk.util.removeArrayItem(array, value);
         }
-        observable.removeItem = removeItem;
+        observable.$removeItem = $removeItem;
         /**
          * 删除数组中所有的指定值，并发送数组更新通知
          * @static
          * @for observable
-         * @method removeAllItem
+         * @method $removeAllItem
          * @param {array} array  observableArray类型的数组
          * @param {any}   value  要移除的值
          */
-        function removeAllItem(array, value) {
-            var removeItemIndexs = [];
+        function $removeAllItem(array, value) {
+            var $removeItemIndexs = [];
             var step = 0;
             array.forEach(function (item, index) {
                 if (value === item) {
-                    removeItemIndexs.push(index - step++);
+                    $removeItemIndexs.push(index - step++);
                 }
             });
-            if (removeItemIndexs.length) {
-                removeItemIndexs.forEach(function (index) {
+            if ($removeItemIndexs.length) {
+                $removeItemIndexs.forEach(function (index) {
                     array.splice(index, 1);
                 });
                 observable.notify(array);
             }
         }
-        observable.removeAllItem = removeAllItem;
+        observable.$removeAllItem = $removeAllItem;
         /**
          * 删除所有数组元素
          * @method removeAll
@@ -1756,39 +1602,39 @@ var drunk;
         /**
          * 根据下标设置数组的值，并发送数据更新的通知
          * @for ObservableArray
-         * @method setAt
+         * @method $setAt
          * @param  {number}  index  数组下标
          * @param  {any}     value  要设置的值
          */
-        drunk.util.defineProperty(observable.ObservableArrayPrototype, "setAt", function setObservableArrayItem(index, value) {
-            setAt(this, index, value);
+        drunk.util.defineProperty(observable.ObservableArrayPrototype, "$setAt", function setObservableArrayItem(index, value) {
+            $setAt(this, index, value);
         });
         /**
          * 根据下标移除数组的值，并发送数据更新的通知
          * @for ObservableArray
-         * @method removeAt
+         * @method $removeAt
          * @param  {number}  index  数组下标
          */
-        drunk.util.defineProperty(observable.ObservableArrayPrototype, "removeAt", function removeObservalbeArrayByIndex(index) {
-            return removeAt(this, index);
+        drunk.util.defineProperty(observable.ObservableArrayPrototype, "$removeAt", function removeObservalbeArrayByIndex(index) {
+            return $removeAt(this, index);
         });
         /**
          * 移除指定的值，并发送数据更新的通知
          * @for ObservableArray
-         * @method removeItem
+         * @method $removeItem
          * @param  {any}  value  指定值
          */
-        drunk.util.defineProperty(observable.ObservableArrayPrototype, "removeItem", function removeObservableArrayItem(value) {
-            return removeItem(this, value);
+        drunk.util.defineProperty(observable.ObservableArrayPrototype, "$removeItem", function removeObservableArrayItem(value) {
+            return $removeItem(this, value);
         });
         /**
          * 移除数组中所有指定的值，并发送数据更新的通知
          * @for ObservableArray
-         * @method removeAllItem
+         * @method $removeAllItem
          * @param  {any}  value  指定值
          */
-        drunk.util.defineProperty(observable.ObservableArrayPrototype, "removeAllItem", function removeAllObservableArrayItem(value) {
-            return removeAllItem(this, value);
+        drunk.util.defineProperty(observable.ObservableArrayPrototype, "$removeAllItem", function removeAllObservableArrayItem(value) {
+            return $removeAllItem(this, value);
         });
         /**
          * 删除所有数组元素
@@ -1853,7 +1699,7 @@ var drunk;
 /// <reference path="../promise/promise.ts" />
 /// <reference path="../parser/parser.ts" />
 /// <reference path="../observable/observable.ts" />
-/// <reference path="../Scheduler/Scheduler" />
+/// <reference path="../scheduler/scheduler" />
 var drunk;
 (function (drunk) {
     var Watcher = (function () {
@@ -1967,7 +1813,7 @@ var drunk;
             }
             Object.keys(this._observers).forEach(function (id) {
                 Object.keys(_this._properties[id]).forEach(function (property) {
-                    _this._observers[id].removeListener(property, _this.__propertyChanged);
+                    _this._observers[id].$removeListener(property, _this.__propertyChanged);
                 });
             });
             if (this._runActionJob) {
@@ -2000,7 +1846,7 @@ var drunk;
             }
             if (this._getter.filters) {
                 // 派发到各个filter中处理
-                newValue = drunk.filter.pipeFor(newValue, this._getter.filters, this.viewModel.filter, this._isInterpolate, this.viewModel);
+                newValue = drunk.filter.pipeFor(newValue, this._getter.filters, this.viewModel.$filter, this._isInterpolate, this.viewModel);
             }
             this.__afterGetValue();
             return newValue;
@@ -2034,14 +1880,14 @@ var drunk;
                 if (!tmpObservers[id]) {
                     // 如果没有再订阅该observer,取消订阅所有的属性
                     Object.keys(properties[id]).forEach(function (property) {
-                        observer.removeListener(property, propertyChanged);
+                        observer.$removeListener(property, propertyChanged);
                     });
                 }
                 else {
                     Object.keys(properties[id]).forEach(function (property) {
                         if (!tmpProperties[id][property]) {
                             // 如果没有再订阅该属性,取消订阅该属性
-                            observer.removeListener(property, propertyChanged);
+                            observer.$removeListener(property, propertyChanged);
                         }
                     });
                 }
@@ -2069,18 +1915,18 @@ var drunk;
                     // 如果旧的订阅表也没有,则添加到旧表,并在判断
                     this._observers[id] = observer;
                     this._properties[id] = (_b = {}, _b[property] = true, _b);
-                    observer.addListener(property, propertyChanged);
+                    observer.$addListener(property, propertyChanged);
                 }
                 else if (!this._properties[id][property]) {
                     // 如果没有订阅过该属性
                     this._properties[id][property] = true;
-                    observer.addListener(property, propertyChanged);
+                    observer.$addListener(property, propertyChanged);
                 }
             }
             else if (!this._tmpProperties[id][property]) {
                 this._tmpProperties[id][property] = true;
                 if (!this._properties[id][property]) {
-                    observer.addListener(property, propertyChanged);
+                    observer.$addListener(property, propertyChanged);
                     this._properties[id][property] = true;
                 }
             }
@@ -2103,10 +1949,824 @@ var drunk;
         }
     }
 })(drunk || (drunk = {}));
+/// <reference path="../promise/promise.ts" />
+/// <reference path="../util/xhr.ts" />
+/// <reference path="../cache/cache" />
+/**
+ * @module drunk.Template
+ * @class Template
+ */
+var drunk;
+(function (drunk) {
+    var Template;
+    (function (Template) {
+        var cacheStore = new drunk.Cache(50);
+        /**
+         * 加载模板，先尝试从script标签上查找，找不到再发送ajax请求，
+         * 加载到的模板字符串会进行缓存
+         * @static
+         * @method loadTemplate
+         * @param   {string}  urlOrId  script模板标签的id或模板的url地址
+         * @returns {Promise}           一个 promise 对象promise的返回值为模板字符串
+         */
+        function load(urlOrId) {
+            var template = cacheStore.get(urlOrId);
+            if (template != null) {
+                return drunk.Promise.resolve(template);
+            }
+            var node = document.getElementById(urlOrId);
+            if (node && node.innerHTML) {
+                template = node.innerHTML;
+                cacheStore.set(urlOrId, template);
+                return drunk.Promise.resolve(template);
+            }
+            var promise = drunk.util.ajax({ url: urlOrId });
+            cacheStore.set(urlOrId, promise);
+            return promise;
+        }
+        Template.load = load;
+    })(Template = drunk.Template || (drunk.Template = {}));
+})(drunk || (drunk = {}));
+/// <reference path="../viewmodel/viewmodel" />
+/// <reference path="../template/loader" />
+/// <reference path="../config/config" />
+var drunk;
+(function (drunk) {
+    var Component = (function (_super) {
+        __extends(Component, _super);
+        /**
+         * 组件类，继承ViewModel类，实现了模板的准备和数据的绑定
+         * @class Component
+         * @constructor
+         */
+        function Component(model) {
+            _super.call(this, model);
+        }
+        /**
+         * 实例创建时会调用的初始化方法,派生类可覆盖该方法
+         * @method init
+         */
+        Component.prototype.init = function () {
+        };
+        /**
+         * 属性初始化
+         * @method __init
+         * @override
+         * @protected
+         * @param  {IModel}  [model]  model对象
+         */
+        Component.prototype.__init = function (model) {
+            var _this = this;
+            _super.prototype.__init.call(this, model);
+            if (this.filters) {
+                // 如果配置了过滤器
+                drunk.util.extend(this.$filter, this.filters);
+            }
+            if (this.handlers) {
+                // 如果配置了事件处理函数
+                drunk.util.extend(this, this.handlers);
+            }
+            if (this.data) {
+                Object.keys(this.data).forEach(function (name) {
+                    var data = _this.data[name];
+                    if (typeof data === 'function') {
+                        // 如果是一个函数,直接调用该函数
+                        data = data.call(_this);
+                    }
+                    // 代理该数据字段
+                    _this.$proxy(name);
+                    // 不论返回的是什么值,使用promise进行处理
+                    drunk.Promise.resolve(data).then(function (result) {
+                        _this[name] = result;
+                    }, function (reason) {
+                        console.warn("数据准备失败:", reason);
+                    });
+                });
+            }
+            this.init();
+            if (this.watchers) {
+                // 如果配置了监控器
+                Object.keys(this.watchers).forEach(function (expression) {
+                    _this.$watch(expression, _this.watchers[expression]);
+                });
+            }
+        };
+        /**
+         * 处理模板，并返回模板元素
+         * @method $processTemplate
+         * @return {Promise}
+         */
+        Component.prototype.$processTemplate = function (templateUrl) {
+            function onFailed(reason) {
+                console.warn("模板加载失败: " + templateUrl, reason);
+            }
+            if (typeof templateUrl === 'string') {
+                return drunk.Template.load(templateUrl).then(drunk.dom.create).catch(onFailed);
+            }
+            if (this.element) {
+                return drunk.Promise.resolve(this.element);
+            }
+            if (typeof this.template === 'string') {
+                return drunk.Promise.resolve(drunk.dom.create(this.template));
+            }
+            templateUrl = this.templateUrl;
+            if (typeof templateUrl === 'string') {
+                return drunk.Template.load(templateUrl).then(drunk.dom.create).catch(onFailed);
+            }
+            throw new Error((this.name || this.constructor.name) + "组件模板未指定");
+        };
+        /**
+         * 把组件挂载到元素上
+         * @method $mount
+         * @param {Node|Node[]} element         要挂在的节点或节点数组
+         * @param {Component}   ownerViewModel  父级viewModel实例
+         * @param {HTMLElement} placeholder     组件占位标签
+         */
+        Component.prototype.$mount = function (element, ownerViewModel, placeholder) {
+            console.assert(!this._isMounted, "该组件已有挂载到", this.element);
+            if (Component.getByElement(element)) {
+                return console.error("Component#mount(element): 尝试挂载到一个已经挂载过组件实例的元素节点", element);
+            }
+            drunk.Template.compile(element)(this, element, ownerViewModel, placeholder);
+            Component.setWeakRef(element, this);
+            this.element = element;
+            this._isMounted = true;
+        };
+        /**
+         * 释放组件
+         * @method dispose
+         */
+        Component.prototype.$release = function () {
+            this.$emit(Component.Event.release, this);
+            _super.prototype.$release.call(this);
+            if (this._isMounted) {
+                Component.removeWeakRef(this.element);
+                this._isMounted = false;
+            }
+            this.element = null;
+        };
+        return Component;
+    })(drunk.ViewModel);
+    drunk.Component = Component;
+    var Component;
+    (function (Component) {
+        var weakRefMap = {};
+        /**
+         * 组件的事件名称
+         * @property Event
+         * @static
+         * @type  IComponentEvent
+         */
+        Component.Event = {
+            created: 'created',
+            release: 'release',
+            mounted: 'mounted'
+        };
+        /**
+         * 获取挂在在元素上的viewModel实例
+         * @method getByElement
+         * @static
+         * @param  {any}  element 元素
+         * @return {Component}    viewModel实例
+         */
+        function getByElement(element) {
+            var uid = drunk.util.uuid(element);
+            return weakRefMap[uid];
+        }
+        Component.getByElement = getByElement;
+        /**
+         * 设置element与viewModel的引用
+         * @method setWeakRef
+         * @static
+         * @param  {any}        element    元素
+         * @param  {Component}  viewModel  组件实例
+         */
+        function setWeakRef(element, viewModel) {
+            var uid = drunk.util.uuid(element);
+            if (weakRefMap[uid] !== undefined && weakRefMap[uid] !== viewModel) {
+                console.error(element, '元素尝试挂载到不同的组件实例');
+            }
+            else {
+                weakRefMap[uid] = viewModel;
+            }
+        }
+        Component.setWeakRef = setWeakRef;
+        /**
+         * 移除挂载引用
+         * @method removeMountedRef
+         * @param  {any}  element  元素
+         */
+        function removeWeakRef(element) {
+            var uid = drunk.util.uuid(element);
+            if (weakRefMap[uid]) {
+                delete weakRefMap[uid];
+            }
+        }
+        Component.removeWeakRef = removeWeakRef;
+        /**
+         * 定义的组件记录
+         * @property definedComponent
+         * @private
+         * @type {object}
+         */
+        var definedComponentMap = {};
+        /**
+         * 根据组件名字获取组件构造函数
+         * @method getByName
+         * @param  {string}  name  组件名
+         * @return {IComponentConstructor}
+         */
+        function getByName(name) {
+            return definedComponentMap[name];
+        }
+        Component.getByName = getByName;
+        function define() {
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i - 0] = arguments[_i];
+            }
+            var members;
+            if (args.length === 2) {
+                members = args[1];
+                members.name = args[0];
+            }
+            else {
+                members = args[0];
+            }
+            return Component.extend(members);
+        }
+        Component.define = define;
+        function extend(name, members) {
+            if (arguments.length === 1 && drunk.util.isObject(name)) {
+                members = arguments[0];
+                name = members.name;
+            }
+            else {
+                members.name = arguments[0];
+            }
+            var _super = this;
+            var prototype = Object.create(_super.prototype);
+            var component = function () {
+                var args = [];
+                for (var _i = 0; _i < arguments.length; _i++) {
+                    args[_i - 0] = arguments[_i];
+                }
+                _super.apply(this, args);
+            };
+            drunk.util.extend(prototype, members);
+            component.prototype = prototype;
+            prototype.constructor = component;
+            if (name) {
+                Component.register(name, component);
+            }
+            else {
+                component.extend = Component.extend;
+            }
+            return component;
+        }
+        Component.extend = extend;
+        /**
+         * 把一个继承了drunk.Component的组件类根据组件名字注册到组件系统中
+         * @method reigster
+         * @static
+         * @param  {string}   name          组件名
+         * @param  {function} componentCtor 组件类
+         */
+        function register(name, componentCtor) {
+            console.assert(name.indexOf('-') > -1, name, '组件明必须在中间带"-"字符,如"custom-view"');
+            if (definedComponentMap[name] != null) {
+                console.warn('组件 "' + name + '" 已被覆盖,请确认该操作');
+            }
+            componentCtor.extend = Component.extend;
+            definedComponentMap[name] = componentCtor;
+            addHiddenStyleForComponent(name);
+        }
+        Component.register = register;
+        var record = {};
+        var styleSheet;
+        /**
+         * 设置样式
+         * @method addHiddenStyleForComponent
+         * @private
+         * @param  {string} name  组件名
+         */
+        function addHiddenStyleForComponent(name) {
+            if (record[name]) {
+                return;
+            }
+            if (!styleSheet) {
+                var styleElement = document.createElement('style');
+                document.head.appendChild(styleElement);
+                styleSheet = styleElement.sheet;
+            }
+            styleSheet.insertRule(name + '{display:none}', styleSheet.cssRules.length);
+        }
+        // 注册内置的组件标签
+        register(drunk.config.prefix + 'view', Component);
+    })(Component = drunk.Component || (drunk.Component = {}));
+})(drunk || (drunk = {}));
+/// <reference path="../binding" />
+/// <reference path="../../config/config" />
+/// <reference path="../../promise/promise" />
+/// <reference path="../../scheduler/scheduler" />
+/// <reference path="../../component/component" />
+var drunk;
+(function (drunk) {
+    /**
+     * 动画模块
+     * @module drunk.Action
+     * @class Action
+     */
+    var Action;
+    (function (Action) {
+        /**
+         * action的类型
+         * @property Type
+         * @type object
+         */
+        Action.Type = {
+            created: 'created',
+            removed: 'removed'
+        };
+        /**
+         * js动画定义
+         * @property definitionMap
+         * @private
+         * @type object
+         */
+        var definitionMap = {};
+        /**
+         * 动画状态
+         * @property actionMap
+         * @private
+         * @type object
+         */
+        var actionMap = {};
+        var propertyPrefix = null;
+        var transitionEndEvent = null;
+        var animationEndEvent = null;
+        function getPropertyName(property) {
+            if (propertyPrefix === null) {
+                var style = document.body.style;
+                if ('webkitAnimationDuration' in style) {
+                    propertyPrefix = 'webkit';
+                    transitionEndEvent = 'webkitTransitionEnd';
+                    animationEndEvent = 'webkitAnimationEnd';
+                }
+                else if ('mozAnimationDuration' in style) {
+                    propertyPrefix = 'moz';
+                }
+                else if ('msAnimationDuration' in style) {
+                    propertyPrefix = 'ms';
+                }
+                else {
+                    propertyPrefix = '';
+                }
+                if (!transitionEndEvent && !animationEndEvent) {
+                    // 只有webkit的浏览器是用特定的事件,其他的浏览器统一用一下两个事件
+                    transitionEndEvent = 'transitionend';
+                    animationEndEvent = 'animationend';
+                }
+            }
+            if (!propertyPrefix) {
+                return property;
+            }
+            return propertyPrefix + (property.charAt(0).toUpperCase() + property.slice(1));
+        }
+        /**
+         * 设置当前正在执行的action
+         * @method setCurrentAction
+         * @static
+         * @param  {HTMLElement}  element 元素节点
+         * @param  {IAction}      action  action描述
+         */
+        function setCurrentAction(element, action) {
+            var id = drunk.util.uuid(element);
+            actionMap[id] = action;
+        }
+        Action.setCurrentAction = setCurrentAction;
+        /**
+         * 获取元素当前的action对象
+         * @method getCurrentAction
+         * @static
+         * @param  {HTMLElement}  element  元素节点
+         * @return {IAction}
+         */
+        function getCurrentAction(element) {
+            var id = drunk.util.uuid(element);
+            return actionMap[id];
+        }
+        Action.getCurrentAction = getCurrentAction;
+        /**
+         * 移除当前元素的action引用
+         * @method removeRef
+         * @static
+         * @param  {HTMLElement} element
+         */
+        function removeRef(element) {
+            var id = drunk.util.uuid(element);
+            actionMap[id] = null;
+        }
+        Action.removeRef = removeRef;
+        /**
+         * 执行单个action,优先判断是否存在js定义的action,再判断是否是css动画
+         * @method run
+         * @static
+         * @param  {HTMLElement}    element    元素对象
+         * @param  {string}         detail     action的信息,动画名或延迟时间
+         * @param  {string}         type       action的类型(created或removed)
+         */
+        function run(element, detail, type) {
+            if (isNumber(detail)) {
+                // 如果是一个数字,则为延时等待操作
+                return wait(detail * 1000);
+            }
+            var definition = definitionMap[detail];
+            if (definition) {
+                // 如果有通过js注册的action,优先执行
+                return runJavascriptAction(element, definition, type);
+            }
+            return runMaybeCSSAnimation(element, detail, type);
+        }
+        Action.run = run;
+        function wait(time) {
+            var action = {};
+            action.promise = new drunk.Promise(function (resolve) {
+                var timerid;
+                action.cancel = function () {
+                    clearTimeout(timerid);
+                    action.cancel = null;
+                    action.promise = null;
+                };
+                timerid = setTimeout(resolve, time);
+            });
+            return action;
+        }
+        function runJavascriptAction(element, definition, type) {
+            var action = {};
+            var executor = definition[type];
+            action.promise = new drunk.Promise(function (resolve) {
+                var cancel = executor(element, function () {
+                    resolve();
+                });
+                action.cancel = function () {
+                    action.cancel = null;
+                    action.promise = null;
+                    cancel();
+                };
+            });
+            return action;
+        }
+        function runMaybeCSSAnimation(element, detail, type) {
+            detail = detail ? detail + '-' : drunk.config.prefix;
+            var action = {};
+            var className = detail + type;
+            // 如果transitionDuration或animationDuration都不为0s的话说明已经设置了该属性
+            // 必须先在这里取一次transitionDuration的值,动画才会生效
+            var style = getComputedStyle(element, null);
+            var transitionDuration = style[getPropertyName('transitionDuration')];
+            var transitionExist = transitionDuration !== '0s';
+            var transitionTimerid;
+            action.promise = new drunk.Promise(function (resolve) {
+                // 给样式赋值后,取animationDuration的值,判断有没有设置animation动画
+                element.classList.add(className);
+                var animationExist = style[getPropertyName('animationDuration')] !== '0s';
+                if (!transitionExist && !animationExist) {
+                    // 如果为设置动画直接返回resolve状态
+                    return resolve();
+                }
+                element.style[getPropertyName('animationFillMode')] = 'both';
+                function onTransitionEnd() {
+                    clearTimeout(transitionTimerid);
+                    element.removeEventListener(animationEndEvent, onAnimationEnd, false);
+                    element.removeEventListener(transitionEndEvent, onTransitionEnd, false);
+                    if (type === Action.Type.removed) {
+                        element.classList.remove(detail + Action.Type.created, className);
+                    }
+                    resolve();
+                }
+                function onAnimationEnd() {
+                    element.classList.remove(className);
+                    element.removeEventListener(transitionEndEvent, onTransitionEnd, false);
+                    element.removeEventListener(animationEndEvent, onAnimationEnd, false);
+                    resolve();
+                }
+                element.addEventListener(animationEndEvent, onAnimationEnd, false);
+                element.addEventListener(transitionEndEvent, onTransitionEnd, false);
+                if (transitionExist) {
+                    // 加一个定时器,避免当前属性与transitionend状态下属性的值没有变化时不会触发transitionend事件,
+                    // 这里要设置一个定时器保证该事件的触发
+                    transitionTimerid = setTimeout(onTransitionEnd, parseFloat(transitionDuration) * 1000);
+                }
+                action.cancel = function () {
+                    clearTimeout(transitionTimerid);
+                    element.removeEventListener(transitionEndEvent, onTransitionEnd, false);
+                    element.removeEventListener(animationEndEvent, onAnimationEnd, false);
+                    element.classList.remove(className);
+                    action.cancel = null;
+                    action.promise = null;
+                };
+            });
+            return action;
+        }
+        /**
+         * 注册一个js action
+         * @method register
+         * @param  {string}              name        动画名称
+         * @param  {IActionDefinition}   definition  动画定义
+         */
+        function register(name, definition) {
+            if (definitionMap[name] != null) {
+                console.warn(name, "动画已经被覆盖为", definition);
+            }
+            definitionMap[name] = definition;
+        }
+        Action.register = register;
+        /**
+         * 根据名称获取注册的action实现
+         * @method getByName
+         * @static
+         * @param  {string}  name  action名称
+         * @return {IActionDefinition}
+         */
+        function getByName(name) {
+            return definitionMap[name];
+        }
+        Action.getByName = getByName;
+    })(Action = drunk.Action || (drunk.Action = {}));
+    /**
+     * action绑定的实现
+     */
+    var ActionBinding = (function () {
+        function ActionBinding() {
+        }
+        ActionBinding.prototype.init = function () {
+            var _this = this;
+            this._actionJob = drunk.Scheduler.schedule(function () {
+                _this._runActionByType(Action.Type.created);
+                _this._actionJob = null;
+            }, drunk.Scheduler.Priority.normal);
+        };
+        ActionBinding.prototype._parseDefinition = function (actionType) {
+            if (!this.expression) {
+                this._actionNames = [];
+            }
+            else {
+                var str = this.viewModel.$eval(this.expression, true);
+                this._actionNames = str.split(/\s+/);
+                if (actionType === Action.Type.removed) {
+                    this._actionNames.reverse();
+                }
+            }
+            var actions = this._actionNames;
+            while (isNumber(actions[actions.length - 1])) {
+                actions.pop();
+            }
+        };
+        ActionBinding.prototype._runActions = function (type) {
+            var element = this.element;
+            if (this._actionNames.length < 2) {
+                var action = Action.run(element, this._actionNames[0], type);
+                action.promise.then(function () {
+                    Action.removeRef(element);
+                });
+                return Action.setCurrentAction(element, action);
+            }
+            var actionQueue = {};
+            var actions = this._actionNames;
+            actionQueue.promise = new drunk.Promise(function (resolve) {
+                var index = 0;
+                var runAction = function () {
+                    var detail = actions[index++];
+                    if (typeof detail === 'undefined') {
+                        actionQueue.cancel = null;
+                        actionQueue.promise = null;
+                        Action.removeRef(element);
+                        return resolve();
+                    }
+                    var currentAction = Action.run(element, detail, type);
+                    currentAction.promise.then(runAction);
+                    actionQueue.cancel = function () {
+                        currentAction.cancel();
+                        actionQueue.cancel = null;
+                        actionQueue.promise = null;
+                    };
+                };
+                runAction();
+            });
+            Action.setCurrentAction(element, actionQueue);
+        };
+        ActionBinding.prototype._runActionByType = function (type) {
+            var currentAction = Action.getCurrentAction(this.element);
+            if (currentAction && currentAction.cancel) {
+                currentAction.cancel();
+            }
+            this._parseDefinition(type);
+            this._runActions(type);
+        };
+        ActionBinding.prototype.release = function () {
+            if (this._actionJob) {
+                this._actionJob.cancel();
+            }
+            this._runActionByType(Action.Type.removed);
+            this._actionNames = null;
+            this._actionJob = null;
+        };
+        return ActionBinding;
+    })();
+    function isNumber(value) {
+        return !isNaN(parseFloat(value));
+    }
+    drunk.Binding.register('action', ActionBinding.prototype);
+})(drunk || (drunk = {}));
+/// <reference path="../promise/promise" />
+/// <reference path="./util" />
+/// <reference path="../binding/bindings/action" />
+/**
+ * DOM操作的工具方法模块
+ *
+ * @module drunk.dom
+ * @main
+ * @class dom
+ */
+var drunk;
+(function (drunk) {
+    var dom;
+    (function (dom) {
+        /**
+         * 根据提供的html字符串创建html元素
+         * @static
+         * @method create
+         * @param  {string}  html  html字符串
+         * @return {Node|Node[]}          创建好的html元素
+         */
+        function create(htmlString) {
+            var div = document.createElement("div");
+            var str = htmlString.trim();
+            console.assert(str.length > 0, "HTML是空的");
+            html(div, str);
+            return div.childNodes.length === 1 ? div.firstChild : drunk.util.toArray(div.childNodes);
+        }
+        dom.create = create;
+        /**
+         * 设置元素的innerHTML
+         * @static
+         * @method html
+         * @param  {HTMLElement}  container  元素
+         * @param  {string}       value      值
+         */
+        function html(container, value) {
+            container.innerHTML = value;
+        }
+        dom.html = html;
+        /**
+         * 在旧的元素节点前插入新的元素节点
+         * @static
+         * @method before
+         * @param  {Node}  newNode  新的节点
+         * @param  {Node}  oldNode  旧的节点
+         */
+        function before(newNode, oldNode) {
+            if (!oldNode.parentNode) {
+                return;
+            }
+            if (!Array.isArray(newNode)) {
+                newNode = [newNode];
+            }
+            var parent = oldNode.parentNode;
+            newNode.forEach(function (node) {
+                parent.insertBefore(node, oldNode);
+            });
+        }
+        dom.before = before;
+        /**
+         * 在旧的元素节点后插入新的元素节点
+         * @static
+         * @method after
+         * @param  {Node}  newNode  新的节点
+         * @param  {Node}  oldNode  旧的节点
+         */
+        function after(newNode, oldNode) {
+            if (!oldNode.parentNode) {
+                return;
+            }
+            if (!Array.isArray(newNode)) {
+                newNode = [newNode];
+            }
+            if (oldNode.nextSibling) {
+                before(newNode, oldNode.nextSibling);
+            }
+            else {
+                var parent_1 = oldNode.parentNode;
+                newNode.forEach(function (node) {
+                    parent_1.appendChild(node);
+                });
+            }
+        }
+        dom.after = after;
+        /**
+         * 移除元素节点
+         * @static
+         * @method remove
+         * @param  {Node|Node[]}  target  节点
+         */
+        function remove(target) {
+            if (!Array.isArray(target)) {
+                target = [target];
+            }
+            return drunk.Promise.all(target.map(function (node) {
+                return removeAfterActionEnd(node);
+            }));
+        }
+        dom.remove = remove;
+        function removeAfterActionEnd(node) {
+            if (node.parentNode) {
+                var currentAction = drunk.Action.getCurrentAction(node);
+                if (currentAction && currentAction.promise) {
+                    return currentAction.promise.then(function () {
+                        node.parentNode.removeChild(node);
+                    });
+                }
+                else {
+                    node.parentNode.removeChild(node);
+                }
+            }
+        }
+        /**
+         * 新的节点替换旧的节点
+         * @static
+         * @method replace
+         * @param  {Node}  newNode  新的节点
+         * @param  {Node}  oldNode  旧的节点
+         */
+        function replace(newNode, oldNode) {
+            if (!oldNode.parentNode) {
+                return;
+            }
+            if (!Array.isArray(newNode)) {
+                newNode = [newNode];
+            }
+            var parent = oldNode.parentNode;
+            newNode.forEach(function (node) {
+                parent.insertBefore(node, oldNode);
+            });
+            parent.removeChild(oldNode);
+        }
+        dom.replace = replace;
+        /**
+         * 为节点注册事件监听
+         * @static
+         * @method on
+         * @param  {HTMLElement} element  元素
+         * @param  {string}      type     事件名
+         * @param  {function}    listener 事件处理函数
+         */
+        function on(element, type, listener) {
+            element.addEventListener(type, listener, false);
+        }
+        dom.on = on;
+        /**
+         * 移除节点的事件监听
+         * @static
+         * @method off
+         * @param  {HTMLElement} element  元素
+         * @param  {string}      type     事件名
+         * @param  {function}    listener 事件处理函数
+         */
+        function off(element, type, listener) {
+            element.removeEventListener(type, listener, false);
+        }
+        dom.off = off;
+        /**
+         * 添加样式
+         * @static
+         * @method addClass
+         * @param  {HTMLElement}  element    元素
+         * @param  {string}       token      样式名
+         */
+        function addClass(element, token) {
+            var list = token.trim().split(/\s+/);
+            element.classList.add.apply(element.classList, list);
+        }
+        dom.addClass = addClass;
+        /**
+         * 移除样式
+         * @static
+         * @method removeClass
+         * @param  {HTMLElement}  element    元素
+         * @param  {string}       token      样式名
+         */
+        function removeClass(element, token) {
+            var list = token.trim().split(/\s+/);
+            element.classList.remove.apply(element.classList, list);
+        }
+        dom.removeClass = removeClass;
+    })(dom = drunk.dom || (drunk.dom = {}));
+})(drunk || (drunk = {}));
 /// <reference path="../viewmodel/viewModel.ts" />
 /// <reference path="../promise/promise.ts" />
 /// <reference path="../util/xhr.ts" />
-/// <reference path="../util/elem" />
+/// <reference path="../util/dom" />
 /// <reference path="../config/config.ts" />
 /// <reference path="../parser/parser.ts" />
 /**
@@ -2260,7 +2920,7 @@ var drunk;
                         executors[i](viewModel, node);
                     }
                 });
-                drunk.elementUtil.replace(frag, element);
+                drunk.dom.replace(frag, element);
             };
         }
         // 检测是否存在终止编译的绑定，比如component指令会终止当前编译过程，如果有创建绑定描述符
@@ -2322,7 +2982,7 @@ var drunk;
         }
         // 生成绑定描述符方法
         function createExecutor(element, descriptor) {
-            var definition = drunk.Binding.getDefinintionByName(descriptor.name);
+            var definition = drunk.Binding.getByName(descriptor.name);
             var executor;
             if (!definition && drunk.config.debug) {
                 console.warn(descriptor.name, "没有找到该绑定的定义");
@@ -2347,7 +3007,7 @@ var drunk;
 /// <reference path="../template/compiler.ts" />
 /// <reference path="../parser/parser.ts" />
 /// <reference path="../watcher/watcher.ts" />
-/// <reference path="../util/elem" />
+/// <reference path="../util/dom" />
 /// <reference path="../util/util.ts" />
 /// <reference path="../config/config.ts" />
 var drunk;
@@ -2389,7 +3049,7 @@ var drunk;
             var getter = drunk.parser.parseGetter(expression, isInterpolate);
             if (!getter.dynamic) {
                 // 如果只是一个静态表达式直接取值更新
-                return this.update(viewModel.eval(expression, isInterpolate), undefined);
+                return this.update(viewModel.$eval(expression, isInterpolate), undefined);
             }
             this._update = function (newValue, oldValue) {
                 if (!_this._isActived || _this._isLocked) {
@@ -2398,7 +3058,7 @@ var drunk;
                 }
                 _this.update(newValue, oldValue);
             };
-            this._unwatch = viewModel.watch(expression, this._update, this.isDeepWatch, true);
+            this._unwatch = viewModel.$watch(expression, this._update, this.isDeepWatch, true);
         };
         /**
          * 移除绑定并销毁
@@ -2431,7 +3091,7 @@ var drunk;
          */
         Binding.prototype.setValue = function (value, isLocked) {
             this._isLocked = !!isLocked;
-            this.viewModel.setValue(this.expression, value);
+            this.viewModel.$setValue(this.expression, value);
         };
         return Binding;
     })();
@@ -2520,12 +3180,12 @@ var drunk;
         ;
         /**
          * 根据一个绑定原型对象注册一个binding指令
-         * @method define
+         * @method register
          * @static
          * @param  {string}          name  指令名
          * @param  {function|Object} def   binding实现的定义对象或绑定的更新函数
          */
-        function define(name, definition) {
+        function register(name, definition) {
             definition.priority = definition.priority || Priority.normal;
             if (definition.isTerminal) {
                 setTernimalBinding(name, definition.priority);
@@ -2536,18 +3196,18 @@ var drunk;
             }
             definitions[name] = definition;
         }
-        Binding.define = define;
+        Binding.register = register;
         /**
          * 根据绑定名获取绑定的定义
-         * @method getDefinitionByName
+         * @method getByName
          * @static
          * @param  {string}  name      绑定的名称
          * @return {BindingDefinition} 具有绑定定义信息的对象
          */
-        function getDefinintionByName(name) {
+        function getByName(name) {
             return definitions[name];
         }
-        Binding.getDefinintionByName = getDefinintionByName;
+        Binding.getByName = getByName;
         /**
          * 获取已经根据优先级排序的终止型绑定的名称列表
          * @method getTerminalBindings
@@ -2637,39 +3297,39 @@ var drunk;
             var _this = this;
             model = model || {};
             drunk.observable.create(model);
-            drunk.util.defineProperty(this, "filter", Object.create(drunk.filter.filters));
+            drunk.util.defineProperty(this, "$filter", Object.create(drunk.filter.filters));
             drunk.util.defineProperty(this, "_model", model);
             drunk.util.defineProperty(this, "_bindings", []);
             drunk.util.defineProperty(this, "_watchers", {});
             drunk.util.defineProperty(this, "_isActived", true);
             Object.keys(model).forEach(function (property) {
-                _this.proxy(property);
+                _this.$proxy(property);
             });
         };
         /**
          * 代理某个属性到最新的IModel上
          *
-         * @method proxy
+         * @method $proxy
          * @param  {string}  property  需要代理的属性名
          */
-        ViewModel.prototype.proxy = function (property) {
+        ViewModel.prototype.$proxy = function (property) {
             var value = this[property];
             if (value === undefined) {
                 value = this._model[property];
             }
             if (drunk.util.proxy(this, property, this._model)) {
-                this._model.setProperty(property, value);
+                this._model.$set(property, value);
             }
         };
         /**
          * 执行表达式并返回结果
          *
-         * @method eval
+         * @method $eval
          * @param  {string}  expression      表达式
          * @param  {boolean} [isInterpolate] 是否是插值表达式
          * @return {string}                  结果
          */
-        ViewModel.prototype.eval = function (expression, isInterpolate) {
+        ViewModel.prototype.$eval = function (expression, isInterpolate) {
             var getter;
             if (isInterpolate) {
                 if (!drunk.parser.hasInterpolation(expression)) {
@@ -2685,30 +3345,30 @@ var drunk;
         /**
          * 根据表达式设置值
          *
-         * @method setValue
+         * @method $setValue
          * @param  {string}  expression  表达式
          * @param  {any}     value       值
          */
-        ViewModel.prototype.setValue = function (expression, value) {
+        ViewModel.prototype.$setValue = function (expression, value) {
             var setter = drunk.parser.parseSetter(expression);
             setter.call(undefined, this, value);
         };
         /**
          * 把model数据转成json并返回
-         * @method getModel
+         * @method $getModel
          * @return {IModel}  反悔json格式的不带getter/setter的model
          */
-        ViewModel.prototype.getModel = function () {
+        ViewModel.prototype.$getModel = function () {
             return drunk.util.deepClone(this._model);
         };
         /**
          * 监听表达式的里每个数据的变化
          *
-         * @method watch
+         * @method $watch
          * @param  {string}  expression  表达式
          * @return {function}            返回一个取消监听的函数
          */
-        ViewModel.prototype.watch = function (expression, action, isDeepWatch, isImmediate) {
+        ViewModel.prototype.$watch = function (expression, action, isDeepWatch, isImmediate) {
             var _this = this;
             var key = drunk.Watcher.getNameOfKey(expression, isDeepWatch);
             var watcher;
@@ -2734,9 +3394,9 @@ var drunk;
          * 移除事件缓存
          * 销毁所有的watcher
          *
-         * @method dispose
+         * @method $release
          */
-        ViewModel.prototype.dispose = function () {
+        ViewModel.prototype.$release = function () {
             var _this = this;
             if (!this._isActived) {
                 return;
@@ -2755,7 +3415,7 @@ var drunk;
             this._model = null;
             this._bindings = null;
             this._watchers = null;
-            this.filter = null;
+            this.$filter = null;
         };
         /**
          * 获取事件回调,内置方法
@@ -2797,7 +3457,7 @@ var drunk;
         ViewModel.prototype.__getValueByGetter = function (getter, isInterpolate) {
             var args = [this].concat(drunk.util.toArray(arguments).slice(1));
             var value = getter.apply(null, args);
-            return drunk.filter.pipeFor.apply(null, [value, getter.filters, this.filter, isInterpolate].concat(args));
+            return drunk.filter.pipeFor.apply(null, [value, getter.filters, this.$filter, isInterpolate].concat(args));
         };
         ;
         return ViewModel;
@@ -2820,7 +3480,7 @@ var drunk;
         var elementName = "$el";
         var valueName = "__value";
         var contextName = "__context";
-        var proxyOperation = contextName + ".proxy";
+        var proxyOperation = contextName + ".$proxy";
         var getHandlerOperation = contextName + ".__getHandler";
         // 保留关键字
         var reserved = [
@@ -3369,46 +4029,8 @@ var drunk;
         }
     })(filter = drunk.filter || (drunk.filter = {}));
 })(drunk || (drunk = {}));
-/// <reference path="../promise/promise.ts" />
-/// <reference path="../util/xhr.ts" />
-/// <reference path="../cache/cache" />
-/**
- * @module drunk.Template
- * @class Template
- */
-var drunk;
-(function (drunk) {
-    var Template;
-    (function (Template) {
-        var cacheStore = new drunk.Cache(50);
-        /**
-         * 加载模板，先尝试从script标签上查找，找不到再发送ajax请求，
-         * 加载到的模板字符串会进行缓存
-         * @static
-         * @method loadTemplate
-         * @param   {string}  urlOrId  script模板标签的id或模板的url地址
-         * @returns {Promise}           一个 promise 对象promise的返回值为模板字符串
-         */
-        function load(urlOrId) {
-            var template = cacheStore.get(urlOrId);
-            if (template != null) {
-                return drunk.Promise.resolve(template);
-            }
-            var node = document.getElementById(urlOrId);
-            if (node && node.innerHTML) {
-                template = node.innerHTML;
-                cacheStore.set(urlOrId, template);
-                return drunk.Promise.resolve(template);
-            }
-            var promise = drunk.util.ajax({ url: urlOrId });
-            cacheStore.set(urlOrId, promise);
-            return promise;
-        }
-        Template.load = load;
-    })(Template = drunk.Template || (drunk.Template = {}));
-})(drunk || (drunk = {}));
 /// <reference path="./loader" />
-/// <reference path="../util/elem" />
+/// <reference path="../util/dom" />
 /// <reference path="../cache/cache" />
 /// <reference path="../promise/promise" />
 var drunk;
@@ -3460,7 +4082,7 @@ var drunk;
             anchor.setAttribute("href", href);
             base.href = anchor.href;
             return Template.load(href).then(function (template) {
-                drunk.elementUtil.html(htmlDoc.documentElement, template);
+                drunk.dom.html(htmlDoc.documentElement, template);
                 htmlDoc.head.appendChild(base);
             }).then(function () {
                 return processDocument(htmlDoc, href);
@@ -3591,341 +4213,17 @@ var drunk;
         }
     })(Template = drunk.Template || (drunk.Template = {}));
 })(drunk || (drunk = {}));
-/// <reference path="../viewmodel/viewmodel" />
-/// <reference path="../template/loader" />
-/// <reference path="../config/config" />
-var drunk;
-(function (drunk) {
-    var Component = (function (_super) {
-        __extends(Component, _super);
-        /**
-         * 组件类，继承ViewModel类，实现了模板的准备和数据的绑定
-         * @class Component
-         * @constructor
-         */
-        function Component(model) {
-            _super.call(this, model);
-        }
-        /**
-         * 实例创建时会调用的初始化方法,派生类可覆盖该方法
-         * @method init
-         */
-        Component.prototype.init = function () {
-        };
-        /**
-         * 属性初始化
-         * @method __init
-         * @override
-         * @protected
-         * @param  {IModel}  [model]  model对象
-         */
-        Component.prototype.__init = function (model) {
-            var _this = this;
-            _super.prototype.__init.call(this, model);
-            if (this.filters) {
-                // 如果配置了过滤器
-                drunk.util.extend(this.filter, this.filters);
-            }
-            if (this.handlers) {
-                // 如果配置了事件处理函数
-                drunk.util.extend(this, this.handlers);
-            }
-            if (this.data) {
-                Object.keys(this.data).forEach(function (name) {
-                    var data = _this.data[name];
-                    if (typeof data === 'function') {
-                        // 如果是一个函数,直接调用该函数
-                        data = data.call(_this);
-                    }
-                    // 代理该数据字段
-                    _this.proxy(name);
-                    // 不论返回的是什么值,使用promise进行处理
-                    drunk.Promise.resolve(data).then(function (result) {
-                        _this[name] = result;
-                    }, function (reason) {
-                        console.warn("数据准备失败:", reason);
-                    });
-                });
-            }
-            this.init();
-            if (this.watchers) {
-                // 如果配置了监控器
-                Object.keys(this.watchers).forEach(function (expression) {
-                    _this.watch(expression, _this.watchers[expression]);
-                });
-            }
-        };
-        /**
-         * 处理模板，并返回模板元素
-         * @method processTemplate
-         * @return {Promise}
-         */
-        Component.prototype.processTemplate = function (templateUrl) {
-            function onFailed(reason) {
-                console.warn("模板加载失败: " + templateUrl, reason);
-            }
-            if (typeof templateUrl === 'string') {
-                return drunk.Template.load(templateUrl).then(drunk.elementUtil.create).catch(onFailed);
-            }
-            if (this.element) {
-                return drunk.Promise.resolve(this.element);
-            }
-            if (typeof this.template === 'string') {
-                return drunk.Promise.resolve(drunk.elementUtil.create(this.template));
-            }
-            templateUrl = this.templateUrl;
-            if (typeof templateUrl === 'string') {
-                return drunk.Template.load(templateUrl).then(drunk.elementUtil.create).catch(onFailed);
-            }
-            throw new Error((this.name || this.constructor.name) + "组件模板未指定");
-        };
-        /**
-         * 把组件挂载到元素上
-         * @method mount
-         * @param {Node|Node[]} element         要挂在的节点或节点数组
-         * @param {Component}   ownerViewModel  父级viewModel实例
-         * @param {HTMLElement} placeholder     组件占位标签
-         */
-        Component.prototype.mount = function (element, ownerViewModel, placeholder) {
-            console.assert(!this._isMounted, "该组件已有挂载到", this.element);
-            if (Component.getByElement(element)) {
-                return console.error("Component#mount(element): 尝试挂载到一个已经挂载过组件实例的元素节点", element);
-            }
-            drunk.Template.compile(element)(this, element, ownerViewModel, placeholder);
-            Component.setWeakRef(element, this);
-            this.element = element;
-            this._isMounted = true;
-        };
-        /**
-         * 释放组件
-         * @method dispose
-         */
-        Component.prototype.dispose = function () {
-            this.emit(Component.Event.dispose, this);
-            _super.prototype.dispose.call(this);
-            if (this._isMounted) {
-                Component.removeWeakRef(this.element);
-                this._isMounted = false;
-            }
-            this.element = null;
-        };
-        return Component;
-    })(drunk.ViewModel);
-    drunk.Component = Component;
-    var Component;
-    (function (Component) {
-        var weakRefMap = {};
-        /**
-         * 组件的事件名称
-         * @property Event
-         * @static
-         * @type  IComponentEvent
-         */
-        Component.Event = {
-            created: 'created',
-            dispose: 'release',
-            mounted: 'mounted'
-        };
-        /**
-         * 获取挂在在元素上的viewModel实例
-         * @method getByElement
-         * @static
-         * @param  {any}  element 元素
-         * @return {Component}    viewModel实例
-         */
-        function getByElement(element) {
-            var uid = drunk.util.uuid(element);
-            return weakRefMap[uid];
-        }
-        Component.getByElement = getByElement;
-        /**
-         * 设置element与viewModel的引用
-         * @method setWeakRef
-         * @static
-         * @param  {any}        element    元素
-         * @param  {Component}  viewModel  组件实例
-         */
-        function setWeakRef(element, viewModel) {
-            var uid = drunk.util.uuid(element);
-            if (weakRefMap[uid] !== undefined && weakRefMap[uid] !== viewModel) {
-                console.error(element, '元素尝试挂载到不同的组件实例');
-            }
-            else {
-                weakRefMap[uid] = viewModel;
-            }
-        }
-        Component.setWeakRef = setWeakRef;
-        /**
-         * 移除挂载引用
-         * @method removeMountedRef
-         * @param  {any}  element  元素
-         */
-        function removeWeakRef(element) {
-            var uid = drunk.util.uuid(element);
-            if (weakRefMap[uid]) {
-                delete weakRefMap[uid];
-            }
-        }
-        Component.removeWeakRef = removeWeakRef;
-        /**
-         * 定义的组件记录
-         * @property definedComponent
-         * @private
-         * @type {object}
-         */
-        var definedComponentMap = {};
-        /**
-         * 根据组件名字获取组件构造函数
-         * @method getByName
-         * @param  {string}  name  组件名
-         * @return {IComponentConstructor}
-         */
-        function getByName(name) {
-            return definedComponentMap[name];
-        }
-        Component.getByName = getByName;
-        /**
-         * 自定义一个组件类
-         * @method define
-         * @static
-         * @param  {string}
-         */
-        function define(name, members) {
-            members.name = name;
-            return Component.extend(members);
-        }
-        Component.define = define;
-        /**
-         * 当前组件类拓展出一个子组件
-         * @method extend
-         * @static
-         * @param  {string}      name       子组件名
-         * @param  {IComponent}  members    子组件的成员
-         * @return {IComponentContructor}
-         */
-        function extend(name, members) {
-            if (arguments.length === 1 && drunk.util.isObject(name)) {
-                members = arguments[0];
-                name = members.name;
-            }
-            else {
-                members.name = arguments[0];
-            }
-            var _super = this;
-            var prototype = Object.create(_super.prototype);
-            var component = function () {
-                var args = [];
-                for (var _i = 0; _i < arguments.length; _i++) {
-                    args[_i - 0] = arguments[_i];
-                }
-                _super.apply(this, args);
-            };
-            drunk.util.extend(prototype, members);
-            component.prototype = prototype;
-            prototype.constructor = component;
-            if (name) {
-                Component.register(name, component);
-            }
-            else {
-                component.extend = Component.extend;
-            }
-            return component;
-        }
-        Component.extend = extend;
-        /**
-         * 把一个继承了drunk.Component的组件类根据组件名字注册到组件系统中
-         * @method reigster
-         * @static
-         * @param  {string}   name          组件名
-         * @param  {function} componentCtor 组件类
-         */
-        function register(name, componentCtor) {
-            console.assert(name.indexOf('-') > -1, name, '组件明必须在中间带"-"字符,如"custom-view"');
-            if (definedComponentMap[name] != null) {
-                console.warn('组件 "' + name + '" 已被覆盖,请确认该操作');
-            }
-            componentCtor.extend = Component.extend;
-            definedComponentMap[name] = componentCtor;
-            addHiddenStyleForComponent(name);
-        }
-        Component.register = register;
-        var record = {};
-        var styleSheet;
-        /**
-         * 设置样式
-         * @method addHiddenStyleForComponent
-         * @private
-         * @param  {string} name  组件名
-         */
-        function addHiddenStyleForComponent(name) {
-            if (record[name]) {
-                return;
-            }
-            if (!styleSheet) {
-                var styleElement = document.createElement('style');
-                document.head.appendChild(styleElement);
-                styleSheet = styleElement.sheet;
-            }
-            styleSheet.insertRule(name + '{display:none}', styleSheet.cssRules.length);
-        }
-        // 注册内置的组件标签
-        register(drunk.config.prefix + 'view', Component);
-    })(Component = drunk.Component || (drunk.Component = {}));
-})(drunk || (drunk = {}));
 /// <reference path="../binding" />
 /// <reference path="../../template/compiler" />
-/// <reference path="../../util/elem" />
+/// <reference path="../../util/dom" />
 /// <reference path="../../config/config" />
-/**
- * 事件绑定,语法:
- *     - 单个事件
- *              'eventType: expression'  如 'click: visible = !visible'
- *              'eventType: callback()'  如 'click: onclick()'
- *     - 多个事件,使用分号隔开
- *              'eventType: expression; eventType2: callback()' 如  'mousedown: visible = true; mouseup: visible = false'
- *     - 一个事件里多个表达式,使用逗号隔开
- *              'eventType: expression1, callback()' 如 'click: visible = true, onclick()'
- * @class drunk-on
- * @constructor
- * @example
-         <html>
-            <style>
-                .over {color: red;}
-            </style>
-            <section>
-                <p drunk-bind="num"></p>
-                <!-- 单个事件 -->
-                <button drunk-on="click:add()">点我加1</button>
-                <!-- 多个事件 -->
-                <button
-                    drunk-class="{over: isOver}"
-                    drunk-on="mouseover: isOver = true; mouseout: mouseleave()">
-                    鼠标移动到我身上
-                </button>
-            </section>
-        </html>
-        
-        <script>
-            var myView = new drunk.Component();
-            
-            myView.add = function () {
-                ++this.num;
-            };
-            myView.mouseleave = function () {
-                this.isOver = false;
-            };
-            
-            myView.num = 0;
-            myView.mount(document.querySelector("section"));
-        </script>
- */
 var drunk;
 (function (drunk) {
     var reg = {
         semic: /\s*;\s*/,
         statement: /(\w+):\s*(.+)/
     };
-    drunk.Binding.define("on", {
+    drunk.Binding.register("on", {
         init: function () {
             var _this = this;
             var exp = this.expression;
@@ -3945,13 +4243,13 @@ var drunk;
                 }
                 func.call(null, self.viewModel, e, self.element);
             }
-            drunk.elementUtil.addListener(this.element, type, handler);
+            drunk.dom.on(this.element, type, handler);
             return { type: type, handler: handler };
         },
         release: function () {
             var _this = this;
             this.events.forEach(function (event) {
-                drunk.elementUtil.addListener(_this.element, event.type, event.handler);
+                drunk.dom.off(_this.element, event.type, event.handler);
             });
             this.events = null;
         }
@@ -3959,21 +4257,6 @@ var drunk;
 })(drunk || (drunk = {}));
 /// <reference path="../binding" />
 /// <reference path="../../util/util" />
-/**
- * 元素属性绑定,可以设置元素的attribute类型
- * @class drunk-attr
- * @constructor
- * @show
- * @example
- *       <html>
- *       <div drunk-attr="{style: customStyle}"></div>
- *       </html>
- *       <script>
- *       var myView = new drunk.Component();
- *       myView.mount(document.body);
- *       myView.customStyle = "background:red;width:200px;height:100px;";
- *       </script>
- */
 var drunk;
 (function (drunk) {
     function setAttribute(element, name, value) {
@@ -3982,7 +4265,7 @@ var drunk;
         }
         element.setAttribute(name, value);
     }
-    drunk.Binding.define('attr', {
+    drunk.Binding.register('attr', {
         update: function (newValue) {
             var _this = this;
             if (this.attrName) {
@@ -3998,33 +4281,9 @@ var drunk;
     });
 })(drunk || (drunk = {}));
 /// <reference path="../binding" />
-/**
- * 数据单向绑定,根据标签替换其innerHTML|innerText|value等
- * @class drunk-bind
- * @constructor
- * @show
- * @example
-        <html>
-            <section>
-                <p>
-                    输入绑定的内容:<input type="text" drunk-model="text" />
-                </p>
-                <p>
-                    绑定在span标签上:<span drunk-bind="text"></span>
-                </p>
-                <p>
-                    绑定在textarea标签上:<textarea drunk-bind="text"></textarea>
-                </p>
-            </section>
-        </html>
-        
-        <script>
-            new drunk.Component().mount(document.querySelector("section"));
-        </script>
- */
 var drunk;
 (function (drunk) {
-    drunk.Binding.define("bind", {
+    drunk.Binding.register("bind", {
         update: function (newValue) {
             newValue = newValue == null ? '' : newValue;
             var el = this.element;
@@ -4046,64 +4305,10 @@ var drunk;
     });
 })(drunk || (drunk = {}));
 /// <reference path="../binding" />
-/// <reference path="../../util/elem" />
-/**
- * 元素样式类名绑定
- * @class drunk-class
- * @constructor
- * @show
- * @example
- *       <html>
- *       <style>
- *          .strike {
- *              text-decoration: line-through;
- *           }
- *           .bold {
- *               font-weight: bold;
- *           }
- *           .red {
- *               color: red;
- *           }
- *           .orange {
- *              color: orange;
- *           }
- *       </style>
- *        <section>
- *          <p drunk-class="{strike: deleted, bold: important, red: error}">Map 形式的语法示例</p>
- *          <label>
- *             <input type="checkbox" drunk-model="deleted">
- *             deleted (使用 "strike" 样式)
- *          </label><br>
- *          <label>
- *             <input type="checkbox" drunk-model="important">
- *              important (使用 "bold" 样式)
- *           </label><br>
- *           <label>
- *              <input type="checkbox" drunk-model="error">
- *              error (使用 "red" 样式)
- *           </label>
- *           <hr>
- *           <p drunk-class="style">字符串语法示例</p>
- *           <input type="text" drunk-model="style"
- *                  placeholder="输入: bold strike red" aria-label="输入: bold strike red">
- *           <hr>
- *           <p drunk-class="[style1, style2, style3]">使用数组语法示例</p>
- *           <input drunk-model="style1"
- *                  placeholder="输入: bold, strike or red" aria-label="输入: bold, strike or red"><br>
- *           <input drunk-model="style2"
- *                  placeholder="输入: bold, strike or red" aria-label="输入: bold, strike or red 2"><br>
- *           <input drunk-model="style3"
- *                  placeholder="输入: bold, strike or red" aria-label="输入: bold, strike or red 3"><br>
- *           <hr>
- *        </section>
- *       </html>
- *       <script>
- *       new drunk.Component().mount(document.querySelector("section"));
- *       </script>
- */
+/// <reference path="../../util/dom" />
 var drunk;
 (function (drunk) {
-    drunk.Binding.define("class", {
+    drunk.Binding.register("class", {
         update: function (data) {
             var elem = this.element;
             if (Array.isArray(data)) {
@@ -4112,7 +4317,7 @@ var drunk;
                 if (oldValue) {
                     oldValue.forEach(function (name) {
                         if (data.indexOf(name) === -1) {
-                            drunk.elementUtil.removeClass(elem, name);
+                            drunk.dom.removeClass(elem, name);
                         }
                         else {
                             classMap[name] = true;
@@ -4121,7 +4326,7 @@ var drunk;
                 }
                 data.forEach(function (name) {
                     if (!classMap[name]) {
-                        drunk.elementUtil.addClass(elem, name);
+                        drunk.dom.addClass(elem, name);
                     }
                 });
                 this.oldValue = data;
@@ -4129,472 +4334,31 @@ var drunk;
             else if (data && typeof data === 'object') {
                 Object.keys(data).forEach(function (name) {
                     if (data[name]) {
-                        drunk.elementUtil.addClass(elem, name);
+                        drunk.dom.addClass(elem, name);
                     }
                     else {
-                        drunk.elementUtil.removeClass(elem, name);
+                        drunk.dom.removeClass(elem, name);
                     }
                 });
             }
             else if (typeof data === 'string' && (data = data.trim()) !== this.oldValue) {
                 if (this.oldValue) {
-                    drunk.elementUtil.removeClass(elem, this.oldValue);
+                    drunk.dom.removeClass(elem, this.oldValue);
                 }
                 this.oldValue = data;
                 if (data) {
-                    drunk.elementUtil.addClass(elem, data);
+                    drunk.dom.addClass(elem, data);
                 }
             }
         }
     });
 })(drunk || (drunk = {}));
 /// <reference path="../binding" />
-/// <reference path="../../component/component" />
-/// <reference path="../../util/elem" />
-var drunk;
-(function (drunk) {
-    var reOneInterpolate = /^\{\{([^{]+)\}\}$/;
-    /**
-     * @module drunk.Binding
-     * @class ComponentBinding
-     */
-    var ComponentBinding = (function () {
-        function ComponentBinding() {
-        }
-        /**
-         * 初始化组件,找到组件类并生成实例,创建组件的绑定
-         */
-        ComponentBinding.prototype.init = function () {
-            var src = this.element.getAttribute('src');
-            this.element.removeAttribute('src');
-            if (src) {
-                return this.initAsyncComponent(src);
-            }
-            var Ctor = drunk.Component.getByName(this.expression);
-            if (!Ctor) {
-                throw new Error(this.expression + ": 未找到该组件.");
-            }
-            this.component = new Ctor();
-            this.unwatches = [];
-            this.processComponentAttributes();
-            return this.processComponentBinding();
-        };
-        /**
-         * 初始化异步组件,先加载为fragment,再设置为组件的element,在进行初始化
-         */
-        ComponentBinding.prototype.initAsyncComponent = function (src) {
-            var _this = this;
-            return drunk.Template.renderFragment(src, null, true).then(function (fragment) {
-                var Ctor = drunk.Component.getByName(_this.expression);
-                if (!Ctor) {
-                    throw new Error(_this.expression + ": 未找到该组件.");
-                }
-                _this.unwatches = [];
-                _this.component = new Ctor();
-                _this.component.element = drunk.util.toArray(fragment.childNodes);
-                _this.processComponentAttributes();
-                return _this.processComponentBinding();
-            });
-        };
-        /**
-         * 获取双向绑定的属性名
-         */
-        ComponentBinding.prototype.getTwowayBindingAttrMap = function () {
-            var result = this.element.getAttribute('two-way');
-            var marked = {};
-            this.element.removeAttribute('two-way');
-            if (result) {
-                result.trim().split(/\s+/).forEach(function (str) {
-                    marked[drunk.util.camelCase(str)] = true;
-                });
-            }
-            return marked;
-        };
-        /**
-         * 为组件准备数据和绑定事件
-         */
-        ComponentBinding.prototype.processComponentAttributes = function () {
-            var _this = this;
-            var element = this.element;
-            var component = this.component;
-            var twowayBindingAttrMap = this.getTwowayBindingAttrMap();
-            if (element.hasAttributes()) {
-                // 遍历元素上所有的属性做数据准备或数据绑定的处理
-                // 如果某个属性用到插值表达式,如"a={{b}}",则对起进行表达式监听(当b改变时通知component的a属性更新到最新的值)
-                drunk.util.toArray(element.attributes).forEach(function (attr) {
-                    var attrName = attr.name;
-                    var attrValue = attr.value;
-                    if (attrName.indexOf(drunk.config.prefix) > -1) {
-                        return console.warn("自定义组件标签上不支持使用绑定语法");
-                    }
-                    if (!attrValue) {
-                        component[attrName] = true;
-                        return;
-                    }
-                    var expression = attrValue.trim();
-                    if (attrName.indexOf("on-") === 0) {
-                        // on-click="doSomething()"
-                        // => "click", "doSomething()"
-                        attrName = drunk.util.camelCase(attrName.slice(3));
-                        return _this.registerComponentEvent(attrName, expression);
-                    }
-                    attrName = drunk.util.camelCase(attrName);
-                    if (!drunk.parser.hasInterpolation(expression)) {
-                        // 没有插值表达式
-                        // title="someConstantValue"
-                        component[attrName] = attrValue;
-                        return;
-                    }
-                    // title="{{somelet}}"
-                    _this.watchExpressionForComponent(attrName, expression, twowayBindingAttrMap[attrName]);
-                });
-            }
-            component.emit(drunk.Component.Event.created, component);
-        };
-        /**
-         * 处理组件的视图与数据绑定
-         */
-        ComponentBinding.prototype.processComponentBinding = function () {
-            var _this = this;
-            var element = this.element;
-            var component = this.component;
-            var viewModel = this.viewModel;
-            return component.processTemplate().then(function (template) {
-                if (_this.isDisposed) {
-                    return;
-                }
-                var container = document.createElement('div');
-                var isNodeArray = Array.isArray(template);
-                if (isNodeArray) {
-                    template.forEach(function (node) {
-                        container.appendChild(node);
-                    });
-                }
-                else {
-                    container.appendChild(template);
-                }
-                component.mount(template, viewModel, element);
-                var nodeList = drunk.util.toArray(container.childNodes);
-                drunk.elementUtil.replace(nodeList, element);
-                container = null;
-                if (viewModel instanceof drunk.RepeatItem) {
-                    viewModel._element = nodeList;
-                }
-            }).catch(function (error) {
-                console.warn("组件创建失败:\n", error);
-            });
-        };
-        /**
-         * 注册组件的事件
-         */
-        ComponentBinding.prototype.registerComponentEvent = function (eventName, expression) {
-            var viewModel = this.viewModel;
-            var func = drunk.parser.parse(expression);
-            this.component.addListener(eventName, function () {
-                var args = [];
-                for (var _i = 0; _i < arguments.length; _i++) {
-                    args[_i - 0] = arguments[_i];
-                }
-                // 事件的处理函数,会生成一个$event对象,在表达式中可以访问该对象.
-                // $event对象有type和args两个字段,args字段是组件派发这个事件所传递的参数的列表
-                func.call(undefined, viewModel, {
-                    type: eventName,
-                    args: args
-                });
-            });
-        };
-        /**
-         * 监控绑定表达式,表达式里任意数据更新时,同步到component的指定属性
-         */
-        ComponentBinding.prototype.watchExpressionForComponent = function (property, expression, isTwoway) {
-            var viewModel = this.viewModel;
-            var component = this.component;
-            var locked = false;
-            var unwatch;
-            if (isTwoway) {
-                var result = expression.match(reOneInterpolate);
-                if (!result) {
-                    throw new Error(expression + ': 该表达式不能进行双向绑定');
-                }
-                var ownerProperty = result[1].trim();
-                unwatch = component.watch(property, function (newValue) {
-                    if (isTwoway && locked) {
-                        locked = false;
-                        return;
-                    }
-                    viewModel.setValue(ownerProperty, newValue);
-                });
-                this.unwatches.push(unwatch);
-            }
-            unwatch = viewModel.watch(expression, function (newValue) {
-                component[property] = newValue;
-                locked = true;
-            }, false, true);
-            this.unwatches.push(unwatch);
-        };
-        /**
-         * 组件释放
-         */
-        ComponentBinding.prototype.release = function () {
-            var component = this.component;
-            var element = component.element;
-            // 组件实例释放
-            component.emit(drunk.Component.Event.dispose, component);
-            component.dispose();
-            // 移除所有的属性监控
-            this.unwatches.forEach(function (unwatch) { return unwatch(); });
-            if (element) {
-                drunk.elementUtil.remove(element);
-            }
-            // 移除所有引用
-            this.component = null;
-            this.unwatches = null;
-            this.isDisposed = true;
-        };
-        return ComponentBinding;
-    })();
-    ComponentBinding.prototype.isTerminal = true;
-    ComponentBinding.prototype.priority = drunk.Binding.Priority.aboveNormal;
-    drunk.Binding.define('component', ComponentBinding.prototype);
-})(drunk || (drunk = {}));
-/// <reference path="../binding" />
-/// <reference path="../../util/elem" />
-/**
- * 条件表达式绑定,如果表达式的返回值为false则会把元素从elementUtil树中移除,为true则会添加到elementUtil树中
- * @class drunk-if
- * @constructor
- * @show
- * @example
-        <html>
-            <section>
-                设置a的值: <input type="text" drunk-model="a" />
-                <p drunk-if="a < 10">如果a小于10显示该标签</p>
-            </section>
-        </html>
-        
-        <script>
-            var myView = new drunk.Component();
-            myView.mount(document.querySelector("section"));
-            myView.a = 0;
-        </script>
- */
-var drunk;
-(function (drunk) {
-    drunk.Binding.define("if", {
-        isTerminal: true,
-        priority: drunk.Binding.Priority.aboveNormal + 2,
-        init: function () {
-            this.startNode = document.createComment("if-start: " + this.expression);
-            this.endedNode = document.createComment("if-ended: " + this.expression);
-            this.bindingExecutor = drunk.Template.compile(this.element);
-            this.inDocument = false;
-            drunk.elementUtil.replace(this.startNode, this.element);
-            drunk.elementUtil.insertAfter(this.endedNode, this.startNode);
-        },
-        update: function (value) {
-            if (!!value) {
-                this.addToDocument();
-            }
-            else {
-                this.removeFromDocument();
-            }
-        },
-        addToDocument: function () {
-            if (this.inDocument) {
-                return;
-            }
-            this.tmpElement = this.element.cloneNode(true);
-            drunk.elementUtil.insertAfter(this.tmpElement, this.startNode);
-            this.unbindExecutor = this.bindingExecutor(this.viewModel, this.tmpElement);
-            this.inDocument = true;
-        },
-        removeFromDocument: function () {
-            if (!this.inDocument) {
-                return;
-            }
-            this.unbindExecutor();
-            drunk.elementUtil.remove(this.tmpElement);
-            this.unbindExecutor = null;
-            this.tmpElement = null;
-            this.inDocument = false;
-        },
-        release: function () {
-            this.removeFromDocument();
-            drunk.elementUtil.remove(this.startNode);
-            drunk.elementUtil.remove(this.endedNode);
-            this.startNode = null;
-            this.endedNode = null;
-            this.bindingExecutor = null;
-        }
-    });
-})(drunk || (drunk = {}));
-/// <reference path="../binding" />
-/// <reference path="../../template/loader" />
-/// <reference path="../../template/compiler" />
-var drunk;
-(function (drunk) {
-    drunk.Binding.define("include", {
-        isActived: true,
-        _unbindExecutor: null,
-        update: function (url) {
-            if (!this.isActived || (url && url === this.url)) {
-                return;
-            }
-            this.unbind();
-            this.url = url;
-            if (url) {
-                drunk.Template.load(url).then(this.createBinding.bind(this));
-            }
-            else {
-                drunk.util.toArray(this.element.childNodes).forEach(function (child) {
-                    drunk.elementUtil.remove(child);
-                });
-            }
-        },
-        createBinding: function (template) {
-            if (!this.isActived) {
-                return;
-            }
-            drunk.elementUtil.html(this.element, template);
-            this._unbindExecutor = drunk.Template.compile(this.element)(this.viewModel, this.element);
-        },
-        unbind: function () {
-            if (this._unbindExecutor) {
-                this._unbindExecutor();
-                this._unbindExecutor = null;
-            }
-        },
-        release: function () {
-            this.unbind();
-            this.url = null;
-            this.isActived = false;
-        }
-    });
-})(drunk || (drunk = {}));
-/// <reference path="../binding" />
-/// <reference path="../../util/elem" />
-/**
- * 数据双向绑定,只作用于输入控件,支持的控件有:
- *      * input (text|tel|number|checkbox|radio等)
- *      * textarea
- *      * select
- * @class drunk-model
- * @constructor
- * @show
- * @example
-        <html>
-            <section>
-                <label for="exampleInput">选择一个日期:</label>
-                <input type="date" id="exampleInput" name="input" drunk-model="time" placeholder="yyyy-MM-dd"
-                min="2015-05-01" max="2015-12-31" />
-                <p>选中的日期:<span drunk-bind="time|date:'YYYY-MM-DD'"></span></p>
-            </section>
-        </html>
-        
-        <script>
-            var myView = new drunk.Component();
-            myView.mount(document.querySelector("section"));
-            myView.time = Date.now();
-        </script>
- */
-var drunk;
-(function (drunk) {
-    drunk.Binding.define("model", {
-        init: function () {
-            var tag = this.element.tagName.toLowerCase();
-            switch (tag) {
-                case "input":
-                    this.initInput();
-                    break;
-                case "select":
-                    this.initSelect();
-                    break;
-                case "textarea":
-                    this.initTextarea();
-                    break;
-            }
-            this._changedHandler = this._changedHandler.bind(this);
-            drunk.elementUtil.addListener(this.element, this._changedEvent, this._changedHandler);
-        },
-        initInput: function () {
-            var type = this.element.type;
-            switch (type) {
-                case "checkbox":
-                    this.initCheckbox();
-                    break;
-                case "radio":
-                    this.initRadio();
-                    break;
-                case "text":
-                case "tel":
-                case "email":
-                case "password":
-                case "search":
-                    this.initTextarea();
-                    break;
-                default:
-                    this.initCommon();
-            }
-        },
-        initCheckbox: function () {
-            this._changedEvent = "change";
-            this.__updateView = setCheckboxValue;
-            this.__getValue = getCheckboxValue;
-        },
-        initRadio: function () {
-            this._changedEvent = "change";
-            this.__updateView = setRadioValue;
-            this.__getValue = getCommonValue;
-        },
-        initSelect: function () {
-            this._changedEvent = "change";
-            this.__updateView = setCommonValue;
-            this.__getValue = getCommonValue;
-        },
-        initTextarea: function () {
-            this._changedEvent = "input";
-            this.__updateView = setCommonValue;
-            this.__getValue = getCommonValue;
-        },
-        initCommon: function () {
-            this._changedEvent = "change";
-            this.__updateView = setCommonValue;
-            this.__getValue = getCommonValue;
-        },
-        update: function (value) {
-            this.__updateView(value);
-        },
-        release: function () {
-            drunk.elementUtil.removeListener(this.element, this._changedEvent, this._changedHandler);
-            this.element = this._changedHandler = null;
-        },
-        _changedHandler: function () {
-            this.setValue(this.__getValue(), true);
-        }
-    });
-    function setCheckboxValue(newValue) {
-        this.element.checked = !!newValue;
-    }
-    function getCheckboxValue() {
-        return !!this.element.checked;
-    }
-    function setRadioValue(newValue) {
-        this.element.checked = this.element.value == newValue;
-    }
-    function setCommonValue(newValue) {
-        newValue = newValue == null ? '' : newValue;
-        this.element.value = newValue;
-    }
-    function getCommonValue() {
-        return this.element.value;
-    }
-})(drunk || (drunk = {}));
-/// <reference path="../binding" />
-/// <reference path="../../util/elem" />
+/// <reference path="../../util/dom" />
 /// <reference path="../../component/component" />
 /// <reference path="../../template/compiler" />
 /// <reference path="../../viewmodel/viewmodel" />
-/// <reference path="../../Scheduler/Scheduler" />
+/// <reference path="../../scheduler/scheduler" />
 var drunk;
 (function (drunk) {
     /**
@@ -4762,8 +4526,8 @@ var drunk;
         RepeatBinding.prototype.createCommentNodes = function () {
             this._startNode = document.createComment('repeat-start: ' + this.expression);
             this._endedNode = document.createComment('repeat-ended: ' + this.expression);
-            drunk.elementUtil.insertBefore(this._startNode, this.element);
-            drunk.elementUtil.replace(this._endedNode, this.element);
+            drunk.dom.before(this._startNode, this.element);
+            drunk.dom.replace(this._endedNode, this.element);
         };
         // 解析表达式定义
         RepeatBinding.prototype.parseDefinition = function () {
@@ -4826,15 +4590,15 @@ var drunk;
                 while (index < length) {
                     viewModel = newVms[index++];
                     if (viewModel._placeholder !== placeholder) {
-                        drunk.elementUtil.insertBefore(viewModel._placeholder, placeholder);
+                        drunk.dom.before(viewModel._placeholder, placeholder);
                         if (!viewModel._isBinded) {
                             viewModel.element = viewModel._element = _this.element.cloneNode(true);
-                            drunk.elementUtil.insertAfter(viewModel._element, viewModel._placeholder);
+                            drunk.dom.after(viewModel._element, viewModel._placeholder);
                             _this._bindExecutor(viewModel, viewModel.element);
                             viewModel._isBinded = true;
                         }
                         else {
-                            drunk.elementUtil.insertBefore(viewModel._element, viewModel._placeholder);
+                            drunk.dom.before(viewModel._element, viewModel._placeholder);
                         }
                         if (jobInfo.shouldYield && index < length) {
                             _this._renderJob = jobInfo.setPromise(drunk.Promise.resolve(renderItems));
@@ -4934,8 +4698,8 @@ var drunk;
                 placeholder.textContent = 'disposed repeat item';
                 viewModel.dispose();
                 drunk.Scheduler.schedule(function () {
-                    drunk.elementUtil.remove(placeholder);
-                    drunk.elementUtil.remove(element);
+                    drunk.dom.remove(placeholder);
+                    drunk.dom.remove(element);
                 }, drunk.Scheduler.Priority.normal);
             });
         };
@@ -4947,8 +4711,8 @@ var drunk;
                 this._renderJob.cancel();
                 this._renderJob = null;
             }
-            drunk.elementUtil.remove(this._startNode);
-            drunk.elementUtil.remove(this._endedNode);
+            drunk.dom.remove(this._startNode);
+            drunk.dom.remove(this._endedNode);
             this._cache = null;
             this._itemVms = null;
             this._bindExecutor = null;
@@ -4960,320 +4724,449 @@ var drunk;
     ;
     RepeatBinding.prototype.isTerminal = true;
     RepeatBinding.prototype.priority = drunk.Binding.Priority.aboveNormal + 1;
-    drunk.Binding.define("repeat", RepeatBinding.prototype);
+    drunk.Binding.register("repeat", RepeatBinding.prototype);
 })(drunk || (drunk = {}));
 /// <reference path="../binding" />
-/// <reference path="../../config/config" />
-/// <reference path="../../promise/promise" />
-/// <reference path="../../Scheduler/Scheduler" />
+/// <reference path="../../component/component" />
+/// <reference path="../../util/dom" />
+/// <reference path="./repeat" />
+/// <reference path="../../template/fragment" />
 var drunk;
 (function (drunk) {
+    var reOneInterpolate = /^\{\{([^{]+)\}\}$/;
     /**
-     * 动画模块
-     * @module drunk.Action
-     * @class Action
+     * @module drunk.Binding
+     * @class ComponentBinding
      */
-    var Action;
-    (function (Action) {
+    var ComponentBinding = (function () {
+        function ComponentBinding() {
+        }
         /**
-         * action的类型
-         * @property Type
-         * @type object
+         * 初始化组件,找到组件类并生成实例,创建组件的绑定
          */
-        Action.Type = {
-            created: 'created',
-            removed: 'removed'
+        ComponentBinding.prototype.init = function () {
+            var src = this.element.getAttribute('src');
+            this.element.removeAttribute('src');
+            if (src) {
+                return this.initAsyncComponent(src);
+            }
+            var Ctor = drunk.Component.getByName(this.expression);
+            if (!Ctor) {
+                throw new Error(this.expression + ": 未找到该组件.");
+            }
+            this.component = new Ctor();
+            this.unwatches = [];
+            this.processComponentAttributes();
+            return this.processComponentBinding();
         };
         /**
-         * js动画定义
-         * @property definitionMap
-         * @private
-         * @type object
+         * 初始化异步组件,先加载为fragment,再设置为组件的element,在进行初始化
          */
-        var definitionMap = {};
+        ComponentBinding.prototype.initAsyncComponent = function (src) {
+            var _this = this;
+            return drunk.Template.renderFragment(src, null, true).then(function (fragment) {
+                var Ctor = drunk.Component.getByName(_this.expression);
+                if (!Ctor) {
+                    throw new Error(_this.expression + ": 未找到该组件.");
+                }
+                _this.unwatches = [];
+                _this.component = new Ctor();
+                _this.component.element = drunk.util.toArray(fragment.childNodes);
+                _this.processComponentAttributes();
+                return _this.processComponentBinding();
+            });
+        };
         /**
-         * 动画状态
-         * @property actionMap
-         * @private
-         * @type object
+         * 获取双向绑定的属性名
          */
-        var actionMap = {};
-        var propertyPrefix = null;
-        var transitionEndEvent = null;
-        var animationEndEvent = null;
-        function getPropertyName(property) {
-            if (propertyPrefix === null) {
-                var style = document.body.style;
-                if ('webkitAnimationDuration' in style) {
-                    propertyPrefix = 'webkit';
-                    transitionEndEvent = 'webkitTransitionEnd';
-                    animationEndEvent = 'webkitAnimationEnd';
+        ComponentBinding.prototype.getTwowayBindingAttrMap = function () {
+            var result = this.element.getAttribute('two-way');
+            var marked = {};
+            this.element.removeAttribute('two-way');
+            if (result) {
+                result.trim().split(/\s+/).forEach(function (str) {
+                    marked[drunk.util.camelCase(str)] = true;
+                });
+            }
+            return marked;
+        };
+        /**
+         * 为组件准备数据和绑定事件
+         */
+        ComponentBinding.prototype.processComponentAttributes = function () {
+            var _this = this;
+            var element = this.element;
+            var component = this.component;
+            var twowayBindingAttrMap = this.getTwowayBindingAttrMap();
+            if (element.hasAttributes()) {
+                // 遍历元素上所有的属性做数据准备或数据绑定的处理
+                // 如果某个属性用到插值表达式,如"a={{b}}",则对起进行表达式监听(当b改变时通知component的a属性更新到最新的值)
+                drunk.util.toArray(element.attributes).forEach(function (attr) {
+                    var attrName = attr.name;
+                    var attrValue = attr.value;
+                    if (attrName.indexOf(drunk.config.prefix) > -1) {
+                        return console.warn("自定义组件标签上不支持使用绑定语法");
+                    }
+                    if (!attrValue) {
+                        component[attrName] = true;
+                        return;
+                    }
+                    var expression = attrValue.trim();
+                    if (attrName.indexOf("on-") === 0) {
+                        // on-click="doSomething()"
+                        // => "click", "doSomething()"
+                        attrName = drunk.util.camelCase(attrName.slice(3));
+                        return _this.registerComponentEvent(attrName, expression);
+                    }
+                    attrName = drunk.util.camelCase(attrName);
+                    if (!drunk.parser.hasInterpolation(expression)) {
+                        // 没有插值表达式
+                        // title="someConstantValue"
+                        component[attrName] = attrValue;
+                        return;
+                    }
+                    // title="{{somelet}}"
+                    _this.watchExpressionForComponent(attrName, expression, twowayBindingAttrMap[attrName]);
+                });
+            }
+            component.emit(drunk.Component.Event.created, component);
+        };
+        /**
+         * 处理组件的视图与数据绑定
+         */
+        ComponentBinding.prototype.processComponentBinding = function () {
+            var _this = this;
+            var element = this.element;
+            var component = this.component;
+            var viewModel = this.viewModel;
+            return component.processTemplate().then(function (template) {
+                if (_this.isDisposed) {
+                    return;
                 }
-                else if ('mozAnimationDuration' in style) {
-                    propertyPrefix = 'moz';
-                }
-                else if ('msAnimationDuration' in style) {
-                    propertyPrefix = 'ms';
+                var container = document.createElement('div');
+                var isNodeArray = Array.isArray(template);
+                if (isNodeArray) {
+                    template.forEach(function (node) {
+                        container.appendChild(node);
+                    });
                 }
                 else {
-                    propertyPrefix = '';
+                    container.appendChild(template);
                 }
-                if (!transitionEndEvent && !animationEndEvent) {
-                    // 只有webkit的浏览器是用特定的事件,其他的浏览器统一用一下两个事件
-                    transitionEndEvent = 'transitionend';
-                    animationEndEvent = 'animationend';
+                component.mount(template, viewModel, element);
+                var nodeList = drunk.util.toArray(container.childNodes);
+                drunk.dom.replace(nodeList, element);
+                container = null;
+                if (viewModel instanceof drunk.RepeatItem) {
+                    viewModel._element = nodeList;
                 }
-            }
-            if (!propertyPrefix) {
-                return property;
-            }
-            return propertyPrefix + (property.charAt(0).toUpperCase() + property.slice(1));
-        }
-        /**
-         * 设置当前正在执行的action
-         * @method setCurrentAction
-         * @static
-         * @param  {HTMLElement}  element 元素节点
-         * @param  {IAction}      action  action描述
-         */
-        function setCurrentAction(element, action) {
-            var id = drunk.util.uuid(element);
-            actionMap[id] = action;
-        }
-        Action.setCurrentAction = setCurrentAction;
-        /**
-         * 获取元素当前的action对象
-         * @method getCurrentAction
-         * @static
-         * @param  {HTMLElement}  element  元素节点
-         * @return {IAction}
-         */
-        function getCurrentAction(element) {
-            var id = drunk.util.uuid(element);
-            return actionMap[id];
-        }
-        Action.getCurrentAction = getCurrentAction;
-        /**
-         * 移除当前元素的action引用
-         * @method removeRef
-         * @static
-         * @param  {HTMLElement} element
-         */
-        function removeRef(element) {
-            var id = drunk.util.uuid(element);
-            actionMap[id] = null;
-        }
-        Action.removeRef = removeRef;
-        /**
-         * 执行单个action,优先判断是否存在js定义的action,再判断是否是css动画
-         * @method run
-         * @static
-         * @param  {HTMLElement}    element    元素对象
-         * @param  {string}         detail     action的信息,动画名或延迟时间
-         * @param  {string}         type       action的类型(created或removed)
-         */
-        function run(element, detail, type) {
-            if (isNumber(detail)) {
-                // 如果是一个数字,则为延时等待操作
-                return wait(detail * 1000);
-            }
-            var definition = definitionMap[detail];
-            if (definition) {
-                // 如果有通过js注册的action,优先执行
-                return runJavascriptAction(element, definition, type);
-            }
-            return runMaybeCSSAnimation(element, detail, type);
-        }
-        Action.run = run;
-        function wait(time) {
-            var action = {};
-            action.promise = new drunk.Promise(function (resolve) {
-                var timerid;
-                action.cancel = function () {
-                    clearTimeout(timerid);
-                    action.cancel = null;
-                    action.promise = null;
-                };
-                timerid = setTimeout(resolve, time);
+            }).catch(function (error) {
+                console.warn("组件创建失败:\n", error);
             });
-            return action;
-        }
-        function runJavascriptAction(element, definition, type) {
-            var action = {};
-            var executor = definition[type];
-            action.promise = new drunk.Promise(function (resolve) {
-                var cancel = executor(element, function () {
-                    resolve();
-                });
-                action.cancel = function () {
-                    action.cancel = null;
-                    action.promise = null;
-                    cancel();
-                };
-            });
-            return action;
-        }
-        function runMaybeCSSAnimation(element, detail, type) {
-            detail = detail ? detail + '-' : drunk.config.prefix;
-            var action = {};
-            var className = detail + type;
-            // 如果transitionDuration或animationDuration都不为0s的话说明已经设置了该属性
-            // 必须先在这里取一次transitionDuration的值,动画才会生效
-            var style = getComputedStyle(element, null);
-            var transitionDuration = style[getPropertyName('transitionDuration')];
-            var transitionExist = transitionDuration !== '0s';
-            var transitionTimerid;
-            action.promise = new drunk.Promise(function (resolve) {
-                // 给样式赋值后,取animationDuration的值,判断有没有设置animation动画
-                element.classList.add(className);
-                var animationExist = style[getPropertyName('animationDuration')] !== '0s';
-                if (!transitionExist && !animationExist) {
-                    // 如果为设置动画直接返回resolve状态
-                    return resolve();
-                }
-                element.style[getPropertyName('animationFillMode')] = 'both';
-                function onTransitionEnd() {
-                    clearTimeout(transitionTimerid);
-                    element.removeEventListener(animationEndEvent, onAnimationEnd, false);
-                    element.removeEventListener(transitionEndEvent, onTransitionEnd, false);
-                    if (type === Action.Type.removed) {
-                        element.classList.remove(detail + Action.Type.created, className);
-                    }
-                    resolve();
-                }
-                function onAnimationEnd() {
-                    element.classList.remove(className);
-                    element.removeEventListener(transitionEndEvent, onTransitionEnd, false);
-                    element.removeEventListener(animationEndEvent, onAnimationEnd, false);
-                    resolve();
-                }
-                element.addEventListener(animationEndEvent, onAnimationEnd, false);
-                element.addEventListener(transitionEndEvent, onTransitionEnd, false);
-                if (transitionExist) {
-                    // 加一个定时器,避免当前属性与transitionend状态下属性的值没有变化时不会触发transitionend事件,
-                    // 这里要设置一个定时器保证该事件的触发
-                    transitionTimerid = setTimeout(onTransitionEnd, parseFloat(transitionDuration) * 1000);
-                }
-                action.cancel = function () {
-                    clearTimeout(transitionTimerid);
-                    element.removeEventListener(transitionEndEvent, onTransitionEnd, false);
-                    element.removeEventListener(animationEndEvent, onAnimationEnd, false);
-                    element.classList.remove(className);
-                    action.cancel = null;
-                    action.promise = null;
-                };
-            });
-            return action;
-        }
-        /**
-         * 注册一个js action
-         * @method define
-         * @param  {string}              name        动画名称
-         * @param  {IActionDefinition}   definition  动画定义
-         */
-        function define(name, definition) {
-            if (definitionMap[name] != null) {
-                console.warn(name, "动画已经被覆盖为", definition);
-            }
-            definitionMap[name] = definition;
-        }
-        Action.define = define;
-        /**
-         * 根据名称获取注册的action实现
-         * @method getDefinition
-         * @static
-         * @param  {string}  name  action名称
-         * @return {IActionDefinition}
-         */
-        function getDefinition(name) {
-            return definitionMap[name];
-        }
-        Action.getDefinition = getDefinition;
-    })(Action = drunk.Action || (drunk.Action = {}));
-    /**
-     * action绑定的实现
-     */
-    var ActionBinding = (function () {
-        function ActionBinding() {
-        }
-        ActionBinding.prototype.init = function () {
-            var _this = this;
-            this._actionJob = drunk.Scheduler.schedule(function () {
-                _this._runActionByType(Action.Type.created);
-                _this._actionJob = null;
-            }, drunk.Scheduler.Priority.normal);
         };
-        ActionBinding.prototype._parseDefinition = function (actionType) {
-            if (!this.expression) {
-                this._actionNames = [];
+        /**
+         * 注册组件的事件
+         */
+        ComponentBinding.prototype.registerComponentEvent = function (eventName, expression) {
+            var viewModel = this.viewModel;
+            var func = drunk.parser.parse(expression);
+            this.component.addListener(eventName, function () {
+                var args = [];
+                for (var _i = 0; _i < arguments.length; _i++) {
+                    args[_i - 0] = arguments[_i];
+                }
+                // 事件的处理函数,会生成一个$event对象,在表达式中可以访问该对象.
+                // $event对象有type和args两个字段,args字段是组件派发这个事件所传递的参数的列表
+                func.call(undefined, viewModel, {
+                    type: eventName,
+                    args: args
+                });
+            });
+        };
+        /**
+         * 监控绑定表达式,表达式里任意数据更新时,同步到component的指定属性
+         */
+        ComponentBinding.prototype.watchExpressionForComponent = function (property, expression, isTwoway) {
+            var viewModel = this.viewModel;
+            var component = this.component;
+            var locked = false;
+            var unwatch;
+            if (isTwoway) {
+                var result = expression.match(reOneInterpolate);
+                if (!result) {
+                    throw new Error(expression + ': 该表达式不能进行双向绑定');
+                }
+                var ownerProperty = result[1].trim();
+                unwatch = component.watch(property, function (newValue) {
+                    if (isTwoway && locked) {
+                        locked = false;
+                        return;
+                    }
+                    viewModel.setValue(ownerProperty, newValue);
+                });
+                this.unwatches.push(unwatch);
+            }
+            unwatch = viewModel.watch(expression, function (newValue) {
+                component[property] = newValue;
+                locked = true;
+            }, false, true);
+            this.unwatches.push(unwatch);
+        };
+        /**
+         * 组件释放
+         */
+        ComponentBinding.prototype.release = function () {
+            var component = this.component;
+            var element = component.element;
+            // 组件实例释放
+            component.emit(drunk.Component.Event.dispose, component);
+            component.dispose();
+            // 移除所有的属性监控
+            this.unwatches.forEach(function (unwatch) { return unwatch(); });
+            if (element) {
+                drunk.dom.remove(element);
+            }
+            // 移除所有引用
+            this.component = null;
+            this.unwatches = null;
+            this.isDisposed = true;
+        };
+        return ComponentBinding;
+    })();
+    ComponentBinding.prototype.isTerminal = true;
+    ComponentBinding.prototype.priority = drunk.Binding.Priority.aboveNormal;
+    drunk.Binding.register('component', ComponentBinding.prototype);
+})(drunk || (drunk = {}));
+/// <reference path="../binding" />
+/// <reference path="../../util/dom" />
+/**
+ * 条件表达式绑定,如果表达式的返回值为false则会把元素从dom树中移除,为true则会添加到dom树中
+ * @class drunk-if
+ * @constructor
+ * @show
+ * @example
+        <html>
+            <section>
+                设置a的值: <input type="text" drunk-model="a" />
+                <p drunk-if="a < 10">如果a小于10显示该标签</p>
+            </section>
+        </html>
+        
+        <script>
+            var myView = new drunk.Component();
+            myView.mount(document.querySelector("section"));
+            myView.a = 0;
+        </script>
+ */
+var drunk;
+(function (drunk) {
+    drunk.Binding.register("if", {
+        isTerminal: true,
+        priority: drunk.Binding.Priority.aboveNormal + 2,
+        init: function () {
+            this.startNode = document.createComment("if-start: " + this.expression);
+            this.endedNode = document.createComment("if-ended: " + this.expression);
+            this.bindingExecutor = drunk.Template.compile(this.element);
+            this.inDocument = false;
+            drunk.dom.replace(this.startNode, this.element);
+            drunk.dom.after(this.endedNode, this.startNode);
+        },
+        update: function (value) {
+            if (!!value) {
+                this.addToDocument();
             }
             else {
-                var str = this.viewModel.eval(this.expression, true);
-                this._actionNames = str.split(/\s+/);
-                if (actionType === Action.Type.removed) {
-                    this._actionNames.reverse();
-                }
+                this.removeFromDocument();
             }
-            var actions = this._actionNames;
-            while (isNumber(actions[actions.length - 1])) {
-                actions.pop();
+        },
+        addToDocument: function () {
+            if (this.inDocument) {
+                return;
             }
-        };
-        ActionBinding.prototype._runActions = function (type) {
-            var element = this.element;
-            if (this._actionNames.length < 2) {
-                var action = Action.run(element, this._actionNames[0], type);
-                action.promise.then(function () {
-                    Action.removeRef(element);
+            this.tmpElement = this.element.cloneNode(true);
+            drunk.dom.after(this.tmpElement, this.startNode);
+            this.unbindExecutor = this.bindingExecutor(this.viewModel, this.tmpElement);
+            this.inDocument = true;
+        },
+        removeFromDocument: function () {
+            if (!this.inDocument) {
+                return;
+            }
+            this.unbindExecutor();
+            drunk.dom.remove(this.tmpElement);
+            this.unbindExecutor = null;
+            this.tmpElement = null;
+            this.inDocument = false;
+        },
+        release: function () {
+            this.removeFromDocument();
+            drunk.dom.remove(this.startNode);
+            drunk.dom.remove(this.endedNode);
+            this.startNode = null;
+            this.endedNode = null;
+            this.bindingExecutor = null;
+        }
+    });
+})(drunk || (drunk = {}));
+/// <reference path="../binding" />
+/// <reference path="../../template/loader" />
+/// <reference path="../../template/compiler" />
+var drunk;
+(function (drunk) {
+    drunk.Binding.register("include", {
+        isActived: true,
+        _unbindExecutor: null,
+        update: function (url) {
+            if (!this.isActived || (url && url === this.url)) {
+                return;
+            }
+            this.unbind();
+            this.url = url;
+            if (url) {
+                drunk.Template.load(url).then(this.createBinding.bind(this));
+            }
+            else {
+                drunk.util.toArray(this.element.childNodes).forEach(function (child) {
+                    drunk.dom.remove(child);
                 });
-                return Action.setCurrentAction(element, action);
             }
-            var actionQueue = {};
-            var actions = this._actionNames;
-            actionQueue.promise = new drunk.Promise(function (resolve) {
-                var index = 0;
-                var runAction = function () {
-                    var detail = actions[index++];
-                    if (typeof detail === 'undefined') {
-                        actionQueue.cancel = null;
-                        actionQueue.promise = null;
-                        Action.removeRef(element);
-                        return resolve();
-                    }
-                    var currentAction = Action.run(element, detail, type);
-                    currentAction.promise.then(runAction);
-                    actionQueue.cancel = function () {
-                        currentAction.cancel();
-                        actionQueue.cancel = null;
-                        actionQueue.promise = null;
-                    };
-                };
-                runAction();
-            });
-            Action.setCurrentAction(element, actionQueue);
-        };
-        ActionBinding.prototype._runActionByType = function (type) {
-            var currentAction = Action.getCurrentAction(this.element);
-            if (currentAction && currentAction.cancel) {
-                currentAction.cancel();
+        },
+        createBinding: function (template) {
+            if (!this.isActived) {
+                return;
             }
-            this._parseDefinition(type);
-            this._runActions(type);
-        };
-        ActionBinding.prototype.release = function () {
-            if (this._actionJob) {
-                this._actionJob.cancel();
+            drunk.dom.html(this.element, template);
+            this._unbindExecutor = drunk.Template.compile(this.element)(this.viewModel, this.element);
+        },
+        unbind: function () {
+            if (this._unbindExecutor) {
+                this._unbindExecutor();
+                this._unbindExecutor = null;
             }
-            this._runActionByType(Action.Type.removed);
-            this._actionNames = null;
-            this._actionJob = null;
-        };
-        return ActionBinding;
-    })();
-    function isNumber(value) {
-        return !isNaN(parseFloat(value));
+        },
+        release: function () {
+            this.unbind();
+            this.url = null;
+            this.isActived = false;
+        }
+    });
+})(drunk || (drunk = {}));
+/// <reference path="../binding" />
+/// <reference path="../../util/dom" />
+/**
+ * 数据双向绑定,只作用于输入控件,支持的控件有:
+ *      * input (text|tel|number|checkbox|radio等)
+ *      * textarea
+ *      * select
+ * @class drunk-model
+ * @constructor
+ * @show
+ * @example
+        <html>
+            <section>
+                <label for="exampleInput">选择一个日期:</label>
+                <input type="date" id="exampleInput" name="input" drunk-model="time" placeholder="yyyy-MM-dd"
+                min="2015-05-01" max="2015-12-31" />
+                <p>选中的日期:<span drunk-bind="time|date:'YYYY-MM-DD'"></span></p>
+            </section>
+        </html>
+        
+        <script>
+            var myView = new drunk.Component();
+            myView.mount(document.querySelector("section"));
+            myView.time = Date.now();
+        </script>
+ */
+var drunk;
+(function (drunk) {
+    drunk.Binding.register("model", {
+        init: function () {
+            var tag = this.element.tagName.toLowerCase();
+            switch (tag) {
+                case "input":
+                    this.initInput();
+                    break;
+                case "select":
+                    this.initSelect();
+                    break;
+                case "textarea":
+                    this.initTextarea();
+                    break;
+            }
+            this._changedHandler = this._changedHandler.bind(this);
+            drunk.dom.on(this.element, this._changedEvent, this._changedHandler);
+        },
+        initInput: function () {
+            var type = this.element.type;
+            switch (type) {
+                case "checkbox":
+                    this.initCheckbox();
+                    break;
+                case "radio":
+                    this.initRadio();
+                    break;
+                case "text":
+                case "tel":
+                case "email":
+                case "password":
+                case "search":
+                    this.initTextarea();
+                    break;
+                default:
+                    this.initCommon();
+            }
+        },
+        initCheckbox: function () {
+            this._changedEvent = "change";
+            this.__updateView = setCheckboxValue;
+            this.__getValue = getCheckboxValue;
+        },
+        initRadio: function () {
+            this._changedEvent = "change";
+            this.__updateView = setRadioValue;
+            this.__getValue = getCommonValue;
+        },
+        initSelect: function () {
+            this._changedEvent = "change";
+            this.__updateView = setCommonValue;
+            this.__getValue = getCommonValue;
+        },
+        initTextarea: function () {
+            this._changedEvent = "input";
+            this.__updateView = setCommonValue;
+            this.__getValue = getCommonValue;
+        },
+        initCommon: function () {
+            this._changedEvent = "change";
+            this.__updateView = setCommonValue;
+            this.__getValue = getCommonValue;
+        },
+        update: function (value) {
+            this.__updateView(value);
+        },
+        release: function () {
+            drunk.dom.off(this.element, this._changedEvent, this._changedHandler);
+        },
+        _changedHandler: function () {
+            this.setValue(this.__getValue(), true);
+        }
+    });
+    function setCheckboxValue(newValue) {
+        this.element.checked = !!newValue;
     }
-    drunk.Binding.define('action', ActionBinding.prototype);
+    function getCheckboxValue() {
+        return !!this.element.checked;
+    }
+    function setRadioValue(newValue) {
+        this.element.checked = this.element.value == newValue;
+    }
+    function setCommonValue(newValue) {
+        newValue = newValue == null ? '' : newValue;
+        this.element.value = newValue;
+    }
+    function getCommonValue() {
+        return this.element.value;
+    }
 })(drunk || (drunk = {}));
 /// <reference path="../binding" />
 /// <reference path="./action" />
@@ -5304,7 +5197,7 @@ var drunk;
  */
 var drunk;
 (function (drunk) {
-    drunk.Binding.define("show", {
+    drunk.Binding.register("show", {
         update: function (isVisible) {
             var style = this.element.style;
             if (!isVisible && style.display !== 'none') {
@@ -5318,11 +5211,11 @@ var drunk;
 })(drunk || (drunk = {}));
 /// <reference path="../binding" />
 /// <reference path="../../component/component" />
-/// <reference path="../../util/elem" />
+/// <reference path="../../util/dom" />
 /// <reference path="../../template/compiler" />
 var drunk;
 (function (drunk) {
-    drunk.Binding.define("transclude", {
+    drunk.Binding.register("transclude", {
         /*
          * 初始化绑定,先注册transcludeResponse事件用于获取transclude的viewModel和nodelist
          * 然后发送getTranscludeContext事件通知
@@ -5340,7 +5233,7 @@ var drunk;
                 fragment.appendChild(node);
             });
             // 换掉节点
-            drunk.elementUtil.replace(fragment, this.element);
+            drunk.dom.replace(fragment, this.element);
             nodes.forEach(function (node) {
                 // 编译模板病获取绑定创建函数
                 // 保存解绑函数
@@ -5355,7 +5248,7 @@ var drunk;
          */
         release: function () {
             this.unbinds.forEach(function (unbind) { return unbind(); });
-            this.nodes.forEach(function (node) { return drunk.elementUtil.remove(node); });
+            this.nodes.forEach(function (node) { return drunk.dom.remove(node); });
             this.unbinds = null;
             this.nodes = null;
         }

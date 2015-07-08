@@ -1,5 +1,5 @@
 /// <reference path="../binding" />
-/// <reference path="../../util/elem" />
+/// <reference path="../../util/dom" />
 
 /**
  * 数据双向绑定,只作用于输入控件,支持的控件有:
@@ -27,7 +27,7 @@
  */
 module drunk {
 
-    Binding.define("model", {
+    Binding.register("model", {
 
         init() {
             let tag = this.element.tagName.toLowerCase();
@@ -44,7 +44,7 @@ module drunk {
             }
 
             this._changedHandler = this._changedHandler.bind(this);
-            elementUtil.addListener(this.element, this._changedEvent, this._changedHandler);
+            dom.on(this.element, this._changedEvent, this._changedHandler);
         },
 
         initInput() {
@@ -103,8 +103,7 @@ module drunk {
         },
 
         release() {
-            elementUtil.removeListener(this.element, this._changedEvent, this._changedHandler);
-            this.element = this._changedHandler = null;
+            dom.off(this.element, this._changedEvent, this._changedHandler);
         },
 
         _changedHandler() {

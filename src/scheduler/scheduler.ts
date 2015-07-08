@@ -38,7 +38,7 @@ module drunk {
         static requestDrain(priority: Scheduler.Priority, callback: () => any) {
             util.addArrayItem(drainPriorityQueue, priority);
             drainPriorityQueue.sort();
-            drainEventEmitter.once(String(priority), callback);
+            drainEventEmitter.$once(String(priority), callback);
         }
     
     }
@@ -82,6 +82,7 @@ module drunk {
     class Job implements Scheduler.IJob {
         
         private _isPaused: boolean;
+        private _cancelled: boolean;
         
         completed: boolean;
         
@@ -97,7 +98,7 @@ module drunk {
         }
         
         cancel() {
-            if (this.completed) {
+            if (this.completed || this._cancelled) {
                 return;
             }
             this._remove();
@@ -105,7 +106,7 @@ module drunk {
         }
         
         pause() {
-            if (this.completed) {
+            if (this.completed || this._cancelled) {
                 return;
             }
             this._remove();
@@ -113,7 +114,7 @@ module drunk {
         }
         
         resume() {
-            if (!this.completed && this._isPaused) {
+            if (!this.completed && !this._cancelled && this._isPaused) {
                 addJobToQueue(this);
                 this._isPaused = false;
             }
@@ -140,7 +141,10 @@ module drunk {
                     addJobToQueue(this);
                 }
                 else {
-                    (<Promise<any>>result).then((newWork: Scheduler.IWork) => {
+                    result.then((newWork: Scheduler.IWork) => {
+                        if (this._cancelled) {
+                            return;
+                        }
                         this._work = newWork;
                         this._priority = priority;
                         this._context = context;
@@ -256,7 +260,7 @@ module drunk {
         }
         
         if (drainPriorityQueue.length && getHighestPriority() === PRIORITY_TAIL) {
-            return drainPriorityQueue.forEach(priority => drainEventEmitter.emit(String(priority)));
+            return drainPriorityQueue.forEach(priority => drainEventEmitter.$emit(String(priority)));
         }
         
         isRunning = true;
@@ -301,7 +305,7 @@ module drunk {
         drainPriorityQueue.some((priority) => {
             if (priority > highestPriority) {
                 count += 1;
-                drainEventEmitter.emit(String(priority));
+                drainEventEmitter.$emit(String(priority));
                 return true;
             }
             
@@ -315,7 +319,7 @@ module drunk {
     
     function startRunning() {
         if (!isRunning) {
-            setTimeout(run, 0);
+            util.execAsyncWork(run);
         }
     }
 }

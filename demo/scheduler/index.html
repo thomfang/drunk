@@ -56,7 +56,13 @@
             // }
             
             setTimeout(function () {
-                createNodesByCount(totalCount);
+                var markNode = drunk.elementUtil.create('<p>start to render</p>');
+                document.body.insertBefore(markNode, container);
+                drunk.scheduler.schedule(function () {
+                    console.time('render');
+                    createNodesByCount(totalCount);
+                    console.timeEnd('render');
+                }, drunk.scheduler.Priority.idle);
             }, 1000);
         
         </script>

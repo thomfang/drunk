@@ -1,7 +1,7 @@
 /// <reference path="../viewmodel/viewModel.ts" />
 /// <reference path="../promise/promise.ts" />
 /// <reference path="../util/xhr.ts" />
-/// <reference path="../util/elem" />
+/// <reference path="../util/dom" />
 /// <reference path="../config/config.ts" />
 /// <reference path="../parser/parser.ts" />
 
@@ -185,7 +185,7 @@ module drunk.Template {
                 }
             });
             
-            elementUtil.replace(frag, element);
+            dom.replace(frag, element);
         };
     }
     
@@ -255,7 +255,7 @@ module drunk.Template {
     
     // 生成绑定描述符方法
     function createExecutor(element: any, descriptor: IBindingDefinition): IBindingExecutor {
-        let definition = Binding.getDefinintionByName(descriptor.name);
+        let definition = Binding.getByName(descriptor.name);
         let executor: IBindingExecutor;
         
         if (!definition && config.debug) {

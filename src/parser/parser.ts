@@ -29,7 +29,7 @@ module drunk.parser {
     let elementName = "$el";
     let valueName = "__value";
     let contextName = "__context";
-    let proxyOperation = contextName + ".proxy";
+    let proxyOperation = contextName + ".$proxy";
     let getHandlerOperation = contextName + ".__getHandler";
     
     // 保留关键字

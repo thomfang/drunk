@@ -1,8 +1,8 @@
 /// <reference path="../binding" />
-/// <reference path="../../util/elem" />
+/// <reference path="../../util/dom" />
 
 /**
- * 条件表达式绑定,如果表达式的返回值为false则会把元素从elementUtil树中移除,为true则会添加到elementUtil树中
+ * 条件表达式绑定,如果表达式的返回值为false则会把元素从dom树中移除,为true则会添加到dom树中
  * @class drunk-if
  * @constructor
  * @show
@@ -22,7 +22,7 @@
  */
 module drunk {
 
-    Binding.define("if", {
+    Binding.register("if", {
 
         isTerminal: true,
         priority: Binding.Priority.aboveNormal + 2,
@@ -33,8 +33,8 @@ module drunk {
             this.bindingExecutor = Template.compile(this.element);
             this.inDocument = false;
 
-            elementUtil.replace(this.startNode, this.element);
-            elementUtil.insertAfter(this.endedNode, this.startNode);
+            dom.replace(this.startNode, this.element);
+            dom.after(this.endedNode, this.startNode);
         },
 
         update(value) {
@@ -52,7 +52,7 @@ module drunk {
             }
 
             this.tmpElement = this.element.cloneNode(true);
-            elementUtil.insertAfter(this.tmpElement, this.startNode);
+            dom.after(this.tmpElement, this.startNode);
 
             this.unbindExecutor = this.bindingExecutor(this.viewModel, this.tmpElement);
             this.inDocument = true;
@@ -66,7 +66,7 @@ module drunk {
 
             this.unbindExecutor();
 
-            elementUtil.remove(this.tmpElement);
+            dom.remove(this.tmpElement);
 
             this.unbindExecutor = null;
             this.tmpElement = null;
@@ -77,8 +77,8 @@ module drunk {
         release() {
             this.removeFromDocument();
 
-            elementUtil.remove(this.startNode);
-            elementUtil.remove(this.endedNode);
+            dom.remove(this.startNode);
+            dom.remove(this.endedNode);
 
             this.startNode = null;
             this.endedNode = null;

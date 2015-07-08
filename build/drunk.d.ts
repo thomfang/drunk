@@ -132,6 +132,67 @@ declare module drunk {
     }
 }
 /**
+ * 搜索字符串解析模块
+ * @module drunk.querystring
+ * @class querystring
+ */
+declare module drunk.querystring {
+    /**
+     * 解析字符串生成一个键值对表
+     * @method parse
+     * @static
+     * @param  {string}  str  搜索字符串
+     * @return {Object}
+     */
+    function parse(str: string): {
+        [key: string]: string;
+    };
+    /**
+     * 把一个键值对表转化为搜索字符串
+     * @method stringify
+     * @static
+     * @param  {Object} obj 键值对表
+     * @return {string}
+     */
+    function stringify(obj: Object): string;
+}
+/**
+ * @module drunk.util
+ * @class util
+ */
+declare module drunk {
+    interface IAjaxOptions {
+        url: string;
+        type?: string;
+        data?: string | {};
+        headers?: {
+            [index: string]: string;
+        };
+        xhrFields?: {
+            withCredentials: boolean;
+        };
+        withCredentials?: boolean;
+        contentType?: string;
+        dataType?: string;
+    }
+    /**
+     * XMLHTTP request工具方法
+     * @static
+     * @method xhr
+     * @param  {object}     	options                     配置参数
+     * @param  {string}         options.url                 请求的url
+     * @param  {string}         [options.type]              请求的类型(GET或POST)
+     * @param  {string|object}  [options.data]              要发送的数据
+     * @param  {object}         [options.headers]           请求头配置
+     * @param  {object}         [options.xhrFields]         withCredentials配置
+     * @param  {boolean}        [options.withCredentials]   withCredentials配置
+     * @param  {string}         [options.contentType]       请求的content-type
+     * @param  {string}         [options.dataType]          接受的数据类型(目前只支持json)
+     * @return {Promise}                                    一个promise实例
+     */
+    function xhr<T>(options: IAjaxOptions): Promise<T>;
+}
+/**
  * 工具方法模块
  *
  * @module drunk.util
@@ -230,6 +291,20 @@ declare module drunk.util {
      * @return {boolean}           如果已经代理过,则不再代理该属性
      */
     function proxy(a: Object, property: string, b: Object): boolean;
+    interface IAsyncJob {
+        completed: boolean;
+        cancel(): void;
+    }
+    /**
+     * 创建一个异步工作
+     * @method execAsyncWork
+     * @static
+     * @param  {function}  work       回调函数
+     * @param  {any}       [context]  上下文对象
+     * @return {IAsyncJob}            返回一个带有cancel方法的job对象
+     */
+    function execAsyncWork(work: () => any, context?: any): IAsyncJob;
+    var ajax: typeof xhr;
 }
 declare module drunk {
     interface IEventListener {
@@ -244,59 +319,59 @@ declare module drunk {
     class EventEmitter {
         /**
          * 注册事件
-         * @method addListener
+         * @method $addListener
          * @param  {string}          type       事件类型
          * @param  {IEventListener}   listener   事件回调
          * @return {EventEmitter}
          */
-        addListener(type: string, listener: IEventListener): EventEmitter;
+        $addListener(type: string, listener: IEventListener): EventEmitter;
         /**
-         * 注册事件,addListener方法的别名
-         * @method on
+         * 注册事件,$addListener方法的别名
+         * @method $on
          * @param  {string}           type       事件类型
          * @param  {IEventListener}   listener   事件回调
          * @return {EventEmitter}
          */
-        on(type: string, listener: IEventListener): EventEmitter;
+        $on(type: string, listener: IEventListener): EventEmitter;
         /**
          * 注册一次性事件
-         * @method once
+         * @method $once
          * @param  {string}         type      事件类型
          * @param  {IEventListener} listener  事件回调
          * @return {EventEmitter}
          */
-        once(type: string, listener: IEventListener): EventEmitter;
+        $once(type: string, listener: IEventListener): EventEmitter;
         /**
          * 移除指定类型的事件监听
-         * @method removeListener
+         * @method $removeListener
          * @param  {string}         type     事件类型
          * @param  {IEventListener}  listener 事件回调
          * @return {EventEmitter}
          */
-        removeListener(type: string, listener: IEventListener): EventEmitter;
+        $removeListener(type: string, listener: IEventListener): EventEmitter;
         /**
          * 移除所有指定类型的事件,或当事件类型未提供时,移除所有该实例上所有的事件
-         * @method removeAllListeners
+         * @method $removeAllListeners
          * @param  {string}  [type]  事件类型
          * @return {EventEmitter}
          */
-        removeAllListeners(type?: string): EventEmitter;
+        $removeAllListeners(type?: string): EventEmitter;
         /**
          * 派发指定类型事件
          *
-         * @method emit
+         * @method $emit
          * @param  {string}  type        事件类型
          * @param  {any[]}   [...args]    其他参数
          * @return {EventEmitter}
          */
-        emit(type: string, ...args: any[]): EventEmitter;
+        $emit(type: string, ...args: any[]): EventEmitter;
         /**
          * 获取指定事件类型的所有listener回调
-         * @method listeners
+         * @method $listeners
          * @param  {string}  type  事件类型
          * @return {Array<IEventListener>}
          */
-        listeners(type: string): IEventListener[];
+        $listeners(type: string): IEventListener[];
         /**
          * 获取事件实例的指定事件类型的回调技术
          * @method listenerCount
@@ -316,158 +391,7 @@ declare module drunk {
     }
 }
 /**
- * DOM操作的工具方法模块
- *
- * @module drunk.elementUtil
- * @main
- * @class ElementUtil
- */
-declare module drunk.elementUtil {
-    /**
-     * 根据提供的html字符串创建html元素
-     * @static
-     * @method create
-     * @param  {string}  html  html字符串
-     * @return {Node|Node[]}          创建好的html元素
-     */
-    function create(htmlString: string): Node | Node[];
-    /**
-     * 设置元素的innerHTML
-     * @static
-     * @method html
-     * @param  {HTMLElement}  container  元素
-     * @param  {string}       value      值
-     */
-    function html(container: HTMLElement, value: string): void;
-    /**
-     * 在旧的元素节点前插入新的元素节点
-     * @static
-     * @method insertBefore
-     * @param  {Node}  newNode  新的节点
-     * @param  {Node}  oldNode  旧的节点
-     */
-    function insertBefore(newNode: any, oldNode: Node): void;
-    /**
-     * 在旧的元素节点后插入新的元素节点
-     * @static
-     * @method insertAfter
-     * @param  {Node}  newNode  新的节点
-     * @param  {Node}  oldNode  旧的节点
-     */
-    function insertAfter(newNode: any, oldNode: Node): void;
-    /**
-     * 移除元素节点
-     * @static
-     * @method remove
-     * @param  {Node|Node[]}  target  节点
-     */
-    function remove(target: any): Promise<any>;
-    /**
-     * 新的节点替换旧的节点
-     * @static
-     * @method replace
-     * @param  {Node}  newNode  新的节点
-     * @param  {Node}  oldNode  旧的节点
-     */
-    function replace(newNode: any, oldNode: Node): void;
-    /**
-     * 为节点注册事件监听
-     * @static
-     * @method addListener
-     * @param  {HTMLElement} element  元素
-     * @param  {string}      type     事件名
-     * @param  {function}    listener 事件处理函数
-     */
-    function addListener(element: HTMLElement, type: string, listener: (ev: Event) => void): void;
-    /**
-     * 移除节点的事件监听
-     * @static
-     * @method removeListener
-     * @param  {HTMLElement} element  元素
-     * @param  {string}      type     事件名
-     * @param  {function}    listener 事件处理函数
-     */
-    function removeListener(element: HTMLElement, type: string, listener: (ev: Event) => void): void;
-    /**
-     * 添加样式
-     * @static
-     * @method addClass
-     * @param  {HTMLElement}  element    元素
-     * @param  {string}       token      样式名
-     */
-    function addClass(element: HTMLElement, token: string): void;
-    /**
-     * 移除样式
-     * @static
-     * @method removeClass
-     * @param  {HTMLElement}  element    元素
-     * @param  {string}       token      样式名
-     */
-    function removeClass(element: HTMLElement, token: string): void;
-}
-/**
- * 搜索字符串解析模块
- * @module drunk.querystring
- * @class querystring
- */
-declare module drunk.querystring {
-    /**
-     * 解析字符串生成一个键值对表
-     * @method parse
-     * @static
-     * @param  {string}  str  搜索字符串
-     * @return {Object}
-     */
-    function parse(str: string): {
-        [key: string]: string;
-    };
-    /**
-     * 把一个键值对表转化为搜索字符串
-     * @method stringify
-     * @static
-     * @param  {Object} obj 键值对表
-     * @return {string}
-     */
-    function stringify(obj: Object): string;
-}
-/**
- * @module drunk.util
- * @class util
- */
-declare module drunk.util {
-    interface IAjaxOptions {
-        url: string;
-        type?: string;
-        data?: string | {};
-        headers?: {
-            [index: string]: string;
-        };
-        xhrFields?: {
-            withCredentials: boolean;
-        };
-        withCredentials?: boolean;
-        contentType?: string;
-        dataType?: string;
-    }
-    /**
-     * Ajax工具方法
-     * @static
-     * @method ajax
-     * @param  {object}     	options                     配置参数
-     * @param  {string}         options.url                 请求的url
-     * @param  {string}         [options.type]              请求的类型(GET或POST)
-     * @param  {string|object}  [options.data]              要发送的数据
-     * @param  {object}         [options.headers]           请求头配置
-     * @param  {object}         [options.xhrFields]         withCredentials配置
-     * @param  {boolean}        [options.withCredentials]   withCredentials配置
-     * @param  {string}         [options.contentType]       请求的content-type
-     * @param  {string}         [options.dataType]          接受的数据类型(目前只支持json)
-     * @return {Promise}                                    一个promise实例
-     */
-    function ajax<T>(options: IAjaxOptions): Promise<T>;
-}
-/**
- * @module drunk.scheduler
+ * @module drunk.Scheduler
  */
 declare module drunk {
     /**
@@ -478,9 +402,9 @@ declare module drunk {
          * 调度方法
          * @method schedule
          * @static
-         * @param  {Scheduler.IWork}     work        调度的执行函数
+         * @param  {Scheduler.IWork}      work       调度的执行函数
          * @param  {Scheduler.Priority}  [priority]  优先级
-         * @param  {any}       [context]   上下文
+         * @param  {any}                 [context]   上下文
          * @return {Scheduler.IJob}                  生成的工作对象
          */
         static schedule(work: Scheduler.IWork, priority?: Scheduler.Priority, context?: any): Scheduler.IJob;
@@ -540,30 +464,30 @@ declare module drunk.observable {
     interface ObservableObject {
         [name: string]: any;
         __observer__?: Observer;
-        setProperty?(name: string, value: any): void;
-        removeProperty?(name: string): void;
+        $set?(name: string, value: any): void;
+        $remove?(name: string): void;
     }
     /**
      * 设置对象的属性，并发送更新的消息
      *
      * @static
      * @for observable
-     * @method setProperty
+     * @method $set
      * @param {ObservableObject} data   JSON对象或已经为observable的JSON对象
      * @param {string}           name   字段名
      * @param {any}              value  值
      */
-    function setProperty(data: ObservableObject, name: string, value: any): void;
+    function $set(data: ObservableObject, name: string, value: any): void;
     /**
      * 移除对象属性，并会发送更新的消息
      *
      * @static
      * @for observable
-     * @method removeProperty
+     * @method $remove
      * @param {ObservableObject}  data  JSON对象或已经为observable的JSON对象
      * @param {string}            name  字段名
      */
-    function removeProperty(data: ObservableObject, name: string): void;
+    function $remove(data: ObservableObject, name: string): void;
     /**
      * 对象转换成observable后指向的原型对象
      *
@@ -671,10 +595,10 @@ declare module drunk.observable {
      */
     interface ObservableArray<T> extends Array<T> {
         __observer__?: Observer;
-        setAt?(index: number, value: any): void;
-        removeAt?<T>(index: number): T;
-        removeItem?(value: any): void;
-        removeAllItem?(value: any): void;
+        $setAt?(index: number, value: any): void;
+        $removeAt?<T>(index: number): T;
+        $removeItem?(value: any): void;
+        $removeAllItem?(value: any): void;
     }
     /**
      * 数组转换成observable后指向的原型对象
@@ -686,40 +610,40 @@ declare module drunk.observable {
     /**
      * 设置数组指定数组下标的值，并发送数组更新通知
      * @static
-     * @method setAt
+     * @method $setAt
      * @param {array}  array   observableArray类型的数组
      * @param {number} index   要设置的数组下标
      * @param {any}    value   要设置的值
      */
-    function setAt<T>(array: ObservableArray<T>, index: number, value: T): void;
+    function $setAt<T>(array: ObservableArray<T>, index: number, value: T): void;
     /**
      * 根据索引移除数组中的元素，并发送数组更新通知
      * @static
      * @for observable
-     * @method removeAt
+     * @method $removeAt
      * @param {array}  array  observableArray类型的数组
      * @param {number} index  要移除的下标
      * @returns {any}         返回移除的值
      */
-    function removeAt<T>(array: ObservableArray<T>, index: number): T;
+    function $removeAt<T>(array: ObservableArray<T>, index: number): T;
     /**
      * 删除数组中出现的一个指定值，并发送数组更新通知
      * @static
      * @for observable
-     * @method removeItem
+     * @method $removeItem
      * @param {array} array  observableArray类型的数组
      * @param {any}   value  要移除的值
      */
-    function removeItem<T>(array: ObservableArray<T>, value: any): void;
+    function $removeItem<T>(array: ObservableArray<T>, value: any): void;
     /**
      * 删除数组中所有的指定值，并发送数组更新通知
      * @static
      * @for observable
-     * @method removeAllItem
+     * @method $removeAllItem
      * @param {array} array  observableArray类型的数组
      * @param {any}   value  要移除的值
      */
-    function removeAllItem<T>(array: ObservableArray<T>, value: any): void;
+    function $removeAllItem<T>(array: ObservableArray<T>, value: any): void;
     /**
      * 删除所有数组元素
      * @method removeAll
@@ -836,6 +760,389 @@ declare module drunk {
     }
 }
 /**
+ * @module drunk.Template
+ * @class Template
+ */
+declare module drunk.Template {
+    /**
+     * 加载模板，先尝试从script标签上查找，找不到再发送ajax请求，
+     * 加载到的模板字符串会进行缓存
+     * @static
+     * @method loadTemplate
+     * @param   {string}  urlOrId  script模板标签的id或模板的url地址
+     * @returns {Promise}           一个 promise 对象promise的返回值为模板字符串
+     */
+    function load(urlOrId: string): Promise<string>;
+}
+declare module drunk {
+    interface IComponent {
+        name?: string;
+        init?: () => void;
+        data?: {
+            [name: string]: any;
+        };
+        filters?: {
+            [name: string]: filter.IFilter;
+        };
+        watchers?: {
+            [expression: string]: IBindingUpdateAction;
+        };
+        handlers?: {
+            [name: string]: Function;
+        };
+        element?: Node | Node[];
+        template?: string;
+        templateUrl?: string;
+    }
+    interface IComponentContructor<T extends IComponent> {
+        extend?<T extends IComponent>(name: string | T, members?: T): IComponentContructor<T>;
+        (...args: any[]): void;
+    }
+    interface IComponentEvent {
+        created: string;
+        release: string;
+        mounted: string;
+    }
+    class Component extends ViewModel {
+        /**
+         * 组件是否已经挂在到元素上
+         * @property _isMounted
+         * @private
+         * @type boolean
+         */
+        private _isMounted;
+        /**
+         * 组件被定义的名字
+         * @property name
+         * @type string
+         */
+        name: string;
+        /**
+         * 作为模板并与数据进行绑定的元素,可以创建一个组件类是指定该属性用于与视图进行绑定
+         * @property element
+         * @type HTMLElement
+         */
+        element: Node | Node[];
+        /**
+         * 组件的模板字符串,如果提供该属性,在未提供element属性的情况下会创建为模板元素
+         * @property template
+         * @type string
+         */
+        template: string;
+        /**
+         * 组件的模板路径,可以是页面上某个标签的id,默认先尝试当成标签的id进行查找,找到的话使用该标签的innerHTML作为模板字符串,
+         * 未找到则作为一个服务端的链接发送ajax请求获取
+         * @property templateUrl
+         * @type string
+         */
+        templateUrl: string;
+        /**
+         * 组件的数据,会被初始化到Model中,可以为一个函数,函数可以直接返回值或一个处理值的Promise对象
+         * @property data
+         * @type {[name: string]: any}
+         */
+        data: {
+            [name: string]: any;
+        };
+        /**
+         * 该组件作用域下的数据过滤器表
+         * @property filters
+         * @type {[name]: Filter}
+         */
+        filters: {
+            [name: string]: filter.IFilter;
+        };
+        /**
+         * 该组件作用域下的事件处理方法
+         * @property handlers
+         * @type {[name]: Function}
+         */
+        handlers: {
+            [name: string]: (...args) => void;
+        };
+        /**
+         * 监控器描述,key表示表达式,值为监控回调
+         * @property watchers
+         * @type object
+         */
+        watchers: {
+            [expression: string]: (newValue: any, oldValue: any) => void;
+        };
+        /**
+         * 组件类，继承ViewModel类，实现了模板的准备和数据的绑定
+         * @class Component
+         * @constructor
+         */
+        constructor(model?: IModel);
+        /**
+         * 实例创建时会调用的初始化方法,派生类可覆盖该方法
+         * @method init
+         */
+        init(): void;
+        /**
+         * 属性初始化
+         * @method __init
+         * @override
+         * @protected
+         * @param  {IModel}  [model]  model对象
+         */
+        protected __init(model?: IModel): void;
+        /**
+         * 处理模板，并返回模板元素
+         * @method $processTemplate
+         * @return {Promise}
+         */
+        $processTemplate(templateUrl?: string): Promise<any>;
+        /**
+         * 把组件挂载到元素上
+         * @method $mount
+         * @param {Node|Node[]} element         要挂在的节点或节点数组
+         * @param {Component}   ownerViewModel  父级viewModel实例
+         * @param {HTMLElement} placeholder     组件占位标签
+         */
+        $mount<T extends Component>(element: Node | Node[], ownerViewModel?: T, placeholder?: HTMLElement): void;
+        /**
+         * 释放组件
+         * @method dispose
+         */
+        $release(): void;
+    }
+    module Component {
+        /**
+         * 组件的事件名称
+         * @property Event
+         * @static
+         * @type  IComponentEvent
+         */
+        let Event: IComponentEvent;
+        /**
+         * 获取挂在在元素上的viewModel实例
+         * @method getByElement
+         * @static
+         * @param  {any}  element 元素
+         * @return {Component}    viewModel实例
+         */
+        function getByElement(element: any): Component;
+        /**
+         * 设置element与viewModel的引用
+         * @method setWeakRef
+         * @static
+         * @param  {any}        element    元素
+         * @param  {Component}  viewModel  组件实例
+         */
+        function setWeakRef<T extends Component>(element: any, viewModel: T): void;
+        /**
+         * 移除挂载引用
+         * @method removeMountedRef
+         * @param  {any}  element  元素
+         */
+        function removeWeakRef(element: any): void;
+        /**
+         * 根据组件名字获取组件构造函数
+         * @method getByName
+         * @param  {string}  name  组件名
+         * @return {IComponentConstructor}
+         */
+        function getByName(name: string): IComponentContructor<any>;
+        /**
+         * 自定义一个组件类
+         * @method define
+         * @static
+         * @param  {string}
+         */
+        function define<T extends IComponent>(members: T): IComponentContructor<T>;
+        function define<T extends IComponent>(name: string, members: T): IComponentContructor<T>;
+        /**
+         * 当前组件类拓展出一个子组件
+         * @method extend
+         * @static
+         * @param  {string}      name       子组件名
+         * @param  {IComponent}  members    子组件的成员
+         * @return {IComponentContructor}
+         */
+        function extend<T extends IComponent>(members: T): IComponentContructor<T>;
+        function extend<T extends IComponent>(name: string, members: T): IComponentContructor<T>;
+        /**
+         * 把一个继承了drunk.Component的组件类根据组件名字注册到组件系统中
+         * @method reigster
+         * @static
+         * @param  {string}   name          组件名
+         * @param  {function} componentCtor 组件类
+         */
+        function register(name: string, componentCtor: any): void;
+    }
+}
+declare module drunk {
+    interface IActionExecutor {
+        (element: HTMLElement, ondone: Function): () => void;
+    }
+    interface IActionDefinition {
+        created: IActionExecutor;
+        removed: IActionExecutor;
+    }
+    interface IActionType {
+        created: string;
+        removed: string;
+    }
+    interface IAction {
+        cancel?(): void;
+        promise?: Promise<any>;
+    }
+    /**
+     * 动画模块
+     * @module drunk.Action
+     * @class Action
+     */
+    module Action {
+        /**
+         * action的类型
+         * @property Type
+         * @type object
+         */
+        let Type: {
+            created: string;
+            removed: string;
+        };
+        /**
+         * 设置当前正在执行的action
+         * @method setCurrentAction
+         * @static
+         * @param  {HTMLElement}  element 元素节点
+         * @param  {IAction}      action  action描述
+         */
+        function setCurrentAction(element: HTMLElement, action: IAction): void;
+        /**
+         * 获取元素当前的action对象
+         * @method getCurrentAction
+         * @static
+         * @param  {HTMLElement}  element  元素节点
+         * @return {IAction}
+         */
+        function getCurrentAction(element: HTMLElement): IAction;
+        /**
+         * 移除当前元素的action引用
+         * @method removeRef
+         * @static
+         * @param  {HTMLElement} element
+         */
+        function removeRef(element: HTMLElement): void;
+        /**
+         * 执行单个action,优先判断是否存在js定义的action,再判断是否是css动画
+         * @method run
+         * @static
+         * @param  {HTMLElement}    element    元素对象
+         * @param  {string}         detail     action的信息,动画名或延迟时间
+         * @param  {string}         type       action的类型(created或removed)
+         */
+        function run(element: HTMLElement, detail: string, type: string): IAction;
+        /**
+         * 注册一个js action
+         * @method register
+         * @param  {string}              name        动画名称
+         * @param  {IActionDefinition}   definition  动画定义
+         */
+        function register<T extends IActionDefinition>(name: string, definition: T): void;
+        /**
+         * 根据名称获取注册的action实现
+         * @method getByName
+         * @static
+         * @param  {string}  name  action名称
+         * @return {IActionDefinition}
+         */
+        function getByName(name: string): IActionDefinition;
+    }
+}
+/**
+ * DOM操作的工具方法模块
+ *
+ * @module drunk.dom
+ * @main
+ * @class dom
+ */
+declare module drunk.dom {
+    /**
+     * 根据提供的html字符串创建html元素
+     * @static
+     * @method create
+     * @param  {string}  html  html字符串
+     * @return {Node|Node[]}          创建好的html元素
+     */
+    function create(htmlString: string): Node | Node[];
+    /**
+     * 设置元素的innerHTML
+     * @static
+     * @method html
+     * @param  {HTMLElement}  container  元素
+     * @param  {string}       value      值
+     */
+    function html(container: HTMLElement, value: string): void;
+    /**
+     * 在旧的元素节点前插入新的元素节点
+     * @static
+     * @method before
+     * @param  {Node}  newNode  新的节点
+     * @param  {Node}  oldNode  旧的节点
+     */
+    function before(newNode: any, oldNode: Node): void;
+    /**
+     * 在旧的元素节点后插入新的元素节点
+     * @static
+     * @method after
+     * @param  {Node}  newNode  新的节点
+     * @param  {Node}  oldNode  旧的节点
+     */
+    function after(newNode: any, oldNode: Node): void;
+    /**
+     * 移除元素节点
+     * @static
+     * @method remove
+     * @param  {Node|Node[]}  target  节点
+     */
+    function remove(target: any): Promise<any>;
+    /**
+     * 新的节点替换旧的节点
+     * @static
+     * @method replace
+     * @param  {Node}  newNode  新的节点
+     * @param  {Node}  oldNode  旧的节点
+     */
+    function replace(newNode: any, oldNode: Node): void;
+    /**
+     * 为节点注册事件监听
+     * @static
+     * @method on
+     * @param  {HTMLElement} element  元素
+     * @param  {string}      type     事件名
+     * @param  {function}    listener 事件处理函数
+     */
+    function on(element: HTMLElement, type: string, listener: (ev: Event) => void): void;
+    /**
+     * 移除节点的事件监听
+     * @static
+     * @method off
+     * @param  {HTMLElement} element  元素
+     * @param  {string}      type     事件名
+     * @param  {function}    listener 事件处理函数
+     */
+    function off(element: HTMLElement, type: string, listener: (ev: Event) => void): void;
+    /**
+     * 添加样式
+     * @static
+     * @method addClass
+     * @param  {HTMLElement}  element    元素
+     * @param  {string}       token      样式名
+     */
+    function addClass(element: HTMLElement, token: string): void;
+    /**
+     * 移除样式
+     * @static
+     * @method removeClass
+     * @param  {HTMLElement}  element    元素
+     * @param  {string}       token      样式名
+     */
+    function removeClass(element: HTMLElement, token: string): void;
+}
+/**
  * 模板工具模块， 提供编译创建绑定，模板加载的工具方法
  * @module drunk.Template
  * @class Template
@@ -888,6 +1195,12 @@ declare module drunk {
     class Binding {
         viewModel: ViewModel;
         element: any;
+        /**
+         * binding名称
+         * @property name
+         * @type string
+         */
+        name: string;
         /**
          * 是否深度监听表达式
          * @property isDeepWatch
@@ -982,20 +1295,20 @@ declare module drunk {
         }
         /**
          * 根据一个绑定原型对象注册一个binding指令
-         * @method define
+         * @method register
          * @static
          * @param  {string}          name  指令名
          * @param  {function|Object} def   binding实现的定义对象或绑定的更新函数
          */
-        function define<T extends IBindingDefinition>(name: string, definition: T): void;
+        function register<T extends IBindingDefinition>(name: string, definition: T): void;
         /**
          * 根据绑定名获取绑定的定义
-         * @method getDefinitionByName
+         * @method getByName
          * @static
          * @param  {string}  name      绑定的名称
          * @return {BindingDefinition} 具有绑定定义信息的对象
          */
-        function getDefinintionByName(name: string): IBindingDefinition;
+        function getByName(name: string): IBindingDefinition;
         /**
          * 获取已经根据优先级排序的终止型绑定的名称列表
          * @method getTerminalBindings
@@ -1055,10 +1368,10 @@ declare module drunk {
         };
         /**
          * 过滤器方法,包含内置的
-         * @property filter
+         * @property $filter
          * @type Filter
          */
-        filter: {
+        $filter: {
             [name: string]: filter.IFilter;
         };
         /**
@@ -1084,41 +1397,41 @@ declare module drunk {
         /**
          * 代理某个属性到最新的IModel上
          *
-         * @method proxy
+         * @method $proxy
          * @param  {string}  property  需要代理的属性名
          */
-        proxy(property: string): void;
+        $proxy(property: string): void;
         /**
          * 执行表达式并返回结果
          *
-         * @method eval
+         * @method $eval
          * @param  {string}  expression      表达式
          * @param  {boolean} [isInterpolate] 是否是插值表达式
          * @return {string}                  结果
          */
-        eval(expression: string, isInterpolate?: boolean): any;
+        $eval(expression: string, isInterpolate?: boolean): any;
         /**
          * 根据表达式设置值
          *
-         * @method setValue
+         * @method $setValue
          * @param  {string}  expression  表达式
          * @param  {any}     value       值
          */
-        setValue(expression: string, value: any): void;
+        $setValue(expression: string, value: any): void;
         /**
          * 把model数据转成json并返回
-         * @method getModel
+         * @method $getModel
          * @return {IModel}  反悔json格式的不带getter/setter的model
          */
-        getModel(): any;
+        $getModel(): any;
         /**
          * 监听表达式的里每个数据的变化
          *
-         * @method watch
+         * @method $watch
          * @param  {string}  expression  表达式
          * @return {function}            返回一个取消监听的函数
          */
-        watch(expression: string, action: IBindingUpdateAction, isDeepWatch?: boolean, isImmediate?: boolean): () => void;
+        $watch(expression: string, action: IBindingUpdateAction, isDeepWatch?: boolean, isImmediate?: boolean): () => void;
         /**
          * 释放ViewModel实例的所有元素与数据的绑定
          * 解除所有的代理属性
@@ -1126,9 +1439,9 @@ declare module drunk {
          * 移除事件缓存
          * 销毁所有的watcher
          *
-         * @method dispose
+         * @method $release
          */
-        dispose(): void;
+        $release(): void;
         /**
          * 获取事件回调,内置方法
          *
@@ -1250,21 +1563,6 @@ declare module drunk.filter {
         [name: string]: IFilter;
     };
 }
-/**
- * @module drunk.Template
- * @class Template
- */
-declare module drunk.Template {
-    /**
-     * 加载模板，先尝试从script标签上查找，找不到再发送ajax请求，
-     * 加载到的模板字符串会进行缓存
-     * @static
-     * @method loadTemplate
-     * @param   {string}  urlOrId  script模板标签的id或模板的url地址
-     * @returns {Promise}           一个 promise 对象promise的返回值为模板字符串
-     */
-    function load(urlOrId: string): Promise<string>;
-}
 declare module drunk.Template {
     /**
      * 把模块连接渲染为documentFragment,会对样式和脚本进行处理,避免重复加载,如果提供宿主容器元素,则会把
@@ -1279,394 +1577,11 @@ declare module drunk.Template {
     function renderFragment(href: string, hostedElement?: HTMLElement, useCache?: boolean): Promise<Node>;
 }
 declare module drunk {
-    interface IComponent {
-        name?: string;
-        init?: () => void;
-        data?: {
-            [name: string]: any;
-        };
-        filters?: {
-            [name: string]: filter.IFilter;
-        };
-        watchers?: {
-            [expression: string]: IBindingUpdateAction;
-        };
-        handlers?: {
-            [name: string]: Function;
-        };
-        element?: Node | Node[];
-        template?: string;
-        templateUrl?: string;
-    }
-    interface IComponentContructor<T extends IComponent> {
-        extend?<T extends IComponent>(name: string | T, members?: T): IComponentContructor<T>;
-        (...args: any[]): void;
-    }
-    interface IComponentEvent {
-        created: string;
-        dispose: string;
-        mounted: string;
-    }
-    class Component extends ViewModel {
-        /**
-         * 组件是否已经挂在到元素上
-         * @property _isMounted
-         * @private
-         * @type boolean
-         */
-        private _isMounted;
-        /**
-         * 组件被定义的名字
-         * @property name
-         * @type string
-         */
-        name: string;
-        /**
-         * 作为模板并与数据进行绑定的元素,可以创建一个组件类是指定该属性用于与视图进行绑定
-         * @property element
-         * @type HTMLElement
-         */
-        element: Node | Node[];
-        /**
-         * 组件的模板字符串,如果提供该属性,在未提供element属性的情况下会创建为模板元素
-         * @property template
-         * @type string
-         */
-        template: string;
-        /**
-         * 组件的模板路径,可以是页面上某个标签的id,默认先尝试当成标签的id进行查找,找到的话使用该标签的innerHTML作为模板字符串,
-         * 未找到则作为一个服务端的链接发送ajax请求获取
-         * @property templateUrl
-         * @type string
-         */
-        templateUrl: string;
-        /**
-         * 组件的数据,会被初始化到Model中,可以为一个函数,函数可以直接返回值或一个处理值的Promise对象
-         * @property data
-         * @type {[name: string]: any}
-         */
-        data: {
-            [name: string]: any;
-        };
-        /**
-         * 该组件作用域下的数据过滤器表
-         * @property filters
-         * @type {[name]: Filter}
-         */
-        filters: {
-            [name: string]: filter.IFilter;
-        };
-        /**
-         * 该组件作用域下的事件处理方法
-         * @property handlers
-         * @type {[name]: Function}
-         */
-        handlers: {
-            [name: string]: (...args) => void;
-        };
-        /**
-         * 监控器描述,key表示表达式,值为监控回调
-         * @property watchers
-         * @type object
-         */
-        watchers: {
-            [expression: string]: (newValue: any, oldValue: any) => void;
-        };
-        /**
-         * 组件类，继承ViewModel类，实现了模板的准备和数据的绑定
-         * @class Component
-         * @constructor
-         */
-        constructor(model?: IModel);
-        /**
-         * 实例创建时会调用的初始化方法,派生类可覆盖该方法
-         * @method init
-         */
-        init(): void;
-        /**
-         * 属性初始化
-         * @method __init
-         * @override
-         * @protected
-         * @param  {IModel}  [model]  model对象
-         */
-        protected __init(model?: IModel): void;
-        /**
-         * 处理模板，并返回模板元素
-         * @method processTemplate
-         * @return {Promise}
-         */
-        processTemplate(templateUrl?: string): Promise<any>;
-        /**
-         * 把组件挂载到元素上
-         * @method mount
-         * @param {Node|Node[]} element         要挂在的节点或节点数组
-         * @param {Component}   ownerViewModel  父级viewModel实例
-         * @param {HTMLElement} placeholder     组件占位标签
-         */
-        mount<T extends Component>(element: Node | Node[], ownerViewModel?: T, placeholder?: HTMLElement): void;
-        /**
-         * 释放组件
-         * @method dispose
-         */
-        dispose(): void;
-    }
-    module Component {
-        /**
-         * 组件的事件名称
-         * @property Event
-         * @static
-         * @type  IComponentEvent
-         */
-        let Event: IComponentEvent;
-        /**
-         * 获取挂在在元素上的viewModel实例
-         * @method getByElement
-         * @static
-         * @param  {any}  element 元素
-         * @return {Component}    viewModel实例
-         */
-        function getByElement(element: any): Component;
-        /**
-         * 设置element与viewModel的引用
-         * @method setWeakRef
-         * @static
-         * @param  {any}        element    元素
-         * @param  {Component}  viewModel  组件实例
-         */
-        function setWeakRef<T extends Component>(element: any, viewModel: T): void;
-        /**
-         * 移除挂载引用
-         * @method removeMountedRef
-         * @param  {any}  element  元素
-         */
-        function removeWeakRef(element: any): void;
-        /**
-         * 根据组件名字获取组件构造函数
-         * @method getByName
-         * @param  {string}  name  组件名
-         * @return {IComponentConstructor}
-         */
-        function getByName(name: string): IComponentContructor<any>;
-        /**
-         * 自定义一个组件类
-         * @method define
-         * @static
-         * @param  {string}
-         */
-        function define<T extends IComponent>(name: string, members: T): IComponentContructor<T>;
-        /**
-         * 当前组件类拓展出一个子组件
-         * @method extend
-         * @static
-         * @param  {string}      name       子组件名
-         * @param  {IComponent}  members    子组件的成员
-         * @return {IComponentContructor}
-         */
-        function extend<T extends IComponent>(name: string | T, members?: T): IComponentContructor<T>;
-        /**
-         * 把一个继承了drunk.Component的组件类根据组件名字注册到组件系统中
-         * @method reigster
-         * @static
-         * @param  {string}   name          组件名
-         * @param  {function} componentCtor 组件类
-         */
-        function register(name: string, componentCtor: any): void;
-    }
 }
-/**
- * 事件绑定,语法:
- *     - 单个事件
- *              'eventType: expression'  如 'click: visible = !visible'
- *              'eventType: callback()'  如 'click: onclick()'
- *     - 多个事件,使用分号隔开
- *              'eventType: expression; eventType2: callback()' 如  'mousedown: visible = true; mouseup: visible = false'
- *     - 一个事件里多个表达式,使用逗号隔开
- *              'eventType: expression1, callback()' 如 'click: visible = true, onclick()'
- * @class drunk-on
- * @constructor
- * @example
-         <html>
-            <style>
-                .over {color: red;}
-            </style>
-            <section>
-                <p drunk-bind="num"></p>
-                <!-- 单个事件 -->
-                <button drunk-on="click:add()">点我加1</button>
-                <!-- 多个事件 -->
-                <button
-                    drunk-class="{over: isOver}"
-                    drunk-on="mouseover: isOver = true; mouseout: mouseleave()">
-                    鼠标移动到我身上
-                </button>
-            </section>
-        </html>
-        
-        <script>
-            var myView = new drunk.Component();
-            
-            myView.add = function () {
-                ++this.num;
-            };
-            myView.mouseleave = function () {
-                this.isOver = false;
-            };
-            
-            myView.num = 0;
-            myView.mount(document.querySelector("section"));
-        </script>
- */
-declare module drunk {
-}
-/**
- * 元素属性绑定,可以设置元素的attribute类型
- * @class drunk-attr
- * @constructor
- * @show
- * @example
- *       <html>
- *       <div drunk-attr="{style: customStyle}"></div>
- *       </html>
- *       <script>
- *       var myView = new drunk.Component();
- *       myView.mount(document.body);
- *       myView.customStyle = "background:red;width:200px;height:100px;";
- *       </script>
- */
-declare module drunk {
-}
-/**
- * 数据单向绑定,根据标签替换其innerHTML|innerText|value等
- * @class drunk-bind
- * @constructor
- * @show
- * @example
-        <html>
-            <section>
-                <p>
-                    输入绑定的内容:<input type="text" drunk-model="text" />
-                </p>
-                <p>
-                    绑定在span标签上:<span drunk-bind="text"></span>
-                </p>
-                <p>
-                    绑定在textarea标签上:<textarea drunk-bind="text"></textarea>
-                </p>
-            </section>
-        </html>
-        
-        <script>
-            new drunk.Component().mount(document.querySelector("section"));
-        </script>
- */
-declare module drunk {
-}
-/**
- * 元素样式类名绑定
- * @class drunk-class
- * @constructor
- * @show
- * @example
- *       <html>
- *       <style>
- *          .strike {
- *              text-decoration: line-through;
- *           }
- *           .bold {
- *               font-weight: bold;
- *           }
- *           .red {
- *               color: red;
- *           }
- *           .orange {
- *              color: orange;
- *           }
- *       </style>
- *        <section>
- *          <p drunk-class="{strike: deleted, bold: important, red: error}">Map 形式的语法示例</p>
- *          <label>
- *             <input type="checkbox" drunk-model="deleted">
- *             deleted (使用 "strike" 样式)
- *          </label><br>
- *          <label>
- *             <input type="checkbox" drunk-model="important">
- *              important (使用 "bold" 样式)
- *           </label><br>
- *           <label>
- *              <input type="checkbox" drunk-model="error">
- *              error (使用 "red" 样式)
- *           </label>
- *           <hr>
- *           <p drunk-class="style">字符串语法示例</p>
- *           <input type="text" drunk-model="style"
- *                  placeholder="输入: bold strike red" aria-label="输入: bold strike red">
- *           <hr>
- *           <p drunk-class="[style1, style2, style3]">使用数组语法示例</p>
- *           <input drunk-model="style1"
- *                  placeholder="输入: bold, strike or red" aria-label="输入: bold, strike or red"><br>
- *           <input drunk-model="style2"
- *                  placeholder="输入: bold, strike or red" aria-label="输入: bold, strike or red 2"><br>
- *           <input drunk-model="style3"
- *                  placeholder="输入: bold, strike or red" aria-label="输入: bold, strike or red 3"><br>
- *           <hr>
- *        </section>
- *       </html>
- *       <script>
- *       new drunk.Component().mount(document.querySelector("section"));
- *       </script>
- */
 declare module drunk {
 }
 declare module drunk {
 }
-/**
- * 条件表达式绑定,如果表达式的返回值为false则会把元素从elementUtil树中移除,为true则会添加到elementUtil树中
- * @class drunk-if
- * @constructor
- * @show
- * @example
-        <html>
-            <section>
-                设置a的值: <input type="text" drunk-model="a" />
-                <p drunk-if="a < 10">如果a小于10显示该标签</p>
-            </section>
-        </html>
-        
-        <script>
-            var myView = new drunk.Component();
-            myView.mount(document.querySelector("section"));
-            myView.a = 0;
-        </script>
- */
-declare module drunk {
-}
-declare module drunk {
-}
-/**
- * 数据双向绑定,只作用于输入控件,支持的控件有:
- *      * input (text|tel|number|checkbox|radio等)
- *      * textarea
- *      * select
- * @class drunk-model
- * @constructor
- * @show
- * @example
-        <html>
-            <section>
-                <label for="exampleInput">选择一个日期:</label>
-                <input type="date" id="exampleInput" name="input" drunk-model="time" placeholder="yyyy-MM-dd"
-                min="2015-05-01" max="2015-12-31" />
-                <p>选中的日期:<span drunk-bind="time|date:'YYYY-MM-DD'"></span></p>
-            </section>
-        </html>
-        
-        <script>
-            var myView = new drunk.Component();
-            myView.mount(document.querySelector("section"));
-            myView.time = Date.now();
-        </script>
- */
 declare module drunk {
 }
 declare module drunk {
@@ -1738,84 +1653,55 @@ declare module drunk {
     }
 }
 declare module drunk {
-    interface IActionExecutor {
-        (element: HTMLElement, ondone: Function): () => void;
-    }
-    interface IActionDefinition {
-        created: IActionExecutor;
-        removed: IActionExecutor;
-    }
-    interface IActionType {
-        created: string;
-        removed: string;
-    }
-    interface IAction {
-        cancel?(): void;
-        promise?: Promise<any>;
-    }
-    /**
-     * 动画模块
-     * @module drunk.Action
-     * @class Action
-     */
-    module Action {
-        /**
-         * action的类型
-         * @property Type
-         * @type object
-         */
-        let Type: {
-            created: string;
-            removed: string;
-        };
-        /**
-         * 设置当前正在执行的action
-         * @method setCurrentAction
-         * @static
-         * @param  {HTMLElement}  element 元素节点
-         * @param  {IAction}      action  action描述
-         */
-        function setCurrentAction(element: HTMLElement, action: IAction): void;
-        /**
-         * 获取元素当前的action对象
-         * @method getCurrentAction
-         * @static
-         * @param  {HTMLElement}  element  元素节点
-         * @return {IAction}
-         */
-        function getCurrentAction(element: HTMLElement): IAction;
-        /**
-         * 移除当前元素的action引用
-         * @method removeRef
-         * @static
-         * @param  {HTMLElement} element
-         */
-        function removeRef(element: HTMLElement): void;
-        /**
-         * 执行单个action,优先判断是否存在js定义的action,再判断是否是css动画
-         * @method run
-         * @static
-         * @param  {HTMLElement}    element    元素对象
-         * @param  {string}         detail     action的信息,动画名或延迟时间
-         * @param  {string}         type       action的类型(created或removed)
-         */
-        function run(element: HTMLElement, detail: string, type: string): IAction;
-        /**
-         * 注册一个js action
-         * @method define
-         * @param  {string}              name        动画名称
-         * @param  {IActionDefinition}   definition  动画定义
-         */
-        function define<T extends IActionDefinition>(name: string, definition: T): void;
-        /**
-         * 根据名称获取注册的action实现
-         * @method getDefinition
-         * @static
-         * @param  {string}  name  action名称
-         * @return {IActionDefinition}
-         */
-        function getDefinition(name: string): IActionDefinition;
-    }
+}
+/**
+ * 条件表达式绑定,如果表达式的返回值为false则会把元素从dom树中移除,为true则会添加到dom树中
+ * @class drunk-if
+ * @constructor
+ * @show
+ * @example
+        <html>
+            <section>
+                设置a的值: <input type="text" drunk-model="a" />
+                <p drunk-if="a < 10">如果a小于10显示该标签</p>
+            </section>
+        </html>
+        
+        <script>
+            var myView = new drunk.Component();
+            myView.mount(document.querySelector("section"));
+            myView.a = 0;
+        </script>
+ */
+declare module drunk {
+}
+declare module drunk {
+}
+/**
+ * 数据双向绑定,只作用于输入控件,支持的控件有:
+ *      * input (text|tel|number|checkbox|radio等)
+ *      * textarea
+ *      * select
+ * @class drunk-model
+ * @constructor
+ * @show
+ * @example
+        <html>
+            <section>
+                <label for="exampleInput">选择一个日期:</label>
+                <input type="date" id="exampleInput" name="input" drunk-model="time" placeholder="yyyy-MM-dd"
+                min="2015-05-01" max="2015-12-31" />
+                <p>选中的日期:<span drunk-bind="time|date:'YYYY-MM-DD'"></span></p>
+            </section>
+        </html>
+        
+        <script>
+            var myView = new drunk.Component();
+            myView.mount(document.querySelector("section"));
+            myView.time = Date.now();
+        </script>
+ */
+declare module drunk {
 }
 /**
  * 切换元素显示隐藏,和drunk-if的效果相似,只是在具有多个绑定的情况下if的性能更好,反之是show的性能更好

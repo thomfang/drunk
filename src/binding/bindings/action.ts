@@ -2,6 +2,7 @@
 /// <reference path="../../config/config" />
 /// <reference path="../../promise/promise" />
 /// <reference path="../../scheduler/scheduler" />
+/// <reference path="../../component/component" />
 
 module drunk {
 
@@ -253,11 +254,11 @@ module drunk {
 
         /**
          * 注册一个js action
-         * @method define
+         * @method register
          * @param  {string}              name        动画名称
          * @param  {IActionDefinition}   definition  动画定义
          */
-        export function define<T extends IActionDefinition>(name: string, definition: T) {
+        export function register<T extends IActionDefinition>(name: string, definition: T) {
             if (definitionMap[name] != null) {
                 console.warn(name, "动画已经被覆盖为", definition);
             }
@@ -301,7 +302,7 @@ module drunk {
                 this._actionNames = [];
             }
             else {
-                let str: string = this.viewModel.eval(this.expression, true);
+                let str: string = this.viewModel.$eval(this.expression, true);
                 this._actionNames = str.split(/\s+/);
 
                 if (actionType === Action.Type.removed) {
@@ -381,5 +382,5 @@ module drunk {
         return !isNaN(parseFloat(value));
     }
 
-    Binding.define('action', ActionBinding.prototype);
+    Binding.register('action', ActionBinding.prototype);
 }

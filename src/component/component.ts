@@ -23,7 +23,7 @@ module drunk {
 
     export interface IComponentEvent {
         created: string;
-        dispose: string;
+        release: string;
         mounted: string;
     }
 
@@ -123,7 +123,7 @@ module drunk {
 
             if (this.filters) {
                 // 如果配置了过滤器
-                util.extend(this.filter, this.filters);
+                util.extend(this.$filter, this.filters);
             }
             if (this.handlers) {
                 // 如果配置了事件处理函数
@@ -140,7 +140,7 @@ module drunk {
                     }
                 
                     // 代理该数据字段
-                    this.proxy(name);
+                    this.$proxy(name);
                 
                     // 不论返回的是什么值,使用promise进行处理
                     Promise.resolve(data).then(
@@ -158,23 +158,23 @@ module drunk {
             if (this.watchers) {
                 // 如果配置了监控器
                 Object.keys(this.watchers).forEach((expression) => {
-                    this.watch(expression, this.watchers[expression]);
+                    this.$watch(expression, this.watchers[expression]);
                 });
             }
         }
         
         /**
          * 处理模板，并返回模板元素
-         * @method processTemplate
+         * @method $processTemplate
          * @return {Promise}
          */
-        processTemplate(templateUrl?: string): Promise<any> {
+        $processTemplate(templateUrl?: string): Promise<any> {
             function onFailed(reason) {
                 console.warn("模板加载失败: " + templateUrl, reason);
             }
 
             if (typeof templateUrl === 'string') {
-                return Template.load(templateUrl).then(elementUtil.create).catch(onFailed);
+                return Template.load(templateUrl).then(dom.create).catch(onFailed);
             }
 
             if (this.element) {
@@ -182,13 +182,13 @@ module drunk {
             }
 
             if (typeof this.template === 'string') {
-                return Promise.resolve(elementUtil.create(this.template));
+                return Promise.resolve(dom.create(this.template));
             }
 
             templateUrl = this.templateUrl;
             
             if (typeof templateUrl === 'string') {
-                return Template.load(templateUrl).then(elementUtil.create).catch(onFailed);
+                return Template.load(templateUrl).then(dom.create).catch(onFailed);
             }
 
             throw new Error((this.name || (<any>this.constructor).name) + "组件模板未指定");
@@ -196,12 +196,12 @@ module drunk {
         
         /**
          * 把组件挂载到元素上
-         * @method mount
+         * @method $mount
          * @param {Node|Node[]} element         要挂在的节点或节点数组
          * @param {Component}   ownerViewModel  父级viewModel实例
          * @param {HTMLElement} placeholder     组件占位标签
          */
-        mount<T extends Component>(element: Node | Node[], ownerViewModel?: T, placeholder?: HTMLElement) {
+        $mount<T extends Component>(element: Node | Node[], ownerViewModel?: T, placeholder?: HTMLElement) {
             console.assert(!this._isMounted, "该组件已有挂载到", this.element);
 
             if (Component.getByElement(element)) {
@@ -220,10 +220,10 @@ module drunk {
          * 释放组件
          * @method dispose
          */
-        dispose() {
-            this.emit(Component.Event.dispose, this);
+        $release() {
+            this.$emit(Component.Event.release, this);
 
-            super.dispose();
+            super.$release();
 
             if (this._isMounted) {
                 Component.removeWeakRef(this.element);
@@ -245,7 +245,7 @@ module drunk {
          */
         export let Event: IComponentEvent = {
             created: 'created',
-            dispose: 'release',
+            release: 'release',
             mounted: 'mounted'
         }
         
@@ -318,8 +318,17 @@ module drunk {
          * @static
          * @param  {string}
          */
-        export function define<T extends IComponent>(name: string, members: T) {
-            members.name = name;
+        export function define<T extends IComponent>(members: T): IComponentContructor<T>;
+        export function define<T extends IComponent>(name: string, members: T): IComponentContructor<T>;
+        export function define<T extends IComponent>(...args: any[]) {
+            let members: T;
+            if (args.length === 2) {
+                members = args[1];
+                members.name = args[0];
+            }
+            else {
+                members = args[0];
+            }
             return Component.extend(members);
         }
         
@@ -331,6 +340,8 @@ module drunk {
          * @param  {IComponent}  members    子组件的成员
          * @return {IComponentContructor}
          */
+        export function extend<T extends IComponent>(members: T): IComponentContructor<T>;
+        export function extend<T extends IComponent>(name: string, members: T): IComponentContructor<T>;
         export function extend<T extends IComponent>(name: string | T, members?: T) {
             if (arguments.length === 1 && util.isObject(name)) {
                 members = arguments[0];

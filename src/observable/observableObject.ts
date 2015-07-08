@@ -22,8 +22,8 @@ module drunk.observable {
     export interface ObservableObject {
         [name: string]: any;
         __observer__?: Observer;
-        setProperty?(name: string, value: any): void;
-        removeProperty?(name: string): void;
+        $set?(name: string, value: any): void;
+        $remove?(name: string): void;
     }
      
     /**
@@ -31,12 +31,12 @@ module drunk.observable {
      * 
      * @static
      * @for observable
-     * @method setProperty
+     * @method $set
      * @param {ObservableObject} data   JSON对象或已经为observable的JSON对象
      * @param {string}           name   字段名
      * @param {any}              value  值
      */
-    export function setProperty(data: ObservableObject, name: string, value: any): void {
+    export function $set(data: ObservableObject, name: string, value: any): void {
         var descriptor = Object.getOwnPropertyDescriptor(data, name);
         
         if (!descriptor || (!descriptor.get && !descriptor.set)) {
@@ -58,11 +58,11 @@ module drunk.observable {
      * 
      * @static
      * @for observable
-     * @method removeProperty
+     * @method $remove
      * @param {ObservableObject}  data  JSON对象或已经为observable的JSON对象
      * @param {string}            name  字段名
      */
-    export function removeProperty(data: ObservableObject, name: string): void {
+    export function $remove(data: ObservableObject, name: string): void {
         if (!data.hasOwnProperty(name)) {
             return;
         }
@@ -84,22 +84,22 @@ module drunk.observable {
      * 设置对象的指定字段的值
      * 
      * @for ObservableObject
-     * @method setProperty
+     * @method $set
      * @param  {string}  name  字段名
      * @param  {any}     value 值
      */
-    util.defineProperty(ObservableObjectPrototype, "setProperty", function setObservableObjectProperty(name: string, value: any) {
-        setProperty(this, name, value);
+    util.defineProperty(ObservableObjectPrototype, "$set", function setObservableObjectProperty(name: string, value: any) {
+        $set(this, name, value);
     });
 
     /**
      * 删除对象的指定字段的值
      * 
      * @for ObservableObject
-     * @method removeProperty
+     * @method $remove
      * @param  {string}  name  字段名
      */
-    util.defineProperty(ObservableObjectPrototype, "removeProperty", function removeObservableObjectProperty(name: string) {
-        removeProperty(this, name);
+    util.defineProperty(ObservableObjectPrototype, "$remove", function removeObservableObjectProperty(name: string) {
+        $remove(this, name);
     });
 }

@@ -4,7 +4,7 @@
 
 module drunk {
 
-    Binding.define("include", {
+    Binding.register("include", {
         
         isActived: true,
         _unbindExecutor: null,
@@ -22,7 +22,7 @@ module drunk {
             }
             else {
                 util.toArray(this.element.childNodes).forEach((child) => {
-                    elementUtil.remove(child);
+                    dom.remove(child);
                 });
             }
         },
@@ -32,7 +32,7 @@ module drunk {
                 return;
             }
             
-            elementUtil.html(this.element, template);
+            dom.html(this.element, template);
             this._unbindExecutor = Template.compile(this.element)(this.viewModel, this.element);
         },
         

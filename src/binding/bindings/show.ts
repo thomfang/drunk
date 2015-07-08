@@ -28,7 +28,7 @@
  */
 module drunk {
 
-    Binding.define("show", {
+    Binding.register("show", {
 
         update(isVisible: boolean) {
             var style = this.element.style;

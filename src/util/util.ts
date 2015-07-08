@@ -1,4 +1,5 @@
 ﻿/// <reference path="../promise/promise.ts" />
+/// <reference path="./xhr" />
 
 /**
  * 工具方法模块
@@ -184,4 +185,38 @@ module drunk.util {
         
         return true;
     }
+    
+    export interface IAsyncJob {
+        completed: boolean;
+        cancel(): void;
+    }
+    
+    /**
+     * 创建一个异步工作
+     * @method execAsyncWork
+     * @static
+     * @param  {function}  work       回调函数
+     * @param  {any}       [context]  上下文对象
+     * @return {IAsyncJob}            返回一个带有cancel方法的job对象
+     */
+    export function execAsyncWork(work: () => any, context?: any): IAsyncJob {
+        let timerId: number;
+        let job: IAsyncJob = {
+            completed: false,
+            cancel() {
+                if (!job.completed) {
+                    clearTimeout(timerId);
+                }
+            }
+        };
+        
+        timerId = setTimeout(() => {
+            work.call(context);
+            job.completed = true;
+        }, 0);
+        
+        return job;
+    }
+    
+    export var ajax = xhr;
 }

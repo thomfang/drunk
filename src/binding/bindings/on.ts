@@ -1,6 +1,6 @@
 /// <reference path="../binding" />
 /// <reference path="../../template/compiler" />
-/// <reference path="../../util/elem" />
+/// <reference path="../../util/dom" />
 /// <reference path="../../config/config" />
 
 module drunk {
@@ -10,7 +10,7 @@ module drunk {
         statement: /(\w+):\s*(.+)/
     };
 
-    Binding.define("on", {
+    Binding.register("on", {
 
         init() {
             let exp = this.expression;
@@ -40,14 +40,14 @@ module drunk {
                 func.call(null, self.viewModel, e, self.element);
             }
 
-            elementUtil.addListener(this.element, type, handler);
+            dom.on(this.element, type, handler);
 
             return {type,  handler};
         },
 
         release() {
             this.events.forEach((event) => {
-                elementUtil.addListener(this.element, event.type, event.handler);
+                dom.off(this.element, event.type, event.handler);
             });
             this.events = null;
         }

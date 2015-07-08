@@ -1,11 +1,11 @@
 /// <reference path="../binding" />
 /// <reference path="../../component/component" />
-/// <reference path="../../util/elem" />
+/// <reference path="../../util/dom" />
 /// <reference path="../../template/compiler" />
 
 module drunk {
     
-     Binding.define("transclude", {
+     Binding.register("transclude", {
 
         /*
          * 初始化绑定,先注册transcludeResponse事件用于获取transclude的viewModel和nodelist
@@ -27,7 +27,7 @@ module drunk {
             });
 
             // 换掉节点
-            elementUtil.replace(fragment, this.element);
+            dom.replace(fragment, this.element);
 
             nodes.forEach((node) => {
                 // 编译模板病获取绑定创建函数
@@ -45,7 +45,7 @@ module drunk {
          */
         release() {
             this.unbinds.forEach(unbind => unbind());
-            this.nodes.forEach(node => elementUtil.remove(node));
+            this.nodes.forEach(node => dom.remove(node));
             this.unbinds = null;
             this.nodes = null;
         }

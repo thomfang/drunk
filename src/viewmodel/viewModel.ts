@@ -55,10 +55,10 @@ module drunk {
         
         /**
          * 过滤器方法,包含内置的
-         * @property filter
+         * @property $filter
          * @type Filter
          */
-        filter: {[name: string]: filter.IFilter};
+        $filter: {[name: string]: filter.IFilter};
         
         /**
          * 事件处理方法集合
@@ -87,24 +87,24 @@ module drunk {
             model = model || {};
             observable.create(model);
             
-            util.defineProperty(this, "filter", Object.create(filter.filters));
+            util.defineProperty(this, "$filter", Object.create(filter.filters));
             util.defineProperty(this, "_model", model);
             util.defineProperty(this, "_bindings", []);
             util.defineProperty(this, "_watchers", {});
             util.defineProperty(this, "_isActived", true);
             
             Object.keys(model).forEach((property) => {
-                this.proxy(property);
+                this.$proxy(property);
             });
         }
         
         /**
          * 代理某个属性到最新的IModel上
          * 
-         * @method proxy
+         * @method $proxy
          * @param  {string}  property  需要代理的属性名
          */
-        proxy(property: string): void {
+        $proxy(property: string): void {
             var value = this[property];
         
             if (value === undefined) {
@@ -112,19 +112,19 @@ module drunk {
             }
             
             if (util.proxy(this, property, this._model)) {
-                this._model.setProperty(property, value);
+                this._model.$set(property, value);
             }
         }
         
         /**
          * 执行表达式并返回结果
          * 
-         * @method eval
+         * @method $eval
          * @param  {string}  expression      表达式
          * @param  {boolean} [isInterpolate] 是否是插值表达式
          * @return {string}                  结果
          */
-        eval(expression: string, isInterpolate?: boolean): any {
+        $eval(expression: string, isInterpolate?: boolean): any {
             var getter;
         
             if (isInterpolate) {
@@ -144,32 +144,32 @@ module drunk {
         /**
          * 根据表达式设置值
          * 
-         * @method setValue
+         * @method $setValue
          * @param  {string}  expression  表达式
          * @param  {any}     value       值
          */
-        setValue(expression: string, value: any): void {
+        $setValue(expression: string, value: any): void {
             var setter = parser.parseSetter(expression);
             setter.call(undefined, this, value);
         }
         
         /**
          * 把model数据转成json并返回
-         * @method getModel
+         * @method $getModel
          * @return {IModel}  反悔json格式的不带getter/setter的model
          */
-        getModel() {
+        $getModel() {
             return util.deepClone(this._model);
         }
         
         /**
          * 监听表达式的里每个数据的变化
          * 
-         * @method watch
+         * @method $watch
          * @param  {string}  expression  表达式
          * @return {function}            返回一个取消监听的函数
          */
-        watch(expression: string, action: IBindingUpdateAction, isDeepWatch?: boolean, isImmediate?: boolean) {
+        $watch(expression: string, action: IBindingUpdateAction, isDeepWatch?: boolean, isImmediate?: boolean) {
             var key: string = Watcher.getNameOfKey(expression, isDeepWatch);
             var watcher: Watcher;
 
@@ -201,9 +201,9 @@ module drunk {
          * 移除事件缓存
          * 销毁所有的watcher
          * 
-         * @method dispose
+         * @method $release
          */
-        dispose() {
+        $release() {
             if (!this._isActived) {
                 return;
             }
@@ -226,7 +226,7 @@ module drunk {
             this._model = null;
             this._bindings = null;
             this._watchers = null;
-            this.filter = null;
+            this.$filter = null;
         }
         
         /**
@@ -268,7 +268,7 @@ module drunk {
         __getValueByGetter(getter, isInterpolate) {
             var args = [this].concat(util.toArray(arguments).slice(1));
             var value = getter.apply(null, args);
-            return filter.pipeFor.apply(null, [value, getter.filters, this.filter, isInterpolate].concat(args));
+            return filter.pipeFor.apply(null, [value, getter.filters, this.$filter, isInterpolate].concat(args));
         };
     }
 }

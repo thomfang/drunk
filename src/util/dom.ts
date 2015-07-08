@@ -1,13 +1,15 @@
 ﻿/// <reference path="../promise/promise" />
+/// <reference path="./util" />
+/// <reference path="../binding/bindings/action" />
 
 /**
  * DOM操作的工具方法模块
  * 
- * @module drunk.elementUtil
+ * @module drunk.dom
  * @main
- * @class ElementUtil
+ * @class dom
  */
-module drunk.elementUtil {
+module drunk.dom {
 
     /**
      * 根据提供的html字符串创建html元素
@@ -41,11 +43,11 @@ module drunk.elementUtil {
     /**
      * 在旧的元素节点前插入新的元素节点
      * @static
-     * @method insertBefore
+     * @method before
      * @param  {Node}  newNode  新的节点
      * @param  {Node}  oldNode  旧的节点
      */
-    export function insertBefore(newNode: any, oldNode: Node): void {
+    export function before(newNode: any, oldNode: Node): void {
         if (!oldNode.parentNode) {
             return;
         }
@@ -62,11 +64,11 @@ module drunk.elementUtil {
     /**
      * 在旧的元素节点后插入新的元素节点
      * @static
-     * @method insertAfter
+     * @method after
      * @param  {Node}  newNode  新的节点
      * @param  {Node}  oldNode  旧的节点
      */
-    export function insertAfter(newNode: any, oldNode: Node): void {
+    export function after(newNode: any, oldNode: Node): void {
         if (!oldNode.parentNode) {
             return;
         }
@@ -75,7 +77,7 @@ module drunk.elementUtil {
             newNode = [newNode];
         }
         if (oldNode.nextSibling) {
-            insertBefore(newNode, oldNode.nextSibling);
+            before(newNode, oldNode.nextSibling);
         }
         else {
             let parent = oldNode.parentNode;
@@ -140,24 +142,24 @@ module drunk.elementUtil {
     /**
      * 为节点注册事件监听
      * @static
-     * @method addListener
+     * @method on
      * @param  {HTMLElement} element  元素
      * @param  {string}      type     事件名
      * @param  {function}    listener 事件处理函数
      */
-    export function addListener(element: HTMLElement, type: string, listener: (ev: Event) => void): void {
+    export function on(element: HTMLElement, type: string, listener: (ev: Event) => void): void {
         element.addEventListener(type, listener, false);
     }
     
     /**
      * 移除节点的事件监听
      * @static
-     * @method removeListener
+     * @method off
      * @param  {HTMLElement} element  元素
      * @param  {string}      type     事件名
      * @param  {function}    listener 事件处理函数
      */
-    export function removeListener(element: HTMLElement, type: string, listener: (ev: Event) => void): void {
+    export function off(element: HTMLElement, type: string, listener: (ev: Event) => void): void {
         element.removeEventListener(type, listener, false);
     }
     

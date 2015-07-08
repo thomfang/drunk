@@ -2,6 +2,7 @@
 /// <reference path="./observableArray.ts" />
 /// <reference path="./observableObject.ts" />
 /// <reference path="./observer.ts" />
+/// <reference path="../events/eventemitter" />
 
 /**
  * observable模块的工具方法，用于创建可观察的数据，数据绑定等
@@ -138,7 +139,7 @@ module drunk.observable {
         // 假设value是一个数组，当数组添加了一个新的item时，
         // 告知data的observer实例派发property改变的通知
         function propertyChanged() {
-            dataOb.emit(property);
+            dataOb.$emit(property);
         }
     }
      

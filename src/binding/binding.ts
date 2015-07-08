@@ -3,7 +3,7 @@
 /// <reference path="../template/compiler.ts" />
 /// <reference path="../parser/parser.ts" />
 /// <reference path="../watcher/watcher.ts" />
-/// <reference path="../util/elem" />
+/// <reference path="../util/dom" />
 /// <reference path="../util/util.ts" />
 /// <reference path="../config/config.ts" />
 
@@ -48,6 +48,13 @@ module drunk {
     }
 
     export class Binding {
+        
+        /**
+         * binding名称
+         * @property name
+         * @type string
+         */
+        name: string;
         
         /**
          * 是否深度监听表达式
@@ -115,7 +122,7 @@ module drunk {
 
             if (!getter.dynamic) {
                 // 如果只是一个静态表达式直接取值更新
-                return this.update(viewModel.eval(expression, isInterpolate), undefined);
+                return this.update(viewModel.$eval(expression, isInterpolate), undefined);
             }
 
             this._update = (newValue, oldValue) => {
@@ -126,7 +133,7 @@ module drunk {
                 this.update(newValue, oldValue);
             }
 
-            this._unwatch = viewModel.watch(expression, this._update, this.isDeepWatch, true);
+            this._unwatch = viewModel.$watch(expression, this._update, this.isDeepWatch, true);
         }
         
         /**
@@ -165,7 +172,7 @@ module drunk {
          */
         setValue(value: any, isLocked?: boolean): void {
             this._isLocked = !!isLocked;
-            this.viewModel.setValue(this.expression, value);
+            this.viewModel.$setValue(this.expression, value);
         }
     }
 
@@ -262,12 +269,12 @@ module drunk {
         
         /**
          * 根据一个绑定原型对象注册一个binding指令
-         * @method define
+         * @method register
          * @static
          * @param  {string}          name  指令名
          * @param  {function|Object} def   binding实现的定义对象或绑定的更新函数
          */
-        export function define<T extends IBindingDefinition>(name: string, definition: T): void {
+        export function register<T extends IBindingDefinition>(name: string, definition: T): void {
             definition.priority = definition.priority || Priority.normal;
 
             if (definition.isTerminal) {
@@ -284,12 +291,12 @@ module drunk {
         
         /**
          * 根据绑定名获取绑定的定义
-         * @method getDefinitionByName
+         * @method getByName
          * @static
          * @param  {string}  name      绑定的名称
          * @return {BindingDefinition} 具有绑定定义信息的对象
          */
-        export function getDefinintionByName(name: string): IBindingDefinition {
+        export function getByName(name: string): IBindingDefinition {
             return definitions[name];
         }
         

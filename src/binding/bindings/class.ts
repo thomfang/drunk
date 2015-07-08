@@ -1,9 +1,9 @@
 /// <reference path="../binding" />
-/// <reference path="../../util/elem" />
+/// <reference path="../../util/dom" />
 
 module drunk {
 
-    Binding.define("class", {
+    Binding.register("class", {
         
         update(data: any) {
             let elem = this.element;
@@ -15,7 +15,7 @@ module drunk {
                 if (oldValue) {
                     oldValue.forEach(name => {
                         if (data.indexOf(name) === -1) {
-                            elementUtil.removeClass(elem, name);
+                            dom.removeClass(elem, name);
                         }
                         else {
                             classMap[name] = true;
@@ -25,7 +25,7 @@ module drunk {
 
                 data.forEach(name => {
                     if (!classMap[name]) {
-                        elementUtil.addClass(elem, name);
+                        dom.addClass(elem, name);
                     }
                 });
 
@@ -34,22 +34,22 @@ module drunk {
             else if (data && typeof data === 'object') {
                 Object.keys(data).forEach(name => {
                     if (data[name]) {
-                        elementUtil.addClass(elem, name);
+                        dom.addClass(elem, name);
                     }
                     else {
-                        elementUtil.removeClass(elem, name);
+                        dom.removeClass(elem, name);
                     }
                 });
             }
             else if (typeof data === 'string' && (data = data.trim()) !== this.oldValue) {
                 if (this.oldValue) {
-                    elementUtil.removeClass(elem, this.oldValue);
+                    dom.removeClass(elem, this.oldValue);
                 }
 
                 this.oldValue = data;
 
                 if (data) {
-                    elementUtil.addClass(elem, data);
+                    dom.addClass(elem, data);
                 }
             }
         }

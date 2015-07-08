@@ -1,5 +1,5 @@
 /// <reference path="../binding" />
-/// <reference path="../../util/elem" />
+/// <reference path="../../util/dom" />
 /// <reference path="../../component/component" />
 /// <reference path="../../template/compiler" />
 /// <reference path="../../viewmodel/viewmodel" />
@@ -216,8 +216,8 @@ module drunk {
             this._startNode = document.createComment('repeat-start: ' + this.expression);
             this._endedNode = document.createComment('repeat-ended: ' + this.expression);
 
-            elementUtil.insertBefore(this._startNode, this.element);
-            elementUtil.replace(this._endedNode, this.element);
+            dom.before(this._startNode, this.element);
+            dom.replace(this._endedNode, this.element);
         }
 
         // 解析表达式定义
@@ -295,17 +295,17 @@ module drunk {
                     viewModel = newVms[index++];
                     
                     if (viewModel._placeholder !== placeholder) {
-                        elementUtil.insertBefore(viewModel._placeholder, placeholder);
+                        dom.before(viewModel._placeholder, placeholder);
                         
                         if (!viewModel._isBinded) {
                             viewModel.element = viewModel._element = this.element.cloneNode(true);
-                            elementUtil.insertAfter(viewModel._element, viewModel._placeholder);
+                            dom.after(viewModel._element, viewModel._placeholder);
                             
                             this._bindExecutor(viewModel, viewModel.element);
                             viewModel._isBinded = true;
                         }
                         else {
-                            elementUtil.insertBefore(viewModel._element, viewModel._placeholder);
+                            dom.before(viewModel._element, viewModel._placeholder);
                         }
                         
                         if (jobInfo.shouldYield && index < length) {
@@ -429,8 +429,8 @@ module drunk {
                 viewModel.dispose();
                 
                 Scheduler.schedule(() => {
-                    elementUtil.remove(placeholder);
-                    elementUtil.remove(element);
+                    dom.remove(placeholder);
+                    dom.remove(element);
                 }, Scheduler.Priority.normal);
             });
         }
@@ -444,8 +444,8 @@ module drunk {
                 this._renderJob = null;
             }
 
-            elementUtil.remove(this._startNode);
-            elementUtil.remove(this._endedNode);
+            dom.remove(this._startNode);
+            dom.remove(this._endedNode);
 
             this._cache = null;
             this._itemVms = null;
@@ -458,5 +458,5 @@ module drunk {
     RepeatBinding.prototype.isTerminal = true;
     RepeatBinding.prototype.priority = Binding.Priority.aboveNormal + 1;
 
-    Binding.define("repeat", RepeatBinding.prototype);
+    Binding.register("repeat", RepeatBinding.prototype);
 }

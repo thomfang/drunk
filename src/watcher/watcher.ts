@@ -143,7 +143,7 @@ module drunk {
 
             Object.keys(this._observers).forEach((id) => {
                 Object.keys(this._properties[id]).forEach(property => {
-                    this._observers[id].removeListener(property, this.__propertyChanged);
+                    this._observers[id].$removeListener(property, this.__propertyChanged);
                 });
             });
             
@@ -185,7 +185,7 @@ module drunk {
             if (this._getter.filters) {
                 // 派发到各个filter中处理
                 newValue = filter.pipeFor(
-                    newValue, this._getter.filters, this.viewModel.filter, this._isInterpolate, this.viewModel);
+                    newValue, this._getter.filters, this.viewModel.$filter, this._isInterpolate, this.viewModel);
             }
 
             this.__afterGetValue();
@@ -226,14 +226,14 @@ module drunk {
                 if (!tmpObservers[id]) {
                     // 如果没有再订阅该observer,取消订阅所有的属性
                     Object.keys(properties[id]).forEach(function (property) {
-                        observer.removeListener(property, propertyChanged);
+                        observer.$removeListener(property, propertyChanged);
                     });
                 }
                 else {
                     Object.keys(properties[id]).forEach(function (property) {
                         if (!tmpProperties[id][property]) {
                             // 如果没有再订阅该属性,取消订阅该属性
-                            observer.removeListener(property, propertyChanged);
+                            observer.$removeListener(property, propertyChanged);
                         }
                     });
                 }
@@ -267,19 +267,19 @@ module drunk {
                     this._observers[id] = observer;
                     this._properties[id] = {[property]: true};
                     
-                    observer.addListener(property, propertyChanged);
+                    observer.$addListener(property, propertyChanged);
                 }
                 else if (!this._properties[id][property]) {
                     // 如果没有订阅过该属性
                     this._properties[id][property] = true;
-                    observer.addListener(property, propertyChanged);
+                    observer.$addListener(property, propertyChanged);
                 }
             }
             else if (!this._tmpProperties[id][property]) {
                 this._tmpProperties[id][property] = true;
                 
                 if (!this._properties[id][property]) {
-                    observer.addListener(property, propertyChanged);
+                    observer.$addListener(property, propertyChanged);
                     this._properties[id][property] = true;
                 }
             }

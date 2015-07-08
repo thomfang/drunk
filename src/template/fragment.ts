@@ -1,5 +1,5 @@
 /// <reference path="./loader" />
-/// <reference path="../util/elem" />
+/// <reference path="../util/dom" />
 /// <reference path="../cache/cache" />
 /// <reference path="../promise/promise" />
 
@@ -58,7 +58,7 @@ module drunk.Template {
         base.href = anchor.href;
         
         return load(href).then((template) => {
-            elementUtil.html(htmlDoc.documentElement, template);
+            dom.html(htmlDoc.documentElement, template);
             htmlDoc.head.appendChild(base);
         }).then(() => {
             return processDocument(htmlDoc, href);

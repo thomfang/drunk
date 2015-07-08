@@ -2,7 +2,7 @@
 
 module drunk {
 
-    Binding.define("bind", {
+    Binding.register("bind", {
 
         update(newValue: any) {
             newValue = newValue == null ? '' : newValue;

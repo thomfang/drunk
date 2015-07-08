@@ -28,12 +28,12 @@ module drunk {
         
         /**
          * 注册事件
-         * @method addListener
+         * @method $addListener
          * @param  {string}          type       事件类型
          * @param  {IEventListener}   listener   事件回调
          * @return {EventEmitter}
          */
-        addListener(type: string, listener: IEventListener) {
+        $addListener(type: string, listener: IEventListener) {
             let store = getStore(this);
             
             if (!store[type]) {
@@ -45,37 +45,37 @@ module drunk {
         }
         
         /**
-         * 注册事件,addListener方法的别名
-         * @method on
+         * 注册事件,$addListener方法的别名
+         * @method $on
          * @param  {string}           type       事件类型
          * @param  {IEventListener}   listener   事件回调
          * @return {EventEmitter}
          */
-        on(type: string, listener: IEventListener) {
-            return this.addListener(type, listener);
+        $on(type: string, listener: IEventListener) {
+            return this.$addListener(type, listener);
         }
         
         /**
          * 注册一次性事件
-         * @method once
+         * @method $once
          * @param  {string}         type      事件类型
          * @param  {IEventListener} listener  事件回调
          * @return {EventEmitter}
          */
-        once(type: string, listener: IEventListener) {
+        $once(type: string, listener: IEventListener) {
             listener.__isOnce = true;
-            this.addListener(type, listener);
+            this.$addListener(type, listener);
             return this;
         }
         
         /**
          * 移除指定类型的事件监听
-         * @method removeListener
+         * @method $removeListener
          * @param  {string}         type     事件类型
          * @param  {IEventListener}  listener 事件回调
          * @return {EventEmitter}
          */
-        removeListener(type: string, listener: IEventListener) {
+        $removeListener(type: string, listener: IEventListener) {
             let store = getStore(this);
             let listeners = store[type];
             
@@ -89,11 +89,11 @@ module drunk {
         
         /**
          * 移除所有指定类型的事件,或当事件类型未提供时,移除所有该实例上所有的事件
-         * @method removeAllListeners
+         * @method $removeAllListeners
          * @param  {string}  [type]  事件类型
          * @return {EventEmitter}
          */
-        removeAllListeners(type?: string) {
+        $removeAllListeners(type?: string) {
             if (!type) {
                 EventEmitter.cleanup(this);
             }
@@ -106,12 +106,12 @@ module drunk {
         /**
          * 派发指定类型事件
          * 
-         * @method emit
+         * @method $emit
          * @param  {string}  type        事件类型
          * @param  {any[]}   [...args]    其他参数
          * @return {EventEmitter}
          */
-        emit(type: string, ...args: any[]) {
+        $emit(type: string, ...args: any[]) {
             let store = getStore(this);
             let listeners = store[type];
             
@@ -132,11 +132,11 @@ module drunk {
         
         /**
          * 获取指定事件类型的所有listener回调
-         * @method listeners
+         * @method $listeners
          * @param  {string}  type  事件类型
          * @return {Array<IEventListener>}
          */
-        listeners(type: string): IEventListener[] {
+        $listeners(type: string): IEventListener[] {
             var listeners: IEventListener[] = getStore(this)[type];
             return listeners ? listeners.slice() : [];
         }

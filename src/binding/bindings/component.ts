@@ -1,6 +1,8 @@
 /// <reference path="../binding" />
 /// <reference path="../../component/component" />
-/// <reference path="../../util/elem" />
+/// <reference path="../../util/dom" />
+/// <reference path="./repeat" />
+/// <reference path="../../template/fragment" />
 
 module drunk {
     
@@ -160,7 +162,7 @@ module drunk {
                 component.mount(template, viewModel, element);
                 
                 let nodeList = util.toArray(container.childNodes);
-                elementUtil.replace(nodeList, element);
+                dom.replace(nodeList, element);
                 container = null;
                 
                 if (viewModel instanceof RepeatItem) {
@@ -240,7 +242,7 @@ module drunk {
             this.unwatches.forEach(unwatch => unwatch());
 
             if (element) {
-                elementUtil.remove(element);
+                dom.remove(element);
             }
             
             // 移除所有引用
@@ -253,5 +255,5 @@ module drunk {
     ComponentBinding.prototype.isTerminal = true;
     ComponentBinding.prototype.priority = Binding.Priority.aboveNormal;
 
-    Binding.define('component', ComponentBinding.prototype);
+    Binding.register('component', ComponentBinding.prototype);
 }

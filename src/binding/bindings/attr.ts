@@ -10,7 +10,7 @@ module drunk {
         element.setAttribute(name, value);
     }
     
-    Binding.define('attr', {
+    Binding.register('attr', {
         
         update(newValue: any) {
             if (this.attrName) {
