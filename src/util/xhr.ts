@@ -6,7 +6,7 @@
  * @module drunk.util
  * @class util
  */
-module drunk {
+module drunk.util {
 
     export interface IAjaxOptions {
         url: string;
@@ -22,7 +22,7 @@ module drunk {
     /**
      * XMLHTTP request工具方法
      * @static
-     * @method xhr
+     * @method ajax
      * @param  {object}     	options                     配置参数
      * @param  {string}         options.url                 请求的url
      * @param  {string}         [options.type]              请求的类型(GET或POST)
@@ -34,7 +34,7 @@ module drunk {
      * @param  {string}         [options.dataType]          接受的数据类型(目前只支持json)
      * @return {Promise}                                    一个promise实例
      */
-    export function xhr<T>(options: IAjaxOptions): Promise<T> {
+    export function ajax<T>(options: IAjaxOptions): Promise<T> {
         var xhr = new XMLHttpRequest();
         
         if (typeof options.url !== 'string') {

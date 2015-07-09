@@ -30,7 +30,7 @@ module drunk {
             dom.replace(fragment, this.element);
 
             nodes.forEach((node) => {
-                // 编译模板病获取绑定创建函数
+                // 编译模板并获取绑定创建函数
                 // 保存解绑函数
                 let bind = Template.compile(node);
                 unbinds.push(bind(parentViewModel, node));

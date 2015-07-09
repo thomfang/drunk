@@ -12,6 +12,7 @@
         "src/promise/promise.ts",
         "src/config/config.ts",
         "src/cache/cache.ts",
+        "src/map/map.ts",
         "src/events/eventemitter.ts",
         "src/util/util.ts",
         "src/util/elem.ts",

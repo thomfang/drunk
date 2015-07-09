@@ -1,5 +1,4 @@
-﻿/// <reference path="../promise/promise.ts" />
-/// <reference path="./xhr" />
+﻿/// <reference path="../promise/promise" />
 
 /**
  * 工具方法模块
@@ -217,6 +216,4 @@ module drunk.util {
         
         return job;
     }
-    
-    export var ajax = xhr;
 }

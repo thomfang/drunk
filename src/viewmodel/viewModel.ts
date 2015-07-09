@@ -12,8 +12,6 @@ module drunk {
         [key: string]: any;
     }
     
-    var counter = 0;
-    
     /**
      * ViewModel类， 实现数据与模板元素的绑定
      * 

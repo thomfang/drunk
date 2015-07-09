@@ -6,9 +6,9 @@ module drunk {
     const uuidOfNull = util.uuid({});
     const uuidOfUndefined = util.uuid({});
     
-    export class Map {
+    export class Map<T> {
         
-        private _store: {[key: string]: any} = {};
+        private _store: {[key: string]: T} = {};
         private _keys: any[] = [];
         private _uuids: any[] = [];
         
@@ -49,7 +49,7 @@ module drunk {
          * @param  {any}  key  键,可为任意类型
          * @param  {any}  
          */
-        set(key: any, value: any): Map {
+        set(key: any, value: T): Map<T> {
             let uuid = this._uuidOf(key);
             
             if (this._uuids.indexOf(uuid) < 0) {
@@ -117,7 +117,7 @@ module drunk {
          * @param  {function}  callback  回调
          * @param  {any}       context   上下文
          */
-        forEach(callback: (value: any, key: any, map: Map) => any, context?: any) {
+        forEach(callback: (value: T, key: any, map: Map<T>) => any, context?: any) {
             let uuids = this._uuids.slice();
             
             this.keys().forEach((key, index) => {
@@ -142,6 +142,15 @@ module drunk {
          */
         values() {
             return this._uuids.map(uuid => this._store[uuid]);
+        }
+        
+        /**
+         * map的成员个数
+         * @property size
+         * @type number
+         */
+        get size() {
+            return this._keys.length;
         }
     }
 }

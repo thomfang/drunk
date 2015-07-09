@@ -2,7 +2,6 @@
 /// <reference path="../promise/promise.ts" />
 /// <reference path="../parser/parser.ts" />
 /// <reference path="../observable/observable.ts" />
-/// <reference path="../scheduler/scheduler" />
 
 module drunk {
 
@@ -26,8 +25,8 @@ module drunk {
         private _properties: { [number: string]: {[property: string]: boolean}} = {};
         private _tmpObservers: { [id: string]: observable.Observer };
         private _tmpProperties: { [number: string]: {[property: string]: boolean}};
-
-        private _runActionJob: Scheduler.IJob;
+        private _isActived: boolean = true;
+        private _runActionJob: util.IAsyncJob;
         private _getter: parser.IGetter;
         
         /**
@@ -36,14 +35,6 @@ module drunk {
          * @type any
          */
         value: any;
-        
-        /**
-         * 是否还是个活动的watcher
-         * @property _isActived
-         * @private
-         * @type boolean
-         */
-        private _isActived: boolean = true;
         
         /**
          * 每个watcher对应一个表达式,watcher管理着对应这个表达式更新的回调函数.watcher在对表达式进行求值是,访问每个数据的getter,并得到
@@ -107,7 +98,7 @@ module drunk {
                 this._runActionJob.cancel();
             }
             
-            Scheduler.schedule(this.__flush, Scheduler.Priority.aboveNormal, this);
+            this._runActionJob = util.execAsyncWork(this.__flush, this);
         }
         
         /**

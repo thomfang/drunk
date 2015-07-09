@@ -16,7 +16,7 @@
             var view;
             drunk.Template.renderFragment('./myview.html', document.getElementById('container')).then(function (e) {
                 view = new MyView();
-                view.mount(e);
+                view.$mount(e);
             });
         
         </script>

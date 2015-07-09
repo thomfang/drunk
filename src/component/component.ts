@@ -1,6 +1,8 @@
 /// <reference path="../viewmodel/viewmodel" />
 /// <reference path="../template/loader" />
+/// <reference path="../template/compiler" />
 /// <reference path="../config/config" />
+/// <reference path="../util/dom" />
 
 module drunk {
 
@@ -120,6 +122,8 @@ module drunk {
          */
         protected __init(model?: IModel) {
             super.__init.call(this, model);
+            
+            util.defineProperty(this, '_isMounted', false);
 
             if (this.filters) {
                 // 如果配置了过滤器

@@ -245,7 +245,7 @@ module drunk.Template {
                 return b.priority - a.priority;
             });
             // 存在绑定
-            return (viewModel: Component, element: any, parentViewModel?: Component, placeholder?: HTMLElement) => {
+            return (viewModel: ViewModel, element: any, parentViewModel?: ViewModel, placeholder?: HTMLElement) => {
                 executors.forEach((executor) => {
                     executor(viewModel, element, parentViewModel, placeholder);
                 });
@@ -270,7 +270,7 @@ module drunk.Template {
         
         util.extend(descriptor, definition);
         
-        executor = (viewModel, element, parentViewModel?: Component, placeholder?: HTMLElement) => {
+        executor = (viewModel, element, parentViewModel?: ViewModel, placeholder?: HTMLElement) => {
             Binding.create(viewModel, element, descriptor, parentViewModel, placeholder);
         };
         executor.isTerminal = descriptor.isTerminal;

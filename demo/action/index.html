@@ -134,7 +134,7 @@
         <div class="greenbox" drunk-if="greenBoxVisible" drunk-action="fade"></div>
         <script>
             
-            drunk.Action.define('fade', {
+            drunk.Action.register('fade', {
                 created: function (element, done) {
                     element.style.opacity = 0;
                     
@@ -185,7 +185,7 @@
                 slogan: [],
                 count: 1000
             });
-            app.mount(document.body);
+            app.$mount(document.body);
         </script>
     </body>
 

@@ -131,7 +131,7 @@ module drunk {
                 });
             }
 
-            component.emit(Component.Event.created, component);
+            component.$emit(Component.Event.created, component);
         }
         
         /**
@@ -142,7 +142,7 @@ module drunk {
             let component = this.component;
             let viewModel = this.viewModel;
 
-            return component.processTemplate().then((template) => {
+            return component.$processTemplate().then((template) => {
                 if (this.isDisposed) {
                     return;
                 }
@@ -159,7 +159,7 @@ module drunk {
                     container.appendChild(template);
                 }
 
-                component.mount(template, viewModel, element);
+                component.$mount(template, viewModel, element);
                 
                 let nodeList = util.toArray(container.childNodes);
                 dom.replace(nodeList, element);
@@ -180,7 +180,7 @@ module drunk {
             let viewModel: Component = this.viewModel;
             let func = parser.parse(expression);
 
-            this.component.addListener(eventName, (...args: any[]) => {
+            this.component.$addListener(eventName, (...args: any[]) => {
                 // 事件的处理函数,会生成一个$event对象,在表达式中可以访问该对象.
                 // $event对象有type和args两个字段,args字段是组件派发这个事件所传递的参数的列表
                 func.call(undefined, viewModel, {
@@ -208,18 +208,18 @@ module drunk {
                 
                 let ownerProperty = result[1].trim();
                 
-                unwatch = component.watch(property, (newValue) => {
+                unwatch = component.$watch(property, (newValue) => {
                     if (isTwoway && locked) {
                         locked = false;
                         return;
                     }
-                    viewModel.setValue(ownerProperty, newValue);
+                    viewModel.$setValue(ownerProperty, newValue);
                 });
                 
                 this.unwatches.push(unwatch);
             }
 
-            unwatch = viewModel.watch(expression, (newValue) => {
+            unwatch = viewModel.$watch(expression, (newValue) => {
                 component[property] = newValue;
                 locked = true;
             }, false, true);
@@ -234,9 +234,7 @@ module drunk {
             let component = this.component;
             let element = component.element;
             
-            // 组件实例释放
-            component.emit(Component.Event.dispose, component);
-            component.dispose();
+            component.$release();
             
             // 移除所有的属性监控
             this.unwatches.forEach(unwatch => unwatch());

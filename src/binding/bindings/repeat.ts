@@ -2,9 +2,9 @@
 /// <reference path="../../util/dom" />
 /// <reference path="../../component/component" />
 /// <reference path="../../template/compiler" />
-/// <reference path="../../viewmodel/viewmodel" />
 /// <reference path="../../scheduler/scheduler" />
- 
+/// <reference path="../../map/map" />
+
 module drunk {
 
     export interface IItemDataDescriptor {
@@ -23,7 +23,6 @@ module drunk {
      */
     export class RepeatItem extends Component {
 
-        _isCollection: boolean;
         _isUsed: boolean;
         _isBinded: boolean;
         _placeholder: Comment = document.createComment('repeat-item');
@@ -59,7 +58,7 @@ module drunk {
 
             super.__init(parent._model);
 
-            this.filter = parent.filter;
+            this.$filter = parent.$filter;
 
             if (models) {
                 models.forEach((model) => {
@@ -90,9 +89,9 @@ module drunk {
          * @method proxy
          * @override
          */
-        proxy(property: string) {
+        $proxy(property: string) {
             if (util.proxy(this, property, this._model)) {
-                this.parent.proxy(property);
+                this.parent.$proxy(property);
             }
         }
         
@@ -127,8 +126,8 @@ module drunk {
         /**
          * @override
          */
-        dispose() {
-            super.dispose();
+        $release() {
+            super.$release();
             this._placeholder = null;
             this._element = null;
         }
@@ -184,29 +183,31 @@ module drunk {
     let regKeyValue = /(\w+)\s*,\s*(\w+)/;
 
     class RepeatBinding implements IBindingDefinition {
-        
+
         isTerminal: boolean;
         priority: Binding.Priority;
-        
+
         element: any;
         viewModel: Component;
         expression: string;
-        
+
         private _startNode: Node;
         private _endedNode: Node;
-        private _param: {key?: string; val: string};
-        private _cache: any;
+        private _param: { key?: string; val: string };
         private _nameOfRef: string;
         private _bindExecutor: IBindingExecutor;
         private _itemVms: RepeatItem[];
         private _renderJob: Scheduler.IJob;
+        private _map: Map<RepeatItem[]>;
+        private _items: IItemDataDescriptor[];
 
         // 初始化绑定
         init() {
             this.createCommentNodes();
             this.parseDefinition();
 
-            this._cache = {};
+            this._map = new Map<RepeatItem[]>();
+            this._items = [];
             this._nameOfRef = repeaterPrefix + repeaterCounter++;
             this._bindExecutor = Template.compile(this.element);
         }
@@ -254,30 +255,33 @@ module drunk {
             if (this._renderJob) {
                 this._renderJob.cancel();
             }
-            
+
             let items = RepeatItem.toList(newValue);
-            let isEmpty = !this._itemVms || this._itemVms.length === 0;
             let last = items.length - 1;
             let newVms = [];
-            let itemVm: RepeatItem;
-            let fragment: DocumentFragment;
 
             items.forEach((item, index) => {
-                itemVm = newVms[index] = this._getRepeatItem(item, index === last);
+                let itemVm = newVms[index] = this._getRepeatItem(item, index === last);
                 itemVm._isUsed = true;
             });
-            
-            if (!isEmpty) {
+
+            if (this._itemVms && this._itemVms.length > 0) {
                 this._unrealizeUnusedItems();
             }
-            
+
             newVms.forEach(itemVm => itemVm._isUsed = false);
+
+            this._items = items;
             this._itemVms = newVms;
-            
+
+            this._render();
+        }
+
+        _render() {
             let index = 0;
-            let length = items.length;
+            let length = this._items.length;
             let placeholder;
-                
+
             let next = (node: Node) => {
                 placeholder = node.nextSibling;
                 while (placeholder && (placeholder.nodeType !== 8 || placeholder.textContent != 'repeat-item')) {
@@ -287,29 +291,35 @@ module drunk {
                     placeholder = this._endedNode;
                 }
             };
-            
-            let renderItems = (jobInfo) => {
+
+            let renderItems = () => {
                 let viewModel: RepeatItem;
                 
+                // 100ms作为当前线程跑的时长，超过该时间则让出线程
+                let endTime = Date.now() + 100;
+
                 while (index < length) {
-                    viewModel = newVms[index++];
-                    
+                    viewModel = this._itemVms[index++];
+
                     if (viewModel._placeholder !== placeholder) {
+                        // 判断占位节点是否是当前item的节点，不是则换位
                         dom.before(viewModel._placeholder, placeholder);
-                        
+
                         if (!viewModel._isBinded) {
+                            // 创建节点和生成绑定
                             viewModel.element = viewModel._element = this.element.cloneNode(true);
                             dom.after(viewModel._element, viewModel._placeholder);
-                            
+
                             this._bindExecutor(viewModel, viewModel.element);
                             viewModel._isBinded = true;
                         }
                         else {
-                            dom.before(viewModel._element, viewModel._placeholder);
+                            dom.after(viewModel._element, viewModel._placeholder);
                         }
-                        
-                        if (jobInfo.shouldYield && index < length) {
-                            this._renderJob = jobInfo.setPromise(Promise.resolve(renderItems));
+
+                        if (Date.now() >= endTime && index < length) {
+                            // 如果创建节点达到了一定时间，让出线程给ui线程
+                            this._renderJob = Scheduler.schedule(renderItems, Scheduler.Priority.normal);
                             return;
                         }
                     }
@@ -317,38 +327,23 @@ module drunk {
                         next(placeholder);
                     }
                 }
-                
+
                 this._renderJob = null;
             };
-                
+
             next(this._startNode);
-            Scheduler.schedule(renderItems, Scheduler.Priority.aboveNormal);
+            renderItems();
         }
 
         _getRepeatItem(item, isLast) {
             let value = item.val;
-            let isCollection = util.isObject(value) || Array.isArray(value);
+            let viewModelList = this._map.get(value);
             let viewModel: RepeatItem;
 
-            if (isCollection) {
-                let arr = value[this._nameOfRef];
-                if (arr) {
-                    for (var i = 0; viewModel = arr[i]; i++) {
-                        if (!viewModel._isUsed) {
-                            break;
-                        }
-                    }
-                }
-            }
-            else {
-                let list = this._cache[value];
-
-                if (list) {
-                    let i = 0;
-                    viewModel = list[0];
-
-                    while (viewModel && viewModel._isUsed) {
-                        viewModel = list[++i];
+            if (viewModelList) {
+                for (let i = 0; viewModel = viewModelList[i]; i++) {
+                    if (!viewModel._isUsed) {
+                        break;
                     }
                 }
             }
@@ -357,31 +352,26 @@ module drunk {
                 this._updateItemModel(viewModel, item, isLast);
             }
             else {
-                viewModel = this._realizeRepeatItem(item, isLast, isCollection);
+                viewModel = this._realizeRepeatItem(item, isLast);
             }
 
             return viewModel;
         }
 
-        _realizeRepeatItem(item: IItemDataDescriptor, isLast: boolean, isCollection: boolean) {
+        _realizeRepeatItem(item: IItemDataDescriptor, isLast: boolean) {
             let value = item.val;
             let options: IModel = {};
 
             this._updateItemModel(options, item, isLast);
 
             let viewModel = new RepeatItem(this.viewModel, options);
+            let viewModelList = this._map.get(value);
 
-            if (isCollection) {
-                if (!value[this._nameOfRef]) {
-                    util.defineProperty(value, this._nameOfRef, []);
-                }
-                value[this._nameOfRef].push(viewModel);
-                viewModel._isCollection = true;
+            if (!viewModelList) {
+                viewModelList = [];
+                this._map.set(value, viewModelList);
             }
-            else {
-                this._cache[value] = this._cache[value] || [];
-                this._cache[value].push(viewModel);
-            }
+            viewModelList.push(viewModel);
 
             return viewModel;
         }
@@ -400,9 +390,7 @@ module drunk {
         }
 
         _unrealizeUnusedItems(force?: boolean) {
-            let cache: { [id: string]: RepeatItem[] } = this._cache;
             let nameOfVal = this._param.val;
-            let nameOfRef = this._nameOfRef;
 
             this._itemVms.forEach((viewModel: RepeatItem, index) => {
                 if (viewModel._isUsed && !force) {
@@ -410,27 +398,24 @@ module drunk {
                 }
 
                 let value = viewModel[nameOfVal];
+                let viewModelList = this._map.get(value);
 
-                if (viewModel._isCollection) {
-                    // 移除数据对viewModel实例的引用
-                    util.removeArrayItem(value[nameOfRef], viewModel);
-                    if (value[nameOfRef]) {
-                        delete value[nameOfRef];
-                    }
-                }
-                else {
-                    util.removeArrayItem(cache[value], viewModel);
+                util.removeArrayItem(viewModelList, viewModel);
+                if (!viewModelList.length) {
+                    this._map.delete(value);
                 }
 
                 let element = viewModel._element;
                 let placeholder: any = viewModel._placeholder;
+                
                 placeholder.textContent = 'disposed repeat item';
-                
-                viewModel.dispose();
-                
+                viewModel.$release();
+
                 Scheduler.schedule(() => {
                     dom.remove(placeholder);
-                    dom.remove(element);
+                    if (element) {
+                        dom.remove(element);
+                    }
                 }, Scheduler.Priority.normal);
             });
         }
@@ -446,15 +431,17 @@ module drunk {
 
             dom.remove(this._startNode);
             dom.remove(this._endedNode);
-
-            this._cache = null;
+            
+            this._map.clear();
+            this._map = null;
+            this._items = null;
             this._itemVms = null;
             this._bindExecutor = null;
             this._startNode = null;
             this._endedNode = null;
         }
     };
-    
+
     RepeatBinding.prototype.isTerminal = true;
     RepeatBinding.prototype.priority = Binding.Priority.aboveNormal + 1;
 

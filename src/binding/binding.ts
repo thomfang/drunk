@@ -1,11 +1,6 @@
-/// <reference path="../promise/promise.ts" />
-/// <reference path="../viewmodel/viewModel.ts" />
-/// <reference path="../template/compiler.ts" />
-/// <reference path="../parser/parser.ts" />
-/// <reference path="../watcher/watcher.ts" />
-/// <reference path="../util/dom" />
-/// <reference path="../util/util.ts" />
-/// <reference path="../config/config.ts" />
+/// <reference path="../promise/promise" />
+/// <reference path="../util/util" />
+/// <reference path="../viewmodel/viewmodel" />
 
 module drunk {
 
@@ -31,7 +26,7 @@ module drunk {
         expression?: string;
         retainAttribute?: boolean;
 
-        init?(parentViewModel?: Component, placeholder?: HTMLElement): void;
+        init?(parentViewModel?: ViewModel, placeholder?: HTMLElement): void;
         update?(newValue: any, oldValue: any): void;
         release?(): void;
     }
@@ -42,7 +37,7 @@ module drunk {
      * @type function
      */
     export interface IBindingExecutor {
-        (viewModel: ViewModel, element: any, parentViewModel?: Component, placeHolder?: HTMLElement): any;
+        (viewModel: ViewModel, element: any, parentViewModel?: ViewModel, placeHolder?: HTMLElement): any;
         isTerminal?: boolean;
         priority?: number;
     }
@@ -77,7 +72,7 @@ module drunk {
          */
         expression: string;
 
-        init: (parentViewModel?: Component, placeholder?: HTMLElement) => void;
+        init: (parentViewModel?: ViewModel, placeholder?: HTMLElement) => void;
         update: IBindingUpdateAction;
         release: () => void;
 
@@ -104,7 +99,7 @@ module drunk {
          * 初始化绑定
          * @method initialize
          */
-        initialize(parentViewModel?: Component, placeholder?: HTMLElement) {
+        initialize(parentViewModel, placeholder?: HTMLElement) {
             if (this.init) {
                 this.init(parentViewModel, placeholder);
             }
@@ -317,7 +312,7 @@ module drunk {
          * @param  {ViewModel}   viewModel  ViewModel实例
          * @param  {HTMLElement} element    元素
          */
-        export function create(viewModel: Component, element: any, descriptor: IBindingDefinition, parentViewModel?: Component, placeholder?: HTMLElement) {
+        export function create(viewModel, element: any, descriptor: IBindingDefinition, parentViewModel?, placeholder?: HTMLElement) {
             let binding: Binding = new Binding(viewModel, element, descriptor);
 
             util.addArrayItem(viewModel._bindings, binding);

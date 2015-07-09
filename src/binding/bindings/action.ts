@@ -2,7 +2,6 @@
 /// <reference path="../../config/config" />
 /// <reference path="../../promise/promise" />
 /// <reference path="../../scheduler/scheduler" />
-/// <reference path="../../component/component" />
 
 module drunk {
 
@@ -285,7 +284,7 @@ module drunk {
 
         element: HTMLElement;
         expression: string;
-        viewModel: Component;
+        viewModel: ViewModel;
 
         private _actionNames: string[];
         private _actionJob: Scheduler.IJob;

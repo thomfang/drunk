@@ -32,7 +32,7 @@
         <script type='text/tpl' id="todo-item">
             <p drunk-class="{strike: completed}">
                 <button drunk-on="click: completed = !completed">{{completed ? '取消' : '完成'}}</button>
-                <button drunk-on="click: emit('remove', index)">删除</button>
+                <button drunk-on="click: $emit('remove', index)">删除</button>
                 {{content}}
             </p>
         </script>
@@ -66,11 +66,11 @@
                 }
             });
             
-            // drunk.config.debug = true;
+            drunk.config.debug = true;
             
             var app = new TodoApp();
             
-            app.mount(document.body);
+            app.$mount(document.body);
         </script>
     </body>
 </html>
