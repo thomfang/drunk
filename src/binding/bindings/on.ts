@@ -7,14 +7,15 @@ module drunk {
 
     let reg = {
         semic: /\s*;\s*/,
-        statement: /(\w+):\s*(.+)/
+        statement: /(\w+):\s*(.+)/,
+        breakword: /\n+/g
     };
 
     Binding.register("on", {
 
         init() {
             let exp = this.expression;
-            this.events = exp.split(reg.semic).map(str => this.parseEvent(str));
+            this.events = exp.replace(reg.breakword, ' ').split(reg.semic).map(str => this.parseEvent(str));
         },
 
         parseEvent(str: string) {

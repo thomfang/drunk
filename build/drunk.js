@@ -2488,7 +2488,9 @@ var drunk;
                 delete _this[property];
             });
             Object.keys(this._watchers).forEach(function (key) {
-                _this._watchers[key].dispose();
+                if (_this._watchers[key]) {
+                    _this._watchers[key].dispose();
+                }
             });
             this._bindings.forEach(function (binding) {
                 binding.dispose();
@@ -4359,13 +4361,14 @@ var drunk;
 (function (drunk) {
     var reg = {
         semic: /\s*;\s*/,
-        statement: /(\w+):\s*(.+)/
+        statement: /(\w+):\s*(.+)/,
+        breakword: /\n+/g
     };
     drunk.Binding.register("on", {
         init: function () {
             var _this = this;
             var exp = this.expression;
-            this.events = exp.split(reg.semic).map(function (str) { return _this.parseEvent(str); });
+            this.events = exp.replace(reg.breakword, ' ').split(reg.semic).map(function (str) { return _this.parseEvent(str); });
         },
         parseEvent: function (str) {
             var matches = str.match(reg.statement);
@@ -4648,7 +4651,10 @@ var drunk;
     var repeaterPrefix = "__drunk_repeater_item_";
     var repeaterCounter = 0;
     var regParam = /\s+in\s+/;
-    var regKeyValue = /(\w+)\s*,\s*(\w+)/;
+    var regComma = /\s*,\s*/;
+    function invalidExpression(expression) {
+        throw new TypeError('错误的' + drunk.config.prefix + 'repeat表达式: ' + expression);
+    }
     var RepeatBinding = (function () {
         function RepeatBinding() {
         }
@@ -4672,15 +4678,19 @@ var drunk;
         RepeatBinding.prototype.parseDefinition = function () {
             var expression = this.expression;
             var parts = expression.split(regParam);
-            console.assert(parts.length === 2, '错误的', drunk.config.prefix + 'repeat 表达式: ', expression);
+            if (parts.length !== 2) {
+                invalidExpression(expression);
+            }
             var params = parts[0];
             var key;
             var value;
             if (params.indexOf(',') > 0) {
-                var matches = params.match(regKeyValue);
-                console.assert(matches, '错误的', drunk.config.prefix + 'repeat 表达式: ', expression);
-                key = matches[2];
-                value = matches[1];
+                params = params.split(regComma);
+                if (params[0] === '') {
+                    invalidExpression(expression);
+                }
+                key = params[1];
+                value = params[0];
             }
             else {
                 value = params;

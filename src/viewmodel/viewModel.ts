@@ -49,7 +49,7 @@ module drunk {
          * @type {[expression]: Watcher}
          * @private
          */
-        _watchers: { [on: string]: Watcher };
+        _watchers: { [expression: string]: Watcher };
         
         /**
          * 过滤器方法,包含内置的
@@ -211,7 +211,9 @@ module drunk {
             });
             
             Object.keys(this._watchers).forEach((key) => {
-                this._watchers[key].dispose();
+                if (this._watchers[key]) {
+                    this._watchers[key].dispose();
+                }
             });
             
             this._bindings.forEach((binding) => {

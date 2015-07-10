@@ -180,7 +180,11 @@ module drunk {
     let repeaterCounter = 0;
 
     let regParam = /\s+in\s+/;
-    let regKeyValue = /(\w+)\s*,\s*(\w+)/;
+    let regComma = /\s*,\s*/;
+    
+    function invalidExpression(expression: string) {
+        throw new TypeError('错误的' + config.prefix + 'repeat表达式: ' + expression);
+    }
 
     class RepeatBinding implements IBindingDefinition {
 
@@ -226,17 +230,21 @@ module drunk {
             let expression: string = this.expression;
             let parts = expression.split(regParam);
 
-            console.assert(parts.length === 2, '错误的', config.prefix + 'repeat 表达式: ', expression);
+            if (parts.length !== 2) {
+                invalidExpression(expression);
+            }
 
             let params: any = parts[0];
             let key: string;
             let value: string;
 
             if (params.indexOf(',') > 0) {
-                let matches = params.match(regKeyValue);
-                console.assert(matches, '错误的', config.prefix + 'repeat 表达式: ', expression);
-                key = matches[2];
-                value = matches[1];
+                params = params.split(regComma);
+                if (params[0] === '') {
+                    invalidExpression(expression);
+                }
+                key = params[1];
+                value = params[0];
             }
             else {
                 value = params;

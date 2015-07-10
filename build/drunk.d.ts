@@ -1025,7 +1025,7 @@ declare module drunk {
          * @private
          */
         _watchers: {
-            [on: string]: Watcher;
+            [expression: string]: Watcher;
         };
         /**
          * 过滤器方法,包含内置的
