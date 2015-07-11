@@ -209,10 +209,6 @@ module drunk {
                 let ownerProperty = result[1].trim();
                 
                 unwatch = component.$watch(property, (newValue) => {
-                    if (isTwoway && locked) {
-                        locked = false;
-                        return;
-                    }
                     viewModel.$setValue(ownerProperty, newValue);
                 });
                 
@@ -221,7 +217,6 @@ module drunk {
 
             unwatch = viewModel.$watch(expression, (newValue) => {
                 component[property] = newValue;
-                locked = true;
             }, false, true);
 
             this.unwatches.push(unwatch);

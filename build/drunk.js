@@ -5034,17 +5034,12 @@ var drunk;
                 }
                 var ownerProperty = result[1].trim();
                 unwatch = component.$watch(property, function (newValue) {
-                    if (isTwoway && locked) {
-                        locked = false;
-                        return;
-                    }
                     viewModel.$setValue(ownerProperty, newValue);
                 });
                 this.unwatches.push(unwatch);
             }
             unwatch = viewModel.$watch(expression, function (newValue) {
                 component[property] = newValue;
-                locked = true;
             }, false, true);
             this.unwatches.push(unwatch);
         };
