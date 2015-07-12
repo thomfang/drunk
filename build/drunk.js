@@ -4506,15 +4506,14 @@ var drunk;
      * 用于repeat作用域下的子viewModel
      * @class RepeatItem
      * @constructor
-     * @param {Component}   parent      父级ViewModel
+     * @param {Component}   $parent     父级ViewModel
      * @param {object}      ownModel    私有的数据
-     * @param {HTMLElement} element     元素对象
      */
     var RepeatItem = (function (_super) {
         __extends(RepeatItem, _super);
-        function RepeatItem(parent, ownModel) {
+        function RepeatItem($parent, ownModel) {
             _super.call(this, ownModel);
-            this.parent = parent;
+            this.$parent = $parent;
             this._placeholder = document.createComment('repeat-item');
             this.__inheritParentMembers();
         }
@@ -4536,7 +4535,7 @@ var drunk;
          */
         RepeatItem.prototype.__inheritParentMembers = function () {
             var _this = this;
-            var parent = this.parent;
+            var parent = this.$parent;
             var models = parent._models;
             _super.prototype.__init.call(this, parent._model);
             this.$filter = parent.$filter;
@@ -4568,7 +4567,7 @@ var drunk;
          */
         RepeatItem.prototype.$proxy = function (property) {
             if (drunk.util.proxy(this, property, this._model)) {
-                this.parent.$proxy(property);
+                this.$parent.$proxy(property);
             }
         };
         /**
@@ -4648,7 +4647,6 @@ var drunk;
         return RepeatItem;
     })(drunk.Component);
     drunk.RepeatItem = RepeatItem;
-    var repeaterPrefix = "__drunk_repeater_item_";
     var repeaterCounter = 0;
     var regParam = /\s+in\s+/;
     var regComma = /\s*,\s*/;
@@ -4664,7 +4662,6 @@ var drunk;
             this.parseDefinition();
             this._map = new drunk.Map();
             this._items = [];
-            this._nameOfRef = repeaterPrefix + repeaterCounter++;
             this._bindExecutor = drunk.Template.compile(this.element);
         };
         // 创建注释标记标签
@@ -4707,18 +4704,17 @@ var drunk;
             if (this._renderJob) {
                 this._renderJob.cancel();
             }
-            var items = RepeatItem.toList(newValue);
-            var last = items.length - 1;
+            var items = this._items = RepeatItem.toList(newValue);
+            var isEmpty = this._itemVms && this._itemVms.length > 0;
             var newVms = [];
             items.forEach(function (item, index) {
-                var itemVm = newVms[index] = _this._getRepeatItem(item, index === last);
+                var itemVm = newVms[index] = _this._getRepeatItem(item);
                 itemVm._isUsed = true;
             });
-            if (this._itemVms && this._itemVms.length > 0) {
+            if (isEmpty) {
                 this._unrealizeUnusedItems();
             }
             newVms.forEach(function (itemVm) { return itemVm._isUsed = false; });
-            this._items = items;
             this._itemVms = newVms;
             this._render();
         };
@@ -4736,7 +4732,7 @@ var drunk;
                     placeholder = _this._endedNode;
                 }
             };
-            var renderItems = function () {
+            var renderItems = function (jobInfo) {
                 var viewModel;
                 // 100ms作为当前线程跑的时长，超过该时间则让出线程
                 var endTime = Date.now() + 100;
@@ -4757,8 +4753,7 @@ var drunk;
                         }
                         if (Date.now() >= endTime && index < length) {
                             // 如果创建节点达到了一定时间，让出线程给ui线程
-                            _this._renderJob = drunk.Scheduler.schedule(renderItems, drunk.Scheduler.Priority.normal);
-                            return;
+                            return jobInfo.setPromise(drunk.Promise.resolve(renderItems));
                         }
                     }
                     else {
@@ -4768,9 +4763,9 @@ var drunk;
                 _this._renderJob = null;
             };
             next(this._startNode);
-            renderItems();
+            drunk.Scheduler.schedule(renderItems, drunk.Scheduler.Priority.aboveNormal);
         };
-        RepeatBinding.prototype._getRepeatItem = function (item, isLast) {
+        RepeatBinding.prototype._getRepeatItem = function (item) {
             var value = item.val;
             var viewModelList = this._map.get(value);
             var viewModel;
@@ -4782,17 +4777,17 @@ var drunk;
                 }
             }
             if (viewModel) {
-                this._updateItemModel(viewModel, item, isLast);
+                this._updateItemModel(viewModel, item);
             }
             else {
-                viewModel = this._realizeRepeatItem(item, isLast);
+                viewModel = this._realizeRepeatItem(item);
             }
             return viewModel;
         };
-        RepeatBinding.prototype._realizeRepeatItem = function (item, isLast) {
+        RepeatBinding.prototype._realizeRepeatItem = function (item) {
             var value = item.val;
             var options = {};
-            this._updateItemModel(options, item, isLast);
+            this._updateItemModel(options, item);
             var viewModel = new RepeatItem(this.viewModel, options);
             var viewModelList = this._map.get(value);
             if (!viewModelList) {
@@ -4802,10 +4797,10 @@ var drunk;
             viewModelList.push(viewModel);
             return viewModel;
         };
-        RepeatBinding.prototype._updateItemModel = function (target, item, isLast) {
+        RepeatBinding.prototype._updateItemModel = function (target, item) {
             target.$odd = 0 === item.idx % 2;
             target.$even = !target.$odd;
-            target.$last = isLast;
+            target.$last = item.idx === this._items.length - 1;
             target.$first = 0 === item.idx;
             target[this._param.val] = item.val;
             if (this._param.key) {
@@ -5025,7 +5020,6 @@ var drunk;
         ComponentBinding.prototype.watchExpressionForComponent = function (property, expression, isTwoway) {
             var viewModel = this.viewModel;
             var component = this.component;
-            var locked = false;
             var unwatch;
             if (isTwoway) {
                 var result = expression.match(reOneInterpolate);
@@ -5143,21 +5137,16 @@ var drunk;
 var drunk;
 (function (drunk) {
     drunk.Binding.register("include", {
-        isActived: true,
         _unbindExecutor: null,
         update: function (url) {
-            if (!this.isActived || (url && url === this.url)) {
+            if (!this._isActived || (url && url === this.url)) {
                 return;
             }
             this.unbind();
             this.url = url;
+            drunk.dom.remove(drunk.util.toArray(this.element.childNodes));
             if (url) {
                 drunk.Template.load(url).then(this.createBinding.bind(this));
-            }
-            else {
-                drunk.util.toArray(this.element.childNodes).forEach(function (child) {
-                    drunk.dom.remove(child);
-                });
             }
         },
         createBinding: function (template) {
@@ -5165,7 +5154,8 @@ var drunk;
                 return;
             }
             drunk.dom.html(this.element, template);
-            this._unbindExecutor = drunk.Template.compile(this.element)(this.viewModel, this.element);
+            var nodes = drunk.util.toArray(this.element.childNodes);
+            this._unbindExecutor = drunk.Template.compile(nodes)(this.viewModel, nodes);
         },
         unbind: function () {
             if (this._unbindExecutor) {
@@ -5176,7 +5166,6 @@ var drunk;
         release: function () {
             this.unbind();
             this.url = null;
-            this.isActived = false;
         }
     });
 })(drunk || (drunk = {}));

@@ -17,9 +17,8 @@ module drunk {
      * 用于repeat作用域下的子viewModel
      * @class RepeatItem
      * @constructor
-     * @param {Component}   parent      父级ViewModel
+     * @param {Component}   $parent     父级ViewModel
      * @param {object}      ownModel    私有的数据
-     * @param {HTMLElement} element     元素对象
      */
     export class RepeatItem extends Component {
 
@@ -30,7 +29,7 @@ module drunk {
 
         protected _models: IModel[];
 
-        constructor(public parent: Component | RepeatItem, ownModel) {
+        constructor(private $parent: Component | RepeatItem, ownModel) {
             super(ownModel);
             this.__inheritParentMembers();
         }
@@ -53,7 +52,7 @@ module drunk {
          * @override
          */
         protected __inheritParentMembers() {
-            let parent = this.parent;
+            let parent = this.$parent;
             let models = (<RepeatItem>parent)._models;
 
             super.__init(parent._model);
@@ -91,7 +90,7 @@ module drunk {
          */
         $proxy(property: string) {
             if (util.proxy(this, property, this._model)) {
-                this.parent.$proxy(property);
+                this.$parent.$proxy(property);
             }
         }
         
@@ -176,7 +175,6 @@ module drunk {
         }
     }
 
-    let repeaterPrefix = "__drunk_repeater_item_";
     let repeaterCounter = 0;
 
     let regParam = /\s+in\s+/;
@@ -198,7 +196,6 @@ module drunk {
         private _startNode: Node;
         private _endedNode: Node;
         private _param: { key?: string; val: string };
-        private _nameOfRef: string;
         private _bindExecutor: IBindingExecutor;
         private _itemVms: RepeatItem[];
         private _renderJob: Scheduler.IJob;
@@ -212,7 +209,6 @@ module drunk {
 
             this._map = new Map<RepeatItem[]>();
             this._items = [];
-            this._nameOfRef = repeaterPrefix + repeaterCounter++;
             this._bindExecutor = Template.compile(this.element);
         }
         
@@ -264,24 +260,22 @@ module drunk {
                 this._renderJob.cancel();
             }
 
-            let items = RepeatItem.toList(newValue);
-            let last = items.length - 1;
+            let items = this._items = RepeatItem.toList(newValue);
+            let isEmpty = this._itemVms && this._itemVms.length > 0;
             let newVms = [];
-
+            
             items.forEach((item, index) => {
-                let itemVm = newVms[index] = this._getRepeatItem(item, index === last);
+                let itemVm = newVms[index] = this._getRepeatItem(item);
                 itemVm._isUsed = true;
             });
 
-            if (this._itemVms && this._itemVms.length > 0) {
+            if (isEmpty) {
                 this._unrealizeUnusedItems();
             }
 
             newVms.forEach(itemVm => itemVm._isUsed = false);
 
-            this._items = items;
             this._itemVms = newVms;
-
             this._render();
         }
 
@@ -300,7 +294,7 @@ module drunk {
                 }
             };
 
-            let renderItems = () => {
+            let renderItems = (jobInfo: Scheduler.IJobInfo) => {
                 let viewModel: RepeatItem;
                 
                 // 100ms作为当前线程跑的时长，超过该时间则让出线程
@@ -327,8 +321,7 @@ module drunk {
 
                         if (Date.now() >= endTime && index < length) {
                             // 如果创建节点达到了一定时间，让出线程给ui线程
-                            this._renderJob = Scheduler.schedule(renderItems, Scheduler.Priority.normal);
-                            return;
+                            return jobInfo.setPromise(Promise.resolve(renderItems));
                         }
                     }
                     else {
@@ -340,10 +333,10 @@ module drunk {
             };
 
             next(this._startNode);
-            renderItems();
+            Scheduler.schedule(renderItems, Scheduler.Priority.aboveNormal);
         }
 
-        _getRepeatItem(item, isLast) {
+        _getRepeatItem(item) {
             let value = item.val;
             let viewModelList = this._map.get(value);
             let viewModel: RepeatItem;
@@ -357,20 +350,20 @@ module drunk {
             }
 
             if (viewModel) {
-                this._updateItemModel(viewModel, item, isLast);
+                this._updateItemModel(viewModel, item);
             }
             else {
-                viewModel = this._realizeRepeatItem(item, isLast);
+                viewModel = this._realizeRepeatItem(item);
             }
 
             return viewModel;
         }
 
-        _realizeRepeatItem(item: IItemDataDescriptor, isLast: boolean) {
+        _realizeRepeatItem(item: IItemDataDescriptor) {
             let value = item.val;
             let options: IModel = {};
 
-            this._updateItemModel(options, item, isLast);
+            this._updateItemModel(options, item);
 
             let viewModel = new RepeatItem(this.viewModel, options);
             let viewModelList = this._map.get(value);
@@ -384,10 +377,10 @@ module drunk {
             return viewModel;
         }
 
-        _updateItemModel(target: any, item: IItemDataDescriptor, isLast: boolean) {
+        _updateItemModel(target: any, item: IItemDataDescriptor) {
             target.$odd = 0 === item.idx % 2;
             target.$even = !target.$odd;
-            target.$last = isLast;
+            target.$last = item.idx === this._items.length - 1;
             target.$first = 0 === item.idx;
 
             target[this._param.val] = item.val;

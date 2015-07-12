@@ -1653,18 +1653,17 @@ declare module drunk {
      * 用于repeat作用域下的子viewModel
      * @class RepeatItem
      * @constructor
-     * @param {Component}   parent      父级ViewModel
+     * @param {Component}   $parent     父级ViewModel
      * @param {object}      ownModel    私有的数据
-     * @param {HTMLElement} element     元素对象
      */
     class RepeatItem extends Component {
-        parent: Component | RepeatItem;
+        private $parent;
         _isUsed: boolean;
         _isBinded: boolean;
         _placeholder: Comment;
         _element: any;
         protected _models: IModel[];
-        constructor(parent: Component | RepeatItem, ownModel: any);
+        constructor($parent: Component | RepeatItem, ownModel: any);
         /**
          * 这里只初始化私有model
          * @method __init

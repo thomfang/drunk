@@ -196,7 +196,6 @@ module drunk {
         watchExpressionForComponent(property: string, expression: string, isTwoway: boolean) {
             let viewModel = this.viewModel;
             let component = this.component;
-            let locked = false;
             let unwatch: () => void;
             
             if (isTwoway) {

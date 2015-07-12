@@ -26,11 +26,11 @@
             
             function createNodesByCount(count) {
                 
-                drunk.scheduler.schedule(function (jobInfo) {
+                drunk.Scheduler.schedule(function (jobInfo) {
                     var i = 0;
                     var start = Date.now();
                     for (; i < count; i++) {
-                        if (jobInfo.shouldYield) {
+                        if (Date.now() - start > 100) {
                             jobInfo.setPromise(drunk.Promise.resolve(newWork));
                             console.log(Date.now() - start);
                             break;
@@ -45,7 +45,7 @@
                         console.log(i, count - i);
                         createNodesByCount(count - i);
                     }
-                }, drunk.scheduler.Priority.normal);
+                }, drunk.Scheduler.Priority.normal);
             }
             
             // function createNodesByCount(count) {
@@ -56,13 +56,16 @@
             // }
             
             setTimeout(function () {
-                var markNode = drunk.elementUtil.create('<p>start to render</p>');
+                var markNode = drunk.dom.create('<p>start to render</p>');
                 document.body.insertBefore(markNode, container);
-                drunk.scheduler.schedule(function () {
+                drunk.Scheduler.schedule(function () {
                     console.time('render');
                     createNodesByCount(totalCount);
-                    console.timeEnd('render');
-                }, drunk.scheduler.Priority.idle);
+                    
+                    drunk.Scheduler.requestDrain(drunk.Scheduler.Priority.normal, function () {
+                        console.timeEnd('render');
+                    });
+                }, drunk.Scheduler.Priority.idle);
             }, 1000);
         
         </script>

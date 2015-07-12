@@ -6,24 +6,20 @@ module drunk {
 
     Binding.register("include", {
         
-        isActived: true,
         _unbindExecutor: null,
 
         update(url: string) {
-            if (!this.isActived || (url && url === this.url)) {
+            if (!this._isActived || (url && url === this.url)) {
                 return;
             }
             
             this.unbind();
             this.url = url;
+            
+            dom.remove(util.toArray(this.element.childNodes));
 
             if (url) {
                 Template.load(url).then(this.createBinding.bind(this));
-            }
-            else {
-                util.toArray(this.element.childNodes).forEach((child) => {
-                    dom.remove(child);
-                });
             }
         },
 
@@ -33,7 +29,9 @@ module drunk {
             }
             
             dom.html(this.element, template);
-            this._unbindExecutor = Template.compile(this.element)(this.viewModel, this.element);
+            
+            let nodes = util.toArray(this.element.childNodes);
+            this._unbindExecutor = Template.compile(nodes)(this.viewModel, nodes);
         },
         
         unbind() {
@@ -46,7 +44,6 @@ module drunk {
         release() {
             this.unbind();
             this.url = null;
-            this.isActived = false;
         }
     });
 
