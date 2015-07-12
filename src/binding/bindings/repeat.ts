@@ -214,8 +214,8 @@ module drunk {
         
         // 创建注释标记标签
         createCommentNodes() {
-            this._startNode = document.createComment('repeat-start: ' + this.expression);
-            this._endedNode = document.createComment('repeat-ended: ' + this.expression);
+            this._startNode = document.createComment('repeat: ' + this.expression);
+            this._endedNode = document.createComment('/repeat: ' + this.expression);
 
             dom.before(this._startNode, this.element);
             dom.replace(this._endedNode, this.element);

@@ -618,13 +618,13 @@ declare module drunk.observable {
     /**
      * 访问observableObject的字段时会调用的回调
      * @static
-     * @property onAccessingProperty
+     * @property onPropertyAccessing
      * @param {Observer}     observer  返回的当前正在访问的数据的observer对象
      * @param {string}       property  正在访问的数据的字段
      * @param {any}             value  对应字段的数据
      * @param {ObservableObject} data  可观察数据
      */
-    let onAccessingProperty: (observer: Observer, property: string, value: any, data: ObservableObject) => void;
+    let onPropertyAccessing: (observer: Observer, property: string, value: any, data: ObservableObject) => void;
     /**
      * 转换对象属性的getter/setter，使其能在数据更新是能接受到事件
      * @static
@@ -1638,12 +1638,6 @@ declare module drunk {
 declare module drunk {
 }
 declare module drunk {
-}
-declare module drunk {
-}
-declare module drunk {
-}
-declare module drunk {
     interface IItemDataDescriptor {
         key: string | number;
         idx: number;
@@ -1709,82 +1703,6 @@ declare module drunk {
         static toList(target: any): IItemDataDescriptor[];
     }
 }
-declare module drunk {
-}
-/**
- * 条件表达式绑定,如果表达式的返回值为false则会把元素从dom树中移除,为true则会添加到dom树中
- * @class drunk-if
- * @constructor
- * @show
- * @example
-        <html>
-            <section>
-                设置a的值: <input type="text" drunk-model="a" />
-                <p drunk-if="a < 10">如果a小于10显示该标签</p>
-            </section>
-        </html>
-        
-        <script>
-            var myView = new drunk.Component();
-            myView.mount(document.querySelector("section"));
-            myView.a = 0;
-        </script>
- */
-declare module drunk {
-}
-declare module drunk {
-}
-/**
- * 数据双向绑定,只作用于输入控件,支持的控件有:
- *      * input (text|tel|number|checkbox|radio等)
- *      * textarea
- *      * select
- * @class drunk-model
- * @constructor
- * @show
- * @example
-        <html>
-            <section>
-                <label for="exampleInput">选择一个日期:</label>
-                <input type="date" id="exampleInput" name="input" drunk-model="time" placeholder="yyyy-MM-dd"
-                min="2015-05-01" max="2015-12-31" />
-                <p>选中的日期:<span drunk-bind="time|date:'YYYY-MM-DD'"></span></p>
-            </section>
-        </html>
-        
-        <script>
-            var myView = new drunk.Component();
-            myView.mount(document.querySelector("section"));
-            myView.time = Date.now();
-        </script>
- */
-declare module drunk {
-}
-/**
- * 切换元素显示隐藏,和drunk-if的效果相似,只是在具有多个绑定的情况下if的性能更好,反之是show的性能更好
- * @class drunk-show
- * @constructor
- * @show
- * @example
- *      <html>
- *          <section>
- *               <p drunk-show="currtab === 'a'">A</p>
- *               <p drunk-show="currtab === 'b'">B</p>
- *               <p drunk-show="currtab === 'c'">C</p>
- *
- *               <p>选中显示某个元素</p>
- *               <select drunk-model="currtab">
- *                  <option value="a">A</option>
- *                  <option value="b">B</option>
- *                  <option value="c">C</option>
- *               </select>
- *          </section>
- *      </html>
- *      <script>
- *       var myView = new drunk.Component();
- *       myView.mount(document.querySelector("section"));
- *      </script>
- */
 declare module drunk {
 }
 declare module drunk {

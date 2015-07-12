@@ -121,6 +121,8 @@ module drunk {
                     action(newValue, oldValue);
                 });
             }
+            
+            this._runActionJob = null;
         }
         
         /**
@@ -192,7 +194,7 @@ module drunk {
         private __beforeGetValue(): void {
             this._tmpObservers = {};
             this._tmpProperties = {};
-            observable.onAccessingProperty = this._subscribePropertyChanged.bind(this);
+            observable.onPropertyAccessing = this._subscribePropertyChanged.bind(this);
         }
         
         /**
@@ -203,7 +205,7 @@ module drunk {
          */
         private __afterGetValue(): void {
             // 清楚属性访问回调
-            observable.onAccessingProperty = null;
+            observable.onPropertyAccessing = null;
             
             let observers = this._observers;
             let properties = this._properties;

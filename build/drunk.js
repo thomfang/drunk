@@ -1557,13 +1557,13 @@ var drunk;
         /**
          * 访问observableObject的字段时会调用的回调
          * @static
-         * @property onAccessingProperty
+         * @property onPropertyAccessing
          * @param {Observer}     observer  返回的当前正在访问的数据的observer对象
          * @param {string}       property  正在访问的数据的字段
          * @param {any}             value  对应字段的数据
          * @param {ObservableObject} data  可观察数据
          */
-        observable.onAccessingProperty;
+        observable.onPropertyAccessing;
         /**
          * 转换对象属性的getter/setter，使其能在数据更新是能接受到事件
          * @static
@@ -1592,9 +1592,9 @@ var drunk;
             function propertyGetterSetter() {
                 if (arguments.length === 0) {
                     // 如果没有传入任何参数，则为访问，返回值
-                    if (observable.onAccessingProperty) {
+                    if (observable.onPropertyAccessing) {
                         // 调用存在的onPropertyAcess方法
-                        observable.onAccessingProperty(dataOb, property, value, data);
+                        observable.onPropertyAccessing(dataOb, property, value, data);
                     }
                     return value;
                 }
@@ -1943,6 +1943,7 @@ var drunk;
                     action(newValue, oldValue);
                 });
             }
+            this._runActionJob = null;
         };
         /**
          * 释放引用和内存
@@ -2001,7 +2002,7 @@ var drunk;
         Watcher.prototype.__beforeGetValue = function () {
             this._tmpObservers = {};
             this._tmpProperties = {};
-            drunk.observable.onAccessingProperty = this._subscribePropertyChanged.bind(this);
+            drunk.observable.onPropertyAccessing = this._subscribePropertyChanged.bind(this);
         };
         /**
          * 表达式求解完后的收尾工作,取消注册onPropertyAccessed回调,并对比旧的observer表和新的表看有哪些
@@ -2011,7 +2012,7 @@ var drunk;
          */
         Watcher.prototype.__afterGetValue = function () {
             // 清楚属性访问回调
-            drunk.observable.onAccessingProperty = null;
+            drunk.observable.onPropertyAccessing = null;
             var observers = this._observers;
             var properties = this._properties;
             var tmpObservers = this._tmpObservers;
@@ -4367,133 +4368,128 @@ var drunk;
     drunk.Binding.register("on", {
         init: function () {
             var _this = this;
-            var exp = this.expression;
-            this.events = exp.replace(reg.breakword, ' ').split(reg.semic).map(function (str) { return _this.parseEvent(str); });
+            this._events = this.expression.replace(reg.breakword, ' ').split(reg.semic).map(function (str) { return _this._parseEvent(str); });
         },
-        parseEvent: function (str) {
+        _parseEvent: function (str) {
+            var _this = this;
             var matches = str.match(reg.statement);
             var prefix = drunk.config.prefix;
             console.assert(matches !== null, "非法的 " + prefix + 'on 绑定表达式, ', str, '正确的用法如下:\n', prefix + 'on="eventType: expression"\n', prefix + 'on="eventType: expression; eventType2: callback()"\n', prefix + 'on="eventType: callback($event, $el)"\n');
-            var self = this;
             var type = matches[1];
             var expr = matches[2];
             var func = drunk.parser.parse(expr.trim());
-            function handler(e) {
+            var handler = function (e) {
                 if (drunk.config.debug) {
                     console.log(type + ': ' + expr);
                 }
-                func.call(null, self.viewModel, e, self.element);
-            }
+                func.call(null, _this.viewModel, e, _this.element);
+            };
             drunk.dom.on(this.element, type, handler);
             return { type: type, handler: handler };
         },
         release: function () {
             var _this = this;
-            this.events.forEach(function (event) {
+            this._events.forEach(function (event) {
                 drunk.dom.off(_this.element, event.type, event.handler);
             });
-            this.events = null;
+            this._events = null;
         }
     });
 })(drunk || (drunk = {}));
 /// <reference path="../binding" />
 /// <reference path="../../util/util" />
-var drunk;
-(function (drunk) {
-    function setAttribute(element, name, value) {
+drunk.Binding.register('attr', {
+    attrName: null,
+    update: function (newValue) {
+        var _this = this;
+        if (this.attrName) {
+            // 如果有提供指定的属性名
+            this._setAttribute(this.attrName, newValue);
+        }
+        else if (drunk.util.isObject(newValue)) {
+            Object.keys(newValue).forEach(function (name) {
+                _this._setAttribute(name, newValue[name]);
+            });
+        }
+    },
+    _setAttribute: function (name, value) {
         if (name === 'src' || name === 'href') {
             value = value == null ? '' : value;
         }
-        element.setAttribute(name, value);
+        this.element.setAttribute(name, value);
     }
-    drunk.Binding.register('attr', {
-        update: function (newValue) {
-            var _this = this;
-            if (this.attrName) {
-                // 如果有提供指定的属性名
-                setAttribute(this.element, this.attrName, newValue);
-            }
-            else if (drunk.util.isObject(newValue)) {
-                Object.keys(newValue).forEach(function (name) {
-                    setAttribute(_this.element, name, newValue[name]);
-                });
-            }
-        }
-    });
-})(drunk || (drunk = {}));
+});
 /// <reference path="../binding" />
-var drunk;
-(function (drunk) {
-    drunk.Binding.register("bind", {
-        update: function (newValue) {
-            newValue = newValue == null ? '' : newValue;
-            var el = this.element;
-            if (el.nodeType === 3) {
-                el.nodeValue = newValue;
-            }
-            else if (el.nodeType === 1) {
-                switch (el.tagName.toLowerCase()) {
-                    case "input":
-                    case "textarea":
-                    case "select":
-                        el.value = newValue;
-                        break;
-                    default:
-                        el.innerHTML = newValue;
-                }
+drunk.Binding.register("bind", {
+    update: function (newValue) {
+        newValue = newValue == null ? '' : newValue;
+        var el = this.element;
+        if (el.nodeType === 3) {
+            el.nodeValue = newValue;
+        }
+        else if (el.nodeType === 1) {
+            switch (el.tagName.toLowerCase()) {
+                case "input":
+                case "textarea":
+                case "select":
+                    el.value = newValue;
+                    break;
+                default:
+                    el.innerHTML = newValue;
             }
         }
-    });
-})(drunk || (drunk = {}));
+    }
+});
 /// <reference path="../binding" />
 /// <reference path="../../util/dom" />
-var drunk;
-(function (drunk) {
-    drunk.Binding.register("class", {
-        update: function (data) {
-            var elem = this.element;
-            if (Array.isArray(data)) {
-                var classMap = {};
-                var oldValue = this.oldValue;
-                if (oldValue) {
-                    oldValue.forEach(function (name) {
-                        if (data.indexOf(name) === -1) {
-                            drunk.dom.removeClass(elem, name);
-                        }
-                        else {
-                            classMap[name] = true;
-                        }
-                    });
-                }
-                data.forEach(function (name) {
-                    if (!classMap[name]) {
-                        drunk.dom.addClass(elem, name);
-                    }
-                });
-                this.oldValue = data;
-            }
-            else if (data && typeof data === 'object') {
-                Object.keys(data).forEach(function (name) {
-                    if (data[name]) {
-                        drunk.dom.addClass(elem, name);
-                    }
-                    else {
+drunk.Binding.register("class", {
+    _oldValue: null,
+    update: function (data) {
+        var elem = this.element;
+        if (Array.isArray(data)) {
+            var classMap = {};
+            var oldValue = this._oldValue;
+            if (oldValue) {
+                oldValue.forEach(function (name) {
+                    if (data.indexOf(name) === -1) {
                         drunk.dom.removeClass(elem, name);
                     }
+                    else {
+                        classMap[name] = true;
+                    }
                 });
             }
-            else if (typeof data === 'string' && (data = data.trim()) !== this.oldValue) {
-                if (this.oldValue) {
-                    drunk.dom.removeClass(elem, this.oldValue);
+            data.forEach(function (name) {
+                if (!classMap[name]) {
+                    drunk.dom.addClass(elem, name);
                 }
-                this.oldValue = data;
-                if (data) {
-                    drunk.dom.addClass(elem, data);
+            });
+            this._oldValue = data;
+        }
+        else if (data && typeof data === 'object') {
+            Object.keys(data).forEach(function (name) {
+                if (data[name]) {
+                    drunk.dom.addClass(elem, name);
                 }
+                else {
+                    drunk.dom.removeClass(elem, name);
+                }
+            });
+        }
+        else if (typeof data === 'string' && (data = data.trim()) !== this._oldValue) {
+            if (this._oldValue) {
+                drunk.dom.removeClass(elem, this._oldValue);
+            }
+            this._oldValue = data;
+            if (data) {
+                drunk.dom.addClass(elem, data);
             }
         }
-    });
-})(drunk || (drunk = {}));
+    },
+    release: function () {
+        this._oldValue = null;
+    }
+});
 /// <reference path="../binding" />
 /// <reference path="../../util/dom" />
 /// <reference path="../../component/component" />
@@ -4666,8 +4662,8 @@ var drunk;
         };
         // 创建注释标记标签
         RepeatBinding.prototype.createCommentNodes = function () {
-            this._startNode = document.createComment('repeat-start: ' + this.expression);
-            this._endedNode = document.createComment('repeat-ended: ' + this.expression);
+            this._startNode = document.createComment('repeat: ' + this.expression);
+            this._endedNode = document.createComment('/repeat: ' + this.expression);
             drunk.dom.before(this._startNode, this.element);
             drunk.dom.replace(this._endedNode, this.element);
         };
@@ -5062,139 +5058,92 @@ var drunk;
 })(drunk || (drunk = {}));
 /// <reference path="../binding" />
 /// <reference path="../../util/dom" />
-/**
- * 条件表达式绑定,如果表达式的返回值为false则会把元素从dom树中移除,为true则会添加到dom树中
- * @class drunk-if
- * @constructor
- * @show
- * @example
-        <html>
-            <section>
-                设置a的值: <input type="text" drunk-model="a" />
-                <p drunk-if="a < 10">如果a小于10显示该标签</p>
-            </section>
-        </html>
-        
-        <script>
-            var myView = new drunk.Component();
-            myView.mount(document.querySelector("section"));
-            myView.a = 0;
-        </script>
- */
-var drunk;
-(function (drunk) {
-    drunk.Binding.register("if", {
-        isTerminal: true,
-        priority: drunk.Binding.Priority.aboveNormal + 2,
-        init: function () {
-            this.startNode = document.createComment("if-start: " + this.expression);
-            this.endedNode = document.createComment("if-ended: " + this.expression);
-            this.bindingExecutor = drunk.Template.compile(this.element);
-            this.inDocument = false;
-            drunk.dom.replace(this.startNode, this.element);
-            drunk.dom.after(this.endedNode, this.startNode);
-        },
-        update: function (value) {
-            if (!!value) {
-                this.addToDocument();
-            }
-            else {
-                this.removeFromDocument();
-            }
-        },
-        addToDocument: function () {
-            if (this.inDocument) {
-                return;
-            }
-            this.tmpElement = this.element.cloneNode(true);
-            drunk.dom.after(this.tmpElement, this.startNode);
-            this.unbindExecutor = this.bindingExecutor(this.viewModel, this.tmpElement);
-            this.inDocument = true;
-        },
-        removeFromDocument: function () {
-            if (!this.inDocument) {
-                return;
-            }
-            this.unbindExecutor();
-            drunk.dom.remove(this.tmpElement);
-            this.unbindExecutor = null;
-            this.tmpElement = null;
-            this.inDocument = false;
-        },
-        release: function () {
-            this.removeFromDocument();
-            drunk.dom.remove(this.startNode);
-            drunk.dom.remove(this.endedNode);
-            this.startNode = null;
-            this.endedNode = null;
-            this.bindingExecutor = null;
+/// <reference path="../../template/compiler" />
+drunk.Binding.register("if", {
+    isTerminal: true,
+    priority: drunk.Binding.Priority.aboveNormal + 2,
+    init: function () {
+        this._startNode = document.createComment("if: " + this.expression);
+        this._endedNode = document.createComment("/if: " + this.expression);
+        this._bindExecutor = drunk.Template.compile(this.element);
+        this._inDocument = false;
+        drunk.dom.replace(this._startNode, this.element);
+        drunk.dom.after(this._endedNode, this._startNode);
+    },
+    update: function (value) {
+        if (!!value) {
+            this.addToDocument();
         }
-    });
-})(drunk || (drunk = {}));
+        else {
+            this.removeFromDocument();
+        }
+    },
+    addToDocument: function () {
+        if (this._inDocument) {
+            return;
+        }
+        this._tmpElement = this.element.cloneNode(true);
+        drunk.dom.after(this._tmpElement, this._startNode);
+        this._unbindExecutor = this._bindExecutor(this.viewModel, this._tmpElement);
+        this._inDocument = true;
+    },
+    removeFromDocument: function () {
+        if (!this._inDocument) {
+            return;
+        }
+        this._unbindExecutor();
+        drunk.dom.remove(this._tmpElement);
+        this._unbindExecutor = null;
+        this._tmpElement = null;
+        this._inDocument = false;
+    },
+    release: function () {
+        this.removeFromDocument();
+        drunk.dom.remove(this._startNode);
+        drunk.dom.remove(this._endedNode);
+        this._startNode = null;
+        this._endedNode = null;
+        this._bindExecutor = null;
+    }
+});
 /// <reference path="../binding" />
 /// <reference path="../../template/loader" />
 /// <reference path="../../template/compiler" />
-var drunk;
-(function (drunk) {
-    drunk.Binding.register("include", {
-        _unbindExecutor: null,
-        update: function (url) {
-            if (!this._isActived || (url && url === this.url)) {
-                return;
-            }
-            this.unbind();
-            this.url = url;
-            drunk.dom.remove(drunk.util.toArray(this.element.childNodes));
-            if (url) {
-                drunk.Template.load(url).then(this.createBinding.bind(this));
-            }
-        },
-        createBinding: function (template) {
-            if (!this.isActived) {
-                return;
-            }
-            drunk.dom.html(this.element, template);
-            var nodes = drunk.util.toArray(this.element.childNodes);
-            this._unbindExecutor = drunk.Template.compile(nodes)(this.viewModel, nodes);
-        },
-        unbind: function () {
-            if (this._unbindExecutor) {
-                this._unbindExecutor();
-                this._unbindExecutor = null;
-            }
-        },
-        release: function () {
-            this.unbind();
-            this.url = null;
+drunk.Binding.register("include", {
+    _unbindExecutor: null,
+    _url: null,
+    update: function (url) {
+        if (!this._isActived || (url && url === this._url)) {
+            return;
         }
-    });
-})(drunk || (drunk = {}));
+        this._unbind();
+        this._url = url;
+        drunk.dom.remove(drunk.util.toArray(this.element.childNodes));
+        if (url) {
+            drunk.Template.load(url).then(this._createBinding.bind(this));
+        }
+    },
+    _createBinding: function (template) {
+        if (!this._isActived) {
+            return;
+        }
+        drunk.dom.html(this.element, template);
+        var nodes = drunk.util.toArray(this.element.childNodes);
+        this._unbindExecutor = drunk.Template.compile(nodes)(this.viewModel, nodes);
+    },
+    _unbind: function () {
+        if (this._unbindExecutor) {
+            this._unbindExecutor();
+            this._unbindExecutor = null;
+        }
+    },
+    release: function () {
+        this._unbind();
+        this._url = null;
+    }
+});
 /// <reference path="../binding" />
 /// <reference path="../../util/dom" />
-/**
- * 数据双向绑定,只作用于输入控件,支持的控件有:
- *      * input (text|tel|number|checkbox|radio等)
- *      * textarea
- *      * select
- * @class drunk-model
- * @constructor
- * @show
- * @example
-        <html>
-            <section>
-                <label for="exampleInput">选择一个日期:</label>
-                <input type="date" id="exampleInput" name="input" drunk-model="time" placeholder="yyyy-MM-dd"
-                min="2015-05-01" max="2015-12-31" />
-                <p>选中的日期:<span drunk-bind="time|date:'YYYY-MM-DD'"></span></p>
-            </section>
-        </html>
-        
-        <script>
-            var myView = new drunk.Component();
-            myView.mount(document.querySelector("section"));
-            myView.time = Date.now();
-        </script>
- */
 var drunk;
 (function (drunk) {
     drunk.Binding.register("model", {
@@ -5236,37 +5185,37 @@ var drunk;
         },
         initCheckbox: function () {
             this._changedEvent = "change";
-            this.__updateView = setCheckboxValue;
-            this.__getValue = getCheckboxValue;
+            this._updateView = setCheckboxValue;
+            this._getValue = getCheckboxValue;
         },
         initRadio: function () {
             this._changedEvent = "change";
-            this.__updateView = setRadioValue;
-            this.__getValue = getCommonValue;
+            this._updateView = setRadioValue;
+            this._getValue = getCommonValue;
         },
         initSelect: function () {
             this._changedEvent = "change";
-            this.__updateView = setCommonValue;
-            this.__getValue = getCommonValue;
+            this._updateView = setCommonValue;
+            this._getValue = getCommonValue;
         },
         initTextarea: function () {
             this._changedEvent = "input";
-            this.__updateView = setCommonValue;
-            this.__getValue = getCommonValue;
+            this._updateView = setCommonValue;
+            this._getValue = getCommonValue;
         },
         initCommon: function () {
             this._changedEvent = "change";
-            this.__updateView = setCommonValue;
-            this.__getValue = getCommonValue;
+            this._updateView = setCommonValue;
+            this._getValue = getCommonValue;
         },
         update: function (value) {
-            this.__updateView(value);
+            this._updateView(value);
         },
         release: function () {
             drunk.dom.off(this.element, this._changedEvent, this._changedHandler);
         },
         _changedHandler: function () {
-            this.setValue(this.__getValue(), true);
+            this.setValue(this._getValue(), true);
         }
     });
     function setCheckboxValue(newValue) {
@@ -5287,89 +5236,57 @@ var drunk;
     }
 })(drunk || (drunk = {}));
 /// <reference path="../binding" />
-/// <reference path="./action" />
-/**
- * 切换元素显示隐藏,和drunk-if的效果相似,只是在具有多个绑定的情况下if的性能更好,反之是show的性能更好
- * @class drunk-show
- * @constructor
- * @show
- * @example
- *      <html>
- *          <section>
- *               <p drunk-show="currtab === 'a'">A</p>
- *               <p drunk-show="currtab === 'b'">B</p>
- *               <p drunk-show="currtab === 'c'">C</p>
- *
- *               <p>选中显示某个元素</p>
- *               <select drunk-model="currtab">
- *                  <option value="a">A</option>
- *                  <option value="b">B</option>
- *                  <option value="c">C</option>
- *               </select>
- *          </section>
- *      </html>
- *      <script>
- *       var myView = new drunk.Component();
- *       myView.mount(document.querySelector("section"));
- *      </script>
- */
-var drunk;
-(function (drunk) {
-    drunk.Binding.register("show", {
-        update: function (isVisible) {
-            var style = this.element.style;
-            if (!isVisible && style.display !== 'none') {
-                style.display = 'none';
-            }
-            else if (isVisible && style.display === 'none') {
-                style.display = '';
-            }
+drunk.Binding.register("show", {
+    update: function (isVisible) {
+        var style = this.element.style;
+        if (!isVisible && style.display !== 'none') {
+            style.display = 'none';
         }
-    });
-})(drunk || (drunk = {}));
+        else if (isVisible && style.display === 'none') {
+            style.display = '';
+        }
+    }
+});
 /// <reference path="../binding" />
 /// <reference path="../../component/component" />
 /// <reference path="../../util/dom" />
 /// <reference path="../../template/compiler" />
-var drunk;
-(function (drunk) {
-    drunk.Binding.register("transclude", {
-        /*
-         * 初始化绑定,先注册transcludeResponse事件用于获取transclude的viewModel和nodelist
-         * 然后发送getTranscludeContext事件通知
-         */
-        init: function (parentViewModel, placeholder) {
-            if (!parentViewModel || !placeholder) {
-                throw new Error('未提供父级component实例和组件声明标签');
-            }
-            var nodes = [];
-            var unbinds = [];
-            var transclude = placeholder.childNodes;
-            var fragment = document.createDocumentFragment();
-            drunk.util.toArray(transclude).forEach(function (node) {
-                nodes.push(node);
-                fragment.appendChild(node);
-            });
-            // 换掉节点
-            drunk.dom.replace(fragment, this.element);
-            nodes.forEach(function (node) {
-                // 编译模板并获取绑定创建函数
-                // 保存解绑函数
-                var bind = drunk.Template.compile(node);
-                unbinds.push(bind(parentViewModel, node));
-            });
-            this.nodes = nodes;
-            this.unbinds = unbinds;
-        },
-        /*
-         * 释放绑定
-         */
-        release: function () {
-            this.unbinds.forEach(function (unbind) { return unbind(); });
-            this.nodes.forEach(function (node) { return drunk.dom.remove(node); });
-            this.unbinds = null;
-            this.nodes = null;
+drunk.Binding.register("transclude", {
+    /*
+     * 初始化绑定,先注册transcludeResponse事件用于获取transclude的viewModel和nodelist
+     * 然后发送getTranscludeContext事件通知
+     */
+    init: function (ownerViewModel, placeholder) {
+        if (!ownerViewModel || !placeholder) {
+            throw new Error('未提供父级component实例和组件声明的占位标签');
         }
-    });
-})(drunk || (drunk = {}));
+        var nodes = [];
+        var unbinds = [];
+        var transclude = placeholder.childNodes;
+        var fragment = document.createDocumentFragment();
+        drunk.util.toArray(transclude).forEach(function (node) {
+            nodes.push(node);
+            fragment.appendChild(node);
+        });
+        // 换掉节点
+        drunk.dom.replace(fragment, this.element);
+        nodes.forEach(function (node) {
+            // 编译模板并获取绑定创建函数
+            // 保存解绑函数
+            var bind = drunk.Template.compile(node);
+            unbinds.push(bind(ownerViewModel, node));
+        });
+        this._nodes = nodes;
+        this._unbindExecutors = unbinds;
+    },
+    /*
+     * 释放绑定
+     */
+    release: function () {
+        this._unbindExecutors.forEach(function (unbind) { return unbind(); });
+        this._nodes.forEach(function (node) { return drunk.dom.remove(node); });
+        this._unbindExecutors = null;
+        this._nodes = null;
+    }
+});
 //# sourceMappingURL=drunk.js.map

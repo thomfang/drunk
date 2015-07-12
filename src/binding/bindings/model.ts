@@ -1,30 +1,6 @@
 /// <reference path="../binding" />
 /// <reference path="../../util/dom" />
 
-/**
- * 数据双向绑定,只作用于输入控件,支持的控件有:
- *      * input (text|tel|number|checkbox|radio等)
- *      * textarea
- *      * select
- * @class drunk-model
- * @constructor
- * @show
- * @example
-        <html>
-            <section>
-                <label for="exampleInput">选择一个日期:</label>
-                <input type="date" id="exampleInput" name="input" drunk-model="time" placeholder="yyyy-MM-dd"
-                min="2015-05-01" max="2015-12-31" />
-                <p>选中的日期:<span drunk-bind="time|date:'YYYY-MM-DD'"></span></p>
-            </section>
-        </html>
-        
-        <script>
-            var myView = new drunk.Component();
-            myView.mount(document.querySelector("section"));
-            myView.time = Date.now();
-        </script>
- */
 module drunk {
 
     Binding.register("model", {
@@ -70,36 +46,36 @@ module drunk {
 
         initCheckbox() {
             this._changedEvent = "change";
-            this.__updateView = setCheckboxValue;
-            this.__getValue = getCheckboxValue;
+            this._updateView = setCheckboxValue;
+            this._getValue = getCheckboxValue;
         },
 
         initRadio() {
             this._changedEvent = "change";
-            this.__updateView = setRadioValue;
-            this.__getValue = getCommonValue;
+            this._updateView = setRadioValue;
+            this._getValue = getCommonValue;
         },
 
         initSelect() {
             this._changedEvent = "change";
-            this.__updateView = setCommonValue;
-            this.__getValue = getCommonValue;
+            this._updateView = setCommonValue;
+            this._getValue = getCommonValue;
         },
 
         initTextarea() {
             this._changedEvent = "input";
-            this.__updateView = setCommonValue;
-            this.__getValue = getCommonValue;
+            this._updateView = setCommonValue;
+            this._getValue = getCommonValue;
         },
 
         initCommon() {
             this._changedEvent = "change";
-            this.__updateView = setCommonValue;
-            this.__getValue = getCommonValue;
+            this._updateView = setCommonValue;
+            this._getValue = getCommonValue;
         },
 
         update(value) {
-            this.__updateView(value);
+            this._updateView(value);
         },
 
         release() {
@@ -107,7 +83,7 @@ module drunk {
         },
 
         _changedHandler() {
-            this.setValue(this.__getValue(), true);
+            this.setValue(this._getValue(), true);
         }
 
     });

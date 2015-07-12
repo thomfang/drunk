@@ -64,13 +64,13 @@ module drunk.observable {
     /**
      * 访问observableObject的字段时会调用的回调
      * @static
-     * @property onAccessingProperty
+     * @property onPropertyAccessing
      * @param {Observer}     observer  返回的当前正在访问的数据的observer对象
      * @param {string}       property  正在访问的数据的字段
      * @param {any}             value  对应字段的数据
      * @param {ObservableObject} data  可观察数据
      */
-    export let onAccessingProperty: (observer: Observer, property: string, value: any, data: ObservableObject) => void;
+    export let onPropertyAccessing: (observer: Observer, property: string, value: any, data: ObservableObject) => void;
      
     /**
      * 转换对象属性的getter/setter，使其能在数据更新是能接受到事件
@@ -106,9 +106,9 @@ module drunk.observable {
             if (arguments.length === 0) {
                 // 如果没有传入任何参数，则为访问，返回值
                 
-                if (onAccessingProperty) {
+                if (onPropertyAccessing) {
                     // 调用存在的onPropertyAcess方法
-                    onAccessingProperty(dataOb, property, value, data);
+                    onPropertyAccessing(dataOb, property, value, data);
                 }
                 
                 return value;

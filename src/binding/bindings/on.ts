@@ -14,11 +14,10 @@ module drunk {
     Binding.register("on", {
 
         init() {
-            let exp = this.expression;
-            this.events = exp.replace(reg.breakword, ' ').split(reg.semic).map(str => this.parseEvent(str));
+            this._events = this.expression.replace(reg.breakword, ' ').split(reg.semic).map(str => this._parseEvent(str));
         },
 
-        parseEvent(str: string) {
+        _parseEvent(str: string) {
             let matches = str.match(reg.statement);
             let prefix = config.prefix;
 
@@ -29,16 +28,15 @@ module drunk {
                 prefix + 'on="eventType: callback($event, $el)"\n'
             );
 
-            let self = this;
             let type = matches[1];
             let expr = matches[2];
             let func = parser.parse(expr.trim());
 
-            function handler(e: Event) {
+            let handler = (e: Event) => {
                 if (config.debug) {
                     console.log(type + ': ' + expr);
                 }
-                func.call(null, self.viewModel, e, self.element);
+                func.call(null, this.viewModel, e, this.element);
             }
 
             dom.on(this.element, type, handler);
@@ -47,10 +45,10 @@ module drunk {
         },
 
         release() {
-            this.events.forEach((event) => {
+            this._events.forEach((event) => {
                 dom.off(this.element, event.type, event.handler);
             });
-            this.events = null;
+            this._events = null;
         }
     });
 }
