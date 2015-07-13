@@ -2,6 +2,7 @@
 <html>
     <head>
         <meta charset="utf-8" />
+        <meta name="viewport" content="initial-scale=1,user-scalable=no" />
         <title>drunk.Component - demo</title>
         <script src="../../build/drunk.js"></script>
         
@@ -13,9 +14,9 @@
     
     <body>
         
-        <input type="text" drunk-model="content" drunk-on='keyup: $event.keyCode === 13 && addTodo()'/>
+        <input type="text" placeholder="输入任务并按回车添加" drunk-model="content" drunk-on='keyup: $event.keyCode === 13 && addTodo()'/>
         
-        <todo-item drunk-repeat="todo,index in todoList" content="{{todo.title}}" index="{{index}}" completed="{{todo.completed}}" on-remove="todoList.splice($event.args[0], 1)">
+        <todo-item drunk-repeat="todo,index in todoList" content="{{todo.title}}" index="{{index}}" completed="{{todo.completed}}" on-remove="todoList.splice(index, 1)">
         </todo-item>
         
         <button drunk-on="click: alertview1Visible = !alertview1Visible">

@@ -4420,6 +4420,7 @@ drunk.Binding.register('attr', {
     }
 });
 /// <reference path="../binding" />
+/// <reference path="../../util/dom" />
 drunk.Binding.register("bind", {
     update: function (newValue) {
         newValue = newValue == null ? '' : newValue;
@@ -4435,7 +4436,7 @@ drunk.Binding.register("bind", {
                     el.value = newValue;
                     break;
                 default:
-                    el.innerHTML = newValue;
+                    drunk.dom.html(el, newValue);
             }
         }
     }
