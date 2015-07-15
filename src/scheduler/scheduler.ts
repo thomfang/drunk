@@ -5,95 +5,85 @@
 /**
  * @module drunk.Scheduler
  */
-module drunk {
+module drunk.Scheduler {
     
     /**
-     * @class Scheduler
+     * 调度方法
+     * @method schedule
+     * @static
+     * @param  {IWork}      work       调度的执行函数
+     * @param  {Priority}  [priority]  优先级
+     * @param  {any}                 [context]   上下文
+     * @return {IJob}                  生成的工作对象
      */
-    export class Scheduler {
-    
-        /**
-         * 调度方法
-         * @method schedule
-         * @static
-         * @param  {Scheduler.IWork}      work       调度的执行函数
-         * @param  {Scheduler.Priority}  [priority]  优先级
-         * @param  {any}                 [context]   上下文
-         * @return {Scheduler.IJob}                  生成的工作对象
-         */
-        static schedule(work: Scheduler.IWork, priority?: Scheduler.Priority, context?: any): Scheduler.IJob {
-            let job = new Job(work, clampPriority(priority), context);
-            
-            addJobToQueue(job);
-            
-            return job;
-        }
+    export function schedule(work: IWork, priority?: Priority, context?: any): IJob {
+        let job = new Job(work, clampPriority(priority), context);
         
-        /**
-         * @method requestDrain
-         * @static
-         * @param  {Scheduler.Priority}  priority  优先级
-         * @param  {function}  callback  回调
-         */
-        static requestDrain(priority: Scheduler.Priority, callback: () => any) {
-            util.addArrayItem(drainPriorityQueue, priority);
-            drainPriorityQueue.sort();
-            drainEventEmitter.$once(String(priority), callback);
-        }
-    
+        addJobToQueue(job);
+        
+        return job;
     }
     
-    export module Scheduler {
-    
-        export interface IJob {
-            priority: Priority;
-            completed: boolean;
-            cancel(): void;
-            pause(): void;
-            resume(): void;
-        }
-        
-        export interface IJobInfo {
-            shouldYield: boolean;
-            setWork(work: (jobInfo: IJobInfo) => any): void;
-            setPromise(promise: Promise<Scheduler.IWork>): void;
-        }
-        
-        export interface IWork {
-            (jobInfo: IJobInfo): any;
-        }
-        
-        /**
-         * 调度器优先级
-         * @property Scheduler.Priority
-         * @type enum
-         */
-        export enum Priority {
-            max = 15,
-            high = 13,
-            aboveNormal = 9,
-            normal = 0,
-            belowNormal = -9,
-            idle = -13,
-            min = -15
-        };
+    /**
+     * @method requestDrain
+     * @static
+     * @param  {Priority}  priority  优先级
+     * @param  {function}  callback  回调
+     */
+    export function requestDrain(priority: Priority, callback: () => any) {
+        util.addArrayItem(drainPriorityQueue, priority);
+        drainPriorityQueue.sort();
+        drainEventEmitter.$once(String(priority), callback);
+    }
+
+    export interface IJob {
+        priority: Priority;
+        completed: boolean;
+        cancel(): void;
+        pause(): void;
+        resume(): void;
     }
     
-    class Job implements Scheduler.IJob {
+    export interface IJobInfo {
+        shouldYield: boolean;
+        setWork(work: (jobInfo: IJobInfo) => any): void;
+        setPromise(promise: Promise<IWork>): void;
+    }
+    
+    export interface IWork {
+        (jobInfo: IJobInfo): any;
+    }
+    
+    /**
+     * 调度器优先级
+     * @property Priority
+     * @type enum
+     */
+    export enum Priority {
+        max = 15,
+        high = 13,
+        aboveNormal = 9,
+        normal = 0,
+        belowNormal = -9,
+        idle = -13,
+        min = -15
+    };
+    
+    class Job implements IJob {
         
         private _isPaused: boolean;
         private _cancelled: boolean;
         
         completed: boolean;
         
-        constructor(private _work: Scheduler.IWork, private _priority: Scheduler.Priority, private _context: any) {
+        constructor(private _work: IWork, private _priority: Priority, private _context: any) {
             
         }
         
         get priority() {
             return this._priority;
         }
-        set priority(value: Scheduler.Priority) {
+        set priority(value: Priority) {
             this._priority = clampPriority(value);
         }
         
@@ -141,7 +131,7 @@ module drunk {
                     addJobToQueue(this);
                 }
                 else {
-                    result.then((newWork: Scheduler.IWork) => {
+                    result.then((newWork: IWork) => {
                         if (this._cancelled) {
                             return;
                         }
@@ -169,11 +159,11 @@ module drunk {
         }
     }
     
-    class JobInfo implements Scheduler.IJobInfo {
+    class JobInfo implements IJobInfo {
         
         private _publicApiDisabled: boolean;
         
-        _result: Function | Promise<Scheduler.IWork>;
+        _result: Function | Promise<IWork>;
         
         constructor(private _shouldYield: () => boolean) {
             
@@ -184,12 +174,12 @@ module drunk {
             return this._shouldYield();
         }
         
-        setWork(work: Scheduler.IWork): void {
+        setWork(work: IWork): void {
             this._throwIfDisabled();
             this._result = work;
         }
         
-        setPromise(promise: Promise<Scheduler.IWork>): void {
+        setPromise(promise: Promise<IWork>): void {
             this._throwIfDisabled();
             this._result = promise;
         }
@@ -212,21 +202,21 @@ module drunk {
     var drainEventEmitter = new EventEmitter();
     
     const TIME_SLICE = 30;
-    const PRIORITY_TAIL = Scheduler.Priority.min - 1;
+    const PRIORITY_TAIL = Priority.min - 1;
     
-    var drainPriorityQueue: Scheduler.Priority[] = [];
+    var drainPriorityQueue: Priority[] = [];
     var jobStore: {[key: number]: Job[]} = { };
     
-    for (let i = Scheduler.Priority.min; i <= Scheduler.Priority.max; i++) {
+    for (let i = Priority.min; i <= Priority.max; i++) {
         jobStore[i] = [];
     }
     
-    function getJobListAtPriority(priority: Scheduler.Priority) {
+    function getJobListAtPriority(priority: Priority) {
         return jobStore[priority];
     }
     
     function getHighestPriority() {
-        for (let priority = Scheduler.Priority.max; priority >= Scheduler.Priority.min; priority--) {
+        for (let priority = Priority.max; priority >= Priority.min; priority--) {
             if (jobStore[priority].length) {
                 return priority;
             }
@@ -249,9 +239,9 @@ module drunk {
         startRunning();
     }
     
-    function clampPriority(priority: Scheduler.Priority) {
-        priority = priority || Scheduler.Priority.normal;
-        return Math.min(Scheduler.Priority.max, Math.max(Scheduler.Priority.min, priority));
+    function clampPriority(priority: Priority) {
+        priority = priority || Priority.normal;
+        return Math.min(Priority.max, Math.max(Priority.min, priority));
     }
     
     function run() {
@@ -278,7 +268,7 @@ module drunk {
             return Date.now() > endTime;
         }
         
-        while (getHighestPriority() >= Scheduler.Priority.min && !shouldYield()) {
+        while (getHighestPriority() >= Priority.min && !shouldYield()) {
             let jobList = getHighestPriorityJobList();
             let currJob = jobList.shift();
             

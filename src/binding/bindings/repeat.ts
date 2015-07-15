@@ -201,6 +201,7 @@ module drunk {
         private _renderJob: Scheduler.IJob;
         private _map: Map<RepeatItem[]>;
         private _items: IItemDataDescriptor[];
+        private _isActived: boolean;
 
         // 初始化绑定
         init() {
@@ -295,6 +296,10 @@ module drunk {
             };
 
             let renderItems = (jobInfo: Scheduler.IJobInfo) => {
+                if (!this._isActived) {
+                    return;
+                }
+                
                 let viewModel: RepeatItem;
                 
                 // 100ms作为当前线程跑的时长，超过该时间则让出线程

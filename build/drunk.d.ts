@@ -458,59 +458,52 @@ declare module drunk.util {
 /**
  * @module drunk.Scheduler
  */
-declare module drunk {
+declare module drunk.Scheduler {
     /**
-     * @class Scheduler
+     * 调度方法
+     * @method schedule
+     * @static
+     * @param  {IWork}      work       调度的执行函数
+     * @param  {Priority}  [priority]  优先级
+     * @param  {any}                 [context]   上下文
+     * @return {IJob}                  生成的工作对象
      */
-    class Scheduler {
-        /**
-         * 调度方法
-         * @method schedule
-         * @static
-         * @param  {Scheduler.IWork}      work       调度的执行函数
-         * @param  {Scheduler.Priority}  [priority]  优先级
-         * @param  {any}                 [context]   上下文
-         * @return {Scheduler.IJob}                  生成的工作对象
-         */
-        static schedule(work: Scheduler.IWork, priority?: Scheduler.Priority, context?: any): Scheduler.IJob;
-        /**
-         * @method requestDrain
-         * @static
-         * @param  {Scheduler.Priority}  priority  优先级
-         * @param  {function}  callback  回调
-         */
-        static requestDrain(priority: Scheduler.Priority, callback: () => any): void;
+    function schedule(work: IWork, priority?: Priority, context?: any): IJob;
+    /**
+     * @method requestDrain
+     * @static
+     * @param  {Priority}  priority  优先级
+     * @param  {function}  callback  回调
+     */
+    function requestDrain(priority: Priority, callback: () => any): void;
+    interface IJob {
+        priority: Priority;
+        completed: boolean;
+        cancel(): void;
+        pause(): void;
+        resume(): void;
     }
-    module Scheduler {
-        interface IJob {
-            priority: Priority;
-            completed: boolean;
-            cancel(): void;
-            pause(): void;
-            resume(): void;
-        }
-        interface IJobInfo {
-            shouldYield: boolean;
-            setWork(work: (jobInfo: IJobInfo) => any): void;
-            setPromise(promise: Promise<Scheduler.IWork>): void;
-        }
-        interface IWork {
-            (jobInfo: IJobInfo): any;
-        }
-        /**
-         * 调度器优先级
-         * @property Scheduler.Priority
-         * @type enum
-         */
-        enum Priority {
-            max = 15,
-            high = 13,
-            aboveNormal = 9,
-            normal = 0,
-            belowNormal = -9,
-            idle = -13,
-            min = -15,
-        }
+    interface IJobInfo {
+        shouldYield: boolean;
+        setWork(work: (jobInfo: IJobInfo) => any): void;
+        setPromise(promise: Promise<IWork>): void;
+    }
+    interface IWork {
+        (jobInfo: IJobInfo): any;
+    }
+    /**
+     * 调度器优先级
+     * @property Priority
+     * @type enum
+     */
+    enum Priority {
+        max = 15,
+        high = 13,
+        aboveNormal = 9,
+        normal = 0,
+        belowNormal = -9,
+        idle = -13,
+        min = -15,
     }
 }
 /**
