@@ -15,7 +15,6 @@
         "src/map/map.ts",
         "src/events/eventemitter.ts",
         "src/util/util.ts",
-        "src/util/elem.ts",
         "src/util/querystring.ts",
         "src/util/xhr.ts",
         "src/scheduler/scheduler.ts",
