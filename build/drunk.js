@@ -1,6 +1,3 @@
-/**
- * @module drunk.Promise
- */
 var drunk;
 (function (drunk) {
     (function (PromiseState) {
@@ -140,7 +137,7 @@ var drunk;
         arr[len + PromiseState.REJECTED] = onRejection;
     }
     /**
-     * @class Promise
+     * ES6 Promise实现
      */
     var Promise = (function () {
         /**
@@ -280,9 +277,6 @@ var drunk;
 })(drunk || (drunk = {}));
 /**
  * 配置模块
- *
- * @module drunk.config
- * @class config
  */
 var drunk;
 (function (drunk) {
@@ -290,16 +284,10 @@ var drunk;
     (function (config) {
         /**
          * 绑定指令的前缀
-         *
-         * @property prefix
-         * @type string
          */
         config.prefix = "drunk-";
         /**
          * debug模式配置变量
-         *
-         * @property debug
-         * @type boolean
          */
         config.debug = false;
     })(config = drunk.config || (drunk.config = {}));
@@ -308,41 +296,26 @@ var drunk;
 (function (drunk) {
     /**
      * LRU Cache类
-     * @module drunk.Cache
-     * @class Cache
      */
     var Cache = (function () {
         /**
-         * @constructor
-         * @param  {number} capacity  容量值
+         * @param  capacity  容量值
          */
         function Cache(capacity) {
             /**
              * 缓存节点的hash表
-             * @property _cacheMap
-             * @private
-             * @type object
              */
             this._cacheMap = {};
             /**
              * 缓存头部
-             * @property _head
-             * @private
-             * @type ICacheNode
              */
             this._head = null;
             /**
              * 缓存尾部
-             * @property _tail
-             * @private
-             * @type ICacheNode
              */
             this._tail = null;
             /**
              * 缓存节点计数
-             * @property _count
-             * @private
-             * @type number
              */
             this._count = 0;
             if (capacity < 1) {
@@ -352,9 +325,7 @@ var drunk;
         }
         /**
          * 根据key获取缓存的值
-         * @method get
-         * @param  {string}  key  要获取的字段
-         * @return {T}
+         * @param key  要获取的字段
          */
         Cache.prototype.get = function (key) {
             var cacheNode = this._cacheMap[key];
@@ -366,9 +337,8 @@ var drunk;
         };
         /**
          * 根据key和value设置缓存
-         * @method  set
-         * @param  {string}  key   要缓存的字段
-         * @param  {any}     value 要缓存的值
+         * @param   key   要缓存的字段
+         * @param   value 要缓存的值
          */
         Cache.prototype.set = function (key, value) {
             var cacheNode = this._cacheMap[key];
@@ -398,9 +368,7 @@ var drunk;
         };
         /**
          * 把节点放到头部
-         * @method _putToHead
-         * @private
-         * @param  {ICacheNode}  cacheNode  缓存节点
+         * @param  cacheNode  缓存节点
          */
         Cache.prototype._putToHead = function (cacheNode) {
             if (cacheNode === this._head) {
@@ -427,9 +395,7 @@ var drunk;
         };
         /**
          * 移除最后一个节点
-         * @method _removeTail
-         * @private
-         * @return  {string}  返回移除的节点的key
+         * @return 返回移除的节点的key
          */
         Cache.prototype._removeTail = function () {
             var tail = this._tail;
@@ -446,10 +412,6 @@ var drunk;
 /// <reference path="../promise/promise" />
 /**
  * 工具方法模块
- *
- * @module drunk.util
- * @class util
- * @main
  */
 var drunk;
 (function (drunk) {
@@ -459,10 +421,7 @@ var drunk;
         var counter = 0;
         /**
          * 获取对象的为一id
-         * @method uuid
-         * @static
-         * @param  {any}     target  设置的对象
-         * @return {number}
+         * @param  target  设置的对象
          */
         function uuid(target) {
             if (typeof target[nameOfUid] === 'undefined') {
@@ -473,11 +432,7 @@ var drunk;
         util.uuid = uuid;
         /**
          * 判断是否是对象
-         *
-         * @static
-         * @method isObject
-         * @param  {any}        target 判断目标
-         * @return {boolean}           返回结果
+         * @param   target 判断目标
          */
         function isObject(target) {
             return Object.prototype.toString.call(target) === '[object Object]';
@@ -485,12 +440,9 @@ var drunk;
         util.isObject = isObject;
         /**
          * 拓展对象
-         *
-         * @static
-         * @method extend
-         * @param  {object}  destination  目标对象
-         * @param  {object}  ...sources   不定长参数，源对象的集合
-         * @return {object}               返回输入的目标对象
+         * @param  destination  目标对象
+         * @param  ...sources   不定长参数，源对象的集合
+         * @return              返回输入的目标对象
          */
         function extend(destination) {
             var sources = [];
@@ -509,10 +461,7 @@ var drunk;
         util.extend = extend;
         /**
          * 深度拷贝对象
-         * @method deepClone
-         * @static
-         * @param  {any}  target  需要拷贝的对象
-         * @return {any}
+         * @param   target  需要拷贝的对象
          */
         function deepClone(target) {
             if (Array.isArray(target)) {
@@ -532,11 +481,8 @@ var drunk;
         util.deepClone = deepClone;
         /**
          * 转换成数组
-         *
-         * @static
-         * @method toArray
-         * @param  {array} arrayLike  类似数组的对象
-         * @return {array}            转换后的数组
+         * @param   arrayLike  类似数组的对象
+         * @return             转换后的数组
          */
         function toArray(arrayLike) {
             return Array.prototype.slice.call(arrayLike);
@@ -544,11 +490,8 @@ var drunk;
         util.toArray = toArray;
         /**
          * 给数组添加item，确保item不重复
-         *
-         * @static
-         * @method addArrayItem
-         * @param  {array}  array  数组
-         * @param  {any}    item   值
+         * @param   array  数组
+         * @param   item   值
          */
         function addArrayItem(array, item) {
             if (array.indexOf(item) < 0) {
@@ -558,11 +501,8 @@ var drunk;
         util.addArrayItem = addArrayItem;
         /**
          * 移除数组的指定值
-         *
-         * @static
-         * @method removeArrayItem
-         * @param  {array}  array  数组
-         * @param  {any}    item   值
+         * @param   array  数组
+         * @param   item   值
          */
         function removeArrayItem(array, item) {
             var index = array.indexOf(item);
@@ -573,10 +513,7 @@ var drunk;
         util.removeArrayItem = removeArrayItem;
         /**
          * 字符串驼峰化
-         * @method camelCase
-         * @static
-         * @param  {string}  str 字符串
-         * @return {string}
+         * @param   str 字符串
          */
         function camelCase(str) {
             return str.replace(/[-_](\w)/g, function ($0, $1) { return $1.toUpperCase(); });
@@ -584,13 +521,10 @@ var drunk;
         util.camelCase = camelCase;
         /**
          * Object.defineProperty的快捷方法，会设置configurable,writable默认为true
-         *
-         * @static
-         * @method defineProperty
-         * @param  {any}     target         设置的目标
-         * @param  {string}  propertyName   属性
-         * @param  {any}     propertyValue  值
-         * @param  {boolean} [enumerable]   该属性是否可枚举
+         * @param   target         设置的目标
+         * @param   propertyName   属性
+         * @param   propertyValue  值
+         * @param   enumerable     该属性是否可枚举
          */
         function defineProperty(target, propertyName, propertyValue, enumerable) {
             Object.defineProperty(target, propertyName, {
@@ -603,12 +537,10 @@ var drunk;
         util.defineProperty = defineProperty;
         /**
          * 属性代理,把a对象的某个属性的读写代理到b对象上,返回代理是否成功的结果
-         * @method proxy
-         * @static
-         * @param  {Object}  a         对象a
-         * @param  {string}  property  属性名
-         * @param  {Object}  b         对象b
-         * @return {boolean}           如果已经代理过,则不再代理该属性
+         * @param   a         对象a
+         * @param   property  属性名
+         * @param   b         对象b
+         * @return            如果已经代理过,则不再代理该属性
          */
         function proxy(a, property, b) {
             var des = Object.getOwnPropertyDescriptor(a, property);
@@ -632,11 +564,9 @@ var drunk;
         util.proxy = proxy;
         /**
          * 创建一个异步工作
-         * @method execAsyncWork
-         * @static
-         * @param  {function}  work       回调函数
-         * @param  {any}       [context]  上下文对象
-         * @return {IAsyncJob}            返回一个带有cancel方法的job对象
+         * @param   work       回调函数
+         * @param   context    上下文对象
+         * @return             返回一个带有cancel方法的job对象
          */
         function execAsyncWork(work, context) {
             var timerId;
@@ -663,12 +593,27 @@ var drunk;
     var uuidOfNaN = drunk.util.uuid({});
     var uuidOfNull = drunk.util.uuid({});
     var uuidOfUndefined = drunk.util.uuid({});
+    /**
+     * Map类，可把任务类型的对象作为key
+     */
     var Map = (function () {
         function Map() {
+            /**
+             * 对应Key的数据
+             */
             this._store = {};
+            /**
+             * 所有的key的列表
+             */
             this._keys = [];
+            /**
+             * 所有的key生成的uuid的列表
+             */
             this._uuids = [];
         }
+        /**
+         * 获取指定key的uuid
+         */
         Map.prototype._uuidOf = function (key) {
             var type = typeof key;
             var uuid;
@@ -699,9 +644,8 @@ var drunk;
         };
         /**
          * 设值
-         * @method set
-         * @param  {any}  key  键,可为任意类型
-         * @param  {any}
+         * @param   key  键,可为任意类型
+         * @param  value 值
          */
         Map.prototype.set = function (key, value) {
             var uuid = this._uuidOf(key);
@@ -714,9 +658,7 @@ var drunk;
         };
         /**
          * 取值
-         * @method get
-         * @param  {any}  key  键名
-         * @return {any}
+         * @param key  键名
          */
         Map.prototype.get = function (key) {
             var uuid = this._uuidOf(key);
@@ -724,9 +666,7 @@ var drunk;
         };
         /**
          * 是否有对应键的值
-         * @method has
-         * @param  {any}  key 键名
-         * @return {boolean}
+         * @param  key 键名
          */
         Map.prototype.has = function (key) {
             var uuid = this._uuidOf(key);
@@ -734,9 +674,7 @@ var drunk;
         };
         /**
          * 删除指定键的记录
-         * @method delete
-         * @param  {any}  key 键名
-         * @return {boolean}
+         * @param   key 键名
          */
         Map.prototype.delete = function (key) {
             var uuid = this._uuidOf(key);
@@ -751,7 +689,6 @@ var drunk;
         };
         /**
          * 清除所有的成员
-         * @method clear
          */
         Map.prototype.clear = function () {
             this._keys = [];
@@ -760,9 +697,8 @@ var drunk;
         };
         /**
          * 遍历
-         * @method forEach
-         * @param  {function}  callback  回调
-         * @param  {any}       context   上下文
+         * @param   callback  回调
+         * @param   context   上下文,回调里的this参数
          */
         Map.prototype.forEach = function (callback, context) {
             var _this = this;
@@ -774,16 +710,12 @@ var drunk;
         };
         /**
          * 获取所有的key
-         * @method keys
-         * @return {array}
          */
         Map.prototype.keys = function () {
             return this._keys.slice();
         };
         /**
          * 获取所有的值
-         * @method values
-         * @return {array}
          */
         Map.prototype.values = function () {
             var _this = this;
@@ -792,8 +724,6 @@ var drunk;
         Object.defineProperty(Map.prototype, "size", {
             /**
              * map的成员个数
-             * @property size
-             * @type number
              */
             get: function () {
                 return this._keys.length;
@@ -818,18 +748,14 @@ var drunk;
     }
     /**
      * 事件管理类
-     *
-     * @class EventEmitter
      */
     var EventEmitter = (function () {
         function EventEmitter() {
         }
         /**
          * 注册事件
-         * @method $addListener
-         * @param  {string}          type       事件类型
-         * @param  {IEventListener}   listener   事件回调
-         * @return {EventEmitter}
+         * @param  type       事件类型
+         * @param  listener   事件回调
          */
         EventEmitter.prototype.$addListener = function (type, listener) {
             var store = getStore(this);
@@ -841,20 +767,16 @@ var drunk;
         };
         /**
          * 注册事件,$addListener方法的别名
-         * @method $on
-         * @param  {string}           type       事件类型
-         * @param  {IEventListener}   listener   事件回调
-         * @return {EventEmitter}
+         * @param   type       事件类型
+         * @param   listener   事件回调
          */
         EventEmitter.prototype.$on = function (type, listener) {
             return this.$addListener(type, listener);
         };
         /**
          * 注册一次性事件
-         * @method $once
-         * @param  {string}         type      事件类型
-         * @param  {IEventListener} listener  事件回调
-         * @return {EventEmitter}
+         * @param   type      事件类型
+         * @param   listener  事件回调
          */
         EventEmitter.prototype.$once = function (type, listener) {
             listener.__isOnce = true;
@@ -863,10 +785,8 @@ var drunk;
         };
         /**
          * 移除指定类型的事件监听
-         * @method $removeListener
-         * @param  {string}         type     事件类型
-         * @param  {IEventListener}  listener 事件回调
-         * @return {EventEmitter}
+         * @param   type     事件类型
+         * @param   listener 事件回调
          */
         EventEmitter.prototype.$removeListener = function (type, listener) {
             var store = getStore(this);
@@ -879,9 +799,7 @@ var drunk;
         };
         /**
          * 移除所有指定类型的事件,或当事件类型未提供时,移除所有该实例上所有的事件
-         * @method $removeAllListeners
-         * @param  {string}  [type]  事件类型
-         * @return {EventEmitter}
+         * @param   type  事件类型，可选
          */
         EventEmitter.prototype.$removeAllListeners = function (type) {
             if (!type) {
@@ -894,11 +812,8 @@ var drunk;
         };
         /**
          * 派发指定类型事件
-         *
-         * @method $emit
-         * @param  {string}  type        事件类型
-         * @param  {any[]}   [...args]    其他参数
-         * @return {EventEmitter}
+         * @param   type        事件类型
+         * @param   ...args     其他参数
          */
         EventEmitter.prototype.$emit = function (type) {
             var _this = this;
@@ -921,9 +836,7 @@ var drunk;
         };
         /**
          * 获取指定事件类型的所有listener回调
-         * @method $listeners
-         * @param  {string}  type  事件类型
-         * @return {Array<IEventListener>}
+         * @param   type  事件类型
          */
         EventEmitter.prototype.$listeners = function (type) {
             var listeners = getStore(this)[type];
@@ -931,11 +844,8 @@ var drunk;
         };
         /**
          * 获取事件实例的指定事件类型的回调技术
-         * @method listenerCount
-         * @static
-         * @param  {EventEmitter} emitter  事件类实例
-         * @param  {string} type            事件类型
-         * @return {number}
+         * @param  emitter  事件类实例
+         * @param  type     事件类型
          */
         EventEmitter.listenerCount = function (emitter, type) {
             var store = getStore(emitter);
@@ -946,9 +856,7 @@ var drunk;
         };
         /**
          * 移除对象的所有事件回调引用
-         * @method cleanup
-         * @static
-         * @param  {EventEmitter}  emitter  事件发射器实例
+         * @param  emitter  事件发射器实例
          */
         EventEmitter.cleanup = function (emitter) {
             var id = drunk.util.uuid(emitter);
@@ -962,8 +870,6 @@ var drunk;
 /// <reference path="./util" />
 /**
  * 搜索字符串解析模块
- * @module drunk.querystring
- * @class querystring
  */
 var drunk;
 (function (drunk) {
@@ -971,10 +877,7 @@ var drunk;
     (function (querystring) {
         /**
          * 解析字符串生成一个键值对表
-         * @method parse
-         * @static
-         * @param  {string}  str  搜索字符串
-         * @return {Object}
+         * @param  str  搜索字符串
          */
         function parse(str) {
             str = decodeURIComponent(str);
@@ -988,10 +891,7 @@ var drunk;
         querystring.parse = parse;
         /**
          * 把一个键值对表转化为搜索字符串
-         * @method stringify
-         * @static
-         * @param  {Object} obj 键值对表
-         * @return {string}
+         * @param  obj 键值对表
          */
         function stringify(obj) {
             return Object.keys(obj).map(function (key) { return key + '=' + encodeURIComponent(obj[key]); }).join('&');
@@ -1002,28 +902,13 @@ var drunk;
 /// <reference path="./util" />
 /// <reference path="./querystring" />
 /// <reference path="../promise/promise" />
-/**
- * @module drunk.util
- * @class util
- */
 var drunk;
 (function (drunk) {
     var util;
     (function (util) {
         /**
          * XMLHTTP request工具方法
-         * @static
-         * @method ajax
-         * @param  {object}     	options                     配置参数
-         * @param  {string}         options.url                 请求的url
-         * @param  {string}         [options.type]              请求的类型(GET或POST)
-         * @param  {string|object}  [options.data]              要发送的数据
-         * @param  {object}         [options.headers]           请求头配置
-         * @param  {object}         [options.xhrFields]         withCredentials配置
-         * @param  {boolean}        [options.withCredentials]   withCredentials配置
-         * @param  {string}         [options.contentType]       请求的content-type
-         * @param  {string}         [options.dataType]          接受的数据类型(目前只支持json)
-         * @return {Promise}                                    一个promise实例
+         * @param   options  配置参数
          */
         function ajax(options) {
             var xhr = new XMLHttpRequest();
@@ -1081,7 +966,7 @@ var drunk;
 /// <reference path="../util/util" />
 /// <reference path="../events/eventemitter" />
 /**
- * @module drunk.Scheduler
+ * 调度器模块
  */
 var drunk;
 (function (drunk) {
@@ -1089,12 +974,9 @@ var drunk;
     (function (Scheduler) {
         /**
          * 调度方法
-         * @method schedule
-         * @static
-         * @param  {IWork}      work       调度的执行函数
-         * @param  {Priority}  [priority]  优先级
-         * @param  {any}                 [context]   上下文
-         * @return {IJob}                  生成的工作对象
+         * @param  work      调度的执行函数
+         * @param  priority  优先级
+         * @param  context   上下文
          */
         function schedule(work, priority, context) {
             var job = new Job(work, clampPriority(priority), context);
@@ -1103,10 +985,9 @@ var drunk;
         }
         Scheduler.schedule = schedule;
         /**
-         * @method requestDrain
-         * @static
-         * @param  {Priority}  priority  优先级
-         * @param  {function}  callback  回调
+         * 当指定优化级的任何都执行完成后触发的回调
+         * @param  priority  优先级
+         * @param  callback  回调
          */
         function requestDrain(priority, callback) {
             drunk.util.addArrayItem(drainPriorityQueue, priority);
@@ -1116,8 +997,6 @@ var drunk;
         Scheduler.requestDrain = requestDrain;
         /**
          * 调度器优先级
-         * @property Priority
-         * @type enum
          */
         (function (Priority) {
             Priority[Priority["max"] = 15] = "max";
@@ -1130,13 +1009,24 @@ var drunk;
         })(Scheduler.Priority || (Scheduler.Priority = {}));
         var Priority = Scheduler.Priority;
         ;
+        /**
+         * 调度器生成的工作对象类
+         */
         var Job = (function () {
+            /**
+             * @param  _work    调度的回调
+             * @param  priority 工作的优先级
+             * @param  _context 回调的this参数
+             */
             function Job(_work, _priority, _context) {
                 this._work = _work;
                 this._priority = _priority;
                 this._context = _context;
             }
             Object.defineProperty(Job.prototype, "priority", {
+                /**
+                 * 优先级
+                 */
                 get: function () {
                     return this._priority;
                 },
@@ -1146,6 +1036,9 @@ var drunk;
                 enumerable: true,
                 configurable: true
             });
+            /**
+             * 取消该否工作，会释放引用
+             */
             Job.prototype.cancel = function () {
                 if (this.completed || this._cancelled) {
                     return;
@@ -1153,6 +1046,9 @@ var drunk;
                 this._remove();
                 this._release();
             };
+            /**
+             * 暂停该工作，不会释放引用
+             */
             Job.prototype.pause = function () {
                 if (this.completed || this._cancelled) {
                     return;
@@ -1160,12 +1056,18 @@ var drunk;
                 this._remove();
                 this._isPaused = true;
             };
+            /**
+             * 恢复工作
+             */
             Job.prototype.resume = function () {
                 if (!this.completed && !this._cancelled && this._isPaused) {
                     addJobToQueue(this);
                     this._isPaused = false;
                 }
             };
+            /**
+             * 内部方法，执行回调
+             */
             Job.prototype._execute = function (shouldYield) {
                 var _this = this;
                 var jobInfo = new JobInfo(shouldYield);
@@ -1199,10 +1101,16 @@ var drunk;
                     this.completed = true;
                 }
             };
+            /**
+             * 从调度任务队列中移除
+             */
             Job.prototype._remove = function () {
                 var jobList = getJobListAtPriority(this.priority);
                 drunk.util.removeArrayItem(jobList, this);
             };
+            /**
+             * 释放引用
+             */
             Job.prototype._release = function () {
                 this._work = null;
                 this._context = null;
@@ -1215,6 +1123,9 @@ var drunk;
                 this._shouldYield = _shouldYield;
             }
             Object.defineProperty(JobInfo.prototype, "shouldYield", {
+                /**
+                 * 是否应该让出线程
+                 */
                 get: function () {
                     this._throwIfDisabled();
                     return this._shouldYield();
@@ -1222,18 +1133,30 @@ var drunk;
                 enumerable: true,
                 configurable: true
             });
+            /**
+             * 设置当前优先级的新一个调度工作，会立即添加到该优先级的任务队列尾部
+             */
             JobInfo.prototype.setWork = function (work) {
                 this._throwIfDisabled();
                 this._result = work;
             };
+            /**
+             * 当promise任务完成后设置当前优先级的新一个调度工作，会添加到该优先级的任务队列尾部
+             */
             JobInfo.prototype.setPromise = function (promise) {
                 this._throwIfDisabled();
                 this._result = promise;
             };
+            /**
+             * 释放引用并设置API不再可用
+             */
             JobInfo.prototype._release = function () {
                 this._publicApiDisabled = true;
                 this._result = null;
             };
+            /**
+             * 如果API不再可用，用户尝试调用会抛出错误
+             */
             JobInfo.prototype._throwIfDisabled = function () {
                 if (this._publicApiDisabled) {
                     throw new Error('The APIs of this JobInfo object are disabled');
@@ -1336,16 +1259,8 @@ var drunk;
 /// <reference path="../util/util.ts" />
 /// <reference path="./observable.ts" />
 /**
- * @module drunk.observable
- * @class observable
- */
-/**
  * 转换后的可以监控对象
  * 添加了设置和移除字段的两个能发送数据更新的方法。
- *
- * @private
- * @class ObservableObject
- * @for observable
  */
 var drunk;
 (function (drunk) {
@@ -1353,13 +1268,8 @@ var drunk;
     (function (observable) {
         /**
          * 设置对象的属性，并发送更新的消息
-         *
-         * @static
-         * @for observable
-         * @method $set
-         * @param {ObservableObject} data   JSON对象或已经为observable的JSON对象
-         * @param {string}           name   字段名
-         * @param {any}              value  值
+         * @param  data   JSON对象或已经为observable的JSON对象
+         * @param  name   字段名
          */
         function $set(data, name, value) {
             var descriptor = Object.getOwnPropertyDescriptor(data, name);
@@ -1377,12 +1287,8 @@ var drunk;
         observable.$set = $set;
         /**
          * 移除对象属性，并会发送更新的消息
-         *
-         * @static
-         * @for observable
-         * @method $remove
-         * @param {ObservableObject}  data  JSON对象或已经为observable的JSON对象
-         * @param {string}            name  字段名
+         * @param  data  JSON对象或已经为observable的JSON对象
+         * @param  name  字段名
          */
         function $remove(data, name) {
             if (!data.hasOwnProperty(name)) {
@@ -1394,29 +1300,19 @@ var drunk;
         observable.$remove = $remove;
         /**
          * 对象转换成observable后指向的原型对象
-         *
-         * @property ObservableObjectPrototype
-         * @static
-         * @for observable
          */
         observable.ObservableObjectPrototype = {};
         /**
          * 设置对象的指定字段的值
-         *
-         * @for ObservableObject
-         * @method $set
-         * @param  {string}  name  字段名
-         * @param  {any}     value 值
+         * @param   name  字段名
+         * @param   value 值
          */
         drunk.util.defineProperty(observable.ObservableObjectPrototype, "$set", function setObservableObjectProperty(name, value) {
             $set(this, name, value);
         });
         /**
          * 删除对象的指定字段的值
-         *
-         * @for ObservableObject
-         * @method $remove
-         * @param  {string}  name  字段名
+         * @param   name  字段名
          */
         drunk.util.defineProperty(observable.ObservableObjectPrototype, "$remove", function removeObservableObjectProperty(name) {
             $remove(this, name);
@@ -1433,18 +1329,12 @@ var __extends = this.__extends || function (d, b) {
     __.prototype = b.prototype;
     d.prototype = new __();
 };
-/**
- * @module drunk.observable
- */
 var drunk;
 (function (drunk) {
     var observable;
     (function (observable) {
         /**
          * 监控对象类，为每个需要监控的对象和数组生成一个实例，用于代理监听事件
-         * @class Observer
-         * @extends Events
-         * @constructor
          */
         var Observer = (function (_super) {
             __extends(Observer, _super);
@@ -1453,8 +1343,6 @@ var drunk;
             }
             /**
              * 添加任意属性改变的回调
-             * @method addPropertyChangedCallback
-             * @param  {function}  callback
              */
             Observer.prototype.addPropertyChangedCallback = function (callback) {
                 if (!this._propertyChangedCallbackList) {
@@ -1464,8 +1352,6 @@ var drunk;
             };
             /**
              * 移除任意属性改变的指定回调
-             * @method removePropertyChangedCallback
-             * @param  {function}  callback
              */
             Observer.prototype.removePropertyChangedCallback = function (callback) {
                 if (!this._propertyChangedCallbackList) {
@@ -1478,7 +1364,6 @@ var drunk;
             };
             /**
              * 发送任意属性改变的通知
-             * @method notify
              */
             Observer.prototype.notify = function () {
                 if (!this._propertyChangedCallbackList) {
@@ -1498,10 +1383,6 @@ var drunk;
 /// <reference path="../events/eventemitter" />
 /**
  * observable模块的工具方法，用于创建可观察的数据，数据绑定等
- *
- * @module drunk.observable
- * @class observable
- * @main
  */
 var drunk;
 (function (drunk) {
@@ -1509,10 +1390,7 @@ var drunk;
     (function (observable) {
         /**
          * 根据数据返回对应的Observer 实例，如果该数据已经存在对应的 Observer 实例则直接返回，否则创建一个新的实例
-         * @static
-         * @method create
-         * @param {ObservableArray|ObservableObject} data 数组或JSON对象
-         * @return {Observer} 返回一个Observer实例
+         * @param data 数组或JSON对象
          */
         function create(data) {
             var isObject = drunk.util.isObject(data);
@@ -1549,20 +1427,16 @@ var drunk;
         observable.create = create;
         /**
          * 访问observableObject的字段时会调用的回调
-         * @static
-         * @property onPropertyAccessing
-         * @param {Observer}     observer  返回的当前正在访问的数据的observer对象
-         * @param {string}       property  正在访问的数据的字段
-         * @param {any}             value  对应字段的数据
-         * @param {ObservableObject} data  可观察数据
+         * @param   observer  返回的当前正在访问的数据的observer对象
+         * @param   property  正在访问的数据的字段
+         * @param   value     对应字段的数据
+         * @param   data      可观察数据
          */
         observable.onPropertyAccessing;
         /**
          * 转换对象属性的getter/setter，使其能在数据更新是能接受到事件
-         * @static
-         * @method observe
-         * @param {ObservableObject} data  	   JSON对象
-         * @param {string}           property  JSON对象上的字段
+         * @param  data  	 JSON对象
+         * @param  property  JSON对象上的字段
          */
         function observe(data, property, value) {
             var descriptor = Object.getOwnPropertyDescriptor(data, property);
@@ -1616,10 +1490,8 @@ var drunk;
         observable.observe = observe;
         /**
          * 通知数据的指定属性更新
-         * @static
-         * @method notify
-         * @param {ObservableArray|ObservableObject} data       数据
-         * @param {string}  	                     [property] 要通知的字段名，如果该参数不提供，则派发该该数据更新的通知
+         * @param  data       数据
+         * @param  property   要通知的字段名，如果该参数不提供，则派发该该数据更新的通知
          */
         function notify(data) {
             var ob = data.__observer__;
@@ -1637,16 +1509,9 @@ var drunk;
 /// <reference path="../util/util.ts" />
 /// <reference path="./observable.ts" />
 /**
- * @module drunk.observable
- * @class observable
- */
-/**
  * 转换后的可以监控数组
  * 除了有常规数组的所有方法外还添加了几个工具方法，并在某些修改自身的方法调用后对新数据进行处理和
  * 发送数据更新的通知。
- * @private
- * @class ObservableArray
- * @for observable
  */
 var drunk;
 (function (drunk) {
@@ -1654,18 +1519,13 @@ var drunk;
     (function (observable) {
         /**
          * 数组转换成observable后指向的原型对象
-         * @property ObservableArrayPrototype
-         * @static
-         * @for observable
          */
         observable.ObservableArrayPrototype = Object.create(Array.prototype);
         /**
          * 设置数组指定数组下标的值，并发送数组更新通知
-         * @static
-         * @method $setAt
-         * @param {array}  array   observableArray类型的数组
-         * @param {number} index   要设置的数组下标
-         * @param {any}    value   要设置的值
+         * @param  array   observableArray类型的数组
+         * @param  index   要设置的数组下标
+         * @param  value   要设置的值
          */
         function $setAt(array, index, value) {
             if (index > array.length) {
@@ -1676,12 +1536,8 @@ var drunk;
         observable.$setAt = $setAt;
         /**
          * 根据索引移除数组中的元素，并发送数组更新通知
-         * @static
-         * @for observable
-         * @method $removeAt
-         * @param {array}  array  observableArray类型的数组
-         * @param {number} index  要移除的下标
-         * @returns {any}         返回移除的值
+         * @param  array  observableArray类型的数组
+         * @param  index  要移除的下标
          */
         function $removeAt(array, index) {
             var result;
@@ -1694,11 +1550,8 @@ var drunk;
         observable.$removeAt = $removeAt;
         /**
          * 删除数组中出现的一个指定值，并发送数组更新通知
-         * @static
-         * @for observable
-         * @method $removeItem
-         * @param {array} array  observableArray类型的数组
-         * @param {any}   value  要移除的值
+         * @param  array  observableArray类型的数组
+         * @param  value  要移除的值
          */
         function $removeItem(array, value) {
             drunk.util.removeArrayItem(array, value);
@@ -1706,11 +1559,8 @@ var drunk;
         observable.$removeItem = $removeItem;
         /**
          * 删除数组中所有的指定值，并发送数组更新通知
-         * @static
-         * @for observable
-         * @method $removeAllItem
-         * @param {array} array  observableArray类型的数组
-         * @param {any}   value  要移除的值
+         * @param  array  observableArray类型的数组
+         * @param  value  要移除的值
          */
         function $removeAllItem(array, value) {
             var $removeItemIndexs = [];
@@ -1730,9 +1580,6 @@ var drunk;
         observable.$removeAllItem = $removeAllItem;
         /**
          * 删除所有数组元素
-         * @method removeAll
-         * @static
-         * @param  {array}  array
          */
         function removeAll(array) {
             if (array.length) {
@@ -1743,37 +1590,29 @@ var drunk;
         observable.removeAll = removeAll;
         /**
          * 根据下标设置数组的值，并发送数据更新的通知
-         * @for ObservableArray
-         * @method $setAt
-         * @param  {number}  index  数组下标
-         * @param  {any}     value  要设置的值
+         * @param   index  数组下标
+         * @param   value  要设置的值
          */
         drunk.util.defineProperty(observable.ObservableArrayPrototype, "$setAt", function setObservableArrayItem(index, value) {
             $setAt(this, index, value);
         });
         /**
          * 根据下标移除数组的值，并发送数据更新的通知
-         * @for ObservableArray
-         * @method $removeAt
-         * @param  {number}  index  数组下标
+         * @param   index  数组下标
          */
         drunk.util.defineProperty(observable.ObservableArrayPrototype, "$removeAt", function removeObservalbeArrayByIndex(index) {
             return $removeAt(this, index);
         });
         /**
          * 移除指定的值，并发送数据更新的通知
-         * @for ObservableArray
-         * @method $removeItem
-         * @param  {any}  value  指定值
+         * @param  value  指定值
          */
         drunk.util.defineProperty(observable.ObservableArrayPrototype, "$removeItem", function removeObservableArrayItem(value) {
             return $removeItem(this, value);
         });
         /**
          * 移除数组中所有指定的值，并发送数据更新的通知
-         * @for ObservableArray
-         * @method $removeAllItem
-         * @param  {any}  value  指定值
+         * @param  value  指定值
          */
         drunk.util.defineProperty(observable.ObservableArrayPrototype, "$removeAllItem", function removeAllObservableArrayItem(value) {
             return $removeAllItem(this, value);
@@ -1785,7 +1624,7 @@ var drunk;
         drunk.util.defineProperty(observable.ObservableArrayPrototype, 'removeAll', function () {
             return removeAll(this);
         });
-        /*
+        /**
          * 调用原生方法并发送通知
          */
         function executeArrayMethodAndNotify(array, methodName, args, callback) {
@@ -1845,15 +1684,10 @@ var drunk;
 (function (drunk) {
     var Watcher = (function () {
         /**
-         * 每个watcher对应一个表达式,watcher管理着对应这个表达式更新的回调函数.watcher在对表达式进行求值是,访问每个数据的getter,并得到
-         * 该数据的observer引用,然后订阅该observer.当某个数据更新时该数据的observer实例会发送通知给所有的watcher,watcher接收到消息后
-         * 会调用所有的表达式更新的回调.
-         *
-         * @class Watcher
-         * @constructor
-         * @param  {ViewModel} viewModel   ViewModel实例，用于访问数据
-         * @param  {string}    expression  监听的表达式
-         * @param  {boolean}   isDeepWatch 是否深度监听,当对象或数组里的任意一个数据改变都会发送更新消息
+         * 每个watcher对应一个表达式,watcher管理着对应这个表达式更新的回调函数.watcher在对表达式进行求值是,访问每个数据的getter,并得到该数据的observer引用,然后订阅该observer.当某个数据更新时该数据的observer实例会发送通知给所有的watcher,watcher接收到消息后会调用所有的表达式更新的回调.
+         * @param   viewModel   ViewModel实例，用于访问数据
+         * @param   expression  监听的表达式
+         * @param   isDeepWatch 是否深度监听,当对象或数组里的任意一个数据改变都会发送更新消息
          */
         function Watcher(viewModel, expression, isDeepWatch) {
             this.viewModel = viewModel;
@@ -1873,19 +1707,15 @@ var drunk;
         }
         /**
          * 根据表达式和是否深度监听生成唯一的key,用于储存在关联的viewModel实例的watcher表中
-         * @method getNameOfKey
-         * @static
-         * @param  {string}   expression  表达式
-         * @param  {boolean}  isDeepWatch 是否深度监听
-         * @return {string}   返回一个生成的key
+         * @param   expression  表达式
+         * @param   isDeepWatch 是否深度监听
          */
         Watcher.getNameOfKey = function (expression, isDeepWatch) {
             return !!isDeepWatch ? expression + '<deep>' : expression;
         };
         /**
          * 添加数据更新回调
-         * @method addAction
-         * @param {function} action  回调函数
+         * @param  action  回调函数
          */
         Watcher.prototype.addAction = function (action) {
             if (!this._isActived) {
@@ -1895,9 +1725,7 @@ var drunk;
         };
         /**
          * 移除数据更新回调
-         *
-         * @method removeAction
-         * @param  {function} action 回调函数
+         * @param  action 回调函数
          */
         Watcher.prototype.removeAction = function (action) {
             if (!this._isActived) {
@@ -1910,7 +1738,6 @@ var drunk;
         };
         /**
          * 数据更新派发，会先做缓冲，防止在同一时刻对此出发更新操作，等下一次系统轮训时再真正执行更新操作
-         * @method __propertyChanged
          */
         Watcher.prototype.__propertyChanged = function () {
             if (this._runActionJob) {
@@ -1920,9 +1747,6 @@ var drunk;
         };
         /**
          * 立即获取最新的数据判断并判断是否已经更新，如果已经更新，执行所有的回调
-         * @method __flush
-         * @private
-         * @return {Promise} 等待所有回调执行完毕的promise对象
          */
         Watcher.prototype.__flush = function () {
             if (!this._isActived) {
@@ -1940,7 +1764,6 @@ var drunk;
         };
         /**
          * 释放引用和内存
-         * @method dispose
          */
         Watcher.prototype.dispose = function () {
             var _this = this;
@@ -1970,9 +1793,6 @@ var drunk;
         };
         /**
          * 执行表达式函数获取最新的数据
-         * @method __getValue
-         * @private
-         * @return {any}
          */
         Watcher.prototype.__getValue = function () {
             this.__beforeGetValue();
@@ -1989,8 +1809,6 @@ var drunk;
         };
         /**
          * 设置observable的属性访问回调为当前watcher实例的订阅方法,当访问某个属性是就会对该属性进行订阅
-         * @method __beforeGetValue
-         * @private
          */
         Watcher.prototype.__beforeGetValue = function () {
             this._tmpObservers = {};
@@ -1998,10 +1816,7 @@ var drunk;
             drunk.observable.onPropertyAccessing = this._subscribePropertyChanged.bind(this);
         };
         /**
-         * 表达式求解完后的收尾工作,取消注册onPropertyAccessed回调,并对比旧的observer表和新的表看有哪些
-         * 实例已经不需要订阅
-         * @method __afterGetValue
-         * @private
+         * 表达式求解完后的收尾工作,取消注册onPropertyAccessed回调,并对比旧的observer表和新的表看有哪些实例已经不需要订阅
          */
         Watcher.prototype.__afterGetValue = function () {
             // 清楚属性访问回调
@@ -2034,10 +1849,8 @@ var drunk;
         };
         /**
          * 订阅属性的更新消息
-         * @method __subscribePropertyChanged
-         * @private
-         * @param  {Observer} observer 属性的所属观察者
-         * @param  {string}   property 属性名
+         * @param  observer 属性的所属观察者
+         * @param  property 属性名
          */
         Watcher.prototype._subscribePropertyChanged = function (observer, property) {
             var id = drunk.util.uuid(observer);
@@ -2090,27 +1903,31 @@ var drunk;
 /// <reference path="../viewmodel/viewmodel" />
 var drunk;
 (function (drunk) {
+    /**
+     * 绑定类
+     */
     var Binding = (function () {
         /**
          * 根据绑定的定义创建一个绑定实例，根据定义进行viewModel与DOM元素绑定的初始化、视图渲染和释放
-         * @class Binding
-         * @constructor
-         * @param  {ViewModel}          viewModel       ViewModel实例
-         * @param  {HTMLElement}        element         绑定元素
-         * @param  {BindingDefinition}  definition      绑定定义
-         * @param  {boolean} [descriptor.isDeepWatch]   是否深度监听
-         * @param  {boolean} [descriptor.isTwowayBinding] 是否双向绑定
+         * @param  viewModel       ViewModel实例
+         * @param  element         绑定元素
+         * @param  definition      绑定定义
          */
         function Binding(viewModel, element, descriptor) {
             this.viewModel = viewModel;
             this.element = element;
+            /**
+             * 是否已经不可用
+             */
             this._isActived = true;
+            /**
+             * 数据更新锁
+             */
             this._isLocked = false;
             drunk.util.extend(this, descriptor);
         }
         /**
          * 初始化绑定
-         * @method initialize
          */
         Binding.prototype.initialize = function (parentViewModel, placeholder) {
             var _this = this;
@@ -2140,7 +1957,6 @@ var drunk;
         };
         /**
          * 移除绑定并销毁
-         * @method dispose
          */
         Binding.prototype.dispose = function () {
             if (!this._isActived) {
@@ -2163,9 +1979,8 @@ var drunk;
         /**
          * 设置表达式的值到viewModel上,因为值更新会触发视图更新,会返回来触发当前绑定的update方法,所以为了避免不必要的
          * 性能消耗,这里提供加锁操作,在当前帧内设置锁定状态,发现是锁定的情况就不再调用update方法,下一帧的时候再把锁定状态取消
-         * @method setValue
-         * @param  {any}     value    要设置的值
-         * @param  {boolean} [isLocked] 是否加锁
+         * @param  value    要设置的值
+         * @param  isLocked 是否加锁
          */
         Binding.prototype.setValue = function (value, isLocked) {
             this._isLocked = !!isLocked;
@@ -2178,26 +1993,23 @@ var drunk;
     (function (Binding) {
         /**
          * 终止型绑定信息列表,每个绑定信息包含了name(名字)和priority(优先级)信息
-         * @property terminalBindingDescriptors
-         * @private
-         * @type Array<{name: string; priority: number}>
          */
         var terminalBindingDescriptors = [];
         /**
          * 终止型绑定的名称
-         * @property endingNames
-         * @private
-         * @type Array<string>
          */
         var terminalBindings = [];
+        /**
+         * 缓存的所有绑定声明的表
+         */
         var definitions = {};
+        /**
+         * Binding实例与元素的弱引用关系表
+         */
         var weakRefMap = {};
         /**
          * 获取元素的所有绑定实例
-         * @method getAllBindingsByElement
-         * @static
-         * @param  {Node}  element  元素节点
-         * @return {Array<Binding>}
+         * @param  element  元素节点
          */
         function getAllBindingsByElement(element) {
             var id = drunk.util.uuid(element);
@@ -2209,10 +2021,8 @@ var drunk;
         Binding.getAllBindingsByElement = getAllBindingsByElement;
         /**
          * 添加引用
-         * @method setWeakRef
-         * @static
-         * @param  {Node}     element  元素节点
-         * @param  {Binding}  binding  绑定实例
+         * @param  element  元素节点
+         * @param  binding  绑定实例
          */
         function setWeakRef(element, binding) {
             var id = drunk.util.uuid(element);
@@ -2224,10 +2034,8 @@ var drunk;
         Binding.setWeakRef = setWeakRef;
         /**
          * 移除引用
-         * @method removeWeakRef
-         * @static
-         * @param  {Node}     element  元素节点
-         * @param  {Binding}  binding  绑定实例
+         * @param   element  元素节点
+         * @param   binding  绑定实例
          */
         function removeWeakRef(element, binding) {
             var id = drunk.util.uuid(element);
@@ -2244,8 +2052,6 @@ var drunk;
         Binding.removeWeakRef = removeWeakRef;
         /**
          * 绑定创建的优先级
-         * @property Priority
-         * @type IPriority
          */
         (function (Priority) {
             Priority[Priority["low"] = -100] = "low";
@@ -2258,10 +2064,8 @@ var drunk;
         ;
         /**
          * 根据一个绑定原型对象注册一个binding指令
-         * @method register
-         * @static
-         * @param  {string}          name  指令名
-         * @param  {function|Object} def   binding实现的定义对象或绑定的更新函数
+         * @param   name  指令名
+         * @param   def   binding实现的定义对象或绑定的更新函数
          */
         function register(name, definition) {
             definition.priority = definition.priority || Priority.normal;
@@ -2277,10 +2081,8 @@ var drunk;
         Binding.register = register;
         /**
          * 根据绑定名获取绑定的定义
-         * @method getByName
-         * @static
-         * @param  {string}  name      绑定的名称
-         * @return {BindingDefinition} 具有绑定定义信息的对象
+         * @param   name      绑定的名称
+         * @return            具有绑定定义信息的对象
          */
         function getByName(name) {
             return definitions[name];
@@ -2288,9 +2090,7 @@ var drunk;
         Binding.getByName = getByName;
         /**
          * 获取已经根据优先级排序的终止型绑定的名称列表
-         * @method getTerminalBindings
-         * @static
-         * @return {array}  返回绑定名称列表
+         * @return 返回绑定名称列表
          */
         function getTerminalBindings() {
             return terminalBindings.slice();
@@ -2298,10 +2098,8 @@ var drunk;
         Binding.getTerminalBindings = getTerminalBindings;
         /**
          * 创建viewModel与模板元素的绑定
-         * @method create
-         * @static
-         * @param  {ViewModel}   viewModel  ViewModel实例
-         * @param  {HTMLElement} element    元素
+         * @param   viewModel  ViewModel实例
+         * @param   element    元素
          */
         function create(viewModel, element, descriptor, parentViewModel, placeholder) {
             var binding = new Binding(viewModel, element, descriptor);
@@ -2313,11 +2111,8 @@ var drunk;
         Binding.create = create;
         /**
          * 设置终止型的绑定，根据提供的优先级对终止型绑定列表进行排序，优先级高的绑定会先于优先级的绑定创建
-         * @method setEnding
-         * @private
-         * @static
-         * @param  {string}  name      绑定的名称
-         * @param  {number}  priority  绑定的优先级
+         * @param   name      绑定的名称
+         * @param   priority  绑定的优先级
          */
         function setTernimalBinding(name, priority) {
             // 检测是否已经存在该绑定
@@ -2350,15 +2145,11 @@ var drunk;
 (function (drunk) {
     /**
      * ViewModel类， 实现数据与模板元素的绑定
-     *
-     * @class ViewModel
-     * @extend EventEmitter
      */
     var ViewModel = (function (_super) {
         __extends(ViewModel, _super);
         /**
-         * constructor
-         * @param  {IModel} [model] 数据
+         * @param   model  初始化数据
          */
         function ViewModel(model) {
             _super.call(this);
@@ -2366,9 +2157,7 @@ var drunk;
         }
         /**
          * 初始化私有属性,并对model里的所有字段进行代理处理
-         * @method __init
-         * @protected
-         * @param  {IModel} [model]  数据对象
+         * @param  model  数据对象
          */
         ViewModel.prototype.__init = function (model) {
             var _this = this;
@@ -2385,9 +2174,7 @@ var drunk;
         };
         /**
          * 代理某个属性到最新的IModel上
-         *
-         * @method $proxy
-         * @param  {string}  property  需要代理的属性名
+         * @param   property  需要代理的属性名
          */
         ViewModel.prototype.$proxy = function (property) {
             var value = this[property];
@@ -2400,11 +2187,8 @@ var drunk;
         };
         /**
          * 执行表达式并返回结果
-         *
-         * @method $eval
-         * @param  {string}  expression      表达式
-         * @param  {boolean} [isInterpolate] 是否是插值表达式
-         * @return {string}                  结果
+         * @param   expression      表达式
+         * @param   isInterpolate   是否是插值表达式
          */
         ViewModel.prototype.$eval = function (expression, isInterpolate) {
             var getter;
@@ -2421,10 +2205,8 @@ var drunk;
         };
         /**
          * 根据表达式设置值
-         *
-         * @method $setValue
-         * @param  {string}  expression  表达式
-         * @param  {any}     value       值
+         * @param   expression  表达式
+         * @param   value       值
          */
         ViewModel.prototype.$setValue = function (expression, value) {
             var setter = drunk.parser.parseSetter(expression);
@@ -2432,18 +2214,15 @@ var drunk;
         };
         /**
          * 把model数据转成json并返回
-         * @method $getModel
-         * @return {IModel}  反悔json格式的不带getter/setter的model
+         * @return   json格式的不带getter/setter的model对象
          */
         ViewModel.prototype.$getModel = function () {
             return drunk.util.deepClone(this._model);
         };
         /**
          * 监听表达式的里每个数据的变化
-         *
-         * @method $watch
-         * @param  {string}  expression  表达式
-         * @return {function}            返回一个取消监听的函数
+         * @param   expression  表达式
+         * @return              返回一个取消监听的函数
          */
         ViewModel.prototype.$watch = function (expression, action, isDeepWatch, isImmediate) {
             var _this = this;
@@ -2465,13 +2244,7 @@ var drunk;
             };
         };
         /**
-         * 释放ViewModel实例的所有元素与数据的绑定
-         * 解除所有的代理属性
-         * 解除所有的视图于数据绑定
-         * 移除事件缓存
-         * 销毁所有的watcher
-         *
-         * @method $release
+         * 释放ViewModel实例的所有元素与数据的绑定,解除所有的代理属性,解除所有的视图于数据绑定,移除事件缓存,销毁所有的watcher
          */
         ViewModel.prototype.$release = function () {
             var _this = this;
@@ -2498,11 +2271,8 @@ var drunk;
         };
         /**
          * 获取事件回调,内置方法
-         *
-         * @method __getHandler
-         * @internal
-         * @param  {string}  handlerName  时间回调名称
-         * @return {ViewModel} 返回事件处理函数
+         * @param  handlerName  事件回调名称
+         * @return              返回事件处理函数
          */
         ViewModel.prototype.__getHandler = function (handlerName) {
             var handler = this[handlerName];
@@ -2526,12 +2296,10 @@ var drunk;
         };
         /**
          * 根据getter函数获取数据
-         * @method __getValueByGetter
-         * @param  {function}    getter         表达式解析生成的getter函数
-         * @param  {boolean}     isInterpolate  是否是插值表达式
-         * @param  {Event}       [event]        事件对象
-         * @param  {HTMLElement} [el]           元素对象
-         * @return {any}
+         * @param   getter         表达式解析生成的getter函数
+         * @param   isInterpolate  是否是插值表达式
+         * @param   event          事件对象
+         * @param   el             元素对象
          */
         ViewModel.prototype.__getValueByGetter = function (getter, isInterpolate) {
             var args = [this].concat(drunk.util.toArray(arguments).slice(1));
@@ -2548,8 +2316,6 @@ var drunk;
 /// <reference path="../cache/cache" />
 /**
  * 简单的解析器,只是做了字符串替换,然后使用new Function生成函数
- * @module drunk.parser
- * @class parser
  */
 var drunk;
 (function (drunk) {
@@ -2583,7 +2349,9 @@ var drunk;
         var reObjectKey = /[{,]\s*$/;
         var reColon = /^\s*:/;
         var reAnychar = /\S+/;
-        // 解析filter定义
+        /**
+         *  解析filter定义
+         */
         function parseFilterDef(str, skipSetter) {
             if (skipSetter === void 0) { skipSetter = false; }
             if (!filterCache.get(str)) {
@@ -2613,25 +2381,35 @@ var drunk;
             }
             return filterCache.get(str);
         }
-        // 断言非空字符串
+        /**
+         *  断言非空字符串
+         */
         function assertNotEmptyString(target, message) {
             if (!(typeof target === 'string' && reAnychar.test(target))) {
                 throw new Error(message + ": 表达式为空");
             }
         }
-        // 是否是对象的key
+        /**
+         *  是否是对象的key
+         */
         function isObjectKey(str) {
             return str.match(reObjectKey) != null;
         }
-        // 前一个字符是否是冒号
+        /**
+         *  前一个字符是否是冒号
+         */
         function isColon(str) {
             return str.match(reColon) != null;
         }
-        // 是否是一个方法调用
+        /**
+         *  是否是一个方法调用
+         */
         function isCallFunction(str) {
             return str.match(reBrackets) != null;
         }
-        // 解析所有的标记并对表达式进行格式化
+        /**
+         *  解析所有的标记并对表达式进行格式化
+         */
         function parseIdentifier(str) {
             var cache = identifierCache.get(str);
             if (!cache) {
@@ -2679,7 +2457,9 @@ var drunk;
             }
             return cache;
         }
-        // 创建函数
+        /**
+         *  创建函数
+         */
         function createFunction(expression) {
             var args = [];
             for (var _i = 1; _i < arguments.length; _i++) {
@@ -2695,10 +2475,7 @@ var drunk;
         }
         /**
          * 解析表达式
-         * @method parse
-         * @static
-         * @param  {string}  expression  表达式
-         * @return {function}            返回一个方法
+         * @param  expression  表达式
          */
         function parse(expression) {
             assertNotEmptyString(expression, "解析表达式失败");
@@ -2714,12 +2491,9 @@ var drunk;
         parser.parse = parse;
         /**
          * 解析表达式生成getter函数
-         * @method parsetGetter
-         * @static
-         * @param  {string}  expression      表达式字符串
-         * @param  {boolean} [isInterpolate] 是否是一哥插值表达式
-         * @param  {boolean} [skipFilter]    跳过解析filter
-         * @return {function}                getter函数
+         * @param   expression      表达式字符串
+         * @param   isInterpolate   是否是一哥插值表达式
+         * @param   skipFilter      跳过解析filter
          */
         function parseGetter(expression, isInterpolate, skipFilter) {
             assertNotEmptyString(expression, "创建getter失败");
@@ -2745,11 +2519,7 @@ var drunk;
         parser.parseGetter = parseGetter;
         /**
          * 解析表达式生成setter函数
-         *
-         * @method parseSetter
-         * @static
-         * @param  {string}  expression 表达式字符串
-         * @return {function}           setter函数
+         * @param   expression 表达式字符串
          */
         function parseSetter(expression) {
             assertNotEmptyString(expression, "创建setter失败");
@@ -2793,10 +2563,7 @@ var drunk;
         parser.parseInterpolate = parseInterpolate;
         /**
          * 是否有插值语法
-         * @method hasInterpolation
-         * @static
-         * @param  {string}  str  字符串
-         * @return {boolean}      返回结果
+         * @param   str  字符串
          */
         function hasInterpolation(str) {
             return typeof str === 'string' && str.match(reAnychar) !== null && str.match(reInterpolate) !== null;
@@ -2853,14 +2620,10 @@ var drunk;
     (function (filter) {
         /**
          * 使用提供的filter列表处理数据
-         *
-         * @method pipeFor
-         * @static
-         * @param  {any}            value       输入
-         * @param  {FilterDef[]}    filterDefs  filter定义集合
-         * @param  {ViewModel}      viewModel   ViewModel实例
-         * @param  {any[]}          ...args     其他参数
-         * @return {any}                        过滤后得到的值
+         * @param   value       输入
+         * @param   filterDefs  filter定义集合
+         * @param   viewModel   ViewModel实例
+         * @param   ...args     其他参数
          */
         function pipeFor(value, filterDefs, filterMap, isInterpolate) {
             var args = [];
@@ -2898,7 +2661,9 @@ var drunk;
             return value;
         }
         filter.pipeFor = pipeFor;
-        // 判断插值表达式的值个数,如果只有一个,则返回该值,如果有多个,则返回所有值的字符串相加
+        /**
+         * 判断插值表达式的值个数,如果只有一个,则返回该值,如果有多个,则返回所有值的字符串相加
+         */
         function getInterpolateValue(values) {
             if (values.length === 1) {
                 return values[0];
@@ -2932,12 +2697,13 @@ var drunk;
             "&lt;": "<",
             "&gt;": ">"
         };
+        /**
+         * filter方法表
+         */
         filter.filters = {
             /**
              * 对输入的字符串进行编码
-             * @method escape
-             * @param  {string}  input  输入
-             * @return {string}         输出
+             * @param  input  输入
              */
             escape: function (input) {
                 return input.replace(reg.escape, function (x) {
@@ -2946,9 +2712,7 @@ var drunk;
             },
             /**
              * 对输入的字符串进行解码
-             * @method unescape
-             * @param  {string}  input  输入
-             * @return {string}         输出
+             * @param  input  输入
              */
             unescape: function (input) {
                 return input.replace(reg.unescape, function (a) {
@@ -2957,11 +2721,9 @@ var drunk;
             },
             /**
              * 对输入的字符串进行截断
-             * @method truncate
-             * @param  {string}  input  输入
-             * @param  {number}  length 保留的最大长度
-             * @param  {string}  [tail] 结尾的字符串,默认为'...'
-             * @return {string}         输出
+             * @param   input  输入
+             * @param   length 保留的最大长度
+             * @param   tail   结尾的字符串,默认为'...'
              */
             truncate: function (input, length, tail) {
                 if (input.length <= length) {
@@ -2971,27 +2733,21 @@ var drunk;
             },
             /**
              * 为特殊字符添加斜杠
-             * @method addslashes
-             * @param  {string}  input  输入
-             * @return {string}         输出
+             * @param  input  输入
              */
             addslashes: function (input) {
                 return input.replace(/[\\"']/g, '\\$&').replace(/\u0000/g, '\\0');
             },
             /**
              * 移除特殊字符的斜杠
-             * @method stripslashes
-             * @param  {string}  input  输入
-             * @return {string}         输出
+             * @param  input  输入
              */
             stripslashes: function (input) {
                 return input.replace(/\\'/g, "'").replace(/\\"/g, '"').replace(/\\0/g, '\0').replace(/\\\\/g, '\\');
             },
             /**
              * 计算输入的长度，支持字符串、数组和对象
-             * @method size
-             * @param  {string|array|object}  input 输入
-             * @return {number}  长度
+             * @param  input 输入
              */
             size: function (input) {
                 if (input == null) {
@@ -3012,48 +2768,38 @@ var drunk;
             },
             /**
              * JSON.stringify的别名
-             * @method json
-             * @param  {any}  input     输入
-             * @param  {number} [ident] 缩进
-             * @return {string}         格式化后的字符串
+             * @param   input     输入
+             * @param   ident     缩进
              */
             json: function (input, ident) {
                 return JSON.stringify(input, null, ident || 4);
             },
             /**
              * 移除所有tag标签字符串,比如"<div>123</div>" => "123"
-             * @method striptags
-             * @param  {string}  input  输入
-             * @return {string}         输出
+             * @param   input  输入
              */
             striptags: function (input) {
                 return input.replace(reg.striptags, "");
             },
             /**
              * 当输入为undefined或null是返回默认值
-             * @method default
-             * @param  {any}  input        输入
-             * @param  {any}  defaultValue 默认值
-             * @return {any}               根据输入返回的值
+             * @param  input        输入
+             * @param  defaultValue 默认值
              */
             default: function (input, defaltValue) {
                 return input == null ? defaltValue : input;
             },
             /**
              * 根据输入的时间戳返回指定格式的日期字符串
-             * @method date
-             * @param  {number|string} input  时间戳
-             * @param  {string}        format 要返回的时间格式
-             * @return {string}               格式化后的时间字符串
+             * @param   input  时间戳
+             * @param   format 要返回的时间格式
              */
             date: function (input, format) {
                 return formatDate(input, format);
             },
             /**
              * 在控制台上打印输入
-             * @method log
-             * @param  {any}  input  输入
-             * @return {any}         返回输入的值
+             * @param  input  输入
              */
             log: function (input) {
                 console.log("[Filter.log]: ", input);
@@ -3116,15 +2862,11 @@ var drunk;
 (function (drunk) {
     /**
      * 动画模块
-     * @module drunk.Action
-     * @class Action
      */
     var Action;
     (function (Action) {
         /**
          * action的类型
-         * @property Type
-         * @type object
          */
         Action.Type = {
             created: 'created',
@@ -3132,16 +2874,10 @@ var drunk;
         };
         /**
          * js动画定义
-         * @property definitionMap
-         * @private
-         * @type object
          */
         var definitionMap = {};
         /**
          * 动画状态
-         * @property actionMap
-         * @private
-         * @type object
          */
         var actionMap = {};
         var propertyPrefix = null;
@@ -3177,10 +2913,8 @@ var drunk;
         }
         /**
          * 设置当前正在执行的action
-         * @method setCurrentAction
-         * @static
-         * @param  {HTMLElement}  element 元素节点
-         * @param  {IAction}      action  action描述
+         * @param   element 元素节点
+         * @param   action  action描述
          */
         function setCurrentAction(element, action) {
             var id = drunk.util.uuid(element);
@@ -3189,10 +2923,7 @@ var drunk;
         Action.setCurrentAction = setCurrentAction;
         /**
          * 获取元素当前的action对象
-         * @method getCurrentAction
-         * @static
-         * @param  {HTMLElement}  element  元素节点
-         * @return {IAction}
+         * @param   element  元素节点
          */
         function getCurrentAction(element) {
             var id = drunk.util.uuid(element);
@@ -3201,9 +2932,7 @@ var drunk;
         Action.getCurrentAction = getCurrentAction;
         /**
          * 移除当前元素的action引用
-         * @method removeRef
-         * @static
-         * @param  {HTMLElement} element
+         * @param  element
          */
         function removeRef(element) {
             var id = drunk.util.uuid(element);
@@ -3212,11 +2941,9 @@ var drunk;
         Action.removeRef = removeRef;
         /**
          * 执行单个action,优先判断是否存在js定义的action,再判断是否是css动画
-         * @method run
-         * @static
-         * @param  {HTMLElement}    element    元素对象
-         * @param  {string}         detail     action的信息,动画名或延迟时间
-         * @param  {string}         type       action的类型(created或removed)
+         * @param   element    元素对象
+         * @param   detail     action的信息,动画名或延迟时间
+         * @param   type       action的类型(created或removed)
          */
         function run(element, detail, type) {
             if (isNumber(detail)) {
@@ -3326,10 +3053,7 @@ var drunk;
         Action.register = register;
         /**
          * 根据名称获取注册的action实现
-         * @method getByName
-         * @static
-         * @param  {string}  name  action名称
-         * @return {IActionDefinition}
+         * @param   name  action名称
          */
         function getByName(name) {
             return definitionMap[name];
@@ -3349,6 +3073,9 @@ var drunk;
                 _this._actionJob = null;
             }, drunk.Scheduler.Priority.normal);
         };
+        /**
+         * 解析action的定义表达式
+         */
         ActionBinding.prototype._parseDefinition = function (actionType) {
             if (!this.expression) {
                 this._actionNames = [];
@@ -3365,6 +3092,9 @@ var drunk;
                 actions.pop();
             }
         };
+        /**
+         * 根据类型运行数据的action队列
+         */
         ActionBinding.prototype._runActions = function (type) {
             var element = this.element;
             if (this._actionNames.length < 2) {
@@ -3398,6 +3128,9 @@ var drunk;
             });
             Action.setCurrentAction(element, actionQueue);
         };
+        /**
+         * 先取消还在运行的action，再运行指定的action
+         */
         ActionBinding.prototype._runActionByType = function (type) {
             var currentAction = Action.getCurrentAction(this.element);
             if (currentAction && currentAction.cancel) {
@@ -3426,10 +3159,6 @@ var drunk;
 /// <reference path="../binding/bindings/action" />
 /**
  * DOM操作的工具方法模块
- *
- * @module drunk.dom
- * @main
- * @class dom
  */
 var drunk;
 (function (drunk) {
@@ -3437,10 +3166,8 @@ var drunk;
     (function (dom) {
         /**
          * 根据提供的html字符串创建html元素
-         * @static
-         * @method create
-         * @param  {string}  html  html字符串
-         * @return {Node|Node[]}          创建好的html元素
+         * @param   html  html字符串
+         * @return        创建好的html元素或元素列表数组
          */
         function create(htmlString) {
             var div = document.createElement("div");
@@ -3452,10 +3179,8 @@ var drunk;
         dom.create = create;
         /**
          * 设置元素的innerHTML
-         * @static
-         * @method html
-         * @param  {HTMLElement}  container  元素
-         * @param  {string}       value      值
+         * @param   container  元素
+         * @param   value      值
          */
         function html(container, value) {
             container.innerHTML = value;
@@ -3463,10 +3188,8 @@ var drunk;
         dom.html = html;
         /**
          * 在旧的元素节点前插入新的元素节点
-         * @static
-         * @method before
-         * @param  {Node}  newNode  新的节点
-         * @param  {Node}  oldNode  旧的节点
+         * @param  newNode  新的节点
+         * @param  oldNode  旧的节点
          */
         function before(newNode, oldNode) {
             if (!oldNode.parentNode) {
@@ -3483,10 +3206,8 @@ var drunk;
         dom.before = before;
         /**
          * 在旧的元素节点后插入新的元素节点
-         * @static
-         * @method after
-         * @param  {Node}  newNode  新的节点
-         * @param  {Node}  oldNode  旧的节点
+         * @param  newNode  新的节点
+         * @param  oldNode  旧的节点
          */
         function after(newNode, oldNode) {
             if (!oldNode.parentNode) {
@@ -3508,9 +3229,7 @@ var drunk;
         dom.after = after;
         /**
          * 移除元素节点
-         * @static
-         * @method remove
-         * @param  {Node|Node[]}  target  节点
+         * @param  target  节点
          */
         function remove(target) {
             if (!Array.isArray(target)) {
@@ -3536,10 +3255,8 @@ var drunk;
         }
         /**
          * 新的节点替换旧的节点
-         * @static
-         * @method replace
-         * @param  {Node}  newNode  新的节点
-         * @param  {Node}  oldNode  旧的节点
+         * @param  newNode  新的节点
+         * @param  oldNode  旧的节点
          */
         function replace(newNode, oldNode) {
             if (!oldNode.parentNode) {
@@ -3557,11 +3274,9 @@ var drunk;
         dom.replace = replace;
         /**
          * 为节点注册事件监听
-         * @static
-         * @method on
-         * @param  {HTMLElement} element  元素
-         * @param  {string}      type     事件名
-         * @param  {function}    listener 事件处理函数
+         * @param  element  元素
+         * @param  type     事件名
+         * @param  listener 事件处理函数
          */
         function on(element, type, listener) {
             element.addEventListener(type, listener, false);
@@ -3569,11 +3284,9 @@ var drunk;
         dom.on = on;
         /**
          * 移除节点的事件监听
-         * @static
-         * @method off
-         * @param  {HTMLElement} element  元素
-         * @param  {string}      type     事件名
-         * @param  {function}    listener 事件处理函数
+         * @param  element  元素
+         * @param  type     事件名
+         * @param  listener 事件处理函数
          */
         function off(element, type, listener) {
             element.removeEventListener(type, listener, false);
@@ -3581,10 +3294,8 @@ var drunk;
         dom.off = off;
         /**
          * 添加样式
-         * @static
-         * @method addClass
-         * @param  {HTMLElement}  element    元素
-         * @param  {string}       token      样式名
+         * @param   element    元素
+         * @param   token      样式名
          */
         function addClass(element, token) {
             var list = token.trim().split(/\s+/);
@@ -3593,10 +3304,8 @@ var drunk;
         dom.addClass = addClass;
         /**
          * 移除样式
-         * @static
-         * @method removeClass
-         * @param  {HTMLElement}  element    元素
-         * @param  {string}       token      样式名
+         * @param  element    元素
+         * @param  token      样式名
          */
         function removeClass(element, token) {
             var list = token.trim().split(/\s+/);
@@ -3613,9 +3322,6 @@ var drunk;
 /// <reference path="../parser/parser.ts" />
 /**
  * 模板工具模块， 提供编译创建绑定，模板加载的工具方法
- * @module drunk.Template
- * @class Template
- * @main
  */
 var drunk;
 (function (drunk) {
@@ -3623,9 +3329,9 @@ var drunk;
     (function (Template) {
         /**
          * 编译模板元素生成绑定方法
-         * @param  {any}        node        模板元素
-         * @param  {boolean}    isRootNode  是否是根元素
-         * @return {function}               绑定元素与viewModel的方法
+         * @param   node        模板元素
+         * @param   isRootNode  是否是根元素
+         * @return              绑定元素与viewModel的方法
          */
         function compile(node) {
             var isArray = Array.isArray(node);
@@ -3659,7 +3365,9 @@ var drunk;
             };
         }
         Template.compile = compile;
-        // 判断元素是什么类型,调用相应的类型编译方法
+        /**
+         *  判断元素是什么类型,调用相应的类型编译方法
+         */
         function compileNode(node) {
             var nodeType = node.nodeType;
             if (nodeType === 1 && node.tagName !== "SCRIPT") {
@@ -3671,7 +3379,9 @@ var drunk;
                 return compileTextNode(node);
             }
         }
-        // 编译NodeList
+        /**
+         *  编译NodeList
+         */
         function compileNodeList(nodeList) {
             var executors = [];
             drunk.util.toArray(nodeList).forEach(function (node) {
@@ -3704,11 +3414,15 @@ var drunk;
                 };
             }
         }
-        // 判断是否可以编译childNodes
+        /**
+         *  判断是否可以编译childNodes
+         */
         function isNeedCompileChild(node) {
             return node.tagName !== 'SCRIPT' && node.hasChildNodes();
         }
-        // 编译元素的绑定并创建绑定描述符
+        /**
+         *  编译元素的绑定并创建绑定描述符
+         */
         function compileElement(element) {
             var executor;
             var tagName = element.tagName.toLowerCase();
@@ -3733,7 +3447,9 @@ var drunk;
             }
             return executor;
         }
-        // 编译文本节点
+        /**
+         *  编译文本节点
+         */
         function compileTextNode(node) {
             var content = node.textContent;
             if (!drunk.parser.hasInterpolation(content)) {
@@ -3765,7 +3481,9 @@ var drunk;
                 drunk.dom.replace(frag, element);
             };
         }
-        // 检测是否存在终止编译的绑定，比如component指令会终止当前编译过程，如果有创建绑定描述符
+        /**
+         *  检测是否存在终止编译的绑定，比如component指令会终止当前编译过程，如果有创建绑定描述符
+         */
         function processTerminalBinding(element) {
             var terminals = drunk.Binding.getTerminalBindings();
             var name;
@@ -3781,7 +3499,9 @@ var drunk;
                 }
             }
         }
-        // 查找并创建通常的绑定
+        /**
+         *  查找并创建通常的绑定
+         */
         function processNormalBinding(element) {
             var executors = [];
             drunk.util.toArray(element.attributes).forEach(function (attr) {
@@ -3822,7 +3542,9 @@ var drunk;
                 };
             }
         }
-        // 生成绑定描述符方法
+        /**
+         *  生成绑定描述符方法
+         */
         function createExecutor(element, descriptor) {
             var definition = drunk.Binding.getByName(descriptor.name);
             var executor;
@@ -3847,10 +3569,6 @@ var drunk;
 /// <reference path="../promise/promise.ts" />
 /// <reference path="../util/xhr.ts" />
 /// <reference path="../cache/cache" />
-/**
- * @module drunk.Template
- * @class Template
- */
 var drunk;
 (function (drunk) {
     var Template;
@@ -3859,10 +3577,8 @@ var drunk;
         /**
          * 加载模板，先尝试从script标签上查找，找不到再发送ajax请求，
          * 加载到的模板字符串会进行缓存
-         * @static
-         * @method loadTemplate
-         * @param   {string}  urlOrId  script模板标签的id或模板的url地址
-         * @returns {Promise}           一个 promise 对象promise的返回值为模板字符串
+         * @param    urlOrId  script模板标签的id或模板的url地址
+         * @returns           一个Promise 对象,Promise的返回值为模板字符串
          */
         function load(urlOrId) {
             var template = cacheStore.get(urlOrId);
@@ -3897,12 +3613,10 @@ var drunk;
         /**
          * 把模块连接渲染为documentFragment,会对样式和脚本进行处理,避免重复加载,如果提供宿主容器元素,则会把
          * 模板渲染到改容器中
-         * @method renderFragment
-         * @static
-         * @param  {string}       href              模板连接
-         * @param  {HTMLElement}  [hostedElement]   容器元素
-         * @param  {boolean}      [useCache]        是否使用缓存还是重新加载
-         * @return {Promise}
+         * @param   href              模板连接
+         * @param   hostedElement     容器元素
+         * @param   useCache          是否使用缓存还是重新加载
+         * @return                    返回一个Promise对象
          */
         function renderFragment(href, hostedElement, useCache) {
             var fragmentId = href.toLowerCase();
@@ -4077,24 +3791,19 @@ var drunk;
         __extends(Component, _super);
         /**
          * 组件类，继承ViewModel类，实现了模板的准备和数据的绑定
-         * @class Component
-         * @constructor
+         * @param  model  初始化的数据
          */
         function Component(model) {
             _super.call(this, model);
         }
         /**
          * 实例创建时会调用的初始化方法,派生类可覆盖该方法
-         * @method init
          */
         Component.prototype.init = function () {
         };
         /**
          * 属性初始化
-         * @method __init
-         * @override
-         * @protected
-         * @param  {IModel}  [model]  model对象
+         * @param  model 数据
          */
         Component.prototype.__init = function (model) {
             var _this = this;
@@ -4135,8 +3844,6 @@ var drunk;
         };
         /**
          * 处理模板，并返回模板元素
-         * @method $processTemplate
-         * @return {Promise}
          */
         Component.prototype.$processTemplate = function (templateUrl) {
             function onFailed(reason) {
@@ -4159,10 +3866,9 @@ var drunk;
         };
         /**
          * 把组件挂载到元素上
-         * @method $mount
-         * @param {Node|Node[]} element         要挂在的节点或节点数组
-         * @param {Component}   ownerViewModel  父级viewModel实例
-         * @param {HTMLElement} placeholder     组件占位标签
+         * @param  element         要挂在的节点或节点数组
+         * @param  ownerViewModel  父级viewModel实例
+         * @param  placeholder     组件占位标签
          */
         Component.prototype.$mount = function (element, ownerViewModel, placeholder) {
             console.assert(!this._isMounted, "该组件已有挂载到", this.element);
@@ -4176,7 +3882,6 @@ var drunk;
         };
         /**
          * 释放组件
-         * @method dispose
          */
         Component.prototype.$release = function () {
             this.$emit(Component.Event.release, this);
@@ -4195,9 +3900,6 @@ var drunk;
         var weakRefMap = {};
         /**
          * 组件的事件名称
-         * @property Event
-         * @static
-         * @type  IComponentEvent
          */
         Component.Event = {
             created: 'created',
@@ -4206,10 +3908,8 @@ var drunk;
         };
         /**
          * 获取挂在在元素上的viewModel实例
-         * @method getByElement
-         * @static
-         * @param  {any}  element 元素
-         * @return {Component}    viewModel实例
+         * @param   element 元素
+         * @return  Component实例
          */
         function getByElement(element) {
             var uid = drunk.util.uuid(element);
@@ -4218,25 +3918,22 @@ var drunk;
         Component.getByElement = getByElement;
         /**
          * 设置element与viewModel的引用
-         * @method setWeakRef
-         * @static
-         * @param  {any}        element    元素
-         * @param  {Component}  viewModel  组件实例
+         * @param   element    元素
+         * @param   component  组件实例
          */
-        function setWeakRef(element, viewModel) {
+        function setWeakRef(element, component) {
             var uid = drunk.util.uuid(element);
-            if (weakRefMap[uid] !== undefined && weakRefMap[uid] !== viewModel) {
+            if (weakRefMap[uid] !== undefined && weakRefMap[uid] !== component) {
                 console.error(element, '元素尝试挂载到不同的组件实例');
             }
             else {
-                weakRefMap[uid] = viewModel;
+                weakRefMap[uid] = component;
             }
         }
         Component.setWeakRef = setWeakRef;
         /**
          * 移除挂载引用
-         * @method removeMountedRef
-         * @param  {any}  element  元素
+         * @param  element  元素
          */
         function removeWeakRef(element) {
             var uid = drunk.util.uuid(element);
@@ -4247,16 +3944,12 @@ var drunk;
         Component.removeWeakRef = removeWeakRef;
         /**
          * 定义的组件记录
-         * @property definedComponent
-         * @private
-         * @type {object}
          */
         var definedComponentMap = {};
         /**
          * 根据组件名字获取组件构造函数
-         * @method getByName
-         * @param  {string}  name  组件名
-         * @return {IComponentConstructor}
+         * @param  name  组件名
+         * @return  组件类的构造函数
          */
         function getByName(name) {
             return definedComponentMap[name];
@@ -4309,10 +4002,8 @@ var drunk;
         Component.extend = extend;
         /**
          * 把一个继承了drunk.Component的组件类根据组件名字注册到组件系统中
-         * @method reigster
-         * @static
-         * @param  {string}   name          组件名
-         * @param  {function} componentCtor 组件类
+         * @param  name          组件名
+         * @param  componentCtor 组件类
          */
         function register(name, componentCtor) {
             console.assert(name.indexOf('-') > -1, name, '组件明必须在中间带"-"字符,如"custom-view"');
@@ -4328,9 +4019,7 @@ var drunk;
         var styleSheet;
         /**
          * 设置样式
-         * @method addHiddenStyleForComponent
-         * @private
-         * @param  {string} name  组件名
+         * @param  name  组件名
          */
         function addHiddenStyleForComponent(name) {
             if (record[name]) {
@@ -4494,10 +4183,8 @@ var drunk;
 (function (drunk) {
     /**
      * 用于repeat作用域下的子viewModel
-     * @class RepeatItem
-     * @constructor
-     * @param {Component}   $parent     父级ViewModel
-     * @param {object}      ownModel    私有的数据
+     * @param $parent     父级ViewModel
+     * @param ownModel    私有的数据
      */
     var RepeatItem = (function (_super) {
         __extends(RepeatItem, _super);
@@ -4509,9 +4196,6 @@ var drunk;
         }
         /**
          * 这里只初始化私有model
-         * @method __init
-         * @override
-         * @protected
          */
         RepeatItem.prototype.__init = function (ownModel) {
             this.__proxyModel(ownModel);
@@ -4519,9 +4203,6 @@ var drunk;
         };
         /**
          * 继承父级viewModel的filter和私有model
-         * @method __inheritParentMembers
-         * @protected
-         * @override
          */
         RepeatItem.prototype.__inheritParentMembers = function () {
             var _this = this;
@@ -4537,8 +4218,6 @@ var drunk;
         };
         /**
          * 代理指定model上的所有属性
-         * @method __proxyModel
-         * @protected
          */
         RepeatItem.prototype.__proxyModel = function (model) {
             var _this = this;
@@ -4552,8 +4231,6 @@ var drunk;
         };
         /**
          * 重写代理方法,顺便也让父级viewModel代理该属性
-         * @method proxy
-         * @override
          */
         RepeatItem.prototype.$proxy = function (property) {
             if (drunk.util.proxy(this, property, this._model)) {
@@ -4562,8 +4239,6 @@ var drunk;
         };
         /**
          * 重写获取事件处理方法,忘父级查找该方法
-         * @override
-         * @method __getHandler
          */
         RepeatItem.prototype.__getHandler = function (handlerName) {
             var context = this;
@@ -4588,7 +4263,7 @@ var drunk;
             };
         };
         /**
-         * @override
+         * 实例释放
          */
         RepeatItem.prototype.$release = function () {
             _super.prototype.$release.call(this);
@@ -4597,9 +4272,7 @@ var drunk;
         };
         /**
          * 把数据转成列表,如果为空则转成空数组
-         * @method toList
-         * @static
-         * @param  {any}  target
+         * @param  target  把对象转成带有item信息的数组
          */
         RepeatItem.toList = function (target) {
             var ret = [];
@@ -4643,10 +4316,15 @@ var drunk;
     function invalidExpression(expression) {
         throw new TypeError('错误的' + drunk.config.prefix + 'repeat表达式: ' + expression);
     }
+    /**
+     * drunk-repeat的绑定实现类
+     */
     var RepeatBinding = (function () {
         function RepeatBinding() {
         }
-        // 初始化绑定
+        /**
+         * 初始化绑定
+         */
         RepeatBinding.prototype.init = function () {
             this.createCommentNodes();
             this.parseDefinition();
@@ -4654,14 +4332,18 @@ var drunk;
             this._items = [];
             this._bindExecutor = drunk.Template.compile(this.element);
         };
-        // 创建注释标记标签
+        /**
+         * 创建注释标记标签
+         */
         RepeatBinding.prototype.createCommentNodes = function () {
             this._startNode = document.createComment('repeat: ' + this.expression);
             this._endedNode = document.createComment('/repeat: ' + this.expression);
             drunk.dom.before(this._startNode, this.element);
             drunk.dom.replace(this._endedNode, this.element);
         };
-        // 解析表达式定义
+        /**
+         * 解析表达式定义
+         */
         RepeatBinding.prototype.parseDefinition = function () {
             var expression = this.expression;
             var parts = expression.split(regParam);
@@ -4688,7 +4370,9 @@ var drunk;
             };
             this.expression = parts[1].trim();
         };
-        // 数据更新
+        /**
+         * 数据更新
+         */
         RepeatBinding.prototype.update = function (newValue) {
             var _this = this;
             if (this._renderJob) {
@@ -4708,6 +4392,9 @@ var drunk;
             this._itemVms = newVms;
             this._render();
         };
+        /**
+         * 渲染item元素
+         */
         RepeatBinding.prototype._render = function () {
             var _this = this;
             var index = 0;
@@ -4758,6 +4445,9 @@ var drunk;
             next(this._startNode);
             drunk.Scheduler.schedule(renderItems, drunk.Scheduler.Priority.aboveNormal);
         };
+        /**
+         * 根据item信息对象获取或创建RepeatItem实例
+         */
         RepeatBinding.prototype._getRepeatItem = function (item) {
             var value = item.val;
             var viewModelList = this._map.get(value);
@@ -4777,6 +4467,9 @@ var drunk;
             }
             return viewModel;
         };
+        /**
+         * 根据item信息对象创建RepeatItem实例
+         */
         RepeatBinding.prototype._realizeRepeatItem = function (item) {
             var value = item.val;
             var options = {};
@@ -4790,6 +4483,9 @@ var drunk;
             viewModelList.push(viewModel);
             return viewModel;
         };
+        /**
+         * 更新item的数据，设置$odd,$even,$last,$first的值和指定访问item信息的字段的值
+         */
         RepeatBinding.prototype._updateItemModel = function (target, item) {
             target.$odd = 0 === item.idx % 2;
             target.$even = !target.$odd;
@@ -4800,6 +4496,10 @@ var drunk;
                 target[this._param.key] = item.key;
             }
         };
+        /**
+         * 释放不再使用的RepeatItem实例并删除其指定的元素
+         * @param  force  是否强制移除所有item
+         */
         RepeatBinding.prototype._unrealizeUnusedItems = function (force) {
             var _this = this;
             var nameOfVal = this._param.val;
@@ -4825,6 +4525,9 @@ var drunk;
                 }, drunk.Scheduler.Priority.normal);
             });
         };
+        /**
+         * 释放该Binding实例
+         */
         RepeatBinding.prototype.release = function () {
             if (this._itemVms && this._itemVms.length) {
                 this._unrealizeUnusedItems(true);
@@ -4858,10 +4561,6 @@ var drunk;
 var drunk;
 (function (drunk) {
     var reOneInterpolate = /^\{\{([^{]+)\}\}$/;
-    /**
-     * @module drunk.Binding
-     * @class ComponentBinding
-     */
     var ComponentBinding = (function () {
         function ComponentBinding() {
         }
@@ -4872,7 +4571,7 @@ var drunk;
             var src = this.element.getAttribute('src');
             this.element.removeAttribute('src');
             if (src) {
-                return this.initAsyncComponent(src);
+                return this._initAsyncComponent(src);
             }
             var Ctor = drunk.Component.getByName(this.expression);
             if (!Ctor) {
@@ -4880,13 +4579,13 @@ var drunk;
             }
             this.component = new Ctor();
             this.unwatches = [];
-            this.processComponentAttributes();
-            return this.processComponentBinding();
+            this._processComponentAttributes();
+            return this._processComponentBinding();
         };
         /**
          * 初始化异步组件,先加载为fragment,再设置为组件的element,在进行初始化
          */
-        ComponentBinding.prototype.initAsyncComponent = function (src) {
+        ComponentBinding.prototype._initAsyncComponent = function (src) {
             var _this = this;
             return drunk.Template.renderFragment(src, null, true).then(function (fragment) {
                 var Ctor = drunk.Component.getByName(_this.expression);
@@ -4896,14 +4595,14 @@ var drunk;
                 _this.unwatches = [];
                 _this.component = new Ctor();
                 _this.component.element = drunk.util.toArray(fragment.childNodes);
-                _this.processComponentAttributes();
-                return _this.processComponentBinding();
+                _this._processComponentAttributes();
+                return _this._processComponentBinding();
             });
         };
         /**
          * 获取双向绑定的属性名
          */
-        ComponentBinding.prototype.getTwowayBindingAttrMap = function () {
+        ComponentBinding.prototype._getTwowayBindingAttrMap = function () {
             var result = this.element.getAttribute('two-way');
             var marked = {};
             this.element.removeAttribute('two-way');
@@ -4917,11 +4616,11 @@ var drunk;
         /**
          * 为组件准备数据和绑定事件
          */
-        ComponentBinding.prototype.processComponentAttributes = function () {
+        ComponentBinding.prototype._processComponentAttributes = function () {
             var _this = this;
             var element = this.element;
             var component = this.component;
-            var twowayBindingAttrMap = this.getTwowayBindingAttrMap();
+            var twowayBindingAttrMap = this._getTwowayBindingAttrMap();
             if (element.hasAttributes()) {
                 // 遍历元素上所有的属性做数据准备或数据绑定的处理
                 // 如果某个属性用到插值表达式,如"a={{b}}",则对起进行表达式监听(当b改变时通知component的a属性更新到最新的值)
@@ -4940,7 +4639,7 @@ var drunk;
                         // on-click="doSomething()"
                         // => "click", "doSomething()"
                         attrName = drunk.util.camelCase(attrName.slice(3));
-                        return _this.registerComponentEvent(attrName, expression);
+                        return _this._registerComponentEvent(attrName, expression);
                     }
                     attrName = drunk.util.camelCase(attrName);
                     if (!drunk.parser.hasInterpolation(expression)) {
@@ -4950,7 +4649,7 @@ var drunk;
                         return;
                     }
                     // title="{{somelet}}"
-                    _this.watchExpressionForComponent(attrName, expression, twowayBindingAttrMap[attrName]);
+                    _this._watchExpressionForComponent(attrName, expression, twowayBindingAttrMap[attrName]);
                 });
             }
             component.$emit(drunk.Component.Event.created, component);
@@ -4958,7 +4657,7 @@ var drunk;
         /**
          * 处理组件的视图与数据绑定
          */
-        ComponentBinding.prototype.processComponentBinding = function () {
+        ComponentBinding.prototype._processComponentBinding = function () {
             var _this = this;
             var element = this.element;
             var component = this.component;
@@ -4991,7 +4690,7 @@ var drunk;
         /**
          * 注册组件的事件
          */
-        ComponentBinding.prototype.registerComponentEvent = function (eventName, expression) {
+        ComponentBinding.prototype._registerComponentEvent = function (eventName, expression) {
             var viewModel = this.viewModel;
             var func = drunk.parser.parse(expression);
             this.component.$addListener(eventName, function () {
@@ -5010,7 +4709,7 @@ var drunk;
         /**
          * 监控绑定表达式,表达式里任意数据更新时,同步到component的指定属性
          */
-        ComponentBinding.prototype.watchExpressionForComponent = function (property, expression, isTwoway) {
+        ComponentBinding.prototype._watchExpressionForComponent = function (property, expression, isTwoway) {
             var viewModel = this.viewModel;
             var component = this.component;
             var unwatch;
@@ -5249,7 +4948,7 @@ drunk.Binding.register("show", {
 /// <reference path="../../util/dom" />
 /// <reference path="../../template/compiler" />
 drunk.Binding.register("transclude", {
-    /*
+    /**
      * 初始化绑定,先注册transcludeResponse事件用于获取transclude的viewModel和nodelist
      * 然后发送getTranscludeContext事件通知
      */
@@ -5276,7 +4975,7 @@ drunk.Binding.register("transclude", {
         this._nodes = nodes;
         this._unbindExecutors = unbinds;
     },
-    /*
+    /**
      * 释放绑定
      */
     release: function () {

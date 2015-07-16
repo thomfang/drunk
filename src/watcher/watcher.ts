@@ -9,11 +9,8 @@ module drunk {
         
         /**
          * 根据表达式和是否深度监听生成唯一的key,用于储存在关联的viewModel实例的watcher表中
-         * @method getNameOfKey
-         * @static
-         * @param  {string}   expression  表达式
-         * @param  {boolean}  isDeepWatch 是否深度监听
-         * @return {string}   返回一个生成的key
+         * @param   expression  表达式
+         * @param   isDeepWatch 是否深度监听
          */
         static getNameOfKey(expression: string, isDeepWatch?: boolean): string {
             return !!isDeepWatch ? expression + '<deep>' : expression;
@@ -31,21 +28,14 @@ module drunk {
         
         /**
          * 表达式求值的结果
-         * @property value
-         * @type any
          */
         value: any;
         
         /**
-         * 每个watcher对应一个表达式,watcher管理着对应这个表达式更新的回调函数.watcher在对表达式进行求值是,访问每个数据的getter,并得到
-         * 该数据的observer引用,然后订阅该observer.当某个数据更新时该数据的observer实例会发送通知给所有的watcher,watcher接收到消息后
-         * 会调用所有的表达式更新的回调.
-         * 
-         * @class Watcher
-         * @constructor
-         * @param  {ViewModel} viewModel   ViewModel实例，用于访问数据
-         * @param  {string}    expression  监听的表达式
-         * @param  {boolean}   isDeepWatch 是否深度监听,当对象或数组里的任意一个数据改变都会发送更新消息
+         * 每个watcher对应一个表达式,watcher管理着对应这个表达式更新的回调函数.watcher在对表达式进行求值是,访问每个数据的getter,并得到该数据的observer引用,然后订阅该observer.当某个数据更新时该数据的observer实例会发送通知给所有的watcher,watcher接收到消息后会调用所有的表达式更新的回调.
+         * @param   viewModel   ViewModel实例，用于访问数据
+         * @param   expression  监听的表达式
+         * @param   isDeepWatch 是否深度监听,当对象或数组里的任意一个数据改变都会发送更新消息
          */
         constructor(private viewModel: ViewModel, private expression: string, private isDeepWatch?: boolean) {
             this._isInterpolate = parser.hasInterpolation(expression);
@@ -61,8 +51,7 @@ module drunk {
         
         /**
          * 添加数据更新回调
-         * @method addAction
-         * @param {function} action  回调函数
+         * @param  action  回调函数
          */
         addAction(action: IBindingUpdateAction): void {
             if (!this._isActived) {
@@ -73,9 +62,7 @@ module drunk {
         
         /**
          * 移除数据更新回调
-         * 
-         * @method removeAction
-         * @param  {function} action 回调函数
+         * @param  action 回调函数
          */
         removeAction(action: IBindingUpdateAction): void {
             if (!this._isActived) {
@@ -91,7 +78,6 @@ module drunk {
         
         /**
          * 数据更新派发，会先做缓冲，防止在同一时刻对此出发更新操作，等下一次系统轮训时再真正执行更新操作
-         * @method __propertyChanged
          */
         __propertyChanged(): void {
             if (this._runActionJob) {
@@ -103,9 +89,6 @@ module drunk {
         
         /**
          * 立即获取最新的数据判断并判断是否已经更新，如果已经更新，执行所有的回调
-         * @method __flush
-         * @private
-         * @return {Promise} 等待所有回调执行完毕的promise对象
          */
         __flush(): void {
             if (!this._isActived) {
@@ -127,7 +110,6 @@ module drunk {
         
         /**
          * 释放引用和内存
-         * @method dispose 
          */
         dispose() {
             if (!this._isActived) {
@@ -162,9 +144,6 @@ module drunk {
         
         /**
          * 执行表达式函数获取最新的数据
-         * @method __getValue
-         * @private
-         * @return {any}
          */
         private __getValue(): any {
             this.__beforeGetValue();
@@ -188,8 +167,6 @@ module drunk {
         
         /**
          * 设置observable的属性访问回调为当前watcher实例的订阅方法,当访问某个属性是就会对该属性进行订阅
-         * @method __beforeGetValue
-         * @private
          */
         private __beforeGetValue(): void {
             this._tmpObservers = {};
@@ -198,10 +175,7 @@ module drunk {
         }
         
         /**
-         * 表达式求解完后的收尾工作,取消注册onPropertyAccessed回调,并对比旧的observer表和新的表看有哪些
-         * 实例已经不需要订阅
-         * @method __afterGetValue
-         * @private
+         * 表达式求解完后的收尾工作,取消注册onPropertyAccessed回调,并对比旧的observer表和新的表看有哪些实例已经不需要订阅
          */
         private __afterGetValue(): void {
             // 清楚属性访问回调
@@ -239,10 +213,8 @@ module drunk {
     
         /**
          * 订阅属性的更新消息
-         * @method __subscribePropertyChanged
-         * @private
-         * @param  {Observer} observer 属性的所属观察者
-         * @param  {string}   property 属性名
+         * @param  observer 属性的所属观察者
+         * @param  property 属性名
          */
         private _subscribePropertyChanged(observer: observable.Observer, property: string) {
             let id = util.uuid(observer);

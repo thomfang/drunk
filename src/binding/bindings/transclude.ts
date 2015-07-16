@@ -5,7 +5,7 @@
 
 drunk.Binding.register("transclude", {
 
-    /*
+    /**
      * 初始化绑定,先注册transcludeResponse事件用于获取transclude的viewModel和nodelist
      * 然后发送getTranscludeContext事件通知
      */
@@ -38,7 +38,7 @@ drunk.Binding.register("transclude", {
         this._unbindExecutors = unbinds;
     },
 
-    /*
+    /**
      * 释放绑定
      */
     release() {

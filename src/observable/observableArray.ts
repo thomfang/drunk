@@ -1,19 +1,11 @@
 /// <reference path="../util/util.ts" />
 /// <reference path="./observable.ts" />
-
-/**
- * @module drunk.observable
- * @class observable
- */
  
- /**
-  * 转换后的可以监控数组
-  * 除了有常规数组的所有方法外还添加了几个工具方法，并在某些修改自身的方法调用后对新数据进行处理和
-  * 发送数据更新的通知。
-  * @private
-  * @class ObservableArray
-  * @for observable
-  */
+/**
+ * 转换后的可以监控数组
+ * 除了有常规数组的所有方法外还添加了几个工具方法，并在某些修改自身的方法调用后对新数据进行处理和
+ * 发送数据更新的通知。
+ */
 module drunk.observable {
 
     /**
@@ -29,19 +21,14 @@ module drunk.observable {
 
     /**
      * 数组转换成observable后指向的原型对象
-     * @property ObservableArrayPrototype
-     * @static
-     * @for observable
      */
     export var ObservableArrayPrototype: ObservableArray<any> = Object.create(Array.prototype);
 
     /**
      * 设置数组指定数组下标的值，并发送数组更新通知
-     * @static
-     * @method $setAt
-     * @param {array}  array   observableArray类型的数组
-     * @param {number} index   要设置的数组下标
-     * @param {any}    value   要设置的值
+     * @param  array   observableArray类型的数组
+     * @param  index   要设置的数组下标
+     * @param  value   要设置的值
      */
     export function $setAt<T>(array: ObservableArray<T>, index: number, value: T): void {
         if (index > array.length) {
@@ -53,12 +40,8 @@ module drunk.observable {
      
     /**
      * 根据索引移除数组中的元素，并发送数组更新通知
-     * @static
-     * @for observable
-     * @method $removeAt
-     * @param {array}  array  observableArray类型的数组
-     * @param {number} index  要移除的下标
-     * @returns {any}         返回移除的值
+     * @param  array  observableArray类型的数组
+     * @param  index  要移除的下标
      */
     export function $removeAt<T>(array: ObservableArray<T>, index: number): T {
         let result: T;
@@ -74,11 +57,8 @@ module drunk.observable {
     
     /**
      * 删除数组中出现的一个指定值，并发送数组更新通知
-     * @static
-     * @for observable
-     * @method $removeItem
-     * @param {array} array  observableArray类型的数组
-     * @param {any}   value  要移除的值
+     * @param  array  observableArray类型的数组
+     * @param  value  要移除的值
      */
     export function $removeItem<T>(array: ObservableArray<T>, value: any): void {
         util.removeArrayItem(array, value);
@@ -86,11 +66,8 @@ module drunk.observable {
     
     /**
      * 删除数组中所有的指定值，并发送数组更新通知
-     * @static
-     * @for observable
-     * @method $removeAllItem
-     * @param {array} array  observableArray类型的数组
-     * @param {any}   value  要移除的值
+     * @param  array  observableArray类型的数组
+     * @param  value  要移除的值
      */
     export function $removeAllItem<T>(array: ObservableArray<T>, value: any): void {
         let $removeItemIndexs: number[] = [];
@@ -112,9 +89,6 @@ module drunk.observable {
     
     /**
      * 删除所有数组元素
-     * @method removeAll
-     * @static
-     * @param  {array}  array
      */
     export function removeAll<T>(array: ObservableArray<T>) {
         if (array.length) {
@@ -125,10 +99,8 @@ module drunk.observable {
 
     /**
      * 根据下标设置数组的值，并发送数据更新的通知
-     * @for ObservableArray
-     * @method $setAt
-     * @param  {number}  index  数组下标
-     * @param  {any}     value  要设置的值
+     * @param   index  数组下标
+     * @param   value  要设置的值
      */
     util.defineProperty(ObservableArrayPrototype, "$setAt", function setObservableArrayItem(index: number, value: any) {
         $setAt(this, index, value);
@@ -136,9 +108,7 @@ module drunk.observable {
 
     /**
      * 根据下标移除数组的值，并发送数据更新的通知
-     * @for ObservableArray
-     * @method $removeAt
-     * @param  {number}  index  数组下标
+     * @param   index  数组下标
      */
     util.defineProperty(ObservableArrayPrototype, "$removeAt", function removeObservalbeArrayByIndex(index: number) {
         return $removeAt(this, index);
@@ -146,9 +116,7 @@ module drunk.observable {
 
     /**
      * 移除指定的值，并发送数据更新的通知
-     * @for ObservableArray
-     * @method $removeItem
-     * @param  {any}  value  指定值
+     * @param  value  指定值
      */
     util.defineProperty(ObservableArrayPrototype, "$removeItem", function removeObservableArrayItem(value: any) {
         return $removeItem(this, value);
@@ -156,9 +124,7 @@ module drunk.observable {
 
     /**
      * 移除数组中所有指定的值，并发送数据更新的通知
-     * @for ObservableArray
-     * @method $removeAllItem
-     * @param  {any}  value  指定值
+     * @param  value  指定值
      */
     util.defineProperty(ObservableArrayPrototype, "$removeAllItem", function removeAllObservableArrayItem(value: any) {
         return $removeAllItem(this, value);
@@ -172,7 +138,7 @@ module drunk.observable {
         return removeAll(this);
     });
     
-    /*
+    /**
      * 调用原生方法并发送通知
      */
     function executeArrayMethodAndNotify<T>(array: ObservableArray<T>, methodName: string, args: any[], callback?: () => void): any {

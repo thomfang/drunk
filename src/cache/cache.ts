@@ -9,54 +9,36 @@ module drunk {
     
     /**
      * LRU Cache类
-     * @module drunk.Cache
-     * @class Cache
      */
     export class Cache<T> {
         
         /**
          * 缓存节点的hash表
-         * @property _cacheMap
-         * @private
-         * @type object
          */
         private _cacheMap: { [key: string]: ICacheNode } = {};
         
         /**
          * 缓存头部
-         * @property _head
-         * @private
-         * @type ICacheNode
          */
         private _head: ICacheNode = null;
         
         /**
          * 缓存尾部
-         * @property _tail
-         * @private
-         * @type ICacheNode
          */
         private _tail: ICacheNode = null;
         
         /**
          * 缓存容量
-         * @property _capacity
-         * @private
-         * @type number
          */
         private _capacity: number;
         
         /**
          * 缓存节点计数
-         * @property _count
-         * @private
-         * @type number
          */
         private _count: number = 0;
 
         /**
-         * @constructor
-         * @param  {number} capacity  容量值
+         * @param  capacity  容量值
          */
         constructor(capacity: number) {
             if (capacity < 1) {
@@ -67,9 +49,7 @@ module drunk {
         
         /**
          * 根据key获取缓存的值
-         * @method get
-         * @param  {string}  key  要获取的字段
-         * @return {T}
+         * @param key  要获取的字段
          */
         get(key: string): T {
             let cacheNode = this._cacheMap[key];
@@ -85,9 +65,8 @@ module drunk {
         
         /**
          * 根据key和value设置缓存
-         * @method  set
-         * @param  {string}  key   要缓存的字段
-         * @param  {any}     value 要缓存的值
+         * @param   key   要缓存的字段
+         * @param   value 要缓存的值
          */
         set(key: string, value: T) {
             let cacheNode = this._cacheMap[key];
@@ -121,9 +100,7 @@ module drunk {
         
         /**
          * 把节点放到头部
-         * @method _putToHead
-         * @private
-         * @param  {ICacheNode}  cacheNode  缓存节点
+         * @param  cacheNode  缓存节点
          */
         private _putToHead(cacheNode: ICacheNode) {
             if (cacheNode === this._head) {
@@ -155,9 +132,7 @@ module drunk {
         
         /**
          * 移除最后一个节点
-         * @method _removeTail
-         * @private
-         * @return  {string}  返回移除的节点的key
+         * @return 返回移除的节点的key
          */
         private _removeTail() {
             let tail = this._tail;

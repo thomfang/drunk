@@ -8,11 +8,7 @@ module drunk {
     
     let reOneInterpolate = /^\{\{([^{]+)\}\}$/;
 
-    /**
-     * @module drunk.Binding
-     * @class ComponentBinding
-     */
-    class ComponentBinding {
+    class ComponentBinding implements IBindingDefinition {
 
         expression: string;
         viewModel: RepeatItem;
@@ -32,7 +28,7 @@ module drunk {
             let src = this.element.getAttribute('src');
             this.element.removeAttribute('src');
             if (src) {
-                return this.initAsyncComponent(src);
+                return this._initAsyncComponent(src);
             }
             
             let Ctor = Component.getByName(this.expression);
@@ -43,14 +39,14 @@ module drunk {
             this.component = new Ctor();
             this.unwatches = [];
 
-            this.processComponentAttributes();
-            return this.processComponentBinding();
+            this._processComponentAttributes();
+            return this._processComponentBinding();
         }
         
         /**
          * 初始化异步组件,先加载为fragment,再设置为组件的element,在进行初始化
          */
-        initAsyncComponent(src: string) {
+        private _initAsyncComponent(src: string) {
             return Template.renderFragment(src, null, true).then((fragment) => {
                 let Ctor = Component.getByName(this.expression);
                 if (!Ctor) {
@@ -61,15 +57,15 @@ module drunk {
                 this.component = new Ctor();
                 this.component.element = util.toArray(fragment.childNodes);
 
-                this.processComponentAttributes();
-                return this.processComponentBinding();
+                this._processComponentAttributes();
+                return this._processComponentBinding();
             });
         }
 
         /**
          * 获取双向绑定的属性名
          */
-        getTwowayBindingAttrMap() {
+        private _getTwowayBindingAttrMap() {
             let result = this.element.getAttribute('two-way');
             let marked: {[key: string]: boolean} = {};
 
@@ -86,10 +82,10 @@ module drunk {
         /**
          * 为组件准备数据和绑定事件
          */
-        processComponentAttributes() {
+        private _processComponentAttributes() {
             let element = this.element;
             let component = this.component;
-            let twowayBindingAttrMap = this.getTwowayBindingAttrMap();
+            let twowayBindingAttrMap = this._getTwowayBindingAttrMap();
 
             if (element.hasAttributes()) {
             
@@ -114,7 +110,7 @@ module drunk {
                         // on-click="doSomething()"
                         // => "click", "doSomething()"
                         attrName = util.camelCase(attrName.slice(3));
-                        return this.registerComponentEvent(attrName, expression);
+                        return this._registerComponentEvent(attrName, expression);
                     }
 
                     attrName = util.camelCase(attrName);
@@ -127,7 +123,7 @@ module drunk {
                     }
                     
                     // title="{{somelet}}"
-                    this.watchExpressionForComponent(attrName, expression, twowayBindingAttrMap[attrName]);
+                    this._watchExpressionForComponent(attrName, expression, twowayBindingAttrMap[attrName]);
                 });
             }
 
@@ -137,7 +133,7 @@ module drunk {
         /**
          * 处理组件的视图与数据绑定
          */
-        processComponentBinding() {
+        private _processComponentBinding() {
             let element = this.element;
             let component = this.component;
             let viewModel = this.viewModel;
@@ -176,7 +172,7 @@ module drunk {
         /**
          * 注册组件的事件
          */
-        registerComponentEvent(eventName: string, expression: string) {
+        private _registerComponentEvent(eventName: string, expression: string) {
             let viewModel: Component = this.viewModel;
             let func = parser.parse(expression);
 
@@ -193,7 +189,7 @@ module drunk {
         /**
          * 监控绑定表达式,表达式里任意数据更新时,同步到component的指定属性
          */
-        watchExpressionForComponent(property: string, expression: string, isTwoway: boolean) {
+        private _watchExpressionForComponent(property: string, expression: string, isTwoway: boolean) {
             let viewModel = this.viewModel;
             let component = this.component;
             let unwatch: () => void;

@@ -7,17 +7,14 @@
 
 /**
  * 模板工具模块， 提供编译创建绑定，模板加载的工具方法
- * @module drunk.Template
- * @class Template
- * @main
  */
 module drunk.Template {
     
     /**
      * 编译模板元素生成绑定方法
-     * @param  {any}        node        模板元素
-     * @param  {boolean}    isRootNode  是否是根元素
-     * @return {function}               绑定元素与viewModel的方法
+     * @param   node        模板元素
+     * @param   isRootNode  是否是根元素
+     * @return              绑定元素与viewModel的方法
      */
     export function compile(node: any): IBindingExecutor {
         let isArray: boolean = Array.isArray(node);
@@ -57,7 +54,9 @@ module drunk.Template {
         };
     }
     
-    // 判断元素是什么类型,调用相应的类型编译方法
+    /**
+     *  判断元素是什么类型,调用相应的类型编译方法
+     */
     function compileNode(node: any): IBindingExecutor {
         let nodeType: number = node.nodeType;
         
@@ -71,7 +70,9 @@ module drunk.Template {
         }
     }
     
-    // 编译NodeList
+    /**
+     *  编译NodeList
+     */
     function compileNodeList(nodeList: any[]): IBindingExecutor {
         let executors: any = [];
         
@@ -113,12 +114,16 @@ module drunk.Template {
         }
     }
     
-    // 判断是否可以编译childNodes
+    /**
+     *  判断是否可以编译childNodes
+     */
     function isNeedCompileChild(node: any) {
         return node.tagName !== 'SCRIPT' && node.hasChildNodes();
     }
     
-    // 编译元素的绑定并创建绑定描述符
+    /**
+     *  编译元素的绑定并创建绑定描述符
+     */
     function compileElement(element: any): IBindingExecutor {
         let executor;
         let tagName: string = element.tagName.toLowerCase();
@@ -150,7 +155,9 @@ module drunk.Template {
         return executor;
     }
     
-    // 编译文本节点
+    /**
+     *  编译文本节点
+     */
     function compileTextNode(node: any): IBindingExecutor {
         let content: string = node.textContent;
         
@@ -189,7 +196,9 @@ module drunk.Template {
         };
     }
     
-    // 检测是否存在终止编译的绑定，比如component指令会终止当前编译过程，如果有创建绑定描述符
+    /**
+     *  检测是否存在终止编译的绑定，比如component指令会终止当前编译过程，如果有创建绑定描述符
+     */
     function processTerminalBinding(element: any): IBindingExecutor {
         let terminals: string[] = Binding.getTerminalBindings();
         let name: string;
@@ -207,7 +216,9 @@ module drunk.Template {
         }
     }
     
-    // 查找并创建通常的绑定
+    /**
+     *  查找并创建通常的绑定
+     */
     function processNormalBinding(element: any): IBindingExecutor {
         let executors: IBindingExecutor[] = [];
         
@@ -253,7 +264,9 @@ module drunk.Template {
         }
     }
     
-    // 生成绑定描述符方法
+    /**
+     *  生成绑定描述符方法
+     */
     function createExecutor(element: any, descriptor: IBindingDefinition): IBindingExecutor {
         let definition = Binding.getByName(descriptor.name);
         let executor: IBindingExecutor;

@@ -1,6 +1,3 @@
-/**
- * @module drunk.Promise
- */
 module drunk {
 
     export interface IThenable<R> {
@@ -173,7 +170,7 @@ module drunk {
     }
 
     /**
-     * @class Promise
+     * ES6 Promise实现
      */
     export class Promise<R> implements IThenable<R> {
 

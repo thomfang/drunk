@@ -33,73 +33,53 @@ module drunk {
         
         /**
          * 组件是否已经挂在到元素上
-         * @property _isMounted
-         * @private
-         * @type boolean
          */
         private _isMounted: boolean;
         
         /**
          * 组件被定义的名字
-         * @property name
-         * @type string
          */
         name: string;
         
         /**
          * 作为模板并与数据进行绑定的元素,可以创建一个组件类是指定该属性用于与视图进行绑定
-         * @property element
-         * @type HTMLElement
          */
         element: Node | Node[];
         
         /**
          * 组件的模板字符串,如果提供该属性,在未提供element属性的情况下会创建为模板元素
-         * @property template
-         * @type string
          */
         template: string;
         
         /**
          * 组件的模板路径,可以是页面上某个标签的id,默认先尝试当成标签的id进行查找,找到的话使用该标签的innerHTML作为模板字符串,
          * 未找到则作为一个服务端的链接发送ajax请求获取
-         * @property templateUrl
-         * @type string
          */
         templateUrl: string;
         
         /**
          * 组件的数据,会被初始化到Model中,可以为一个函数,函数可以直接返回值或一个处理值的Promise对象
-         * @property data
-         * @type {[name: string]: any}
          */
         data: { [name: string]: any };
         
         /**
          * 该组件作用域下的数据过滤器表
-         * @property filters
-         * @type {[name]: Filter}
          */
         filters: { [name: string]: filter.IFilter };
         
         /**
          * 该组件作用域下的事件处理方法
-         * @property handlers
-         * @type {[name]: Function}
          */
         handlers: { [name: string]: (...args) => void };
         
         /**
          * 监控器描述,key表示表达式,值为监控回调
-         * @property watchers
-         * @type object
          */
         watchers: { [expression: string]: (newValue: any, oldValue: any) => void };
         
         /**
          * 组件类，继承ViewModel类，实现了模板的准备和数据的绑定
-         * @class Component
-         * @constructor
+         * @param  model  初始化的数据
          */
         constructor(model?: IModel) {
             super(model);
@@ -107,7 +87,6 @@ module drunk {
         
         /**
          * 实例创建时会调用的初始化方法,派生类可覆盖该方法
-         * @method init
          */
         init() {
             
@@ -115,10 +94,7 @@ module drunk {
 
         /**
          * 属性初始化
-         * @method __init
-         * @override
-         * @protected
-         * @param  {IModel}  [model]  model对象
+         * @param  model 数据
          */
         protected __init(model?: IModel) {
             super.__init.call(this, model);
@@ -169,8 +145,6 @@ module drunk {
         
         /**
          * 处理模板，并返回模板元素
-         * @method $processTemplate
-         * @return {Promise}
          */
         $processTemplate(templateUrl?: string): Promise<any> {
             function onFailed(reason) {
@@ -200,10 +174,9 @@ module drunk {
         
         /**
          * 把组件挂载到元素上
-         * @method $mount
-         * @param {Node|Node[]} element         要挂在的节点或节点数组
-         * @param {Component}   ownerViewModel  父级viewModel实例
-         * @param {HTMLElement} placeholder     组件占位标签
+         * @param  element         要挂在的节点或节点数组
+         * @param  ownerViewModel  父级viewModel实例
+         * @param  placeholder     组件占位标签
          */
         $mount<T extends Component>(element: Node | Node[], ownerViewModel?: T, placeholder?: HTMLElement) {
             console.assert(!this._isMounted, "该组件已有挂载到", this.element);
@@ -222,7 +195,6 @@ module drunk {
         
         /**
          * 释放组件
-         * @method dispose
          */
         $release() {
             this.$emit(Component.Event.release, this);
@@ -243,9 +215,6 @@ module drunk {
         
         /**
          * 组件的事件名称
-         * @property Event
-         * @static
-         * @type  IComponentEvent
          */
         export let Event: IComponentEvent = {
             created: 'created',
@@ -255,10 +224,8 @@ module drunk {
         
         /**
          * 获取挂在在元素上的viewModel实例
-         * @method getByElement
-         * @static
-         * @param  {any}  element 元素
-         * @return {Component}    viewModel实例
+         * @param   element 元素
+         * @return  Component实例
          */
         export function getByElement(element: any) {
             let uid = util.uuid(element);
@@ -268,26 +235,23 @@ module drunk {
         
         /**
          * 设置element与viewModel的引用
-         * @method setWeakRef
-         * @static
-         * @param  {any}        element    元素
-         * @param  {Component}  viewModel  组件实例
+         * @param   element    元素
+         * @param   component  组件实例
          */
-        export function setWeakRef<T extends Component>(element: any, viewModel: T) {
+        export function setWeakRef<T extends Component>(element: any, component: T) {
             let uid = util.uuid(element);
 
-            if (weakRefMap[uid] !== undefined && weakRefMap[uid] !== viewModel) {
+            if (weakRefMap[uid] !== undefined && weakRefMap[uid] !== component) {
                 console.error(element, '元素尝试挂载到不同的组件实例');
             }
             else {
-                weakRefMap[uid] = viewModel;
+                weakRefMap[uid] = component;
             }
         }
         
         /**
          * 移除挂载引用
-         * @method removeMountedRef
-         * @param  {any}  element  元素
+         * @param  element  元素
          */
         export function removeWeakRef(element: any) {
             let uid = util.uuid(element);
@@ -299,18 +263,14 @@ module drunk {
 
         /**
          * 定义的组件记录
-         * @property definedComponent
-         * @private
-         * @type {object}
          */
         let definedComponentMap: { [name: string]: IComponentContructor<any> } = {};
         
         
         /**
          * 根据组件名字获取组件构造函数
-         * @method getByName
-         * @param  {string}  name  组件名
-         * @return {IComponentConstructor}
+         * @param  name  组件名
+         * @return  组件类的构造函数
          */
         export function getByName(name: string): IComponentContructor<any> {
             return definedComponentMap[name];
@@ -318,9 +278,9 @@ module drunk {
         
         /**
          * 自定义一个组件类
-         * @method define
-         * @static
-         * @param  {string}
+         * @param  name     组件名，必然包含'-'在中间
+         * @param  members  组件成员
+         * @return          组件类的构造函数
          */
         export function define<T extends IComponent>(members: T): IComponentContructor<T>;
         export function define<T extends IComponent>(name: string, members: T): IComponentContructor<T>;
@@ -338,11 +298,9 @@ module drunk {
         
         /**
          * 当前组件类拓展出一个子组件
-         * @method extend
-         * @static
-         * @param  {string}      name       子组件名
-         * @param  {IComponent}  members    子组件的成员
-         * @return {IComponentContructor}
+         * @param    name       子组件名
+         * @param    members    子组件的成员
+         * @return              组件类的构造函数
          */
         export function extend<T extends IComponent>(members: T): IComponentContructor<T>;
         export function extend<T extends IComponent>(name: string, members: T): IComponentContructor<T>;
@@ -379,10 +337,8 @@ module drunk {
         
         /**
          * 把一个继承了drunk.Component的组件类根据组件名字注册到组件系统中
-         * @method reigster
-         * @static
-         * @param  {string}   name          组件名
-         * @param  {function} componentCtor 组件类
+         * @param  name          组件名
+         * @param  componentCtor 组件类
          */
         export function register(name: string, componentCtor: any) {
             console.assert(name.indexOf('-') > -1, name, '组件明必须在中间带"-"字符,如"custom-view"');
@@ -402,9 +358,7 @@ module drunk {
         
         /**
          * 设置样式
-         * @method addHiddenStyleForComponent
-         * @private
-         * @param  {string} name  组件名
+         * @param  name  组件名
          */
         function addHiddenStyleForComponent(name: string) {
             if (record[name]) {

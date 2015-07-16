@@ -3,31 +3,20 @@
 /// <reference path="./observableObject.ts" />
 /// <reference path="../events/eventemitter" />
 
-/**
- * @module drunk.observable
- */
 module drunk.observable {
     
     /**
      * 监控对象类，为每个需要监控的对象和数组生成一个实例，用于代理监听事件
-     * @class Observer
-     * @extends Events
-     * @constructor
      */
     export class Observer extends EventEmitter {
         
         /**
          * 属性改变的回调函数列表
-         * @property _propertyChangedCallbackList
-         * @type array
-         * @private
          */
         private _propertyChangedCallbackList: IEventListener[];
         
         /**
          * 添加任意属性改变的回调
-         * @method addPropertyChangedCallback
-         * @param  {function}  callback
          */
         addPropertyChangedCallback(callback: IEventListener) {
             if (!this._propertyChangedCallbackList) {
@@ -38,8 +27,6 @@ module drunk.observable {
         
         /**
          * 移除任意属性改变的指定回调
-         * @method removePropertyChangedCallback
-         * @param  {function}  callback
          */
         removePropertyChangedCallback(callback: IEventListener) {
             if (!this._propertyChangedCallbackList) {
@@ -54,7 +41,6 @@ module drunk.observable {
           
         /**
          * 发送任意属性改变的通知
-         * @method notify
          */
         notify() {
             if (!this._propertyChangedCallbackList) {

@@ -26,15 +26,11 @@ module drunk {
 
     /**
      * 动画模块
-     * @module drunk.Action
-     * @class Action
      */
     export module Action {
         
         /**
          * action的类型
-         * @property Type
-         * @type object
          */
         export let Type = {
             created: 'created',
@@ -43,17 +39,11 @@ module drunk {
         
         /**
          * js动画定义
-         * @property definitionMap
-         * @private
-         * @type object
          */
         let definitionMap: { [name: string]: IActionDefinition } = {};
         
         /**
          * 动画状态
-         * @property actionMap
-         * @private
-         * @type object
          */
         let actionMap: { [id: number]: IAction } = {};
 
@@ -96,10 +86,8 @@ module drunk {
 
         /**
          * 设置当前正在执行的action
-         * @method setCurrentAction
-         * @static
-         * @param  {HTMLElement}  element 元素节点
-         * @param  {IAction}      action  action描述
+         * @param   element 元素节点
+         * @param   action  action描述
          */
         export function setCurrentAction(element: HTMLElement, action: IAction) {
             let id = util.uuid(element);
@@ -108,10 +96,7 @@ module drunk {
         
         /**
          * 获取元素当前的action对象
-         * @method getCurrentAction
-         * @static
-         * @param  {HTMLElement}  element  元素节点
-         * @return {IAction}
+         * @param   element  元素节点
          */
         export function getCurrentAction(element: HTMLElement) {
             let id = util.uuid(element);
@@ -120,9 +105,7 @@ module drunk {
         
         /**
          * 移除当前元素的action引用
-         * @method removeRef
-         * @static
-         * @param  {HTMLElement} element
+         * @param  element
          */
         export function removeRef(element: HTMLElement) {
             let id = util.uuid(element);
@@ -131,11 +114,9 @@ module drunk {
         
         /**
          * 执行单个action,优先判断是否存在js定义的action,再判断是否是css动画
-         * @method run
-         * @static
-         * @param  {HTMLElement}    element    元素对象
-         * @param  {string}         detail     action的信息,动画名或延迟时间
-         * @param  {string}         type       action的类型(created或removed)
+         * @param   element    元素对象
+         * @param   detail     action的信息,动画名或延迟时间
+         * @param   type       action的类型(created或removed)
          */
         export function run(element: HTMLElement, detail: string, type: string) {
             if (isNumber(detail)) {
@@ -267,10 +248,7 @@ module drunk {
         
         /**
          * 根据名称获取注册的action实现
-         * @method getByName
-         * @static
-         * @param  {string}  name  action名称
-         * @return {IActionDefinition}
+         * @param   name  action名称
          */
         export function getByName(name: string) {
             return definitionMap[name];
@@ -280,7 +258,7 @@ module drunk {
     /**
      * action绑定的实现
      */
-    class ActionBinding {
+    class ActionBinding implements IBindingDefinition {
 
         element: HTMLElement;
         expression: string;
@@ -296,6 +274,9 @@ module drunk {
             }, Scheduler.Priority.normal);
         }
 
+        /**
+         * 解析action的定义表达式
+         */
         _parseDefinition(actionType: string) {
             if (!this.expression) {
                 this._actionNames = [];
@@ -315,6 +296,9 @@ module drunk {
             }
         }
 
+        /**
+         * 根据类型运行数据的action队列
+         */
         _runActions(type: string) {
             let element = this.element;
 
@@ -356,6 +340,9 @@ module drunk {
             Action.setCurrentAction(element, actionQueue);
         }
 
+        /**
+         * 先取消还在运行的action，再运行指定的action
+         */
         _runActionByType(type: string) {
             let currentAction = Action.getCurrentAction(this.element);
             if (currentAction && currentAction.cancel) {

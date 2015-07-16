@@ -2,17 +2,12 @@
 
 /**
  * 搜索字符串解析模块
- * @module drunk.querystring
- * @class querystring
  */
 module drunk.querystring {
     
     /**
      * 解析字符串生成一个键值对表
-     * @method parse
-     * @static
-     * @param  {string}  str  搜索字符串
-     * @return {Object}
+     * @param  str  搜索字符串
      */
     export function parse(str: string) {
         str = decodeURIComponent(str);
@@ -29,10 +24,7 @@ module drunk.querystring {
     
     /**
      * 把一个键值对表转化为搜索字符串
-     * @method stringify
-     * @static
-     * @param  {Object} obj 键值对表
-     * @return {string}
+     * @param  obj 键值对表
      */
     export function stringify(obj: Object) {
         return Object.keys(obj).map(key => key + '=' + encodeURIComponent(obj[key])).join('&');

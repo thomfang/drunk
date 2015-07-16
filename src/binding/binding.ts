@@ -5,9 +5,7 @@
 module drunk {
 
     /**
-     * 绑定更新方法接口
-     * @interface IBindingUpdateAction
-     * @type function
+     * 更新函数接口
      */
     export interface IBindingUpdateAction {
         (newValue: any, oldValue: any): any;
@@ -15,8 +13,6 @@ module drunk {
 
     /**
      * 绑定声明接口
-     * @interface IBindingDefinition
-     * @type object
      */
     export interface IBindingDefinition {
         name?: string;
@@ -33,8 +29,6 @@ module drunk {
 
     /**
      * 绑定构建函数接口
-     * @interface IBindingExecutor
-     * @type function
      */
     export interface IBindingExecutor {
         (viewModel: ViewModel, element: any, parentViewModel?: ViewModel, placeHolder?: HTMLElement): any;
@@ -42,62 +36,78 @@ module drunk {
         priority?: number;
     }
 
+    /**
+     * 绑定类
+     */
     export class Binding {
         
         /**
          * binding名称
-         * @property name
-         * @type string
          */
         name: string;
         
         /**
          * 是否深度监听表达式
-         * @property isDeepWatch
-         * @type boolean
          */
         isDeepWatch: boolean;
         
         /**
          * 是否是绑定在一个插值表达式
-         * @property isInterpolate
-         * @type boolean
          */
         isInterpolate: boolean;
         
         /**
          * 绑定的表达式
-         * @property expression
-         * @type string
          */
         expression: string;
 
+        /**
+         * 绑定初始化方法
+         */
         init: (parentViewModel?: ViewModel, placeholder?: HTMLElement) => void;
+        
+        /**
+         * 绑定更新方法
+         */
         update: IBindingUpdateAction;
+        
+        /**
+         * 绑定释放方法
+         */
         release: () => void;
 
+        /**
+         * 是否已经不可用
+         */
         private _isActived: boolean = true;
+        
+        /**
+         * 数据更新锁
+         */
         private _isLocked: boolean = false;
+        
+        /**
+         * 移除watcher方法
+         */
         private _unwatch: () => void;
+        
+        /**
+         * 内置的update包装方法
+         */
         private _update: (newValue: any, oldValue: any) => void;
         
         /**
          * 根据绑定的定义创建一个绑定实例，根据定义进行viewModel与DOM元素绑定的初始化、视图渲染和释放
-         * @class Binding
-         * @constructor
-         * @param  {ViewModel}          viewModel       ViewModel实例
-         * @param  {HTMLElement}        element         绑定元素
-         * @param  {BindingDefinition}  definition      绑定定义
-         * @param  {boolean} [descriptor.isDeepWatch]   是否深度监听
-         * @param  {boolean} [descriptor.isTwowayBinding] 是否双向绑定
+         * @param  viewModel       ViewModel实例
+         * @param  element         绑定元素
+         * @param  definition      绑定定义
          */
-        constructor(public viewModel: ViewModel, public element: any, descriptor) {
+        constructor(public viewModel: ViewModel, public element: any, descriptor: IBindingDefinition) {
             util.extend(this, descriptor);
         }
         
         /**
          * 初始化绑定
-         * @method initialize
          */
         initialize(parentViewModel, placeholder?: HTMLElement) {
             if (this.init) {
@@ -133,7 +143,6 @@ module drunk {
         
         /**
          * 移除绑定并销毁
-         * @method dispose
          */
         dispose(): void {
             if (!this._isActived) {
@@ -161,9 +170,8 @@ module drunk {
         /**
          * 设置表达式的值到viewModel上,因为值更新会触发视图更新,会返回来触发当前绑定的update方法,所以为了避免不必要的
          * 性能消耗,这里提供加锁操作,在当前帧内设置锁定状态,发现是锁定的情况就不再调用update方法,下一帧的时候再把锁定状态取消
-         * @method setValue
-         * @param  {any}     value    要设置的值
-         * @param  {boolean} [isLocked] 是否加锁
+         * @param  value    要设置的值
+         * @param  isLocked 是否加锁
          */
         setValue(value: any, isLocked?: boolean): void {
             this._isLocked = !!isLocked;
@@ -175,30 +183,27 @@ module drunk {
 
         /**
          * 终止型绑定信息列表,每个绑定信息包含了name(名字)和priority(优先级)信息
-         * @property terminalBindingDescriptors
-         * @private
-         * @type Array<{name: string; priority: number}>
          */
         let terminalBindingDescriptors: { name: string; priority: number }[] = [];
         
         /**
          * 终止型绑定的名称
-         * @property endingNames
-         * @private
-         * @type Array<string>
          */
         let terminalBindings: string[] = [];
         
+        /**
+         * 缓存的所有绑定声明的表
+         */
         let definitions: { [name: string]: IBindingDefinition } = {};
 
+        /**
+         * Binding实例与元素的弱引用关系表
+         */
         let weakRefMap: { [id: number]: Array<Binding> } = {};
         
         /**
          * 获取元素的所有绑定实例
-         * @method getAllBindingsByElement
-         * @static
-         * @param  {Node}  element  元素节点
-         * @return {Array<Binding>}
+         * @param  element  元素节点
          */
         export function getAllBindingsByElement(element: Node) {
             let id = util.uuid(element);
@@ -211,10 +216,8 @@ module drunk {
         
         /**
          * 添加引用
-         * @method setWeakRef
-         * @static
-         * @param  {Node}     element  元素节点
-         * @param  {Binding}  binding  绑定实例
+         * @param  element  元素节点
+         * @param  binding  绑定实例
          */
         export function setWeakRef(element: Node, binding: Binding) {
             let id = util.uuid(element);
@@ -228,10 +231,8 @@ module drunk {
         
         /**
          * 移除引用
-         * @method removeWeakRef
-         * @static
-         * @param  {Node}     element  元素节点
-         * @param  {Binding}  binding  绑定实例
+         * @param   element  元素节点
+         * @param   binding  绑定实例
          */
         export function removeWeakRef(element: Node, binding: Binding) {
             let id = util.uuid(element);
@@ -251,8 +252,6 @@ module drunk {
         
         /**
          * 绑定创建的优先级
-         * @property Priority
-         * @type IPriority
          */
         export enum Priority {
             low = -100,
@@ -264,10 +263,8 @@ module drunk {
         
         /**
          * 根据一个绑定原型对象注册一个binding指令
-         * @method register
-         * @static
-         * @param  {string}          name  指令名
-         * @param  {function|Object} def   binding实现的定义对象或绑定的更新函数
+         * @param   name  指令名
+         * @param   def   binding实现的定义对象或绑定的更新函数
          */
         export function register<T extends IBindingDefinition>(name: string, definition: T): void {
             definition.priority = definition.priority || Priority.normal;
@@ -286,10 +283,8 @@ module drunk {
         
         /**
          * 根据绑定名获取绑定的定义
-         * @method getByName
-         * @static
-         * @param  {string}  name      绑定的名称
-         * @return {BindingDefinition} 具有绑定定义信息的对象
+         * @param   name      绑定的名称
+         * @return            具有绑定定义信息的对象
          */
         export function getByName(name: string): IBindingDefinition {
             return definitions[name];
@@ -297,9 +292,7 @@ module drunk {
         
         /**
          * 获取已经根据优先级排序的终止型绑定的名称列表
-         * @method getTerminalBindings
-         * @static
-         * @return {array}  返回绑定名称列表
+         * @return 返回绑定名称列表
          */
         export function getTerminalBindings() {
             return terminalBindings.slice();
@@ -307,10 +300,8 @@ module drunk {
         
         /**
          * 创建viewModel与模板元素的绑定
-         * @method create
-         * @static
-         * @param  {ViewModel}   viewModel  ViewModel实例
-         * @param  {HTMLElement} element    元素
+         * @param   viewModel  ViewModel实例
+         * @param   element    元素
          */
         export function create(viewModel, element: any, descriptor: IBindingDefinition, parentViewModel?, placeholder?: HTMLElement) {
             let binding: Binding = new Binding(viewModel, element, descriptor);
@@ -324,11 +315,8 @@ module drunk {
         
         /**
          * 设置终止型的绑定，根据提供的优先级对终止型绑定列表进行排序，优先级高的绑定会先于优先级的绑定创建
-         * @method setEnding
-         * @private
-         * @static
-         * @param  {string}  name      绑定的名称
-         * @param  {number}  priority  绑定的优先级
+         * @param   name      绑定的名称
+         * @param   priority  绑定的优先级
          */
         function setTernimalBinding(name: string, priority: number): void {
             // 检测是否已经存在该绑定

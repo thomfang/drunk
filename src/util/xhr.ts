@@ -2,37 +2,56 @@
 /// <reference path="./querystring" />
 /// <reference path="../promise/promise" />
 
-/**
- * @module drunk.util
- * @class util
- */
 module drunk.util {
 
+    /**
+     * ajax方法参数接口
+     */
     export interface IAjaxOptions {
+        /**
+         * 请求的url
+         */
         url: string;
+        
+        /**
+         * 请求的类型(GET|POST|PUT|DELETE等)
+         */
         type?: string;
+        
+        /**
+         * 要发送的数据
+         */
         data?: string | {};
+        
+        /**
+         * 请求头配置
+         */
         headers?: { [index: string]: string };
+        
+        /**
+         * withCredentials配置
+         */
         xhrFields?: { withCredentials: boolean };
+        
+        /**
+         * withCredentials快捷配置
+         */
         withCredentials?: boolean;
+        
+        /**
+         * 请求的content-type
+         */
         contentType?: string;
+        
+        /**
+         * 接受的数据类型(目前只支持json)
+         */
         dataType?: string;
     }
 
     /**
      * XMLHTTP request工具方法
-     * @static
-     * @method ajax
-     * @param  {object}     	options                     配置参数
-     * @param  {string}         options.url                 请求的url
-     * @param  {string}         [options.type]              请求的类型(GET或POST)
-     * @param  {string|object}  [options.data]              要发送的数据
-     * @param  {object}         [options.headers]           请求头配置
-     * @param  {object}         [options.xhrFields]         withCredentials配置
-     * @param  {boolean}        [options.withCredentials]   withCredentials配置
-     * @param  {string}         [options.contentType]       请求的content-type
-     * @param  {string}         [options.dataType]          接受的数据类型(目前只支持json)
-     * @return {Promise}                                    一个promise实例
+     * @param   options  配置参数
      */
     export function ajax<T>(options: IAjaxOptions): Promise<T> {
         var xhr = new XMLHttpRequest();

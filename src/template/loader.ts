@@ -2,10 +2,6 @@
 /// <reference path="../util/xhr.ts" />
 /// <reference path="../cache/cache" />
 
-/**
- * @module drunk.Template
- * @class Template
- */
 module drunk.Template {
     
     let cacheStore = new Cache<any>(50);
@@ -13,10 +9,8 @@ module drunk.Template {
     /**
      * 加载模板，先尝试从script标签上查找，找不到再发送ajax请求，
      * 加载到的模板字符串会进行缓存
-     * @static
-     * @method loadTemplate
-     * @param   {string}  urlOrId  script模板标签的id或模板的url地址 
-     * @returns {Promise}           一个 promise 对象promise的返回值为模板字符串
+     * @param    urlOrId  script模板标签的id或模板的url地址 
+     * @returns           一个Promise 对象,Promise的返回值为模板字符串
      */
     export function load(urlOrId: string): Promise<string> {
         let template = cacheStore.get(urlOrId);

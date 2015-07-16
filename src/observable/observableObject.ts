@@ -1,22 +1,13 @@
 /// <reference path="../util/util.ts" />
 /// <reference path="./observable.ts" />
-
-/**
- * @module drunk.observable
- * @class observable
- */
  
 /**
  * 转换后的可以监控对象
  * 添加了设置和移除字段的两个能发送数据更新的方法。
- * 
- * @private
- * @class ObservableObject
- * @for observable
  */
 module drunk.observable {
     
-    /*
+    /**
      * 可监控JSON对象的声明
      */
     export interface ObservableObject {
@@ -28,13 +19,8 @@ module drunk.observable {
      
     /**
      * 设置对象的属性，并发送更新的消息
-     * 
-     * @static
-     * @for observable
-     * @method $set
-     * @param {ObservableObject} data   JSON对象或已经为observable的JSON对象
-     * @param {string}           name   字段名
-     * @param {any}              value  值
+     * @param  data   JSON对象或已经为observable的JSON对象
+     * @param  name   字段名
      */
     export function $set(data: ObservableObject, name: string, value: any): void {
         var descriptor = Object.getOwnPropertyDescriptor(data, name);
@@ -55,12 +41,8 @@ module drunk.observable {
      
     /**
      * 移除对象属性，并会发送更新的消息
-     * 
-     * @static
-     * @for observable
-     * @method $remove
-     * @param {ObservableObject}  data  JSON对象或已经为observable的JSON对象
-     * @param {string}            name  字段名
+     * @param  data  JSON对象或已经为observable的JSON对象
+     * @param  name  字段名
      */
     export function $remove(data: ObservableObject, name: string): void {
         if (!data.hasOwnProperty(name)) {
@@ -73,20 +55,13 @@ module drunk.observable {
     
     /**
      * 对象转换成observable后指向的原型对象
-     * 
-     * @property ObservableObjectPrototype
-     * @static
-     * @for observable
      */
     export var ObservableObjectPrototype: ObservableObject = {};
     
     /**
      * 设置对象的指定字段的值
-     * 
-     * @for ObservableObject
-     * @method $set
-     * @param  {string}  name  字段名
-     * @param  {any}     value 值
+     * @param   name  字段名
+     * @param   value 值
      */
     util.defineProperty(ObservableObjectPrototype, "$set", function setObservableObjectProperty(name: string, value: any) {
         $set(this, name, value);
@@ -94,10 +69,7 @@ module drunk.observable {
 
     /**
      * 删除对象的指定字段的值
-     * 
-     * @for ObservableObject
-     * @method $remove
-     * @param  {string}  name  字段名
+     * @param   name  字段名
      */
     util.defineProperty(ObservableObjectPrototype, "$remove", function removeObservableObjectProperty(name: string) {
         $remove(this, name);

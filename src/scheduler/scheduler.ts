@@ -3,18 +3,15 @@
 /// <reference path="../events/eventemitter" />
 
 /**
- * @module drunk.Scheduler
+ * 调度器模块
  */
 module drunk.Scheduler {
     
     /**
      * 调度方法
-     * @method schedule
-     * @static
-     * @param  {IWork}      work       调度的执行函数
-     * @param  {Priority}  [priority]  优先级
-     * @param  {any}                 [context]   上下文
-     * @return {IJob}                  生成的工作对象
+     * @param  work      调度的执行函数
+     * @param  priority  优先级
+     * @param  context   上下文
      */
     export function schedule(work: IWork, priority?: Priority, context?: any): IJob {
         let job = new Job(work, clampPriority(priority), context);
@@ -25,10 +22,9 @@ module drunk.Scheduler {
     }
     
     /**
-     * @method requestDrain
-     * @static
-     * @param  {Priority}  priority  优先级
-     * @param  {function}  callback  回调
+     * 当指定优化级的任何都执行完成后触发的回调
+     * @param  priority  优先级
+     * @param  callback  回调
      */
     export function requestDrain(priority: Priority, callback: () => any) {
         util.addArrayItem(drainPriorityQueue, priority);
@@ -56,8 +52,6 @@ module drunk.Scheduler {
     
     /**
      * 调度器优先级
-     * @property Priority
-     * @type enum
      */
     export enum Priority {
         max = 15,
@@ -69,17 +63,38 @@ module drunk.Scheduler {
         min = -15
     };
     
+    /**
+     * 调度器生成的工作对象类
+     */
     class Job implements IJob {
         
+        /**
+         * 是否已经暂停
+         */
         private _isPaused: boolean;
+        
+        /**
+         * 是否已经取消
+         */
         private _cancelled: boolean;
         
+        /**
+         * 是否已经完成
+         */
         completed: boolean;
         
+        /**
+         * @param  _work    调度的回调
+         * @param  priority 工作的优先级
+         * @param  _context 回调的this参数
+         */
         constructor(private _work: IWork, private _priority: Priority, private _context: any) {
             
         }
         
+        /**
+         * 优先级
+         */
         get priority() {
             return this._priority;
         }
@@ -87,6 +102,9 @@ module drunk.Scheduler {
             this._priority = clampPriority(value);
         }
         
+        /**
+         * 取消该否工作，会释放引用
+         */
         cancel() {
             if (this.completed || this._cancelled) {
                 return;
@@ -95,6 +113,9 @@ module drunk.Scheduler {
             this._release();
         }
         
+        /**
+         * 暂停该工作，不会释放引用
+         */
         pause() {
             if (this.completed || this._cancelled) {
                 return;
@@ -103,6 +124,9 @@ module drunk.Scheduler {
             this._isPaused = true;
         }
         
+        /**
+         * 恢复工作
+         */
         resume() {
             if (!this.completed && !this._cancelled && this._isPaused) {
                 addJobToQueue(this);
@@ -110,6 +134,9 @@ module drunk.Scheduler {
             }
         }
         
+        /**
+         * 内部方法，执行回调
+         */
         _execute(shouldYield) {
             let jobInfo = new JobInfo(shouldYield);
             let work = this._work;
@@ -147,11 +174,17 @@ module drunk.Scheduler {
             }
         }
         
+        /**
+         * 从调度任务队列中移除
+         */
         private _remove() {
             let jobList = getJobListAtPriority(this.priority);
             util.removeArrayItem(jobList, this);
         }
         
+        /**
+         * 释放引用
+         */
         private _release() {
             this._work = null;
             this._context = null;
@@ -161,34 +194,55 @@ module drunk.Scheduler {
     
     class JobInfo implements IJobInfo {
         
+        /**
+         * 公共API是否还能访问
+         */
         private _publicApiDisabled: boolean;
         
+        /**
+         * 调度工作执行后的后续工作
+         */
         _result: Function | Promise<IWork>;
         
         constructor(private _shouldYield: () => boolean) {
             
         }
         
+        /**
+         * 是否应该让出线程
+         */
         get shouldYield() {
             this._throwIfDisabled();
             return this._shouldYield();
         }
         
+        /**
+         * 设置当前优先级的新一个调度工作，会立即添加到该优先级的任务队列尾部
+         */
         setWork(work: IWork): void {
             this._throwIfDisabled();
             this._result = work;
         }
         
+        /**
+         * 当promise任务完成后设置当前优先级的新一个调度工作，会添加到该优先级的任务队列尾部
+         */
         setPromise(promise: Promise<IWork>): void {
             this._throwIfDisabled();
             this._result = promise;
         }
         
+        /**
+         * 释放引用并设置API不再可用
+         */
         _release() {
             this._publicApiDisabled = true;
             this._result = null;
         }
         
+        /**
+         * 如果API不再可用，用户尝试调用会抛出错误
+         */
         private _throwIfDisabled() {
             if (this._publicApiDisabled) {
                 throw new Error('The APIs of this JobInfo object are disabled');

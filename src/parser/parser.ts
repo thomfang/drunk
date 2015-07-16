@@ -4,8 +4,6 @@
 
 /**
  * 简单的解析器,只是做了字符串替换,然后使用new Function生成函数
- * @module drunk.parser
- * @class parser
  */
 module drunk.parser {
     
@@ -57,7 +55,9 @@ module drunk.parser {
     let reColon = /^\s*:/;
     let reAnychar = /\S+/;
 
-    // 解析filter定义
+    /**
+     *  解析filter定义
+     */
     function parseFilterDef(str: string, skipSetter: boolean = false) {
         if (!filterCache.get(str)) {
             let def: Array<filter.IFilterDef> = [];
@@ -93,29 +93,39 @@ module drunk.parser {
         return filterCache.get(str);
     }
     
-    // 断言非空字符串
+    /**
+     *  断言非空字符串
+     */
     function assertNotEmptyString(target: string, message: string): void {
         if (!(typeof target === 'string' && reAnychar.test(target))) {
             throw new Error(message + ": 表达式为空");
         }
     }
     
-    // 是否是对象的key
+    /**
+     *  是否是对象的key
+     */
     function isObjectKey(str: string): boolean {
         return str.match(reObjectKey) != null;
     }
 
-    // 前一个字符是否是冒号
+    /**
+     *  前一个字符是否是冒号
+     */
     function isColon(str: string): boolean {
         return str.match(reColon) != null;
     }
 
-    // 是否是一个方法调用
+    /**
+     *  是否是一个方法调用
+     */
     function isCallFunction(str: string): boolean {
         return str.match(reBrackets) != null;
     }
     
-    // 解析所有的标记并对表达式进行格式化
+    /**
+     *  解析所有的标记并对表达式进行格式化
+     */
     function parseIdentifier(str: string) {
         let cache = identifierCache.get(str);
         
@@ -176,7 +186,9 @@ module drunk.parser {
         return cache;
     }
     
-    // 创建函数
+    /**
+     *  创建函数
+     */
     function createFunction(expression, ...args: Array<string>): any {
         try {
             return Function.apply(Function, args);
@@ -193,10 +205,7 @@ module drunk.parser {
     
     /**
      * 解析表达式
-     * @method parse
-     * @static
-     * @param  {string}  expression  表达式
-     * @return {function}            返回一个方法
+     * @param  expression  表达式
      */
     export function parse(expression: string): IGetter {
         assertNotEmptyString(expression, "解析表达式失败");
@@ -216,12 +225,9 @@ module drunk.parser {
     
     /**
      * 解析表达式生成getter函数
-     * @method parsetGetter
-     * @static
-     * @param  {string}  expression      表达式字符串
-     * @param  {boolean} [isInterpolate] 是否是一哥插值表达式
-     * @param  {boolean} [skipFilter]    跳过解析filter
-     * @return {function}                getter函数
+     * @param   expression      表达式字符串
+     * @param   isInterpolate   是否是一哥插值表达式
+     * @param   skipFilter      跳过解析filter
      */
     export function parseGetter(expression: string, isInterpolate?: boolean, skipFilter?: boolean): IGetter {
         assertNotEmptyString(expression, "创建getter失败");
@@ -255,11 +261,7 @@ module drunk.parser {
     
     /**
      * 解析表达式生成setter函数
-     * 
-     * @method parseSetter
-     * @static
-     * @param  {string}  expression 表达式字符串
-     * @return {function}           setter函数
+     * @param   expression 表达式字符串
      */
     export function parseSetter(expression: string): ISetter {
         assertNotEmptyString(expression, "创建setter失败");
@@ -280,11 +282,8 @@ module drunk.parser {
     /**
      * 解析包含插值绑定的字符串表达式， 类似"a {{interpolate_let}}"， 花括号里的就是插值变量
      * 先判断是否存在花括号， 然后在解析成tokens， 再根据token生成getter函数
-     * @method parseInterpolate
-     * @static
-     * @param  {string}  expression  表达式字符串
-     * @param  {boolean} justTokens  是否只需要返回tokens
-     * @return {array|function}      返回token数组或getter函数
+     * @param   expression  表达式字符串
+     * @param   justTokens  是否只需要返回tokens
      */
     export function parseInterpolate(expression: string): IGetter;
     export function parseInterpolate(expression: string, justTokens: boolean): any[];
@@ -325,10 +324,7 @@ module drunk.parser {
     
     /**
      * 是否有插值语法
-     * @method hasInterpolation
-     * @static
-     * @param  {string}  str  字符串
-     * @return {boolean}      返回结果
+     * @param   str  字符串
      */
     export function hasInterpolation(str: string): boolean {
         return typeof str === 'string' && str.match(reAnychar) !== null && str.match(reInterpolate) !== null;

@@ -6,12 +6,29 @@ module drunk {
     const uuidOfNull = util.uuid({});
     const uuidOfUndefined = util.uuid({});
     
+    /**
+     * Map类，可把任务类型的对象作为key
+     */
     export class Map<T> {
         
+        /**
+         * 对应Key的数据
+         */
         private _store: {[key: string]: T} = {};
+        
+        /**
+         * 所有的key的列表
+         */
         private _keys: any[] = [];
+        
+        /**
+         * 所有的key生成的uuid的列表
+         */
         private _uuids: any[] = [];
         
+        /**
+         * 获取指定key的uuid
+         */
         private _uuidOf(key: any): number {
             let type = typeof key;
             let uuid: any;
@@ -45,9 +62,8 @@ module drunk {
         
         /**
          * 设值
-         * @method set
-         * @param  {any}  key  键,可为任意类型
-         * @param  {any}  
+         * @param   key  键,可为任意类型
+         * @param  value 值 
          */
         set(key: any, value: T): Map<T> {
             let uuid = this._uuidOf(key);
@@ -63,9 +79,7 @@ module drunk {
         
         /**
          * 取值
-         * @method get
-         * @param  {any}  key  键名
-         * @return {any}
+         * @param key  键名
          */
         get(key: any) {
             let uuid = this._uuidOf(key);
@@ -74,9 +88,7 @@ module drunk {
         
         /**
          * 是否有对应键的值
-         * @method has
-         * @param  {any}  key 键名
-         * @return {boolean}
+         * @param  key 键名
          */
         has(key: any): boolean {
             let uuid = this._uuidOf(key);
@@ -85,9 +97,7 @@ module drunk {
         
         /**
          * 删除指定键的记录
-         * @method delete
-         * @param  {any}  key 键名
-         * @return {boolean}
+         * @param   key 键名
          */
         delete(key: any): boolean {
             let uuid = this._uuidOf(key);
@@ -103,7 +113,6 @@ module drunk {
         
         /**
          * 清除所有的成员
-         * @method clear
          */
         clear() {
             this._keys = [];
@@ -113,9 +122,8 @@ module drunk {
         
         /**
          * 遍历
-         * @method forEach
-         * @param  {function}  callback  回调
-         * @param  {any}       context   上下文
+         * @param   callback  回调
+         * @param   context   上下文,回调里的this参数
          */
         forEach(callback: (value: T, key: any, map: Map<T>) => any, context?: any) {
             let uuids = this._uuids.slice();
@@ -128,8 +136,6 @@ module drunk {
         
         /**
          * 获取所有的key
-         * @method keys
-         * @return {array}
          */
         keys() {
             return this._keys.slice();
@@ -137,8 +143,6 @@ module drunk {
         
         /**
          * 获取所有的值
-         * @method values
-         * @return {array}
          */
         values() {
             return this._uuids.map(uuid => this._store[uuid]);
@@ -146,8 +150,6 @@ module drunk {
         
         /**
          * map的成员个数
-         * @property size
-         * @type number
          */
         get size() {
             return this._keys.length;

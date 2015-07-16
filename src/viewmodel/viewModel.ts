@@ -14,60 +14,41 @@ module drunk {
     
     /**
      * ViewModel类， 实现数据与模板元素的绑定
-     * 
-     * @class ViewModel
-     * @extend EventEmitter
      */
     export class ViewModel extends EventEmitter {
         
         /**
          * 实例是否未被释放
-         * @property _isActived
-         * @type boolean
          */
         _isActived: boolean;
 
         /**
          * 数据对象
-         * @property _model
-         * @type object
-         * @private
          */
         _model: IModel;
         
         /**
          * 该实例下所有的绑定实例的列表
-         * @property _bindings
-         * @type Array<Binding>
-         * @private
          */
         _bindings: Binding[];
         
         /**
          * 该实例下所有的watcher实例表
-         * @property _watchers
-         * @type {[expression]: Watcher}
-         * @private
          */
         _watchers: { [expression: string]: Watcher };
         
         /**
          * 过滤器方法,包含内置的
-         * @property $filter
-         * @type Filter
          */
         $filter: {[name: string]: filter.IFilter};
         
         /**
          * 事件处理方法集合
-         * @property handlers
-         * @type object
          */
         handlers: {[name: string]: (...args: any[]) => any};
 
         /**
-         * constructor
-         * @param  {IModel} [model] 数据
+         * @param   model  初始化数据
          */
         constructor(model?: IModel) {
             super();
@@ -77,9 +58,7 @@ module drunk {
         
         /**
          * 初始化私有属性,并对model里的所有字段进行代理处理
-         * @method __init
-         * @protected
-         * @param  {IModel} [model]  数据对象
+         * @param  model  数据对象
          */
         protected __init(model?: IModel) {
             model = model || {};
@@ -98,9 +77,7 @@ module drunk {
         
         /**
          * 代理某个属性到最新的IModel上
-         * 
-         * @method $proxy
-         * @param  {string}  property  需要代理的属性名
+         * @param   property  需要代理的属性名
          */
         $proxy(property: string): void {
             var value = this[property];
@@ -116,11 +93,8 @@ module drunk {
         
         /**
          * 执行表达式并返回结果
-         * 
-         * @method $eval
-         * @param  {string}  expression      表达式
-         * @param  {boolean} [isInterpolate] 是否是插值表达式
-         * @return {string}                  结果
+         * @param   expression      表达式
+         * @param   isInterpolate   是否是插值表达式
          */
         $eval(expression: string, isInterpolate?: boolean): any {
             var getter;
@@ -141,10 +115,8 @@ module drunk {
         
         /**
          * 根据表达式设置值
-         * 
-         * @method $setValue
-         * @param  {string}  expression  表达式
-         * @param  {any}     value       值
+         * @param   expression  表达式
+         * @param   value       值
          */
         $setValue(expression: string, value: any): void {
             var setter = parser.parseSetter(expression);
@@ -153,8 +125,7 @@ module drunk {
         
         /**
          * 把model数据转成json并返回
-         * @method $getModel
-         * @return {IModel}  反悔json格式的不带getter/setter的model
+         * @return   json格式的不带getter/setter的model对象
          */
         $getModel() {
             return util.deepClone(this._model);
@@ -162,10 +133,8 @@ module drunk {
         
         /**
          * 监听表达式的里每个数据的变化
-         * 
-         * @method $watch
-         * @param  {string}  expression  表达式
-         * @return {function}            返回一个取消监听的函数
+         * @param   expression  表达式
+         * @return              返回一个取消监听的函数
          */
         $watch(expression: string, action: IBindingUpdateAction, isDeepWatch?: boolean, isImmediate?: boolean) {
             var key: string = Watcher.getNameOfKey(expression, isDeepWatch);
@@ -193,13 +162,7 @@ module drunk {
         }
         
         /**
-         * 释放ViewModel实例的所有元素与数据的绑定
-         * 解除所有的代理属性
-         * 解除所有的视图于数据绑定
-         * 移除事件缓存
-         * 销毁所有的watcher
-         * 
-         * @method $release
+         * 释放ViewModel实例的所有元素与数据的绑定,解除所有的代理属性,解除所有的视图于数据绑定,移除事件缓存,销毁所有的watcher
          */
         $release() {
             if (!this._isActived) {
@@ -231,11 +194,8 @@ module drunk {
         
         /**
          * 获取事件回调,内置方法
-         * 
-         * @method __getHandler
-         * @internal
-         * @param  {string}  handlerName  时间回调名称
-         * @return {ViewModel} 返回事件处理函数
+         * @param  handlerName  事件回调名称
+         * @return              返回事件处理函数
          */
         __getHandler(handlerName: string): Function {
             var handler = this[handlerName];
@@ -258,12 +218,10 @@ module drunk {
         
         /**
          * 根据getter函数获取数据
-         * @method __getValueByGetter
-         * @param  {function}    getter         表达式解析生成的getter函数
-         * @param  {boolean}     isInterpolate  是否是插值表达式
-         * @param  {Event}       [event]        事件对象
-         * @param  {HTMLElement} [el]           元素对象
-         * @return {any}
+         * @param   getter         表达式解析生成的getter函数
+         * @param   isInterpolate  是否是插值表达式
+         * @param   event          事件对象
+         * @param   el             元素对象
          */
         __getValueByGetter(getter, isInterpolate) {
             var args = [this].concat(util.toArray(arguments).slice(1));

@@ -15,10 +15,8 @@ module drunk {
 
     /**
      * 用于repeat作用域下的子viewModel
-     * @class RepeatItem
-     * @constructor
-     * @param {Component}   $parent     父级ViewModel
-     * @param {object}      ownModel    私有的数据
+     * @param $parent     父级ViewModel
+     * @param ownModel    私有的数据
      */
     export class RepeatItem extends Component {
 
@@ -36,9 +34,6 @@ module drunk {
         
         /**
          * 这里只初始化私有model
-         * @method __init
-         * @override
-         * @protected
          */
         protected __init(ownModel) {
             this.__proxyModel(ownModel);
@@ -47,9 +42,6 @@ module drunk {
         
         /**
          * 继承父级viewModel的filter和私有model
-         * @method __inheritParentMembers
-         * @protected
-         * @override
          */
         protected __inheritParentMembers() {
             let parent = this.$parent;
@@ -68,8 +60,6 @@ module drunk {
         
         /**
          * 代理指定model上的所有属性
-         * @method __proxyModel
-         * @protected
          */
         protected __proxyModel(model: IModel) {
             Object.keys(model).forEach((property) => {
@@ -85,8 +75,6 @@ module drunk {
         
         /**
          * 重写代理方法,顺便也让父级viewModel代理该属性
-         * @method proxy
-         * @override
          */
         $proxy(property: string) {
             if (util.proxy(this, property, this._model)) {
@@ -96,8 +84,6 @@ module drunk {
         
         /**
          * 重写获取事件处理方法,忘父级查找该方法
-         * @override
-         * @method __getHandler
          */
         __getHandler(handlerName: string) {
             let context: any = this;
@@ -123,7 +109,7 @@ module drunk {
         }
         
         /**
-         * @override
+         * 实例释放
          */
         $release() {
             super.$release();
@@ -133,9 +119,7 @@ module drunk {
 
         /**
          * 把数据转成列表,如果为空则转成空数组
-         * @method toList
-         * @static
-         * @param  {any}  target
+         * @param  target  把对象转成带有item信息的数组
          */
         static toList(target: any): IItemDataDescriptor[] {
             let ret: IItemDataDescriptor[] = [];
@@ -184,6 +168,9 @@ module drunk {
         throw new TypeError('错误的' + config.prefix + 'repeat表达式: ' + expression);
     }
 
+    /**
+     * drunk-repeat的绑定实现类
+     */
     class RepeatBinding implements IBindingDefinition {
 
         isTerminal: boolean;
@@ -203,7 +190,9 @@ module drunk {
         private _items: IItemDataDescriptor[];
         private _isActived: boolean;
 
-        // 初始化绑定
+        /**
+         * 初始化绑定
+         */
         init() {
             this.createCommentNodes();
             this.parseDefinition();
@@ -213,7 +202,9 @@ module drunk {
             this._bindExecutor = Template.compile(this.element);
         }
         
-        // 创建注释标记标签
+        /**
+         * 创建注释标记标签
+         */
         createCommentNodes() {
             this._startNode = document.createComment('repeat: ' + this.expression);
             this._endedNode = document.createComment('/repeat: ' + this.expression);
@@ -222,7 +213,9 @@ module drunk {
             dom.replace(this._endedNode, this.element);
         }
 
-        // 解析表达式定义
+        /**
+         * 解析表达式定义
+         */
         parseDefinition() {
             let expression: string = this.expression;
             let parts = expression.split(regParam);
@@ -255,7 +248,9 @@ module drunk {
             this.expression = parts[1].trim();
         }
 
-        // 数据更新
+        /**
+         * 数据更新
+         */
         update(newValue: any) {
             if (this._renderJob) {
                 this._renderJob.cancel();
@@ -280,7 +275,10 @@ module drunk {
             this._render();
         }
 
-        _render() {
+        /**
+         * 渲染item元素
+         */
+        private _render() {
             let index = 0;
             let length = this._items.length;
             let placeholder;
@@ -341,7 +339,10 @@ module drunk {
             Scheduler.schedule(renderItems, Scheduler.Priority.aboveNormal);
         }
 
-        _getRepeatItem(item) {
+        /**
+         * 根据item信息对象获取或创建RepeatItem实例
+         */
+        private _getRepeatItem(item: IItemDataDescriptor) {
             let value = item.val;
             let viewModelList = this._map.get(value);
             let viewModel: RepeatItem;
@@ -364,7 +365,10 @@ module drunk {
             return viewModel;
         }
 
-        _realizeRepeatItem(item: IItemDataDescriptor) {
+        /**
+         * 根据item信息对象创建RepeatItem实例
+         */
+        private _realizeRepeatItem(item: IItemDataDescriptor) {
             let value = item.val;
             let options: IModel = {};
 
@@ -382,7 +386,10 @@ module drunk {
             return viewModel;
         }
 
-        _updateItemModel(target: any, item: IItemDataDescriptor) {
+        /**
+         * 更新item的数据，设置$odd,$even,$last,$first的值和指定访问item信息的字段的值
+         */
+        private _updateItemModel(target: any, item: IItemDataDescriptor) {
             target.$odd = 0 === item.idx % 2;
             target.$even = !target.$odd;
             target.$last = item.idx === this._items.length - 1;
@@ -395,7 +402,11 @@ module drunk {
             }
         }
 
-        _unrealizeUnusedItems(force?: boolean) {
+        /**
+         * 释放不再使用的RepeatItem实例并删除其指定的元素
+         * @param  force  是否强制移除所有item
+         */
+        private _unrealizeUnusedItems(force?: boolean) {
             let nameOfVal = this._param.val;
 
             this._itemVms.forEach((viewModel: RepeatItem, index) => {
@@ -426,6 +437,9 @@ module drunk {
             });
         }
 
+        /**
+         * 释放该Binding实例
+         */
         release() {
             if (this._itemVms && this._itemVms.length) {
                 this._unrealizeUnusedItems(true);

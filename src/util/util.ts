@@ -2,10 +2,6 @@
 
 /**
  * 工具方法模块
- * 
- * @module drunk.util
- * @class util
- * @main
  */
 module drunk.util {
     
@@ -14,10 +10,7 @@ module drunk.util {
     
     /**
      * 获取对象的为一id
-     * @method uuid
-     * @static
-     * @param  {any}     target  设置的对象
-     * @return {number}
+     * @param  target  设置的对象
      */
     export function uuid(target: any): number {
         if (typeof target[nameOfUid] === 'undefined') {
@@ -28,11 +21,7 @@ module drunk.util {
 
     /**
      * 判断是否是对象
-     * 
-     * @static
-     * @method isObject
-     * @param  {any}        target 判断目标
-     * @return {boolean}           返回结果
+     * @param   target 判断目标
      */
     export function isObject(target: any): boolean {
         return Object.prototype.toString.call(target) === '[object Object]';
@@ -40,12 +29,9 @@ module drunk.util {
 
     /**
      * 拓展对象
-     * 
-     * @static
-     * @method extend
-     * @param  {object}  destination  目标对象
-     * @param  {object}  ...sources   不定长参数，源对象的集合
-     * @return {object}               返回输入的目标对象
+     * @param  destination  目标对象
+     * @param  ...sources   不定长参数，源对象的集合
+     * @return              返回输入的目标对象
      */
     export function extend(destination: any, ...sources: any[]): any {
         sources.forEach((src) => {
@@ -60,10 +46,7 @@ module drunk.util {
     
     /**
      * 深度拷贝对象
-     * @method deepClone
-     * @static
-     * @param  {any}  target  需要拷贝的对象
-     * @return {any}
+     * @param   target  需要拷贝的对象
      */
     export function deepClone(target: any): any {
         if (Array.isArray(target)) {
@@ -83,11 +66,8 @@ module drunk.util {
 
     /**
      * 转换成数组
-     * 
-     * @static
-     * @method toArray
-     * @param  {array} arrayLike  类似数组的对象
-     * @return {array}            转换后的数组
+     * @param   arrayLike  类似数组的对象
+     * @return             转换后的数组
      */
     export function toArray(arrayLike: any): any[] {
         return Array.prototype.slice.call(arrayLike);
@@ -95,11 +75,8 @@ module drunk.util {
 
     /**
      * 给数组添加item，确保item不重复
-     * 
-     * @static
-     * @method addArrayItem
-     * @param  {array}  array  数组
-     * @param  {any}    item   值 
+     * @param   array  数组
+     * @param   item   值 
      */
     export function addArrayItem(array: any[], item: any): void {
         if (array.indexOf(item) < 0) {
@@ -109,11 +86,8 @@ module drunk.util {
 
     /**
      * 移除数组的指定值
-     * 
-     * @static
-     * @method removeArrayItem
-     * @param  {array}  array  数组
-     * @param  {any}    item   值 
+     * @param   array  数组
+     * @param   item   值 
      */
     export function removeArrayItem(array: any[], item: any): void {
         var index = array.indexOf(item);
@@ -124,10 +98,7 @@ module drunk.util {
     
     /**
      * 字符串驼峰化
-     * @method camelCase
-     * @static
-     * @param  {string}  str 字符串
-     * @return {string}
+     * @param   str 字符串
      */
     export function camelCase(str: string) {
         return str.replace(/[-_](\w)/g, ($0, $1) => $1.toUpperCase());
@@ -135,13 +106,10 @@ module drunk.util {
 
     /**
      * Object.defineProperty的快捷方法，会设置configurable,writable默认为true
-     * 
-     * @static
-     * @method defineProperty
-     * @param  {any}     target         设置的目标
-     * @param  {string}  propertyName   属性
-     * @param  {any}     propertyValue  值
-     * @param  {boolean} [enumerable]   该属性是否可枚举
+     * @param   target         设置的目标
+     * @param   propertyName   属性
+     * @param   propertyValue  值
+     * @param   enumerable     该属性是否可枚举
      */
     export function defineProperty(target: any, propertyName: string, propertyValue: any, enumerable?: boolean): void {
         Object.defineProperty(target, propertyName, {
@@ -154,12 +122,10 @@ module drunk.util {
     
     /**
      * 属性代理,把a对象的某个属性的读写代理到b对象上,返回代理是否成功的结果
-     * @method proxy
-     * @static
-     * @param  {Object}  a         对象a
-     * @param  {string}  property  属性名
-     * @param  {Object}  b         对象b
-     * @return {boolean}           如果已经代理过,则不再代理该属性
+     * @param   a         对象a
+     * @param   property  属性名
+     * @param   b         对象b
+     * @return            如果已经代理过,则不再代理该属性
      */
     export function proxy(a: Object, property: string, b: Object) {
         var des = Object.getOwnPropertyDescriptor(a, property);
@@ -192,11 +158,9 @@ module drunk.util {
     
     /**
      * 创建一个异步工作
-     * @method execAsyncWork
-     * @static
-     * @param  {function}  work       回调函数
-     * @param  {any}       [context]  上下文对象
-     * @return {IAsyncJob}            返回一个带有cancel方法的job对象
+     * @param   work       回调函数
+     * @param   context    上下文对象
+     * @return             返回一个带有cancel方法的job对象
      */
     export function execAsyncWork(work: () => any, context?: any): IAsyncJob {
         let timerId: number;

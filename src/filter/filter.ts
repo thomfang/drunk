@@ -9,11 +9,8 @@ module drunk.filter {
     
     /**
      * Filter声明
-     * @class Filter
-     * @constructor
-     * @param  {any}  input         输入
-     * @param  {any[]} [...arggs]   其他参数
-     * @return {any}                返回值
+     * @param   input       输入
+     * @param   ...arggs    其他参数
      */
     export interface IFilter {
         (...args: any[]): any;
@@ -26,14 +23,10 @@ module drunk.filter {
     
     /**
      * 使用提供的filter列表处理数据
-     * 
-     * @method pipeFor
-     * @static
-     * @param  {any}            value       输入
-     * @param  {FilterDef[]}    filterDefs  filter定义集合
-     * @param  {ViewModel}      viewModel   ViewModel实例
-     * @param  {any[]}          ...args     其他参数
-     * @return {any}                        过滤后得到的值
+     * @param   value       输入
+     * @param   filterDefs  filter定义集合
+     * @param   viewModel   ViewModel实例
+     * @param   ...args     其他参数
      */
     export function pipeFor(value: any, filterDefs: any, filterMap: { [name: string]: IFilter }, isInterpolate: boolean, ...args: any[]): any {
         if (!filterDefs) {
@@ -74,7 +67,9 @@ module drunk.filter {
         return value;
     }
     
-    // 判断插值表达式的值个数,如果只有一个,则返回该值,如果有多个,则返回所有值的字符串相加
+    /**
+     * 判断插值表达式的值个数,如果只有一个,则返回该值,如果有多个,则返回所有值的字符串相加
+     */
     function getInterpolateValue(values: any[]): any {
         if (values.length === 1) {
             return values[0];
@@ -113,13 +108,14 @@ module drunk.filter {
         "&gt;": ">"
     };
 
+    /**
+     * filter方法表
+     */
     export let filters: { [name: string]: IFilter } = {
         
         /**
          * 对输入的字符串进行编码
-         * @method escape
-         * @param  {string}  input  输入
-         * @return {string}         输出
+         * @param  input  输入
          */
         escape(input: string): string {
             return input.replace(reg.escape, function(x) {
@@ -129,9 +125,7 @@ module drunk.filter {
 
         /**
          * 对输入的字符串进行解码
-         * @method unescape
-         * @param  {string}  input  输入
-         * @return {string}         输出
+         * @param  input  输入
          */
         unescape(input: string): string {
             return input.replace(reg.unescape, function(a) {
@@ -141,11 +135,9 @@ module drunk.filter {
 
         /**
          * 对输入的字符串进行截断
-         * @method truncate
-         * @param  {string}  input  输入
-         * @param  {number}  length 保留的最大长度
-         * @param  {string}  [tail] 结尾的字符串,默认为'...'
-         * @return {string}         输出
+         * @param   input  输入
+         * @param   length 保留的最大长度
+         * @param   tail   结尾的字符串,默认为'...'
          */
         truncate(input: string, length: number, tail?: string): string {
             if (input.length <= length) {
@@ -156,9 +148,7 @@ module drunk.filter {
 
         /**
          * 为特殊字符添加斜杠
-         * @method addslashes
-         * @param  {string}  input  输入
-         * @return {string}         输出
+         * @param  input  输入
          */
         addslashes(input: string): string {
             return input.replace(/[\\"']/g, '\\$&').replace(/\u0000/g, '\\0');
@@ -166,9 +156,7 @@ module drunk.filter {
 
         /**
          * 移除特殊字符的斜杠
-         * @method stripslashes
-         * @param  {string}  input  输入
-         * @return {string}         输出
+         * @param  input  输入
          */
         stripslashes(input: string): string {
             return input.replace(/\\'/g, "'").replace(/\\"/g, '"').replace(/\\0/g, '\0').replace(/\\\\/g, '\\');
@@ -176,9 +164,7 @@ module drunk.filter {
 
         /**
          * 计算输入的长度，支持字符串、数组和对象
-         * @method size
-         * @param  {string|array|object}  input 输入
-         * @return {number}  长度
+         * @param  input 输入
          */
         size(input: any): number {
             if (input == null) {
@@ -200,10 +186,8 @@ module drunk.filter {
 
         /**
          * JSON.stringify的别名
-         * @method json
-         * @param  {any}  input     输入
-         * @param  {number} [ident] 缩进
-         * @return {string}         格式化后的字符串
+         * @param   input     输入
+         * @param   ident     缩进
          */
         json(input: any, ident?: number): string {
             return JSON.stringify(input, null, ident || 4);
@@ -211,9 +195,7 @@ module drunk.filter {
 
         /**
          * 移除所有tag标签字符串,比如"<div>123</div>" => "123"
-         * @method striptags
-         * @param  {string}  input  输入
-         * @return {string}         输出
+         * @param   input  输入
          */
         striptags(input: string): string {
             return input.replace(reg.striptags, "");
@@ -221,10 +203,8 @@ module drunk.filter {
 
         /**
          * 当输入为undefined或null是返回默认值
-         * @method default
-         * @param  {any}  input        输入
-         * @param  {any}  defaultValue 默认值
-         * @return {any}               根据输入返回的值
+         * @param  input        输入
+         * @param  defaultValue 默认值
          */
         default(input: any, defaltValue: any): any {
             return input == null ? defaltValue : input;
@@ -232,10 +212,8 @@ module drunk.filter {
 
         /**
          * 根据输入的时间戳返回指定格式的日期字符串
-         * @method date
-         * @param  {number|string} input  时间戳
-         * @param  {string}        format 要返回的时间格式
-         * @return {string}               格式化后的时间字符串
+         * @param   input  时间戳
+         * @param   format 要返回的时间格式
          */
         date(input: number | string, format: string) {
             return formatDate(input, format);
@@ -243,9 +221,7 @@ module drunk.filter {
 
         /**
          * 在控制台上打印输入
-         * @method log
-         * @param  {any}  input  输入
-         * @return {any}         返回输入的值
+         * @param  input  输入
          */
         log<T>(input: T): T {
             console.log("[Filter.log]: ", input);

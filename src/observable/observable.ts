@@ -6,19 +6,12 @@
 
 /**
  * observable模块的工具方法，用于创建可观察的数据，数据绑定等
- * 
- * @module drunk.observable
- * @class observable
- * @main
  */
 module drunk.observable {
      
     /**
      * 根据数据返回对应的Observer 实例，如果该数据已经存在对应的 Observer 实例则直接返回，否则创建一个新的实例
-     * @static
-     * @method create
-     * @param {ObservableArray|ObservableObject} data 数组或JSON对象
-     * @return {Observer} 返回一个Observer实例
+     * @param data 数组或JSON对象
      */
     export function create<T>(data: ObservableArray<T> | ObservableObject | any): Observer {
         let isObject = util.isObject(data);
@@ -63,21 +56,17 @@ module drunk.observable {
     
     /**
      * 访问observableObject的字段时会调用的回调
-     * @static
-     * @property onPropertyAccessing
-     * @param {Observer}     observer  返回的当前正在访问的数据的observer对象
-     * @param {string}       property  正在访问的数据的字段
-     * @param {any}             value  对应字段的数据
-     * @param {ObservableObject} data  可观察数据
+     * @param   observer  返回的当前正在访问的数据的observer对象
+     * @param   property  正在访问的数据的字段
+     * @param   value     对应字段的数据
+     * @param   data      可观察数据
      */
     export let onPropertyAccessing: (observer: Observer, property: string, value: any, data: ObservableObject) => void;
      
     /**
      * 转换对象属性的getter/setter，使其能在数据更新是能接受到事件
-     * @static
-     * @method observe
-     * @param {ObservableObject} data  	   JSON对象
-     * @param {string}           property  JSON对象上的字段
+     * @param  data  	 JSON对象
+     * @param  property  JSON对象上的字段
      */
     export function observe(data: ObservableObject, property: string, value): void {
         let descriptor = Object.getOwnPropertyDescriptor(data, property);
@@ -145,10 +134,8 @@ module drunk.observable {
      
     /**
      * 通知数据的指定属性更新
-     * @static
-     * @method notify
-     * @param {ObservableArray|ObservableObject} data       数据
-     * @param {string}  	                     [property] 要通知的字段名，如果该参数不提供，则派发该该数据更新的通知
+     * @param  data       数据
+     * @param  property   要通知的字段名，如果该参数不提供，则派发该该数据更新的通知
      */
     export function notify<T>(data: ObservableArray<T> | ObservableObject): void {
         let ob: Observer = data.__observer__;

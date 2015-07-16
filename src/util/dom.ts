@@ -4,19 +4,13 @@
 
 /**
  * DOM操作的工具方法模块
- * 
- * @module drunk.dom
- * @main
- * @class dom
  */
 module drunk.dom {
 
     /**
      * 根据提供的html字符串创建html元素
-     * @static
-     * @method create
-     * @param  {string}  html  html字符串
-     * @return {Node|Node[]}          创建好的html元素
+     * @param   html  html字符串
+     * @return        创建好的html元素或元素列表数组
      */
     export function create(htmlString: string): Node | Node[] {
         var div = document.createElement("div");
@@ -31,10 +25,8 @@ module drunk.dom {
     
     /**
      * 设置元素的innerHTML
-     * @static
-     * @method html
-     * @param  {HTMLElement}  container  元素
-     * @param  {string}       value      值
+     * @param   container  元素
+     * @param   value      值
      */
     export function html(container: HTMLElement, value: string) {
         container.innerHTML = value;
@@ -42,10 +34,8 @@ module drunk.dom {
 
     /**
      * 在旧的元素节点前插入新的元素节点
-     * @static
-     * @method before
-     * @param  {Node}  newNode  新的节点
-     * @param  {Node}  oldNode  旧的节点
+     * @param  newNode  新的节点
+     * @param  oldNode  旧的节点
      */
     export function before(newNode: any, oldNode: Node): void {
         if (!oldNode.parentNode) {
@@ -63,10 +53,8 @@ module drunk.dom {
 
     /**
      * 在旧的元素节点后插入新的元素节点
-     * @static
-     * @method after
-     * @param  {Node}  newNode  新的节点
-     * @param  {Node}  oldNode  旧的节点
+     * @param  newNode  新的节点
+     * @param  oldNode  旧的节点
      */
     export function after(newNode: any, oldNode: Node): void {
         if (!oldNode.parentNode) {
@@ -89,9 +77,7 @@ module drunk.dom {
 
     /**
      * 移除元素节点
-     * @static
-     * @method remove
-     * @param  {Node|Node[]}  target  节点
+     * @param  target  节点
      */
     export function remove(target: any): Promise<any> {
         if (!Array.isArray(target)) {
@@ -118,10 +104,8 @@ module drunk.dom {
 
     /**
      * 新的节点替换旧的节点
-     * @static
-     * @method replace
-     * @param  {Node}  newNode  新的节点
-     * @param  {Node}  oldNode  旧的节点
+     * @param  newNode  新的节点
+     * @param  oldNode  旧的节点
      */
     export function replace(newNode: any, oldNode: Node): void {
         if (!oldNode.parentNode) {
@@ -141,11 +125,9 @@ module drunk.dom {
     
     /**
      * 为节点注册事件监听
-     * @static
-     * @method on
-     * @param  {HTMLElement} element  元素
-     * @param  {string}      type     事件名
-     * @param  {function}    listener 事件处理函数
+     * @param  element  元素
+     * @param  type     事件名
+     * @param  listener 事件处理函数
      */
     export function on(element: HTMLElement, type: string, listener: (ev: Event) => void): void {
         element.addEventListener(type, listener, false);
@@ -153,11 +135,9 @@ module drunk.dom {
     
     /**
      * 移除节点的事件监听
-     * @static
-     * @method off
-     * @param  {HTMLElement} element  元素
-     * @param  {string}      type     事件名
-     * @param  {function}    listener 事件处理函数
+     * @param  element  元素
+     * @param  type     事件名
+     * @param  listener 事件处理函数
      */
     export function off(element: HTMLElement, type: string, listener: (ev: Event) => void): void {
         element.removeEventListener(type, listener, false);
@@ -165,10 +145,8 @@ module drunk.dom {
     
     /**
      * 添加样式
-     * @static
-     * @method addClass
-     * @param  {HTMLElement}  element    元素
-     * @param  {string}       token      样式名
+     * @param   element    元素
+     * @param   token      样式名
      */
     export function addClass(element: HTMLElement, token: string): void {
         var list = token.trim().split(/\s+/);
@@ -177,10 +155,8 @@ module drunk.dom {
     
     /**
      * 移除样式
-     * @static
-     * @method removeClass
-     * @param  {HTMLElement}  element    元素
-     * @param  {string}       token      样式名
+     * @param  element    元素
+     * @param  token      样式名
      */
     export function removeClass(element: HTMLElement, token: string): void {
         var list = token.trim().split(/\s+/);
