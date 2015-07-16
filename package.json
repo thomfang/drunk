@@ -24,5 +24,11 @@
   },
   "homepage": "https://github.com/tilfon/drunk.ts",
   "devDependencies": {
+    "gulp": "^3.9.0",
+    "gulp-debug": "^2.0.1",
+    "gulp-load-plugins": "^1.0.0-rc.1",
+    "gulp-typedoc": "^1.1.0",
+    "gulp-typescript": "^2.7.8",
+    "require-dir": "^0.3.0"
   }
 }

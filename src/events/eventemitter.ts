@@ -146,6 +146,6 @@ module drunk {
         static cleanup(emitter: EventEmitter) {
             let id = util.uuid(emitter);
             eventStore[id] = null;
-        };
+        }
     }
 }
