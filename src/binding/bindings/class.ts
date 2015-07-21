@@ -1,60 +1,62 @@
 /// <reference path="../binding" />
 /// <reference path="../../util/dom" />
 
-drunk.Binding.register("class", {
-    
-    _oldValue: null,
+module drunk {
+    drunk.Binding.register("class", {
 
-    update(data: any) {
-        let elem = this.element;
+        _oldValue: null,
 
-        if (Array.isArray(data)) {
-            let classMap = {};
-            let oldValue = this._oldValue;
+        update(data: any) {
+            let elem = this.element;
 
-            if (oldValue) {
-                oldValue.forEach(name => {
-                    if (data.indexOf(name) === -1) {
-                        drunk.dom.removeClass(elem, name);
+            if (Array.isArray(data)) {
+                let classMap = {};
+                let oldValue = this._oldValue;
+
+                if (oldValue) {
+                    oldValue.forEach(name => {
+                        if (data.indexOf(name) === -1) {
+                            drunk.dom.removeClass(elem, name);
+                        }
+                        else {
+                            classMap[name] = true;
+                        }
+                    });
+                }
+
+                data.forEach(name => {
+                    if (!classMap[name]) {
+                        drunk.dom.addClass(elem, name);
+                    }
+                });
+
+                this._oldValue = data;
+            }
+            else if (data && typeof data === 'object') {
+                Object.keys(data).forEach(name => {
+                    if (data[name]) {
+                        drunk.dom.addClass(elem, name);
                     }
                     else {
-                        classMap[name] = true;
+                        drunk.dom.removeClass(elem, name);
                     }
                 });
             }
+            else if (typeof data === 'string' && (data = data.trim()) !== this._oldValue) {
+                if (this._oldValue) {
+                    drunk.dom.removeClass(elem, this._oldValue);
+                }
 
-            data.forEach(name => {
-                if (!classMap[name]) {
-                    drunk.dom.addClass(elem, name);
-                }
-            });
+                this._oldValue = data;
 
-            this._oldValue = data;
-        }
-        else if (data && typeof data === 'object') {
-            Object.keys(data).forEach(name => {
-                if (data[name]) {
-                    drunk.dom.addClass(elem, name);
+                if (data) {
+                    drunk.dom.addClass(elem, data);
                 }
-                else {
-                    drunk.dom.removeClass(elem, name);
-                }
-            });
-        }
-        else if (typeof data === 'string' && (data = data.trim()) !== this._oldValue) {
-            if (this._oldValue) {
-                drunk.dom.removeClass(elem, this._oldValue);
             }
+        },
 
-            this._oldValue = data;
-
-            if (data) {
-                drunk.dom.addClass(elem, data);
-            }
+        release() {
+            this._oldValue = null;
         }
-    },
-    
-    release() {
-        this._oldValue = null;
-    }
-});
+    });
+}

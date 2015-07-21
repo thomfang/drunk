@@ -1266,6 +1266,12 @@ declare module drunk {
 declare module drunk {
 }
 declare module drunk {
+}
+declare module drunk {
+}
+declare module drunk {
+}
+declare module drunk {
     interface IItemDataDescriptor {
         key: string | number;
         idx: number;
@@ -1314,6 +1320,14 @@ declare module drunk {
          */
         static toList(target: any): IItemDataDescriptor[];
     }
+}
+declare module drunk {
+}
+declare module drunk {
+}
+declare module drunk {
+}
+declare module drunk {
 }
 declare module drunk {
 }

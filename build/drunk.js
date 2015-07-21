@@ -862,7 +862,6 @@ var drunk;
             var id = drunk.util.uuid(emitter);
             eventStore[id] = null;
         };
-        ;
         return EventEmitter;
     })();
     drunk.EventEmitter = EventEmitter;
@@ -2306,7 +2305,6 @@ var drunk;
             var value = getter.apply(null, args);
             return drunk.filter.pipeFor.apply(null, [value, getter.filters, this.$filter, isInterpolate].concat(args));
         };
-        ;
         return ViewModel;
     })(drunk.EventEmitter);
     drunk.ViewModel = ViewModel;
@@ -4080,99 +4078,108 @@ var drunk;
 })(drunk || (drunk = {}));
 /// <reference path="../binding" />
 /// <reference path="../../util/util" />
-drunk.Binding.register('attr', {
-    attrName: null,
-    update: function (newValue) {
-        var _this = this;
-        if (this.attrName) {
-            // 如果有提供指定的属性名
-            this._setAttribute(this.attrName, newValue);
+var drunk;
+(function (drunk) {
+    drunk.Binding.register('attr', {
+        attrName: null,
+        update: function (newValue) {
+            var _this = this;
+            if (this.attrName) {
+                // 如果有提供指定的属性名
+                this._setAttribute(this.attrName, newValue);
+            }
+            else if (drunk.util.isObject(newValue)) {
+                Object.keys(newValue).forEach(function (name) {
+                    _this._setAttribute(name, newValue[name]);
+                });
+            }
+        },
+        _setAttribute: function (name, value) {
+            if (name === 'src' || name === 'href') {
+                value = value == null ? '' : value;
+            }
+            this.element.setAttribute(name, value);
         }
-        else if (drunk.util.isObject(newValue)) {
-            Object.keys(newValue).forEach(function (name) {
-                _this._setAttribute(name, newValue[name]);
-            });
-        }
-    },
-    _setAttribute: function (name, value) {
-        if (name === 'src' || name === 'href') {
-            value = value == null ? '' : value;
-        }
-        this.element.setAttribute(name, value);
-    }
-});
+    });
+})(drunk || (drunk = {}));
 /// <reference path="../binding" />
 /// <reference path="../../util/dom" />
-drunk.Binding.register("bind", {
-    update: function (newValue) {
-        newValue = newValue == null ? '' : newValue;
-        var el = this.element;
-        if (el.nodeType === 3) {
-            el.nodeValue = newValue;
-        }
-        else if (el.nodeType === 1) {
-            switch (el.tagName.toLowerCase()) {
-                case "input":
-                case "textarea":
-                case "select":
-                    el.value = newValue;
-                    break;
-                default:
-                    drunk.dom.html(el, newValue);
+var drunk;
+(function (drunk) {
+    drunk.Binding.register("bind", {
+        update: function (newValue) {
+            newValue = newValue == null ? '' : newValue;
+            var el = this.element;
+            if (el.nodeType === 3) {
+                el.nodeValue = newValue;
+            }
+            else if (el.nodeType === 1) {
+                switch (el.tagName.toLowerCase()) {
+                    case "input":
+                    case "textarea":
+                    case "select":
+                        el.value = newValue;
+                        break;
+                    default:
+                        drunk.dom.html(el, newValue);
+                }
             }
         }
-    }
-});
+    });
+})(drunk || (drunk = {}));
 /// <reference path="../binding" />
 /// <reference path="../../util/dom" />
-drunk.Binding.register("class", {
-    _oldValue: null,
-    update: function (data) {
-        var elem = this.element;
-        if (Array.isArray(data)) {
-            var classMap = {};
-            var oldValue = this._oldValue;
-            if (oldValue) {
-                oldValue.forEach(function (name) {
-                    if (data.indexOf(name) === -1) {
-                        drunk.dom.removeClass(elem, name);
+var drunk;
+(function (drunk) {
+    drunk.Binding.register("class", {
+        _oldValue: null,
+        update: function (data) {
+            var elem = this.element;
+            if (Array.isArray(data)) {
+                var classMap = {};
+                var oldValue = this._oldValue;
+                if (oldValue) {
+                    oldValue.forEach(function (name) {
+                        if (data.indexOf(name) === -1) {
+                            drunk.dom.removeClass(elem, name);
+                        }
+                        else {
+                            classMap[name] = true;
+                        }
+                    });
+                }
+                data.forEach(function (name) {
+                    if (!classMap[name]) {
+                        drunk.dom.addClass(elem, name);
+                    }
+                });
+                this._oldValue = data;
+            }
+            else if (data && typeof data === 'object') {
+                Object.keys(data).forEach(function (name) {
+                    if (data[name]) {
+                        drunk.dom.addClass(elem, name);
                     }
                     else {
-                        classMap[name] = true;
+                        drunk.dom.removeClass(elem, name);
                     }
                 });
             }
-            data.forEach(function (name) {
-                if (!classMap[name]) {
-                    drunk.dom.addClass(elem, name);
+            else if (typeof data === 'string' && (data = data.trim()) !== this._oldValue) {
+                if (this._oldValue) {
+                    drunk.dom.removeClass(elem, this._oldValue);
                 }
-            });
-            this._oldValue = data;
-        }
-        else if (data && typeof data === 'object') {
-            Object.keys(data).forEach(function (name) {
-                if (data[name]) {
-                    drunk.dom.addClass(elem, name);
+                this._oldValue = data;
+                if (data) {
+                    drunk.dom.addClass(elem, data);
                 }
-                else {
-                    drunk.dom.removeClass(elem, name);
-                }
-            });
-        }
-        else if (typeof data === 'string' && (data = data.trim()) !== this._oldValue) {
-            if (this._oldValue) {
-                drunk.dom.removeClass(elem, this._oldValue);
             }
-            this._oldValue = data;
-            if (data) {
-                drunk.dom.addClass(elem, data);
-            }
+        },
+        release: function () {
+            this._oldValue = null;
         }
-    },
-    release: function () {
-        this._oldValue = null;
-    }
-});
+    });
+})(drunk || (drunk = {}));
 /// <reference path="../binding" />
 /// <reference path="../../util/dom" />
 /// <reference path="../../component/component" />
@@ -4755,89 +4762,95 @@ var drunk;
 /// <reference path="../binding" />
 /// <reference path="../../util/dom" />
 /// <reference path="../../template/compiler" />
-drunk.Binding.register("if", {
-    isTerminal: true,
-    priority: drunk.Binding.Priority.aboveNormal + 2,
-    init: function () {
-        this._startNode = document.createComment("if: " + this.expression);
-        this._endedNode = document.createComment("/if: " + this.expression);
-        this._bindExecutor = drunk.Template.compile(this.element);
-        this._inDocument = false;
-        drunk.dom.replace(this._startNode, this.element);
-        drunk.dom.after(this._endedNode, this._startNode);
-    },
-    update: function (value) {
-        if (!!value) {
-            this.addToDocument();
-        }
-        else {
+var drunk;
+(function (drunk) {
+    drunk.Binding.register("if", {
+        isTerminal: true,
+        priority: drunk.Binding.Priority.aboveNormal + 2,
+        init: function () {
+            this._startNode = document.createComment("if: " + this.expression);
+            this._endedNode = document.createComment("/if: " + this.expression);
+            this._bindExecutor = drunk.Template.compile(this.element);
+            this._inDocument = false;
+            drunk.dom.replace(this._startNode, this.element);
+            drunk.dom.after(this._endedNode, this._startNode);
+        },
+        update: function (value) {
+            if (!!value) {
+                this.addToDocument();
+            }
+            else {
+                this.removeFromDocument();
+            }
+        },
+        addToDocument: function () {
+            if (this._inDocument) {
+                return;
+            }
+            this._tmpElement = this.element.cloneNode(true);
+            drunk.dom.after(this._tmpElement, this._startNode);
+            this._unbindExecutor = this._bindExecutor(this.viewModel, this._tmpElement);
+            this._inDocument = true;
+        },
+        removeFromDocument: function () {
+            if (!this._inDocument) {
+                return;
+            }
+            this._unbindExecutor();
+            drunk.dom.remove(this._tmpElement);
+            this._unbindExecutor = null;
+            this._tmpElement = null;
+            this._inDocument = false;
+        },
+        release: function () {
             this.removeFromDocument();
+            drunk.dom.remove(this._startNode);
+            drunk.dom.remove(this._endedNode);
+            this._startNode = null;
+            this._endedNode = null;
+            this._bindExecutor = null;
         }
-    },
-    addToDocument: function () {
-        if (this._inDocument) {
-            return;
-        }
-        this._tmpElement = this.element.cloneNode(true);
-        drunk.dom.after(this._tmpElement, this._startNode);
-        this._unbindExecutor = this._bindExecutor(this.viewModel, this._tmpElement);
-        this._inDocument = true;
-    },
-    removeFromDocument: function () {
-        if (!this._inDocument) {
-            return;
-        }
-        this._unbindExecutor();
-        drunk.dom.remove(this._tmpElement);
-        this._unbindExecutor = null;
-        this._tmpElement = null;
-        this._inDocument = false;
-    },
-    release: function () {
-        this.removeFromDocument();
-        drunk.dom.remove(this._startNode);
-        drunk.dom.remove(this._endedNode);
-        this._startNode = null;
-        this._endedNode = null;
-        this._bindExecutor = null;
-    }
-});
+    });
+})(drunk || (drunk = {}));
 /// <reference path="../binding" />
 /// <reference path="../../template/loader" />
 /// <reference path="../../template/compiler" />
-drunk.Binding.register("include", {
-    _unbindExecutor: null,
-    _url: null,
-    update: function (url) {
-        if (!this._isActived || (url && url === this._url)) {
-            return;
+var drunk;
+(function (drunk) {
+    drunk.Binding.register("include", {
+        _unbindExecutor: null,
+        _url: null,
+        update: function (url) {
+            if (!this._isActived || (url && url === this._url)) {
+                return;
+            }
+            this._unbind();
+            this._url = url;
+            drunk.dom.remove(drunk.util.toArray(this.element.childNodes));
+            if (url) {
+                drunk.Template.load(url).then(this._createBinding.bind(this));
+            }
+        },
+        _createBinding: function (template) {
+            if (!this._isActived) {
+                return;
+            }
+            drunk.dom.html(this.element, template);
+            var nodes = drunk.util.toArray(this.element.childNodes);
+            this._unbindExecutor = drunk.Template.compile(nodes)(this.viewModel, nodes);
+        },
+        _unbind: function () {
+            if (this._unbindExecutor) {
+                this._unbindExecutor();
+                this._unbindExecutor = null;
+            }
+        },
+        release: function () {
+            this._unbind();
+            this._url = null;
         }
-        this._unbind();
-        this._url = url;
-        drunk.dom.remove(drunk.util.toArray(this.element.childNodes));
-        if (url) {
-            drunk.Template.load(url).then(this._createBinding.bind(this));
-        }
-    },
-    _createBinding: function (template) {
-        if (!this._isActived) {
-            return;
-        }
-        drunk.dom.html(this.element, template);
-        var nodes = drunk.util.toArray(this.element.childNodes);
-        this._unbindExecutor = drunk.Template.compile(nodes)(this.viewModel, nodes);
-    },
-    _unbind: function () {
-        if (this._unbindExecutor) {
-            this._unbindExecutor();
-            this._unbindExecutor = null;
-        }
-    },
-    release: function () {
-        this._unbind();
-        this._url = null;
-    }
-});
+    });
+})(drunk || (drunk = {}));
 /// <reference path="../binding" />
 /// <reference path="../../util/dom" />
 var drunk;
@@ -4932,57 +4945,63 @@ var drunk;
     }
 })(drunk || (drunk = {}));
 /// <reference path="../binding" />
-drunk.Binding.register("show", {
-    update: function (isVisible) {
-        var style = this.element.style;
-        if (!isVisible && style.display !== 'none') {
-            style.display = 'none';
+var drunk;
+(function (drunk) {
+    drunk.Binding.register("show", {
+        update: function (isVisible) {
+            var style = this.element.style;
+            if (!isVisible && style.display !== 'none') {
+                style.display = 'none';
+            }
+            else if (isVisible && style.display === 'none') {
+                style.display = '';
+            }
         }
-        else if (isVisible && style.display === 'none') {
-            style.display = '';
-        }
-    }
-});
+    });
+})(drunk || (drunk = {}));
 /// <reference path="../binding" />
 /// <reference path="../../component/component" />
 /// <reference path="../../util/dom" />
 /// <reference path="../../template/compiler" />
-drunk.Binding.register("transclude", {
-    /**
-     * 初始化绑定,先注册transcludeResponse事件用于获取transclude的viewModel和nodelist
-     * 然后发送getTranscludeContext事件通知
-     */
-    init: function (ownerViewModel, placeholder) {
-        if (!ownerViewModel || !placeholder) {
-            throw new Error('未提供父级component实例和组件声明的占位标签');
+var drunk;
+(function (drunk) {
+    drunk.Binding.register("transclude", {
+        /**
+         * 初始化绑定,先注册transcludeResponse事件用于获取transclude的viewModel和nodelist
+         * 然后发送getTranscludeContext事件通知
+         */
+        init: function (ownerViewModel, placeholder) {
+            if (!ownerViewModel || !placeholder) {
+                throw new Error('未提供父级component实例和组件声明的占位标签');
+            }
+            var nodes = [];
+            var unbinds = [];
+            var transclude = placeholder.childNodes;
+            var fragment = document.createDocumentFragment();
+            drunk.util.toArray(transclude).forEach(function (node) {
+                nodes.push(node);
+                fragment.appendChild(node);
+            });
+            // 换掉节点
+            drunk.dom.replace(fragment, this.element);
+            nodes.forEach(function (node) {
+                // 编译模板并获取绑定创建函数
+                // 保存解绑函数
+                var bind = drunk.Template.compile(node);
+                unbinds.push(bind(ownerViewModel, node));
+            });
+            this._nodes = nodes;
+            this._unbindExecutors = unbinds;
+        },
+        /**
+         * 释放绑定
+         */
+        release: function () {
+            this._unbindExecutors.forEach(function (unbind) { return unbind(); });
+            this._nodes.forEach(function (node) { return drunk.dom.remove(node); });
+            this._unbindExecutors = null;
+            this._nodes = null;
         }
-        var nodes = [];
-        var unbinds = [];
-        var transclude = placeholder.childNodes;
-        var fragment = document.createDocumentFragment();
-        drunk.util.toArray(transclude).forEach(function (node) {
-            nodes.push(node);
-            fragment.appendChild(node);
-        });
-        // 换掉节点
-        drunk.dom.replace(fragment, this.element);
-        nodes.forEach(function (node) {
-            // 编译模板并获取绑定创建函数
-            // 保存解绑函数
-            var bind = drunk.Template.compile(node);
-            unbinds.push(bind(ownerViewModel, node));
-        });
-        this._nodes = nodes;
-        this._unbindExecutors = unbinds;
-    },
-    /**
-     * 释放绑定
-     */
-    release: function () {
-        this._unbindExecutors.forEach(function (unbind) { return unbind(); });
-        this._nodes.forEach(function (node) { return drunk.dom.remove(node); });
-        this._unbindExecutors = null;
-        this._nodes = null;
-    }
-});
+    });
+})(drunk || (drunk = {}));
 //# sourceMappingURL=drunk.js.map
