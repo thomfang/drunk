@@ -63,11 +63,6 @@ module drunk {
         data: { [name: string]: any };
         
         /**
-         * 该组件作用域下的数据过滤器表
-         */
-        filters: { [name: string]: filter.IFilter };
-        
-        /**
          * 该组件作用域下的事件处理方法
          */
         handlers: { [name: string]: (...args) => void };
@@ -90,6 +85,19 @@ module drunk {
          */
         init() {
             
+        }
+        
+        private __filters: { [name: string]: filter.IFilter };
+        /**
+         * 该组件作用域下的数据过滤器表
+         */
+        set filters(newValue: { [name: string]: filter.IFilter }) {
+            util.extend(this.$filter, newValue);
+            this.__filters = newValue;
+        }
+        
+        get filters() {
+            return this.__filters;
         }
 
         /**

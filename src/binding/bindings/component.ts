@@ -203,7 +203,10 @@ module drunk {
                 
                 let ownerProperty = result[1].trim();
                 
-                unwatch = component.$watch(property, (newValue) => {
+                unwatch = component.$watch(property, (newValue, oldValue) => {
+                    if (newValue === oldValue) {
+                        return;
+                    }
                     viewModel.$setValue(ownerProperty, newValue);
                 });
                 
@@ -211,6 +214,9 @@ module drunk {
             }
 
             unwatch = viewModel.$watch(expression, (newValue) => {
+                if (component[property] === newValue) {
+                    return;
+                }
                 component[property] = newValue;
             }, false, true);
 

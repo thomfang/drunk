@@ -1164,12 +1164,6 @@ declare module drunk {
             [name: string]: any;
         };
         /**
-         * 该组件作用域下的数据过滤器表
-         */
-        filters: {
-            [name: string]: filter.IFilter;
-        };
-        /**
          * 该组件作用域下的事件处理方法
          */
         handlers: {
@@ -1190,6 +1184,13 @@ declare module drunk {
          * 实例创建时会调用的初始化方法,派生类可覆盖该方法
          */
         init(): void;
+        private __filters;
+        /**
+         * 该组件作用域下的数据过滤器表
+         */
+        filters: {
+            [name: string]: filter.IFilter;
+        };
         /**
          * 属性初始化
          * @param  model 数据
@@ -1266,12 +1267,6 @@ declare module drunk {
 declare module drunk {
 }
 declare module drunk {
-}
-declare module drunk {
-}
-declare module drunk {
-}
-declare module drunk {
     interface IItemDataDescriptor {
         key: string | number;
         idx: number;
@@ -1320,14 +1315,6 @@ declare module drunk {
          */
         static toList(target: any): IItemDataDescriptor[];
     }
-}
-declare module drunk {
-}
-declare module drunk {
-}
-declare module drunk {
-}
-declare module drunk {
 }
 declare module drunk {
 }

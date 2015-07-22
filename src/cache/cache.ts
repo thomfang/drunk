@@ -53,13 +53,13 @@ module drunk {
          */
         get(key: string): T {
             let cacheNode = this._cacheMap[key];
-            
+
             if (!cacheNode) {
                 return;
             }
-            
+
             this._putToHead(cacheNode);
-            
+
             return cacheNode.value;
         }
         
@@ -70,20 +70,9 @@ module drunk {
          */
         set(key: string, value: T) {
             let cacheNode = this._cacheMap[key];
-            
+
             if (cacheNode) {
                 cacheNode.value = value;
-            }
-            else if (this._count < this._capacity) {
-                cacheNode = this._cacheMap[key] = {
-                    prev: null,
-                    next: null,
-                    key: key,
-                    value: value
-                };
-                
-                this._putToHead(cacheNode);
-                this._count += 1;
             }
             else {
                 cacheNode = this._cacheMap[key] = {
@@ -92,9 +81,14 @@ module drunk {
                     key: key,
                     value: value
                 };
-                
-                this._putToHead(cacheNode);
-                this._removeTail();
+                if (this._count < this._capacity) {
+                    this._putToHead(cacheNode);
+                    this._count += 1;
+                }
+                else {
+                    this._putToHead(cacheNode);
+                    this._removeTail();
+                }
             }
         }
         
@@ -106,21 +100,21 @@ module drunk {
             if (cacheNode === this._head) {
                 return;
             }
-            
+
             if (cacheNode.prev != null) {
                 cacheNode.prev.next = cacheNode.next;
             }
             if (cacheNode.next != null) {
                 cacheNode.next.prev = cacheNode.prev;
             }
-            
+
             if (this._tail === cacheNode) {
                 this._tail = cacheNode.prev;
             }
-            
+
             cacheNode.prev = null;
             cacheNode.next = this._head;
-            
+
             if (this._head) {
                 this._head.prev = cacheNode;
             }
@@ -136,13 +130,13 @@ module drunk {
          */
         private _removeTail() {
             let tail = this._tail;
-            
+
             this._tail = tail.prev;
-            
+
             tail.prev.next = tail.next;
             tail.prev = null;
             tail.next = null;
-            
+
             delete this._cacheMap[tail.key];
         }
     }
