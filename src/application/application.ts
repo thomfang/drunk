@@ -7,16 +7,23 @@ module drunk {
         routeReg: RegExp;
         routeStr: string;
         paramArr: string[];
-        component: string;
+        pageName: string;
+    }
+    
+    interface IRouterState {
+        url: string;
+        route: string;
+        params: { [name: string]: any };
+        pageName: string;
     }
 
-    class ApplicationManager extends Component {
+    class ApplicationLauncher extends Component {
 
         private _index: string;
         private _routers: IRouter[] = [];
-        private _paramState: any;
-        private _navigateState: any;
-        private _currentComponent: Component;
+        private _currentPage: Component;
+        private _routerState: IRouterState;
+        private _navigationState: any;
 
         pageVisible: IModel = {};
 
@@ -25,29 +32,35 @@ module drunk {
             this.__scanElement(rootElement);
             this.__initNavigationEvent();
 
-            this.$mount(rootElement);
+            this.$mount(util.toArray(rootElement.childNodes));
             this.__navigate(url);
         }
 
         navigate(url: string, replaceState?: boolean, state?: any) {
-            this._navigateState = state;
+            this._navigationState = state;
+            if (replaceState) {
+                location.replace(url);
+            }
+            else {
+                location.href = url;
+            }
         }
 
         back() {
             history.back();
         }
 
-        private __enterComponent(component: Component) {
-            this._currentComponent = component;
+        private __enterPage(page: Component) {
+            this._currentPage = page;
 
-            if (typeof component['onEnter'] === 'function') {
-                component['onEnter']();
+            if (typeof page['onEnter'] === 'function') {
+                page['onEnter'](this._routerState, this._navigationState);
             }
         }
 
-        private __exitComponent(component) {
-            if (component['onExit']) {
-                component['onExit']();
+        private __exitPage(page: Component) {
+            if (page['onExit']) {
+                page['onExit']();
             }
         }
 
@@ -57,8 +70,8 @@ module drunk {
             var nameOfIfBinding = config.prefix + 'if';
             var nameOfCreatedEvent = 'on-' + Component.Event.created;
             var nameOfReleaseEvent = 'on-' + Component.Event.release;
-            var nameOfCreatedExpression = '__enterComponent($event.args[0])';
-            var nameOfReleaseExpression = '__exitComponent($event.args[0])';
+            var createdEventExpression = '__enterPage($event.args[0])';
+            var releaseEventExpression = '__exitPage($event.args[0])';
             var route: string;
             var name: string;
 
@@ -80,13 +93,13 @@ module drunk {
                 // 用于当理由切换时改变显示的组件和得到相应的组件实例
                 // 会生成类似这样: <my-component drunk-if='pageVisible.myComponent'></my-component>
                 node.setAttribute(nameOfIfBinding, 'pageVisible["' + name + '"]');
-                node.setAttribute(nameOfCreatedEvent, nameOfCreatedExpression);
-                node.setAttribute(nameOfReleaseEvent, nameOfReleaseExpression);
+                node.setAttribute(nameOfCreatedEvent, createdEventExpression);
+                node.setAttribute(nameOfReleaseEvent, releaseEventExpression);
 
                 // 添加并解析路由,设置改组件默认不可见
                 this.__addRoute(route, name);
                 this.pageVisible[name] = false;
-            }, this);
+            });
 
             // 查找drunk-index路径
             this._index = rootElement.getAttribute(nameOfIndex);
@@ -97,7 +110,7 @@ module drunk {
             rootElement.removeAttribute(nameOfIndex);
         }
 
-        private __addRoute(route: string, componentName: string) {
+        private __addRoute(route: string, pageName: string) {
             var routeReg = pathToRegexp(route);
             var paramArr = routeReg.keys.map(key => key.name);
 
@@ -107,7 +120,7 @@ module drunk {
                 routeReg: routeReg,
                 routeStr: route,
                 paramArr: paramArr,
-                component: componentName
+                pageName: pageName
             });
         }
 
@@ -118,38 +131,38 @@ module drunk {
         }
 
         private __navigate(url: string) {
-            var state;
+            var state: IRouterState;
 
             if (!url || !(state = this.__parseUrl(url))) {
                 return this.navigate('#' + this._index, true);
             }
 
-            this._paramState = state;
+            this._routerState = state;
 
-            if (this._currentComponent) {
+            if (this._currentPage) {
                 // 如果存在当前组件
-                if (this._currentComponent.name === state.component) {
+                if (this._currentPage.name === state.pageName) {
                     // 判断是否是在同一组件中导航,如果是,直接调用该组件的onEnter方法
-                    this.__enterComponent(this._currentComponent);
+                    this.__enterPage(this._currentPage);
                 }
                 else {
                     // 设置当前组件隐藏
-                    this.pageVisible[this._currentComponent.name] = false;
+                    this.pageVisible[this._currentPage.name] = false;
                 }
             }
 
             // 设置导航到的组件显示
-            this.pageVisible[state.component] = true;
+            this.pageVisible[state.pageName] = true;
         }
 
-        private __parseUrl(url: string) {
+        private __parseUrl(url: string): IRouterState {
             var saveParam = (param, j) => {
                 params[param] = result[j + 1];
             };
             var result: RegExpExecArray;
             var params: { [name: string]: any };
 
-            for (let router, i = 0, routeReg: RegExp, routeStr: string, paramArr; router = this._routers[i]; i++) {
+            for (let router: IRouter, i = 0, routeReg: RegExp, routeStr: string, paramArr; router = this._routers[i]; i++) {
                 routeReg = router.routeReg;
                 routeStr = router.routeStr;
                 paramArr = router.paramArr;
@@ -164,7 +177,7 @@ module drunk {
                         url: url,
                         route: routeStr,
                         params: params,
-                        component: router.component
+                        pageName: router.pageName
                     };
                 }
             }
@@ -334,6 +347,6 @@ module drunk {
         return attachKeys(new RegExp('^' + path + (end ? '$' : ''), flags), keys);
     };
 
-    export var Application = new ApplicationManager();
+    export var Application = new ApplicationLauncher();
 
 }
