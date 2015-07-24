@@ -4191,14 +4191,14 @@ var drunk;
 (function (drunk) {
     /**
      * 用于repeat作用域下的子viewModel
-     * @param $parent     父级ViewModel
+     * @param _parent     父级ViewModel
      * @param ownModel    私有的数据
      */
     var RepeatItem = (function (_super) {
         __extends(RepeatItem, _super);
-        function RepeatItem($parent, ownModel) {
+        function RepeatItem(_parent, ownModel) {
             _super.call(this, ownModel);
-            this.$parent = $parent;
+            this._parent = _parent;
             this._placeholder = document.createComment('repeat-item');
             this.__inheritParentMembers();
         }
@@ -4214,7 +4214,7 @@ var drunk;
          */
         RepeatItem.prototype.__inheritParentMembers = function () {
             var _this = this;
-            var parent = this.$parent;
+            var parent = this._parent;
             var models = parent._models;
             _super.prototype.__init.call(this, parent._model);
             this.$filter = parent.$filter;
@@ -4242,7 +4242,7 @@ var drunk;
          */
         RepeatItem.prototype.$proxy = function (property) {
             if (drunk.util.proxy(this, property, this._model)) {
-                this.$parent.$proxy(property);
+                this._parent.$proxy(property);
             }
         };
         /**
@@ -4251,8 +4251,8 @@ var drunk;
         RepeatItem.prototype.__getHandler = function (handlerName) {
             var context = this;
             var handler = this[handlerName];
-            while (!handler && context.parent) {
-                context = context.parent;
+            while (!handler && context._parent) {
+                context = context._parent;
                 handler = context[handlerName];
             }
             if (!handler) {

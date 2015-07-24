@@ -17,15 +17,16 @@ module drunk {
         pageName: string;
     }
 
-    class ApplicationLauncher extends Component {
+    export class ApplicationLauncher extends Component {
 
         private _index: string;
         private _routers: IRouter[] = [];
         private _currentPage: Component;
+        private _currentPageName: string;
         private _routerState: IRouterState;
         private _navigationState: any;
 
-        pageVisible: IModel = {};
+        private pageVisible: IModel = {};
 
         start(rootElement = document.body, url = location.hash.slice(1)) {
 
@@ -59,7 +60,7 @@ module drunk {
         }
 
         private __exitPage(page: Component) {
-            if (page['onExit']) {
+            if (typeof page['onExit'] === 'function') {
                 page['onExit']();
             }
         }
@@ -141,18 +142,19 @@ module drunk {
 
             if (this._currentPage) {
                 // 如果存在当前组件
-                if (this._currentPage.name === state.pageName) {
+                if (this._currentPageName === state.pageName) {
                     // 判断是否是在同一组件中导航,如果是,直接调用该组件的onEnter方法
                     this.__enterPage(this._currentPage);
                 }
                 else {
                     // 设置当前组件隐藏
-                    this.pageVisible[this._currentPage.name] = false;
+                    this.pageVisible[this._currentPageName] = false;
                 }
             }
 
             // 设置导航到的组件显示
             this.pageVisible[state.pageName] = true;
+            this._currentPageName = state.pageName;
         }
 
         private __parseUrl(url: string): IRouterState {

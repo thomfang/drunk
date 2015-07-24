@@ -15,7 +15,7 @@ module drunk {
 
     /**
      * 用于repeat作用域下的子viewModel
-     * @param $parent     父级ViewModel
+     * @param _parent     父级ViewModel
      * @param ownModel    私有的数据
      */
     export class RepeatItem extends Component {
@@ -27,7 +27,7 @@ module drunk {
 
         protected _models: IModel[];
 
-        constructor(private $parent: Component | RepeatItem, ownModel) {
+        constructor(private _parent: Component | RepeatItem, ownModel) {
             super(ownModel);
             this.__inheritParentMembers();
         }
@@ -44,7 +44,7 @@ module drunk {
          * 继承父级viewModel的filter和私有model
          */
         protected __inheritParentMembers() {
-            let parent = this.$parent;
+            let parent = this._parent;
             let models = (<RepeatItem>parent)._models;
 
             super.__init(parent._model);
@@ -78,7 +78,7 @@ module drunk {
          */
         $proxy(property: string) {
             if (util.proxy(this, property, this._model)) {
-                this.$parent.$proxy(property);
+                this._parent.$proxy(property);
             }
         }
         
@@ -89,8 +89,8 @@ module drunk {
             let context: any = this;
             let handler = this[handlerName];
 
-            while (!handler && context.parent) {
-                context = context.parent;
+            while (!handler && context._parent) {
+                context = context._parent;
                 handler = context[handlerName];
             }
 

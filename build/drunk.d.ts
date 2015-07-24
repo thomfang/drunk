@@ -1274,17 +1274,17 @@ declare module drunk {
     }
     /**
      * 用于repeat作用域下的子viewModel
-     * @param $parent     父级ViewModel
+     * @param _parent     父级ViewModel
      * @param ownModel    私有的数据
      */
     class RepeatItem extends Component {
-        private $parent;
+        private _parent;
         _isUsed: boolean;
         _isBinded: boolean;
         _placeholder: Comment;
         _element: any;
         protected _models: IModel[];
-        constructor($parent: Component | RepeatItem, ownModel: any);
+        constructor(_parent: Component | RepeatItem, ownModel: any);
         /**
          * 这里只初始化私有model
          */
