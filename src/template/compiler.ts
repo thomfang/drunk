@@ -16,11 +16,11 @@ module drunk.Template {
      * @param   isRootNode  是否是根元素
      * @return              绑定元素与viewModel的方法
      */
-    export function compile(node: any): IBindingExecutor {
+    export function compile(node: any): IBindExecutor {
         let isArray: boolean = Array.isArray(node);
-        let executor: IBindingExecutor = isArray || node.nodeType === 11 ? null : compileNode(node);
+        let executor: IBindExecutor = isArray || node.nodeType === 11 ? null : compileNode(node);
         let isTerminal: boolean = executor && executor.isTerminal;
-        let childExecutor: IBindingExecutor;
+        let childExecutor: IBindExecutor;
         
         if (isArray) {
             executor = compileNodeList(node);
@@ -29,16 +29,16 @@ module drunk.Template {
             childExecutor = compileNodeList(node.childNodes);
         }
         
-        return (viewModel: ViewModel, element: any, parentViewModel?: Component, placeholder?: HTMLElement) => {
+        return (viewModel: ViewModel, element: any, ownerViewModel?: Component, placeholder?: HTMLElement) => {
             let allBindings = viewModel._bindings;
             let startIndex: number = allBindings.length;
             let bindingList: Binding[];
             
             if (executor) {
-                executor(viewModel, element, parentViewModel, placeholder);
+                executor(viewModel, element, ownerViewModel, placeholder);
             }
             if (childExecutor) {
-                childExecutor(viewModel, element.childNodes, parentViewModel, placeholder);
+                childExecutor(viewModel, element.childNodes, ownerViewModel, placeholder);
             }
             
             bindingList = viewModel._bindings.slice(startIndex);
@@ -57,7 +57,7 @@ module drunk.Template {
     /**
      *  判断元素是什么类型,调用相应的类型编译方法
      */
-    function compileNode(node: any): IBindingExecutor {
+    function compileNode(node: any): IBindExecutor {
         let nodeType: number = node.nodeType;
         
         if (nodeType === 1 && node.tagName !== "SCRIPT") {
@@ -73,12 +73,12 @@ module drunk.Template {
     /**
      *  编译NodeList
      */
-    function compileNodeList(nodeList: any[]): IBindingExecutor {
+    function compileNodeList(nodeList: any[]): IBindExecutor {
         let executors: any = [];
         
         util.toArray(nodeList).forEach((node) => {
-            let executor: IBindingExecutor;
-            let childExecutor: IBindingExecutor;
+            let executor: IBindExecutor;
+            let childExecutor: IBindExecutor;
             
             executor = compileNode(node);
             
@@ -90,24 +90,24 @@ module drunk.Template {
         });
         
         if (executors.length > 1) {
-            return (viewModel: ViewModel, nodes: any, parentViewModel?: Component, placeholder?: HTMLElement) => {
+            return (viewModel: ViewModel, nodes: any, ownerViewModel?: Component, placeholder?: HTMLElement) => {
                 if (nodes.length * 2 !== executors.length) {
                     throw new Error("创建绑定之前,节点已经被动态修改");
                 }
                 
                 let i = 0;
-                let nodeExecutor: IBindingExecutor;
-                let childExecutor: IBindingExecutor;
+                let nodeExecutor: IBindExecutor;
+                let childExecutor: IBindExecutor;
                 
                 util.toArray(nodes).forEach((node) => {
                     nodeExecutor = executors[i++];
                     childExecutor = executors[i++];
                     
                     if (nodeExecutor) {
-                        nodeExecutor(viewModel, node, parentViewModel, placeholder);
+                        nodeExecutor(viewModel, node, ownerViewModel, placeholder);
                     }
                     if (childExecutor) {
-                        childExecutor(viewModel, node.childNodes, parentViewModel, placeholder);
+                        childExecutor(viewModel, node.childNodes, ownerViewModel, placeholder);
                     }
                 });
             };
@@ -124,7 +124,7 @@ module drunk.Template {
     /**
      *  编译元素的绑定并创建绑定描述符
      */
-    function compileElement(element: any): IBindingExecutor {
+    function compileElement(element: any): IBindExecutor {
         let executor;
         let tagName: string = element.tagName.toLowerCase();
         
@@ -158,7 +158,7 @@ module drunk.Template {
     /**
      *  编译文本节点
      */
-    function compileTextNode(node: any): IBindingExecutor {
+    function compileTextNode(node: any): IBindExecutor {
         let content: string = node.textContent;
         
         if (!parser.hasInterpolation(content)) {
@@ -199,7 +199,7 @@ module drunk.Template {
     /**
      *  检测是否存在终止编译的绑定，比如component指令会终止当前编译过程，如果有创建绑定描述符
      */
-    function processTerminalBinding(element: any): IBindingExecutor {
+    function processTerminalBinding(element: any): IBindExecutor {
         let terminals: string[] = Binding.getTerminalBindings();
         let name: string;
         let expression: string;
@@ -209,8 +209,7 @@ module drunk.Template {
                 // 如果存在该绑定
                 return createExecutor(element, {
                     name: name,
-                    expression: expression,
-                    isTerminal: true
+                    expression: expression
                 });
             }
         }
@@ -219,8 +218,8 @@ module drunk.Template {
     /**
      *  查找并创建通常的绑定
      */
-    function processNormalBinding(element: any): IBindingExecutor {
-        let executors: IBindingExecutor[] = [];
+    function processNormalBinding(element: any): IBindExecutor {
+        let executors: IBindExecutor[] = [];
         
         util.toArray(element.attributes).forEach((attr) => {
             let name: string = attr.name;
@@ -256,9 +255,9 @@ module drunk.Template {
                 return b.priority - a.priority;
             });
             // 存在绑定
-            return (viewModel: ViewModel, element: any, parentViewModel?: ViewModel, placeholder?: HTMLElement) => {
+            return (viewModel: ViewModel, element: any, ownerViewModel?: ViewModel, placeholder?: HTMLElement) => {
                 executors.forEach((executor) => {
-                    executor(viewModel, element, parentViewModel, placeholder);
+                    executor(viewModel, element, ownerViewModel, placeholder);
                 });
             };
         }
@@ -267,9 +266,9 @@ module drunk.Template {
     /**
      *  生成绑定描述符方法
      */
-    function createExecutor(element: any, descriptor: IBindingDefinition): IBindingExecutor {
+    function createExecutor(element: any, descriptor: IBindingDefinition): IBindExecutor {
         let definition = Binding.getByName(descriptor.name);
-        let executor: IBindingExecutor;
+        let executor: IBindExecutor;
         
         if (!definition && config.debug) {
             console.warn(descriptor.name, "没有找到该绑定的定义");
@@ -283,10 +282,10 @@ module drunk.Template {
         
         util.extend(descriptor, definition);
         
-        executor = (viewModel, element, parentViewModel?: ViewModel, placeholder?: HTMLElement) => {
-            Binding.create(viewModel, element, descriptor, parentViewModel, placeholder);
+        executor = (viewModel, element, ownerViewModel?: ViewModel, placeholder?: HTMLElement) => {
+            Binding.create(viewModel, element, descriptor, ownerViewModel, placeholder);
         };
-        executor.isTerminal = descriptor.isTerminal;
+        executor.isTerminal = definition.isTerminal;
         executor.priority = definition.priority;
         
         return executor;

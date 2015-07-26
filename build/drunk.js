@@ -3338,15 +3338,15 @@ var drunk;
             else if (!isTerminal && isNeedCompileChild(node)) {
                 childExecutor = compileNodeList(node.childNodes);
             }
-            return function (viewModel, element, parentViewModel, placeholder) {
+            return function (viewModel, element, ownerViewModel, placeholder) {
                 var allBindings = viewModel._bindings;
                 var startIndex = allBindings.length;
                 var bindingList;
                 if (executor) {
-                    executor(viewModel, element, parentViewModel, placeholder);
+                    executor(viewModel, element, ownerViewModel, placeholder);
                 }
                 if (childExecutor) {
-                    childExecutor(viewModel, element.childNodes, parentViewModel, placeholder);
+                    childExecutor(viewModel, element.childNodes, ownerViewModel, placeholder);
                 }
                 bindingList = viewModel._bindings.slice(startIndex);
                 return function () {
@@ -3388,7 +3388,7 @@ var drunk;
                 executors.push(executor, childExecutor);
             });
             if (executors.length > 1) {
-                return function (viewModel, nodes, parentViewModel, placeholder) {
+                return function (viewModel, nodes, ownerViewModel, placeholder) {
                     if (nodes.length * 2 !== executors.length) {
                         throw new Error("创建绑定之前,节点已经被动态修改");
                     }
@@ -3399,10 +3399,10 @@ var drunk;
                         nodeExecutor = executors[i++];
                         childExecutor = executors[i++];
                         if (nodeExecutor) {
-                            nodeExecutor(viewModel, node, parentViewModel, placeholder);
+                            nodeExecutor(viewModel, node, ownerViewModel, placeholder);
                         }
                         if (childExecutor) {
-                            childExecutor(viewModel, node.childNodes, parentViewModel, placeholder);
+                            childExecutor(viewModel, node.childNodes, ownerViewModel, placeholder);
                         }
                     });
                 };
@@ -3487,8 +3487,7 @@ var drunk;
                     // 如果存在该绑定
                     return createExecutor(element, {
                         name: name,
-                        expression: expression,
-                        isTerminal: true
+                        expression: expression
                     });
                 }
             }
@@ -3529,9 +3528,9 @@ var drunk;
                     return b.priority - a.priority;
                 });
                 // 存在绑定
-                return function (viewModel, element, parentViewModel, placeholder) {
+                return function (viewModel, element, ownerViewModel, placeholder) {
                     executors.forEach(function (executor) {
-                        executor(viewModel, element, parentViewModel, placeholder);
+                        executor(viewModel, element, ownerViewModel, placeholder);
                     });
                 };
             }
@@ -3551,10 +3550,10 @@ var drunk;
                 element.removeAttribute(drunk.config.prefix + descriptor.name);
             }
             drunk.util.extend(descriptor, definition);
-            executor = function (viewModel, element, parentViewModel, placeholder) {
-                drunk.Binding.create(viewModel, element, descriptor, parentViewModel, placeholder);
+            executor = function (viewModel, element, ownerViewModel, placeholder) {
+                drunk.Binding.create(viewModel, element, descriptor, ownerViewModel, placeholder);
             };
-            executor.isTerminal = descriptor.isTerminal;
+            executor.isTerminal = definition.isTerminal;
             executor.priority = definition.priority;
             return executor;
         }
@@ -4064,7 +4063,7 @@ var drunk;
             var _this = this;
             var matches = str.match(reg.statement);
             var prefix = drunk.config.prefix;
-            console.assert(matches !== null, "非法的 " + prefix + 'on 绑定表达式, ', str, '正确的用法如下:\n', prefix + 'on="eventType: expression"\n', prefix + 'on="eventType: expression; eventType2: callback()"\n', prefix + 'on="eventType: callback($event, $el)"\n');
+            console.assert(matches !== null, "非法的 " + prefix + 'on 绑定表达式, ', str, '正确的用法如下:\n', prefix + 'on="click: expression"\n', prefix + 'on="mousedown: expression; mouseup: callback()"\n', prefix + 'on="click: callback($event, $el)"\n');
             var type = matches[1];
             var expr = matches[2];
             var func = drunk.parser.parse(expr.trim());
@@ -4199,7 +4198,6 @@ var drunk;
         function RepeatItem(_parent, ownModel) {
             _super.call(this, ownModel);
             this._parent = _parent;
-            this._placeholder = document.createComment('repeat-item');
             this.__inheritParentMembers();
         }
         /**
@@ -4275,7 +4273,7 @@ var drunk;
          */
         RepeatItem.prototype.$release = function () {
             _super.prototype.$release.call(this);
-            this._placeholder = null;
+            this._flagNode = null;
             this._element = null;
         };
         /**
@@ -4318,41 +4316,85 @@ var drunk;
         return RepeatItem;
     })(drunk.Component);
     drunk.RepeatItem = RepeatItem;
-    var repeaterCounter = 0;
     var regParam = /\s+in\s+/;
     var regComma = /\s*,\s*/;
     function invalidExpression(expression) {
         throw new TypeError('错误的' + drunk.config.prefix + 'repeat表达式: ' + expression);
     }
+    // let initialized: boolean = false;
+    // let scrollHandlers: Function[] = [];
+    // function addScrollHandler(handler: Function) {
+    //     util.addArrayItem(scrollHandlers, handler);
+    //     if (!initialized) {
+    //         window.addEventListener('scroll', (e) => {
+    //             scrollHandlers.forEach((handler) => {
+    //                 handler(e);
+    //             });
+    //         });
+    //         initialized = true;
+    //     }
+    // }
     /**
      * drunk-repeat的绑定实现类
      */
     var RepeatBinding = (function () {
         function RepeatBinding() {
         }
+        // private _asListView: boolean;
+        // private _placeholderNode: any;
+        // private _itemWidth: number;
+        // private _itemHeight: number;
+        // private _virticalItemCount: number;
+        // private _horizontalItemCount: number;
+        // private _scrollHandler: Function;
         /**
          * 初始化绑定
          */
         RepeatBinding.prototype.init = function () {
-            this.createCommentNodes();
-            this.parseDefinition();
+            // this._calcItemSize();
+            this._createCommentNodes();
+            this._parseDefinition();
             this._map = new drunk.Map();
             this._items = [];
             this._bindExecutor = drunk.Template.compile(this.element);
         };
+        // private _calcItemSize() {
+        //     // this._asListView = this.element.hasAttribute('as-list-view');
+        //     // if (!this._asListView) {
+        //     //     return;
+        //     // }
+        //     let style = getComputedStyle(this.element, null);
+        //     let width = this.element.offsetWidth + parseInt(style.marginLeft, 10) + parseInt(style.marginRight, 10);
+        //     let height = this.element.offsetHeight + parseInt(style.marginTop, 10) + parseInt(style.marginBottom, 10);
+        //     let tpl = document.createElement(this.element.tagName);
+        //     tpl.style.width = width + 'px';
+        //     tpl.style.height = height + 'px';
+        //     this._placeholderNode = tpl;
+        //     this._itemHeight = height;
+        //     this._itemWidth = width;
+        //     this._virticalItemCount = (window.innerHeight/ height | 0) + 1;
+        //     this._horizontalItemCount = (window.innerWidth / width | 0) + 1;
+        //     this._scrollHandler = (e) => {
+        //         if (!this._isActived) {
+        //             return;
+        //         }
+        //     };
+        //     addScrollHandler(this._scrollHandler);
+        // }
         /**
          * 创建注释标记标签
          */
-        RepeatBinding.prototype.createCommentNodes = function () {
-            this._startNode = document.createComment('repeat: ' + this.expression);
-            this._endedNode = document.createComment('/repeat: ' + this.expression);
+        RepeatBinding.prototype._createCommentNodes = function () {
+            this._flagNodeContent = "[repeat-item]" + this.expression;
+            this._startNode = document.createComment('[start]repeat: ' + this.expression);
+            this._endedNode = document.createComment('[ended]repeat: ' + this.expression);
             drunk.dom.before(this._startNode, this.element);
             drunk.dom.replace(this._endedNode, this.element);
         };
         /**
          * 解析表达式定义
          */
-        RepeatBinding.prototype.parseDefinition = function () {
+        RepeatBinding.prototype._parseDefinition = function () {
             var expression = this.expression;
             var parts = expression.split(regParam);
             if (parts.length !== 2) {
@@ -4387,19 +4429,65 @@ var drunk;
                 this._renderJob.cancel();
             }
             var items = this._items = RepeatItem.toList(newValue);
-            var isEmpty = this._itemVms && this._itemVms.length > 0;
+            var isEmpty = !this._itemVms || this._itemVms.length === 0;
             var newVms = [];
             items.forEach(function (item, index) {
                 var itemVm = newVms[index] = _this._getRepeatItem(item);
                 itemVm._isUsed = true;
             });
-            if (isEmpty) {
+            if (!isEmpty) {
                 this._unrealizeUnusedItems();
             }
             newVms.forEach(function (itemVm) { return itemVm._isUsed = false; });
             this._itemVms = newVms;
+            if (!newVms.length) {
+                return;
+            }
             this._render();
+            // if (isEmpty) {
+            //     this._renderEmptyState();
+            // }
+            // else {
+            //     this._render();
+            // }
         };
+        /**
+         * 目前列表是空的,创建并渲染首屏可展示个数的item实例,再添加一个创建并渲染其他item的placeholder的任务到
+         * 调度器中
+         */
+        // private _renderEmptyState() {
+        //     let index = 0;
+        //     let renderItems = (jobInfo: Scheduler.IJobInfo) => {
+        //         if (!this._isActived) {
+        //             return;
+        //         }
+        //         let viewModel: RepeatItem;
+        //         while (index < this._virticalItemCount) {
+        //             viewModel = this._itemVms[index++];
+        //             dom.before(viewModel._flagNode, this._endedNode);
+        //             if (!viewModel._isBinded) {
+        //                 // 创建节点和生成绑定
+        //                 viewModel.element = viewModel._element = this.element.cloneNode(true);
+        //                 dom.after(viewModel._element, viewModel._flagNode);
+        //                 this._bindExecutor(viewModel, viewModel.element);
+        //                 viewModel._isBinded = true;
+        //             }
+        //             else {
+        //                 dom.after(viewModel._element, viewModel._flagNode);
+        //             }
+        //         }
+        //         this._renderJob = Scheduler.schedule(() => {
+        //             if (!this._isActived || this._virticalItemCount >= this._items.length) {
+        //                 return;
+        //             }
+        //             index = this._virticalItemCount;
+        //             while (index < this._items.length) {
+        //                 dom.before(this._itemVms[index++]._placeholder, this._endedNode);
+        //             }
+        //         }, Scheduler.Priority.idle);
+        //     };
+        //     Scheduler.schedule(renderItems, Scheduler.Priority.aboveNormal);
+        // }
         /**
          * 渲染item元素
          */
@@ -4410,11 +4498,9 @@ var drunk;
             var placeholder;
             var next = function (node) {
                 placeholder = node.nextSibling;
-                while (placeholder && (placeholder.nodeType !== 8 || placeholder.textContent != 'repeat-item')) {
+                while (placeholder && placeholder !== _this._endedNode &&
+                    (placeholder.nodeType !== 8 || placeholder.textContent != _this._flagNodeContent)) {
                     placeholder = placeholder.nextSibling;
-                }
-                if (!placeholder) {
-                    placeholder = _this._endedNode;
                 }
             };
             var renderItems = function (jobInfo) {
@@ -4426,18 +4512,18 @@ var drunk;
                 var endTime = Date.now() + 100;
                 while (index < length) {
                     viewModel = _this._itemVms[index++];
-                    if (viewModel._placeholder !== placeholder) {
+                    if (viewModel._flagNode !== placeholder) {
                         // 判断占位节点是否是当前item的节点，不是则换位
-                        drunk.dom.before(viewModel._placeholder, placeholder);
+                        drunk.dom.before(viewModel._flagNode, placeholder);
                         if (!viewModel._isBinded) {
                             // 创建节点和生成绑定
                             viewModel.element = viewModel._element = _this.element.cloneNode(true);
-                            drunk.dom.after(viewModel._element, viewModel._placeholder);
+                            drunk.dom.after(viewModel._element, viewModel._flagNode);
                             _this._bindExecutor(viewModel, viewModel.element);
                             viewModel._isBinded = true;
                         }
                         else {
-                            drunk.dom.after(viewModel._element, viewModel._placeholder);
+                            drunk.dom.after(viewModel._element, viewModel._flagNode);
                         }
                         if (Date.now() >= endTime && index < length) {
                             // 如果创建节点达到了一定时间，让出线程给ui线程
@@ -4484,6 +4570,8 @@ var drunk;
             this._updateItemModel(options, item);
             var viewModel = new RepeatItem(this.viewModel, options);
             var viewModelList = this._map.get(value);
+            viewModel._flagNode = document.createComment(this._flagNodeContent);
+            // viewModel._placeholder = this._placeholderNode.cloneNode(true);
             if (!viewModelList) {
                 viewModelList = [];
                 this._map.set(value, viewModelList);
@@ -4522,8 +4610,8 @@ var drunk;
                     _this._map.delete(value);
                 }
                 var element = viewModel._element;
-                var placeholder = viewModel._placeholder;
-                placeholder.textContent = 'disposed repeat item';
+                var placeholder = viewModel._flagNode;
+                placeholder.textContent = 'Unused repeat item';
                 viewModel.$release();
                 drunk.Scheduler.schedule(function () {
                     drunk.dom.remove(placeholder);
@@ -4674,20 +4762,33 @@ var drunk;
                 if (_this.isDisposed) {
                     return;
                 }
-                var container = document.createElement('div');
-                var isNodeArray = Array.isArray(template);
-                if (isNodeArray) {
-                    template.forEach(function (node) {
-                        container.appendChild(node);
-                    });
-                }
-                else {
-                    container.appendChild(template);
-                }
+                // dom.replace(template, element);
+                // component.$mount(template, viewModel, element);
+                var startNode = _this._startNode = document.createComment("[start]component: " + _this.expression);
+                var endedNode = _this._endedNode = document.createComment("[ended]component: " + _this.expression);
+                drunk.dom.replace(startNode, element);
+                drunk.dom.after(endedNode, startNode);
+                drunk.dom.after(template, startNode);
+                // let container = document.createElement('div');
+                // let isNodeArray = Array.isArray(template);
+                // if (isNodeArray) {
+                //     template.forEach((node) => {
+                //         container.appendChild(node);
+                //     });
+                // }
+                // else {
+                //     container.appendChild(template);
+                // }
                 component.$mount(template, viewModel, element);
-                var nodeList = drunk.util.toArray(container.childNodes);
-                drunk.dom.replace(nodeList, element);
-                container = null;
+                var nodeList = [];
+                var currNode = startNode.nextSibling;
+                while (currNode && currNode !== endedNode) {
+                    nodeList.push(currNode);
+                    currNode = currNode.nextSibling;
+                }
+                // let nodeList = util.toArray(container.childNodes);
+                // dom.replace(nodeList, element);
+                // container = null;
                 if (viewModel instanceof drunk.RepeatItem) {
                     viewModel._element = nodeList;
                 }
@@ -4755,7 +4856,11 @@ var drunk;
             if (element) {
                 drunk.dom.remove(element);
             }
+            drunk.dom.remove(this._startNode);
+            drunk.dom.remove(this._endedNode);
             // 移除所有引用
+            this._startNode = null;
+            this._endedNode = null;
             this.component = null;
             this.unwatches = null;
             this.isDisposed = true;

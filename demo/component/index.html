@@ -14,14 +14,16 @@
     
     <body>
         
-        <input type="text" placeholder="输入任务并按回车添加" drunk-model="content" drunk-on='keyup: $event.keyCode === 13 && addTodo()'/>
-        
-        <todo-item drunk-repeat="todo,index in todoList" content="{{todo.title}}" index="{{index}}" completed="{{todo.completed}}" on-remove="todoList.splice(index, 1)">
-        </todo-item>
-        
         <button drunk-on="click: alertview1Visible = !alertview1Visible">
             {{ alertview1Visible ? 'hide' : 'show' }} alerv-view 
         </button>
+        
+        <p>
+            <input type="text" placeholder="输入任务并按回车添加" drunk-model="content" drunk-on='keyup: $event.keyCode === 13 && addTodo()'/>
+        </p>
+        
+        <todo-item drunk-repeat="todo,index in todoList" content="{{todo.title}}" index="{{index}}" completed="{{todo.completed}}" on-remove="todoList.splice(index, 1)">
+        </todo-item>
         
         <alert-view src="./alert.html"
             title="Title 1"
@@ -31,11 +33,12 @@
         </alert-view>
         
         <script type='text/tpl' id="todo-item">
+            <button drunk-on="click: $emit('remove', index)">删除</button>
+            <button drunk-on="click: completed = !completed">{{completed ? '取消' : '完成'}}</button>
             <p drunk-class="{strike: completed}">
-                <button drunk-on="click: completed = !completed">{{completed ? '取消' : '完成'}}</button>
-                <button drunk-on="click: $emit('remove', index)">删除</button>
                 {{content}}
             </p>
+            <span drunk-repeat="n in 2">{{n}}</span>
         </script>
         
         <script>

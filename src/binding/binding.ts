@@ -19,7 +19,6 @@ module drunk {
         isDeepWatch?: boolean;
         isTerminal?: boolean;
         priority?: number;
-        expression?: string;
         retainAttribute?: boolean;
 
         init?(parentViewModel?: ViewModel, placeholder?: HTMLElement): void;
@@ -30,7 +29,7 @@ module drunk {
     /**
      * 绑定构建函数接口
      */
-    export interface IBindingExecutor {
+    export interface IBindExecutor {
         (viewModel: ViewModel, element: any, parentViewModel?: ViewModel, placeHolder?: HTMLElement): any;
         isTerminal?: boolean;
         priority?: number;

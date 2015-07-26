@@ -631,7 +631,6 @@ declare module drunk {
         isDeepWatch?: boolean;
         isTerminal?: boolean;
         priority?: number;
-        expression?: string;
         retainAttribute?: boolean;
         init?(parentViewModel?: ViewModel, placeholder?: HTMLElement): void;
         update?(newValue: any, oldValue: any): void;
@@ -640,7 +639,7 @@ declare module drunk {
     /**
      * 绑定构建函数接口
      */
-    interface IBindingExecutor {
+    interface IBindExecutor {
         (viewModel: ViewModel, element: any, parentViewModel?: ViewModel, placeHolder?: HTMLElement): any;
         isTerminal?: boolean;
         priority?: number;
@@ -1084,7 +1083,7 @@ declare module drunk.Template {
      * @param   isRootNode  是否是根元素
      * @return              绑定元素与viewModel的方法
      */
-    function compile(node: any): IBindingExecutor;
+    function compile(node: any): IBindExecutor;
 }
 declare module drunk.Template {
     /**
@@ -1281,7 +1280,8 @@ declare module drunk {
         private _parent;
         _isUsed: boolean;
         _isBinded: boolean;
-        _placeholder: Comment;
+        _flagNode: Comment;
+        _placeholder: any;
         _element: any;
         protected _models: IModel[];
         constructor(_parent: Component | RepeatItem, ownModel: any);

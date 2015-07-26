@@ -22,7 +22,8 @@ module drunk {
 
         _isUsed: boolean;
         _isBinded: boolean;
-        _placeholder: Comment = document.createComment('repeat-item');
+        _flagNode: Comment;
+        _placeholder: any;
         _element: any;
 
         protected _models: IModel[];
@@ -113,7 +114,7 @@ module drunk {
          */
         $release() {
             super.$release();
-            this._placeholder = null;
+            this._flagNode = null;
             this._element = null;
         }
 
@@ -159,14 +160,27 @@ module drunk {
         }
     }
 
-    let repeaterCounter = 0;
-
     let regParam = /\s+in\s+/;
     let regComma = /\s*,\s*/;
-    
+
     function invalidExpression(expression: string) {
         throw new TypeError('错误的' + config.prefix + 'repeat表达式: ' + expression);
     }
+    
+    // let initialized: boolean = false;
+    // let scrollHandlers: Function[] = [];
+    
+    // function addScrollHandler(handler: Function) {
+    //     util.addArrayItem(scrollHandlers, handler);
+    //     if (!initialized) {
+    //         window.addEventListener('scroll', (e) => {
+    //             scrollHandlers.forEach((handler) => {
+    //                 handler(e);
+    //             });
+    //         });
+    //         initialized = true;
+    //     }
+    // }
 
     /**
      * drunk-repeat的绑定实现类
@@ -183,31 +197,70 @@ module drunk {
         private _startNode: Node;
         private _endedNode: Node;
         private _param: { key?: string; val: string };
-        private _bindExecutor: IBindingExecutor;
+        private _bindExecutor: IBindExecutor;
         private _itemVms: RepeatItem[];
         private _renderJob: Scheduler.IJob;
         private _map: Map<RepeatItem[]>;
         private _items: IItemDataDescriptor[];
         private _isActived: boolean;
+        private _flagNodeContent: string;
+        // private _asListView: boolean;
+        // private _placeholderNode: any;
+        // private _itemWidth: number;
+        // private _itemHeight: number;
+        // private _virticalItemCount: number;
+        // private _horizontalItemCount: number;
+        // private _scrollHandler: Function;
 
         /**
          * 初始化绑定
          */
         init() {
-            this.createCommentNodes();
-            this.parseDefinition();
+            // this._calcItemSize();
+            this._createCommentNodes();
+            this._parseDefinition();
 
             this._map = new Map<RepeatItem[]>();
             this._items = [];
             this._bindExecutor = Template.compile(this.element);
         }
+
+        // private _calcItemSize() {
+        //     // this._asListView = this.element.hasAttribute('as-list-view');
+        //     // if (!this._asListView) {
+        //     //     return;
+        //     // }
+
+        //     let style = getComputedStyle(this.element, null);
+        //     let width = this.element.offsetWidth + parseInt(style.marginLeft, 10) + parseInt(style.marginRight, 10);
+        //     let height = this.element.offsetHeight + parseInt(style.marginTop, 10) + parseInt(style.marginBottom, 10);
+
+        //     let tpl = document.createElement(this.element.tagName);
+        //     tpl.style.width = width + 'px';
+        //     tpl.style.height = height + 'px';
+
+        //     this._placeholderNode = tpl;
+        //     this._itemHeight = height;
+        //     this._itemWidth = width;
+        //     this._virticalItemCount = (window.innerHeight/ height | 0) + 1;
+        //     this._horizontalItemCount = (window.innerWidth / width | 0) + 1;
+            
+        //     this._scrollHandler = (e) => {
+        //         if (!this._isActived) {
+        //             return;
+        //         }
+        //     };
+            
+        //     addScrollHandler(this._scrollHandler);
+        // }
         
         /**
          * 创建注释标记标签
          */
-        createCommentNodes() {
-            this._startNode = document.createComment('repeat: ' + this.expression);
-            this._endedNode = document.createComment('/repeat: ' + this.expression);
+        private _createCommentNodes() {
+            this._flagNodeContent = `[repeat-item]${this.expression}`;
+            this._startNode = document.createComment('[start]repeat: ' + this.expression);
+            this._endedNode = document.createComment('[ended]repeat: ' + this.expression);
 
             dom.before(this._startNode, this.element);
             dom.replace(this._endedNode, this.element);
@@ -216,7 +269,7 @@ module drunk {
         /**
          * 解析表达式定义
          */
-        parseDefinition() {
+        private _parseDefinition() {
             let expression: string = this.expression;
             let parts = expression.split(regParam);
 
@@ -257,7 +310,7 @@ module drunk {
             }
 
             let items = this._items = RepeatItem.toList(newValue);
-            let isEmpty = this._itemVms && this._itemVms.length > 0;
+            let isEmpty = !this._itemVms || this._itemVms.length === 0;
             let newVms = [];
             
             items.forEach((item, index) => {
@@ -265,15 +318,74 @@ module drunk {
                 itemVm._isUsed = true;
             });
 
-            if (isEmpty) {
+            if (!isEmpty) {
                 this._unrealizeUnusedItems();
             }
 
             newVms.forEach(itemVm => itemVm._isUsed = false);
 
             this._itemVms = newVms;
+            
+            if (!newVms.length) {
+                return;
+            }
+            
             this._render();
+            
+            // if (isEmpty) {
+            //     this._renderEmptyState();
+            // }
+            // else {
+            //     this._render();
+            // }
         }
+        
+        /**
+         * 目前列表是空的,创建并渲染首屏可展示个数的item实例,再添加一个创建并渲染其他item的placeholder的任务到
+         * 调度器中
+         */
+        // private _renderEmptyState() {
+        //     let index = 0;
+
+        //     let renderItems = (jobInfo: Scheduler.IJobInfo) => {
+        //         if (!this._isActived) {
+        //             return;
+        //         }
+
+        //         let viewModel: RepeatItem;
+
+        //         while (index < this._virticalItemCount) {
+        //             viewModel = this._itemVms[index++];
+
+        //             dom.before(viewModel._flagNode, this._endedNode);
+
+        //             if (!viewModel._isBinded) {
+        //                 // 创建节点和生成绑定
+        //                 viewModel.element = viewModel._element = this.element.cloneNode(true);
+        //                 dom.after(viewModel._element, viewModel._flagNode);
+
+        //                 this._bindExecutor(viewModel, viewModel.element);
+        //                 viewModel._isBinded = true;
+        //             }
+        //             else {
+        //                 dom.after(viewModel._element, viewModel._flagNode);
+        //             }
+        //         }
+
+        //         this._renderJob = Scheduler.schedule(() => {
+        //             if (!this._isActived || this._virticalItemCount >= this._items.length) {
+        //                 return;
+        //             }
+
+        //             index = this._virticalItemCount;
+        //             while (index < this._items.length) {
+        //                 dom.before(this._itemVms[index++]._placeholder, this._endedNode);
+        //             }
+        //         }, Scheduler.Priority.idle);
+        //     };
+
+        //     Scheduler.schedule(renderItems, Scheduler.Priority.aboveNormal);
+        // }
 
         /**
          * 渲染item元素
@@ -285,11 +397,9 @@ module drunk {
 
             let next = (node: Node) => {
                 placeholder = node.nextSibling;
-                while (placeholder && (placeholder.nodeType !== 8 || placeholder.textContent != 'repeat-item')) {
+                while (placeholder && placeholder !== this._endedNode &&
+                    (placeholder.nodeType !== 8 || placeholder.textContent != this._flagNodeContent)) {
                     placeholder = placeholder.nextSibling;
-                }
-                if (!placeholder) {
-                    placeholder = this._endedNode;
                 }
             };
 
@@ -297,7 +407,7 @@ module drunk {
                 if (!this._isActived) {
                     return;
                 }
-                
+
                 let viewModel: RepeatItem;
                 
                 // 100ms作为当前线程跑的时长，超过该时间则让出线程
@@ -306,20 +416,20 @@ module drunk {
                 while (index < length) {
                     viewModel = this._itemVms[index++];
 
-                    if (viewModel._placeholder !== placeholder) {
+                    if (viewModel._flagNode !== placeholder) {
                         // 判断占位节点是否是当前item的节点，不是则换位
-                        dom.before(viewModel._placeholder, placeholder);
+                        dom.before(viewModel._flagNode, placeholder);
 
                         if (!viewModel._isBinded) {
                             // 创建节点和生成绑定
                             viewModel.element = viewModel._element = this.element.cloneNode(true);
-                            dom.after(viewModel._element, viewModel._placeholder);
+                            dom.after(viewModel._element, viewModel._flagNode);
 
                             this._bindExecutor(viewModel, viewModel.element);
                             viewModel._isBinded = true;
                         }
                         else {
-                            dom.after(viewModel._element, viewModel._placeholder);
+                            dom.after(viewModel._element, viewModel._flagNode);
                         }
 
                         if (Date.now() >= endTime && index < length) {
@@ -376,6 +486,9 @@ module drunk {
 
             let viewModel = new RepeatItem(this.viewModel, options);
             let viewModelList = this._map.get(value);
+            
+            viewModel._flagNode = document.createComment(this._flagNodeContent);
+            // viewModel._placeholder = this._placeholderNode.cloneNode(true);
 
             if (!viewModelList) {
                 viewModelList = [];
@@ -423,9 +536,9 @@ module drunk {
                 }
 
                 let element = viewModel._element;
-                let placeholder: any = viewModel._placeholder;
-                
-                placeholder.textContent = 'disposed repeat item';
+                let placeholder: any = viewModel._flagNode;
+
+                placeholder.textContent = 'Unused repeat item';
                 viewModel.$release();
 
                 Scheduler.schedule(() => {
@@ -451,7 +564,7 @@ module drunk {
 
             dom.remove(this._startNode);
             dom.remove(this._endedNode);
-            
+
             this._map.clear();
             this._map = null;
             this._items = null;

@@ -23,9 +23,9 @@ module drunk {
 
             console.assert(matches !== null,
                 "非法的 " + prefix + 'on 绑定表达式, ', str ,'正确的用法如下:\n',
-                prefix + 'on="eventType: expression"\n',
-                prefix + 'on="eventType: expression; eventType2: callback()"\n',
-                prefix + 'on="eventType: callback($event, $el)"\n'
+                prefix + 'on="click: expression"\n',
+                prefix + 'on="mousedown: expression; mouseup: callback()"\n',
+                prefix + 'on="click: callback($event, $el)"\n'
             );
 
             let type = matches[1];

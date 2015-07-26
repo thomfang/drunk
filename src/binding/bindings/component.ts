@@ -20,6 +20,9 @@ module drunk {
 
         isTerminal: boolean;
         priority: number;
+        
+        private _startNode: any;
+        private _endedNode: any;
 
         /**
          * 初始化组件,找到组件类并生成实例,创建组件的绑定
@@ -142,24 +145,41 @@ module drunk {
                 if (this.isDisposed) {
                     return;
                 }
+                
+                // dom.replace(template, element);
+                // component.$mount(template, viewModel, element);
+                
+                let startNode = this._startNode = document.createComment(`[start]component: ${this.expression}`);
+                let endedNode = this._endedNode = document.createComment(`[ended]component: ${this.expression}`);
+                dom.replace(startNode, element);
+                dom.after(endedNode, startNode);
+                dom.after(template, startNode);
 
-                let container = document.createElement('div');
-                let isNodeArray = Array.isArray(template);
+                // let container = document.createElement('div');
+                // let isNodeArray = Array.isArray(template);
 
-                if (isNodeArray) {
-                    template.forEach((node) => {
-                        container.appendChild(node);
-                    });
-                }
-                else {
-                    container.appendChild(template);
-                }
+                // if (isNodeArray) {
+                //     template.forEach((node) => {
+                //         container.appendChild(node);
+                //     });
+                // }
+                // else {
+                //     container.appendChild(template);
+                // }
 
                 component.$mount(template, viewModel, element);
                 
-                let nodeList = util.toArray(container.childNodes);
-                dom.replace(nodeList, element);
-                container = null;
+                let nodeList: any[] = [];
+                let currNode = startNode.nextSibling;
+                
+                while (currNode && currNode !== endedNode) {
+                    nodeList.push(currNode);
+                    currNode = currNode.nextSibling;
+                }
+                
+                // let nodeList = util.toArray(container.childNodes);
+                // dom.replace(nodeList, element);
+                // container = null;
                 
                 if (viewModel instanceof RepeatItem) {
                     viewModel._element = nodeList;
@@ -239,7 +259,12 @@ module drunk {
                 dom.remove(element);
             }
             
+            dom.remove(this._startNode);
+            dom.remove(this._endedNode);
+            
             // 移除所有引用
+            this._startNode = null;
+            this._endedNode = null;
             this.component = null;
             this.unwatches = null;
             this.isDisposed = true;
