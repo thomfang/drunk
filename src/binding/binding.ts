@@ -178,7 +178,7 @@ module drunk {
         }
     }
 
-    export module Binding {
+    export namespace Binding {
 
         /**
          * 终止型绑定信息列表,每个绑定信息包含了name(名字)和priority(优先级)信息

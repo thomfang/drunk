@@ -146,26 +146,11 @@ module drunk {
                     return;
                 }
                 
-                // dom.replace(template, element);
-                // component.$mount(template, viewModel, element);
-                
                 let startNode = this._startNode = document.createComment(`[start]component: ${this.expression}`);
                 let endedNode = this._endedNode = document.createComment(`[ended]component: ${this.expression}`);
                 dom.replace(startNode, element);
                 dom.after(endedNode, startNode);
                 dom.after(template, startNode);
-
-                // let container = document.createElement('div');
-                // let isNodeArray = Array.isArray(template);
-
-                // if (isNodeArray) {
-                //     template.forEach((node) => {
-                //         container.appendChild(node);
-                //     });
-                // }
-                // else {
-                //     container.appendChild(template);
-                // }
 
                 component.$mount(template, viewModel, element);
                 
@@ -177,12 +162,11 @@ module drunk {
                     currNode = currNode.nextSibling;
                 }
                 
-                // let nodeList = util.toArray(container.childNodes);
-                // dom.replace(nodeList, element);
-                // container = null;
-                
                 if (viewModel instanceof RepeatItem) {
-                    viewModel._element = nodeList;
+                    if (!Array.isArray(viewModel._element)) {
+                        viewModel._element = [viewModel._element];
+                    }
+                    viewModel._element.push(...nodeList);
                 }
             }).catch((error) => {
                 console.warn("组件创建失败:\n", error);

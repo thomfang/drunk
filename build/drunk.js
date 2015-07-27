@@ -4762,23 +4762,11 @@ var drunk;
                 if (_this.isDisposed) {
                     return;
                 }
-                // dom.replace(template, element);
-                // component.$mount(template, viewModel, element);
                 var startNode = _this._startNode = document.createComment("[start]component: " + _this.expression);
                 var endedNode = _this._endedNode = document.createComment("[ended]component: " + _this.expression);
                 drunk.dom.replace(startNode, element);
                 drunk.dom.after(endedNode, startNode);
                 drunk.dom.after(template, startNode);
-                // let container = document.createElement('div');
-                // let isNodeArray = Array.isArray(template);
-                // if (isNodeArray) {
-                //     template.forEach((node) => {
-                //         container.appendChild(node);
-                //     });
-                // }
-                // else {
-                //     container.appendChild(template);
-                // }
                 component.$mount(template, viewModel, element);
                 var nodeList = [];
                 var currNode = startNode.nextSibling;
@@ -4786,12 +4774,13 @@ var drunk;
                     nodeList.push(currNode);
                     currNode = currNode.nextSibling;
                 }
-                // let nodeList = util.toArray(container.childNodes);
-                // dom.replace(nodeList, element);
-                // container = null;
                 if (viewModel instanceof drunk.RepeatItem) {
-                    viewModel._element = nodeList;
+                    if (!Array.isArray(viewModel._element)) {
+                        viewModel._element = [viewModel._element];
+                    }
+                    (_a = viewModel._element).push.apply(_a, nodeList);
                 }
+                var _a;
             }).catch(function (error) {
                 console.warn("组件创建失败:\n", error);
             });

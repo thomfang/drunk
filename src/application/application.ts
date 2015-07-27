@@ -16,8 +16,14 @@ module drunk {
         params: { [name: string]: any };
         pageName: string;
     }
+    
+    export interface IApplication {
+        start(rootElement?: HTMLElement, url?: string): void;
+        navigate(url: string, replaceState?: boolean, state?: any): void;
+        back(): void;
+    }
 
-    export class ApplicationLauncher extends Component {
+    class ApplicationLauncher extends Component implements IApplication {
 
         private _index: string;
         private _routers: IRouter[] = [];
@@ -349,6 +355,6 @@ module drunk {
         return attachKeys(new RegExp('^' + path + (end ? '$' : ''), flags), keys);
     };
 
-    export var Application = new ApplicationLauncher();
+    export var Application: IApplication = new ApplicationLauncher();
 
 }

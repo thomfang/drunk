@@ -194,7 +194,6 @@ module drunk {
             }
 
             Template.compile(element)(this, element, ownerViewModel, placeholder);
-
             Component.setWeakRef(element, this);
 
             this.element = element;
@@ -217,7 +216,7 @@ module drunk {
         }
     }
 
-    export module Component {
+    export namespace Component {
 
         let weakRefMap: { [id: number]: Component } = {};
         
