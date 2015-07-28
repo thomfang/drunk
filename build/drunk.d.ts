@@ -99,7 +99,7 @@ declare module drunk {
  */
 declare module drunk.util {
     /**
-     * 获取对象的为一id
+     * 获取对象的唯一id
      * @param  target  设置的对象
      */
     function uuid(target: any): number;

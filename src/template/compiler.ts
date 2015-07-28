@@ -143,8 +143,8 @@ module drunk.Template {
             // 第一次进行绑定先换成插值表达式
             let originExecutor = executor;
             
-            executor = (viewModel, textarea) => {
-                textarea.value = viewModel.eval(textarea.value, true);
+            executor = (viewModel: ViewModel, textarea: HTMLTextAreaElement) => {
+                textarea.value = viewModel.$eval(textarea.value, true);
                 
                 if (originExecutor) {
                     originExecutor(viewModel, textarea);

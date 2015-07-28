@@ -77,8 +77,8 @@ module drunk {
             var nameOfIfBinding = config.prefix + 'if';
             var nameOfCreatedEvent = 'on-' + Component.Event.created;
             var nameOfReleaseEvent = 'on-' + Component.Event.release;
-            var createdEventExpression = '__enterPage($event.args[0])';
-            var releaseEventExpression = '__exitPage($event.args[0])';
+            var createdEventExpression = '__enterPage($el)';
+            var releaseEventExpression = '__exitPage($el)';
             var route: string;
             var name: string;
 

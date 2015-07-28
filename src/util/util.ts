@@ -1,6 +1,4 @@
-﻿/// <reference path="../promise/promise" />
-
-/**
+﻿/**
  * 工具方法模块
  */
 module drunk.util {
@@ -9,7 +7,7 @@ module drunk.util {
     var counter: number = 0;
     
     /**
-     * 获取对象的为一id
+     * 获取对象的唯一id
      * @param  target  设置的对象
      */
     export function uuid(target: any): number {

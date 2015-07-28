@@ -8,8 +8,8 @@ drunk.Binding.register("if", {
     priority: drunk.Binding.Priority.aboveNormal + 2,
 
     init() {
-        this._startNode = document.createComment("if: " + this.expression);
-        this._endedNode = document.createComment("/if: " + this.expression);
+        this._startNode = document.createComment("[start]if: " + this.expression);
+        this._endedNode = document.createComment("[ended]if: " + this.expression);
         this._bindExecutor = drunk.Template.compile(this.element);
         this._inDocument = false;
 
@@ -57,8 +57,8 @@ drunk.Binding.register("if", {
     release() {
         this.removeFromDocument();
 
-        drunk.dom.remove(this._startNode);
-        drunk.dom.remove(this._endedNode);
+        this._startNode.parentNode.removeChild(this._startNode);
+        this._endedNode.parentNode.removeChild(this._endedNode);
 
         this._startNode = null;
         this._endedNode = null;

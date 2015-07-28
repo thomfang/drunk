@@ -405,7 +405,6 @@ var drunk;
     })();
     drunk.Cache = Cache;
 })(drunk || (drunk = {}));
-/// <reference path="../promise/promise" />
 /**
  * 工具方法模块
  */
@@ -416,7 +415,7 @@ var drunk;
         var nameOfUid = '__DRUNK_UUID__';
         var counter = 0;
         /**
-         * 获取对象的为一id
+         * 获取对象的唯一id
          * @param  target  设置的对象
          */
         function uuid(target) {
@@ -589,6 +588,8 @@ var drunk;
     var uuidOfNaN = drunk.util.uuid({});
     var uuidOfNull = drunk.util.uuid({});
     var uuidOfUndefined = drunk.util.uuid({});
+    var uuidOfTrue = drunk.util.uuid({});
+    var uuidOfFalse = drunk.util.uuid({});
     /**
      * Map类，可把任务类型的对象作为key
      */
@@ -622,6 +623,12 @@ var drunk;
                 }
                 else if (key === undefined) {
                     uuid = uuidOfUndefined;
+                }
+                else if (key === true) {
+                    uuid = uuidOfTrue;
+                }
+                else if (key === false) {
+                    uuid = uuidOfFalse;
                 }
                 else if (type === 'string') {
                     uuid = '"' + key + '"';
@@ -3433,7 +3440,7 @@ var drunk;
                 // 第一次进行绑定先换成插值表达式
                 var originExecutor = executor;
                 executor = function (viewModel, textarea) {
-                    textarea.value = viewModel.eval(textarea.value, true);
+                    textarea.value = viewModel.$eval(textarea.value, true);
                     if (originExecutor) {
                         originExecutor(viewModel, textarea);
                     }
@@ -4768,19 +4775,18 @@ var drunk;
                 drunk.dom.after(endedNode, startNode);
                 drunk.dom.after(template, startNode);
                 component.$mount(template, viewModel, element);
-                var nodeList = [];
+                var nodeList = [startNode];
                 var currNode = startNode.nextSibling;
                 while (currNode && currNode !== endedNode) {
                     nodeList.push(currNode);
                     currNode = currNode.nextSibling;
                 }
+                nodeList.push(endedNode);
                 if (viewModel instanceof drunk.RepeatItem) {
-                    if (!Array.isArray(viewModel._element)) {
-                        viewModel._element = [viewModel._element];
+                    if (viewModel._element === element) {
+                        viewModel._element = nodeList;
                     }
-                    (_a = viewModel._element).push.apply(_a, nodeList);
                 }
-                var _a;
             }).catch(function (error) {
                 console.warn("组件创建失败:\n", error);
             });
@@ -4789,6 +4795,7 @@ var drunk;
          * 注册组件的事件
          */
         ComponentBinding.prototype._registerComponentEvent = function (eventName, expression) {
+            var _this = this;
             var viewModel = this.viewModel;
             var func = drunk.parser.parse(expression);
             this.component.$addListener(eventName, function () {
@@ -4798,10 +4805,11 @@ var drunk;
                 }
                 // 事件的处理函数,会生成一个$event对象,在表达式中可以访问该对象.
                 // $event对象有type和args两个字段,args字段是组件派发这个事件所传递的参数的列表
+                // $el字段为该组件实例
                 func.call(undefined, viewModel, {
                     type: eventName,
                     args: args
-                });
+                }, _this.component);
             });
         };
         /**
@@ -4818,7 +4826,8 @@ var drunk;
                 }
                 var ownerProperty = result[1].trim();
                 unwatch = component.$watch(property, function (newValue, oldValue) {
-                    if (newValue === oldValue) {
+                    var currValue = viewModel.$eval(expression, true);
+                    if (newValue === currValue) {
                         return;
                     }
                     viewModel.$setValue(ownerProperty, newValue);
@@ -4867,8 +4876,8 @@ drunk.Binding.register("if", {
     isTerminal: true,
     priority: drunk.Binding.Priority.aboveNormal + 2,
     init: function () {
-        this._startNode = document.createComment("if: " + this.expression);
-        this._endedNode = document.createComment("/if: " + this.expression);
+        this._startNode = document.createComment("[start]if: " + this.expression);
+        this._endedNode = document.createComment("[ended]if: " + this.expression);
         this._bindExecutor = drunk.Template.compile(this.element);
         this._inDocument = false;
         drunk.dom.replace(this._startNode, this.element);
@@ -4903,8 +4912,8 @@ drunk.Binding.register("if", {
     },
     release: function () {
         this.removeFromDocument();
-        drunk.dom.remove(this._startNode);
-        drunk.dom.remove(this._endedNode);
+        this._startNode.parentNode.removeChild(this._startNode);
+        this._endedNode.parentNode.removeChild(this._endedNode);
         this._startNode = null;
         this._endedNode = null;
         this._bindExecutor = null;

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="initial-scale=1,user-scalable=no" />
+        <title>drunk-model - demo</title>
+        <script src="../../build/drunk.js"></script>
+    </head>
+    
+    <body>
+        
+        <textarea drunk-model="content"></textarea>
+        <p>input: {{content}}</p>
+        <button drunk-on="click: content = ''">clear</button>
+        
+        
+        <script type="text/javascript">
+            /// <reference path="../../build/drunk.d.ts" />
+            var app = new drunk.Component();
+            app.$mount(document.body);
+            
+        </script>
+    </body>
+
+</html>

@@ -5,6 +5,8 @@ module drunk {
     const uuidOfNaN = util.uuid({});
     const uuidOfNull = util.uuid({});
     const uuidOfUndefined = util.uuid({});
+    const uuidOfTrue = util.uuid({});
+    const uuidOfFalse = util.uuid({});
     
     /**
      * Map类，可把任务类型的对象作为key
@@ -42,6 +44,12 @@ module drunk {
                 }
                 else if (key === undefined) {
                     uuid = uuidOfUndefined;
+                }
+                else if (key === true) {
+                    uuid = uuidOfTrue;
+                }
+                else if (key === false) {
+                    uuid = uuidOfFalse;
                 }
                 else if (type === 'string') {
                     uuid = '"' + key + '"';

@@ -154,19 +154,23 @@ module drunk {
 
                 component.$mount(template, viewModel, element);
                 
-                let nodeList: any[] = [];
+                let nodeList: any[] = [startNode];
                 let currNode = startNode.nextSibling;
                 
                 while (currNode && currNode !== endedNode) {
                     nodeList.push(currNode);
                     currNode = currNode.nextSibling;
                 }
+                nodeList.push(endedNode);
                 
                 if (viewModel instanceof RepeatItem) {
-                    if (!Array.isArray(viewModel._element)) {
-                        viewModel._element = [viewModel._element];
+                    if (viewModel._element === element) {
+                        viewModel._element = nodeList;
                     }
-                    viewModel._element.push(...nodeList);
+                    // if (!Array.isArray(viewModel._element)) {
+                    //     viewModel._element = [viewModel._element];
+                    // }
+                    // viewModel._element.push(...nodeList);
                 }
             }).catch((error) => {
                 console.warn("组件创建失败:\n", error);
@@ -183,10 +187,11 @@ module drunk {
             this.component.$addListener(eventName, (...args: any[]) => {
                 // 事件的处理函数,会生成一个$event对象,在表达式中可以访问该对象.
                 // $event对象有type和args两个字段,args字段是组件派发这个事件所传递的参数的列表
+                // $el字段为该组件实例
                 func.call(undefined, viewModel, {
                     type: eventName,
                     args: args
-                });
+                }, this.component);
             });
         }
         
@@ -208,7 +213,8 @@ module drunk {
                 let ownerProperty = result[1].trim();
                 
                 unwatch = component.$watch(property, (newValue, oldValue) => {
-                    if (newValue === oldValue) {
+                    let currValue = viewModel.$eval(expression, true);
+                    if (newValue === currValue) {
                         return;
                     }
                     viewModel.$setValue(ownerProperty, newValue);

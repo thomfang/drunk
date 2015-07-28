@@ -27,7 +27,7 @@ module drunk {
     /**
      * 动画模块
      */
-    export module Action {
+    export namespace Action {
         
         /**
          * action的类型
