@@ -87,12 +87,15 @@ module drunk {
             
         }
         
-        private __filters: { [name: string]: filter.IFilter };
         /**
          * 该组件作用域下的数据过滤器表
          */
+        private __filters: { [name: string]: filter.IFilter };
+        
         set filters(newValue: { [name: string]: filter.IFilter }) {
-            util.extend(this.$filter, newValue);
+            if (this.$filter) {
+                util.extend(this.$filter, newValue);
+            }
             this.__filters = newValue;
         }
         

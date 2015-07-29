@@ -1183,10 +1183,10 @@ declare module drunk {
          * 实例创建时会调用的初始化方法,派生类可覆盖该方法
          */
         init(): void;
-        private __filters;
         /**
          * 该组件作用域下的数据过滤器表
          */
+        private __filters;
         filters: {
             [name: string]: filter.IFilter;
         };

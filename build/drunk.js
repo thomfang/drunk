@@ -3184,7 +3184,14 @@ var drunk;
          * @param   value      值
          */
         function html(container, value) {
-            container.innerHTML = value;
+            if (typeof MSApp !== 'undefined' && MSApp['execUnsafeLocalFunction']) {
+                MSApp['execUnsafeLocalFunction'](function () {
+                    container.innerHTML = value;
+                });
+            }
+            else {
+                container.innerHTML = value;
+            }
         }
         dom.html = html;
         /**
@@ -3805,11 +3812,10 @@ var drunk;
             get: function () {
                 return this.__filters;
             },
-            /**
-             * 该组件作用域下的数据过滤器表
-             */
             set: function (newValue) {
-                drunk.util.extend(this.$filter, newValue);
+                if (this.$filter) {
+                    drunk.util.extend(this.$filter, newValue);
+                }
                 this.__filters = newValue;
             },
             enumerable: true,

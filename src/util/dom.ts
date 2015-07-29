@@ -29,7 +29,14 @@ module drunk.dom {
      * @param   value      值
      */
     export function html(container: HTMLElement, value: string) {
-        container.innerHTML = value;
+        if (typeof MSApp !== 'undefined' && MSApp['execUnsafeLocalFunction']) {
+            MSApp['execUnsafeLocalFunction'](() => {
+                container.innerHTML = value;
+            });
+        }
+        else {
+            container.innerHTML = value;
+        }
     }
 
     /**
