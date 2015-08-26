@@ -68,7 +68,7 @@ module drunk.util {
             var contentType: string = options.contentType || 'application/x-www-form-urlencoded; charset=UTF-8';
 
             if (util.isObject(data)) {
-                if (options.contentType && options.contentType.match(/^json$/i)) {
+                if (options.contentType && options.contentType.match(/json/i)) {
                     data = JSON.stringify(data);
                 }
                 else {
