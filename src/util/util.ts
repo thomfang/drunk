@@ -22,7 +22,11 @@ module drunk.util {
      * @param   target 判断目标
      */
     export function isObject(target: any): boolean {
-        return Object.prototype.toString.call(target) === '[object Object]';
+        if (!target) {
+            return false;
+        }
+        let proto = Object.getPrototypeOf(target);
+        return Object.prototype.toString.call(target) === '[object Object]' && (proto === Object.prototype || proto === observable.ObservableObjectPrototype);
     }
 
     /**

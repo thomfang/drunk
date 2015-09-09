@@ -430,7 +430,11 @@ var drunk;
          * @param   target 判断目标
          */
         function isObject(target) {
-            return Object.prototype.toString.call(target) === '[object Object]';
+            if (!target) {
+                return false;
+            }
+            var proto = Object.getPrototypeOf(target);
+            return Object.prototype.toString.call(target) === '[object Object]' && (proto === Object.prototype || proto === drunk.observable.ObservableObjectPrototype);
         }
         util.isObject = isObject;
         /**
@@ -4860,8 +4864,10 @@ var drunk;
             if (element) {
                 drunk.dom.remove(element);
             }
-            drunk.dom.remove(this._startNode);
-            drunk.dom.remove(this._endedNode);
+            if (this._startNode && this._endedNode) {
+                drunk.dom.remove(this._startNode);
+                drunk.dom.remove(this._endedNode);
+            }
             // 移除所有引用
             this._startNode = null;
             this._endedNode = null;

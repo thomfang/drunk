@@ -5,7 +5,7 @@
 /// <reference path="../../template/fragment" />
 
 module drunk {
-    
+
     let reOneInterpolate = /^\{\{([^{]+)\}\}$/;
 
     class ComponentBinding implements IBindingDefinition {
@@ -13,14 +13,14 @@ module drunk {
         expression: string;
         viewModel: RepeatItem;
         element: HTMLElement;
-        
+
         component: Component;
         unwatches: Function[];
         isDisposed: boolean;
 
         isTerminal: boolean;
         priority: number;
-        
+
         private _startNode: any;
         private _endedNode: any;
 
@@ -33,7 +33,7 @@ module drunk {
             if (src) {
                 return this._initAsyncComponent(src);
             }
-            
+
             let Ctor = Component.getByName(this.expression);
             if (!Ctor) {
                 throw new Error(this.expression + ": 未找到该组件.");
@@ -70,10 +70,10 @@ module drunk {
          */
         private _getTwowayBindingAttrMap() {
             let result = this.element.getAttribute('two-way');
-            let marked: {[key: string]: boolean} = {};
+            let marked: { [key: string]: boolean } = {};
 
             this.element.removeAttribute('two-way');
-            
+
             if (result) {
                 result.trim().split(/\s+/).forEach((str) => {
                     marked[util.camelCase(str)] = true;
@@ -145,7 +145,7 @@ module drunk {
                 if (this.isDisposed) {
                     return;
                 }
-                
+
                 let startNode = this._startNode = document.createComment(`[start]component: ${this.expression}`);
                 let endedNode = this._endedNode = document.createComment(`[ended]component: ${this.expression}`);
                 dom.replace(startNode, element);
@@ -153,16 +153,16 @@ module drunk {
                 dom.after(template, startNode);
 
                 component.$mount(template, viewModel, element);
-                
+
                 let nodeList: any[] = [startNode];
                 let currNode = startNode.nextSibling;
-                
+
                 while (currNode && currNode !== endedNode) {
                     nodeList.push(currNode);
                     currNode = currNode.nextSibling;
                 }
                 nodeList.push(endedNode);
-                
+
                 if (viewModel instanceof RepeatItem) {
                     if (viewModel._element === element) {
                         viewModel._element = nodeList;
@@ -202,16 +202,16 @@ module drunk {
             let viewModel = this.viewModel;
             let component = this.component;
             let unwatch: () => void;
-            
+
             if (isTwoway) {
                 let result = expression.match(reOneInterpolate);
-                
+
                 if (!result) {
                     throw new Error(expression + ': 该表达式不能进行双向绑定');
                 }
-                
+
                 let ownerProperty = result[1].trim();
-                
+
                 unwatch = component.$watch(property, (newValue, oldValue) => {
                     let currValue = viewModel.$eval(expression, true);
                     if (newValue === currValue) {
@@ -219,7 +219,7 @@ module drunk {
                     }
                     viewModel.$setValue(ownerProperty, newValue);
                 });
-                
+
                 this.unwatches.push(unwatch);
             }
 
@@ -239,7 +239,7 @@ module drunk {
         release() {
             let component = this.component;
             let element = component.element;
-            
+
             component.$release();
             
             // 移除所有的属性监控
@@ -248,9 +248,11 @@ module drunk {
             if (element) {
                 dom.remove(element);
             }
-            
-            dom.remove(this._startNode);
-            dom.remove(this._endedNode);
+
+            if (this._startNode && this._endedNode) {
+                dom.remove(this._startNode);
+                dom.remove(this._endedNode);
+            }
             
             // 移除所有引用
             this._startNode = null;
