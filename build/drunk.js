@@ -1332,8 +1332,7 @@ var drunk;
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
-    __.prototype = b.prototype;
-    d.prototype = new __();
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
 var drunk;
 (function (drunk) {
@@ -1431,14 +1430,6 @@ var drunk;
             return ob;
         }
         observable.create = create;
-        /**
-         * 访问observableObject的字段时会调用的回调
-         * @param   observer  返回的当前正在访问的数据的observer对象
-         * @param   property  正在访问的数据的字段
-         * @param   value     对应字段的数据
-         * @param   data      可观察数据
-         */
-        observable.onPropertyAccessing;
         /**
          * 转换对象属性的getter/setter，使其能在数据更新是能接受到事件
          * @param  data  	 JSON对象
@@ -1926,10 +1917,6 @@ var drunk;
              * 是否已经不可用
              */
             this._isActived = true;
-            /**
-             * 数据更新锁
-             */
-            this._isLocked = false;
             drunk.util.extend(this, descriptor);
         }
         /**
@@ -1953,8 +1940,7 @@ var drunk;
                 return this.update(viewModel.$eval(expression, isInterpolate), undefined);
             }
             this._update = function (newValue, oldValue) {
-                if (!_this._isActived || _this._isLocked) {
-                    _this._isLocked = false;
+                if (!_this._isActived) {
                     return;
                 }
                 _this.update(newValue, oldValue);
@@ -1988,8 +1974,7 @@ var drunk;
          * @param  value    要设置的值
          * @param  isLocked 是否加锁
          */
-        Binding.prototype.setValue = function (value, isLocked) {
-            this._isLocked = !!isLocked;
+        Binding.prototype.setValue = function (value) {
             this.viewModel.$setValue(this.expression, value);
         };
         return Binding;
@@ -4741,10 +4726,10 @@ var drunk;
                     var attrName = attr.name;
                     var attrValue = attr.value;
                     if (attrName.indexOf(drunk.config.prefix) > -1) {
-                        return console.warn("自定义组件标签上不支持使用绑定语法");
+                        return console.warn("\u81EA\u5B9A\u4E49\u7EC4\u4EF6\u6807\u7B7E\u4E0A\u4E0D\u652F\u6301\u4F7F\u7528\"" + attrName + "\"\u7ED1\u5B9A\u8BED\u6CD5");
                     }
                     if (!attrValue) {
-                        component[attrName] = true;
+                        component[drunk.util.camelCase(attrName)] = true;
                         return;
                     }
                     var expression = attrValue.trim();
@@ -4856,13 +4841,17 @@ var drunk;
          * 组件释放
          */
         ComponentBinding.prototype.release = function () {
-            var component = this.component;
-            var element = component.element;
-            component.$release();
-            // 移除所有的属性监控
-            this.unwatches.forEach(function (unwatch) { return unwatch(); });
-            if (element) {
-                drunk.dom.remove(element);
+            if (this.component) {
+                var component = this.component;
+                var element = component.element;
+                component.$release();
+                if (element) {
+                    drunk.dom.remove(element);
+                }
+            }
+            if (this.unwatches) {
+                // 移除所有的属性监控
+                this.unwatches.forEach(function (unwatch) { return unwatch(); });
             }
             if (this._startNode && this._endedNode) {
                 drunk.dom.remove(this._startNode);
@@ -4943,9 +4932,11 @@ drunk.Binding.register("include", {
         }
         this._unbind();
         this._url = url;
-        drunk.dom.html(this.element, '');
         if (url) {
             drunk.Template.load(url).then(this._createBinding.bind(this));
+        }
+        else {
+            drunk.dom.html(this.element, '');
         }
     },
     _createBinding: function (template) {

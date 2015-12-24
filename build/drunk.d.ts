@@ -251,36 +251,36 @@ declare module drunk {
          * @param  type       事件类型
          * @param  listener   事件回调
          */
-        $addListener(type: string, listener: IEventListener): EventEmitter;
+        $addListener(type: string, listener: IEventListener): this;
         /**
          * 注册事件,$addListener方法的别名
          * @param   type       事件类型
          * @param   listener   事件回调
          */
-        $on(type: string, listener: IEventListener): EventEmitter;
+        $on(type: string, listener: IEventListener): this;
         /**
          * 注册一次性事件
          * @param   type      事件类型
          * @param   listener  事件回调
          */
-        $once(type: string, listener: IEventListener): EventEmitter;
+        $once(type: string, listener: IEventListener): this;
         /**
          * 移除指定类型的事件监听
          * @param   type     事件类型
          * @param   listener 事件回调
          */
-        $removeListener(type: string, listener: IEventListener): EventEmitter;
+        $removeListener(type: string, listener: IEventListener): this;
         /**
          * 移除所有指定类型的事件,或当事件类型未提供时,移除所有该实例上所有的事件
          * @param   type  事件类型，可选
          */
-        $removeAllListeners(type?: string): EventEmitter;
+        $removeAllListeners(type?: string): this;
         /**
          * 派发指定类型事件
          * @param   type        事件类型
          * @param   ...args     其他参数
          */
-        $emit(type: string, ...args: any[]): EventEmitter;
+        $emit(type: string, ...args: any[]): this;
         /**
          * 获取指定事件类型的所有listener回调
          * @param   type  事件类型
@@ -630,8 +630,11 @@ declare module drunk {
         name?: string;
         isDeepWatch?: boolean;
         isTerminal?: boolean;
+        isInterpolate?: boolean;
         priority?: number;
         retainAttribute?: boolean;
+        expression?: string;
+        attrName?: string;
         init?(parentViewModel?: ViewModel, placeholder?: HTMLElement): void;
         update?(newValue: any, oldValue: any): void;
         release?(): void;
@@ -683,10 +686,6 @@ declare module drunk {
          */
         private _isActived;
         /**
-         * 数据更新锁
-         */
-        private _isLocked;
-        /**
          * 移除watcher方法
          */
         private _unwatch;
@@ -715,9 +714,9 @@ declare module drunk {
          * @param  value    要设置的值
          * @param  isLocked 是否加锁
          */
-        setValue(value: any, isLocked?: boolean): void;
+        setValue(value: any): void;
     }
-    module Binding {
+    namespace Binding {
         /**
          * 获取元素的所有绑定实例
          * @param  element  元素节点
@@ -962,7 +961,7 @@ declare module drunk {
     /**
      * 动画模块
      */
-    module Action {
+    namespace Action {
         /**
          * action的类型
          */
@@ -1211,7 +1210,7 @@ declare module drunk {
          */
         $release(): void;
     }
-    module Component {
+    namespace Component {
         /**
          * 组件的事件名称
          */

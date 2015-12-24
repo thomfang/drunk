@@ -18,8 +18,11 @@ module drunk {
         name?: string;
         isDeepWatch?: boolean;
         isTerminal?: boolean;
+        isInterpolate?: boolean;
         priority?: number;
         retainAttribute?: boolean;
+        expression?: string;
+        attrName?: string;
 
         init?(parentViewModel?: ViewModel, placeholder?: HTMLElement): void;
         update?(newValue: any, oldValue: any): void;
@@ -81,11 +84,6 @@ module drunk {
         private _isActived: boolean = true;
         
         /**
-         * 数据更新锁
-         */
-        private _isLocked: boolean = false;
-        
-        /**
          * 移除watcher方法
          */
         private _unwatch: () => void;
@@ -130,8 +128,7 @@ module drunk {
             }
 
             this._update = (newValue, oldValue) => {
-                if (!this._isActived || this._isLocked) {
-                    this._isLocked = false;
+                if (!this._isActived) {
                     return;
                 }
                 this.update(newValue, oldValue);
@@ -154,7 +151,7 @@ module drunk {
             if (this._unwatch) {
                 this._unwatch();
             }
-            
+
             Binding.removeWeakRef(this.element, this);
 
             this._unwatch = null;
@@ -172,8 +169,7 @@ module drunk {
          * @param  value    要设置的值
          * @param  isLocked 是否加锁
          */
-        setValue(value: any, isLocked?: boolean): void {
-            this._isLocked = !!isLocked;
+        setValue(value: any): void {
             this.viewModel.$setValue(this.expression, value);
         }
     }
@@ -207,7 +203,7 @@ module drunk {
         export function getAllBindingsByElement(element: Node) {
             let id = util.uuid(element);
             let bindings = weakRefMap[id];
-            
+
             if (bindings) {
                 return bindings.slice();
             }
@@ -220,11 +216,11 @@ module drunk {
          */
         export function setWeakRef(element: Node, binding: Binding) {
             let id = util.uuid(element);
-            
+
             if (!weakRefMap[id]) {
                 weakRefMap[id] = [];
             }
-            
+
             util.addArrayItem(weakRefMap[id], binding);
         }
         
@@ -236,13 +232,13 @@ module drunk {
         export function removeWeakRef(element: Node, binding: Binding) {
             let id = util.uuid(element);
             let bindings = weakRefMap[id];
-            
+
             if (!bindings) {
                 return;
             }
-            
+
             util.removeArrayItem(bindings, binding);
-            
+
             if (bindings.length === 0) {
                 weakRefMap[id] = null;
                 Component.removeWeakRef(element);

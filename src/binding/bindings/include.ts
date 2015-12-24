@@ -15,10 +15,11 @@ drunk.Binding.register("include", {
         this._unbind();
         this._url = url;
 
-        drunk.dom.html(this.element, '');
-
         if (url) {
             drunk.Template.load(url).then(this._createBinding.bind(this));
+        }
+        else {
+            drunk.dom.html(this.element, '');
         }
     },
 

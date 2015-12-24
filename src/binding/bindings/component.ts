@@ -99,11 +99,11 @@ module drunk {
                     let attrValue = attr.value;
 
                     if (attrName.indexOf(config.prefix) > -1) {
-                        return console.warn("自定义组件标签上不支持使用绑定语法");
+                        return console.warn(`自定义组件标签上不支持使用"${attrName}"绑定语法`);
                     }
 
                     if (!attrValue) {
-                        component[attrName] = true;
+                        component[util.camelCase(attrName)] = true;
                         return;
                     }
 
@@ -237,16 +237,19 @@ module drunk {
          * 组件释放
          */
         release() {
-            let component = this.component;
-            let element = component.element;
+            if (this.component) {
+                let component = this.component;
+                let element = component.element;
 
-            component.$release();
-            
-            // 移除所有的属性监控
-            this.unwatches.forEach(unwatch => unwatch());
+                component.$release();
 
-            if (element) {
-                dom.remove(element);
+                if (element) {
+                    dom.remove(element);
+                }
+            }
+            if (this.unwatches) {
+                // 移除所有的属性监控
+                this.unwatches.forEach(unwatch => unwatch());
             }
 
             if (this._startNode && this._endedNode) {
