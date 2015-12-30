@@ -238,6 +238,7 @@ module drunk.Scheduler {
         _release() {
             this._publicApiDisabled = true;
             this._result = null;
+            this._shouldYield = null;
         }
         
         /**

@@ -927,6 +927,14 @@ var drunk;
                 var headers = options.headers || {};
                 var data = options.data;
                 var contentType = options.contentType || 'application/x-www-form-urlencoded; charset=UTF-8';
+                var timerID;
+                var rejectAndClearTimer = function () {
+                    clearTimeout(timerID);
+                    if (reject) {
+                        reject(xhr);
+                        reject = null;
+                    }
+                };
                 if (util.isObject(data)) {
                     if (options.contentType && options.contentType.match(/json/i)) {
                         data = JSON.stringify(data);
@@ -947,12 +955,12 @@ var drunk;
                             resolve(options.dataType === 'json' ? JSON.parse(res) : res);
                         }
                         else {
-                            reject(xhr);
+                            rejectAndClearTimer();
                         }
                     }
                 };
                 xhr.onerror = function () {
-                    reject(xhr);
+                    rejectAndClearTimer();
                 };
                 xhr.open((type).toUpperCase(), url, true);
                 if (options.withCredentials || (options.xhrFields && options.xhrFields.withCredentials)) {
@@ -963,6 +971,12 @@ var drunk;
                     xhr.setRequestHeader(name, headers[name]);
                 });
                 xhr.send(data);
+                if (typeof options.timeout === 'number') {
+                    timerID = setTimeout(function () {
+                        xhr.abort();
+                        rejectAndClearTimer();
+                    }, options.timeout);
+                }
             });
         }
         util.ajax = ajax;
@@ -1159,6 +1173,7 @@ var drunk;
             JobInfo.prototype._release = function () {
                 this._publicApiDisabled = true;
                 this._result = null;
+                this._shouldYield = null;
             };
             /**
              * 如果API不再可用，用户尝试调用会抛出错误

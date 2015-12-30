@@ -47,6 +47,11 @@ module drunk.util {
          * 接受的数据类型(目前只支持json)
          */
         dataType?: string;
+        
+        /**
+         * 请求超时时间
+         */
+        timeout?: number;
     }
 
     /**
@@ -55,7 +60,7 @@ module drunk.util {
      */
     export function ajax<T>(options: IAjaxOptions): Promise<T> {
         var xhr = new XMLHttpRequest();
-        
+
         if (typeof options.url !== 'string') {
             throw new Error('发送ajax请求失败:url未提供');
         }
@@ -66,6 +71,14 @@ module drunk.util {
             var headers = options.headers || {};
             var data: any = options.data;
             var contentType: string = options.contentType || 'application/x-www-form-urlencoded; charset=UTF-8';
+            var timerID: number;
+            var rejectAndClearTimer = () => {
+                clearTimeout(timerID);
+                if (reject) {
+                    reject(xhr);
+                    reject = null;
+                }
+            };
 
             if (util.isObject(data)) {
                 if (options.contentType && options.contentType.match(/json/i)) {
@@ -73,14 +86,14 @@ module drunk.util {
                 }
                 else {
                     data = querystring.stringify(data);
-                    
+
                     if (type === 'GET') {
                         url += (url.indexOf('?') === -1 ? '?' : '&') + data;
-                        data = null; 
+                        data = null;
                     }
                 }
             }
-            
+
             xhr.onreadystatechange = function() {
                 if (xhr.readyState === 4) {
                     if (xhr.status >= 200 && xhr.status < 300 || xhr.status === 304) {
@@ -89,13 +102,13 @@ module drunk.util {
                         resolve(options.dataType === 'json' ? JSON.parse(res) : res);
                     }
                     else {
-                        reject(xhr);
+                        rejectAndClearTimer();
                     }
                 }
             };
 
             xhr.onerror = () => {
-                reject(xhr);
+                rejectAndClearTimer();
             };
 
             xhr.open((type).toUpperCase(), url, true);
@@ -111,7 +124,14 @@ module drunk.util {
             });
 
             xhr.send(data);
+
+            if (typeof options.timeout === 'number') {
+                timerID = setTimeout(() => {
+                    xhr.abort();
+                    rejectAndClearTimer();
+                }, options.timeout);
+            }
         });
     }
-    
+
 }
