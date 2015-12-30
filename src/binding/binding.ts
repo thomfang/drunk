@@ -30,12 +30,19 @@ module drunk {
     }
 
     /**
-     * 绑定构建函数接口
+     * 绑定实例构建函数接口
      */
-    export interface IBindExecutor {
-        (viewModel: ViewModel, element: any, parentViewModel?: ViewModel, placeHolder?: HTMLElement): any;
+    export interface IBindingExecutor {
+        (viewModel: ViewModel, element: any, parentViewModel?: ViewModel, placeHolder?: HTMLElement);
         isTerminal?: boolean;
         priority?: number;
+    }
+    
+    /**
+     * 元素与viewModel绑定创建的函数接口
+     */
+    export interface IBindingGenerator {
+        (viewModel: ViewModel, element: any, parentViewModel?: ViewModel, placeHolder?: HTMLElement): { promise: Promise<any>; unbind: Function; };
     }
 
     /**
@@ -107,34 +114,45 @@ module drunk {
          * 初始化绑定
          */
         initialize(parentViewModel, placeholder?: HTMLElement) {
+            let initResult: any;
+
             if (this.init) {
-                this.init(parentViewModel, placeholder);
+                initResult = Promise.resolve(this.init(parentViewModel, placeholder));
             }
 
             this._isActived = true;
 
-            if (!this.update) {
-                return;
-            }
-
-            let expression = this.expression;
-            let isInterpolate = this.isInterpolate;
-            let viewModel = this.viewModel;
-            let getter = parser.parseGetter(expression, isInterpolate);
-
-            if (!getter.dynamic) {
-                // 如果只是一个静态表达式直接取值更新
-                return this.update(viewModel.$eval(expression, isInterpolate), undefined);
-            }
-
-            this._update = (newValue, oldValue) => {
-                if (!this._isActived) {
-                    return;
+            return new Promise((resolve, reject) => {
+                if (!this.update) {
+                    return resolve(initResult);
                 }
-                this.update(newValue, oldValue);
-            }
 
-            this._unwatch = viewModel.$watch(expression, this._update, this.isDeepWatch, true);
+                let expression = this.expression;
+                let isInterpolate = this.isInterpolate;
+                let viewModel = this.viewModel;
+                let getter = parser.parseGetter(expression, isInterpolate);
+
+                if (!getter.dynamic) {
+                    // 如果只是一个静态表达式直接取值更新
+                    return resolve(Promise.all([this.update(viewModel.$eval(expression, isInterpolate), undefined), initResult]));
+                }
+
+                this._update = (newValue, oldValue) => {
+                    if (!this._isActived) {
+                        return;
+                    }
+
+                    let res = this.update(newValue, oldValue);
+
+                    if (resolve) {
+                        resolve([initResult, res]);
+                        resolve = null;
+                        initResult = null;
+                    }
+                }
+
+                this._unwatch = viewModel.$watch(expression, this._update, this.isDeepWatch, true);
+            });
         }
         
         /**

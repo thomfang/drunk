@@ -10,7 +10,7 @@ drunk.Binding.register("if", {
     init() {
         this._startNode = document.createComment("[start]if: " + this.expression);
         this._endedNode = document.createComment("[ended]if: " + this.expression);
-        this._bindExecutor = drunk.Template.compile(this.element);
+        this._bind = drunk.Template.compile(this.element);
         this._inDocument = false;
 
         drunk.dom.replace(this._startNode, this.element);
@@ -19,7 +19,7 @@ drunk.Binding.register("if", {
 
     update(value) {
         if (!!value) {
-            this.addToDocument();
+            return this.addToDocument();
         }
         else {
             this.removeFromDocument();
@@ -34,21 +34,24 @@ drunk.Binding.register("if", {
         this._tmpElement = this.element.cloneNode(true);
         drunk.dom.after(this._tmpElement, this._startNode);
 
-        this._unbindExecutor = this._bindExecutor(this.viewModel, this._tmpElement);
+        let res = this._bind(this.viewModel, this._tmpElement);
+        this._unbind = res.unbind;
         this._inDocument = true;
+        
+        return res.promise;
 
     },
 
     removeFromDocument() {
-        if (!this._inDocument) {
+        if (!this._inDocument || !this._unbind) {
             return;
         }
 
-        this._unbindExecutor();
+        this._unbind();
 
         drunk.dom.remove(this._tmpElement);
 
-        this._unbindExecutor = null;
+        this._unbind = null;
         this._tmpElement = null;
         this._inDocument = false;
 
@@ -62,6 +65,6 @@ drunk.Binding.register("if", {
 
         this._startNode = null;
         this._endedNode = null;
-        this._bindExecutor = null;
+        this._bind = null;
     }
 });

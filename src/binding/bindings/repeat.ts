@@ -166,21 +166,6 @@ module drunk {
     function invalidExpression(expression: string) {
         throw new TypeError('错误的' + config.prefix + 'repeat表达式: ' + expression);
     }
-    
-    // let initialized: boolean = false;
-    // let scrollHandlers: Function[] = [];
-    
-    // function addScrollHandler(handler: Function) {
-    //     util.addArrayItem(scrollHandlers, handler);
-    //     if (!initialized) {
-    //         window.addEventListener('scroll', (e) => {
-    //             scrollHandlers.forEach((handler) => {
-    //                 handler(e);
-    //             });
-    //         });
-    //         initialized = true;
-    //     }
-    // }
 
     /**
      * drunk-repeat的绑定实现类
@@ -197,62 +182,25 @@ module drunk {
         private _startNode: Node;
         private _endedNode: Node;
         private _param: { key?: string; val: string };
-        private _bindExecutor: IBindExecutor;
+        private _bind: IBindingGenerator;
         private _itemVms: RepeatItem[];
-        private _renderJob: Scheduler.IJob;
+        private _cancelRenderJob: Function;
         private _map: Map<RepeatItem[]>;
         private _items: IItemDataDescriptor[];
         private _isActived: boolean;
         private _flagNodeContent: string;
-        // private _asListView: boolean;
-        // private _placeholderNode: any;
-        // private _itemWidth: number;
-        // private _itemHeight: number;
-        // private _virticalItemCount: number;
-        // private _horizontalItemCount: number;
-        // private _scrollHandler: Function;
 
         /**
          * 初始化绑定
          */
         init() {
-            // this._calcItemSize();
             this._createCommentNodes();
             this._parseDefinition();
 
             this._map = new Map<RepeatItem[]>();
             this._items = [];
-            this._bindExecutor = Template.compile(this.element);
+            this._bind = Template.compile(this.element);
         }
-
-        // private _calcItemSize() {
-        //     // this._asListView = this.element.hasAttribute('as-list-view');
-        //     // if (!this._asListView) {
-        //     //     return;
-        //     // }
-
-        //     let style = getComputedStyle(this.element, null);
-        //     let width = this.element.offsetWidth + parseInt(style.marginLeft, 10) + parseInt(style.marginRight, 10);
-        //     let height = this.element.offsetHeight + parseInt(style.marginTop, 10) + parseInt(style.marginBottom, 10);
-
-        //     let tpl = document.createElement(this.element.tagName);
-        //     tpl.style.width = width + 'px';
-        //     tpl.style.height = height + 'px';
-
-        //     this._placeholderNode = tpl;
-        //     this._itemHeight = height;
-        //     this._itemWidth = width;
-        //     this._virticalItemCount = (window.innerHeight/ height | 0) + 1;
-        //     this._horizontalItemCount = (window.innerWidth / width | 0) + 1;
-            
-        //     this._scrollHandler = (e) => {
-        //         if (!this._isActived) {
-        //             return;
-        //         }
-        //     };
-            
-        //     addScrollHandler(this._scrollHandler);
-        // }
         
         /**
          * 创建注释标记标签
@@ -305,14 +253,14 @@ module drunk {
          * 数据更新
          */
         update(newValue: any) {
-            if (this._renderJob) {
-                this._renderJob.cancel();
+            if (this._cancelRenderJob) {
+                this._cancelRenderJob();
             }
 
             let items = this._items = RepeatItem.toList(newValue);
             let isEmpty = !this._itemVms || this._itemVms.length === 0;
             let newVms = [];
-            
+
             items.forEach((item, index) => {
                 let itemVm = newVms[index] = this._getRepeatItem(item);
                 itemVm._isUsed = true;
@@ -325,67 +273,13 @@ module drunk {
             newVms.forEach(itemVm => itemVm._isUsed = false);
 
             this._itemVms = newVms;
-            
+
             if (!newVms.length) {
                 return;
             }
-            
-            this._render();
-            
-            // if (isEmpty) {
-            //     this._renderEmptyState();
-            // }
-            // else {
-            //     this._render();
-            // }
+
+            return this._render();
         }
-        
-        /**
-         * 目前列表是空的,创建并渲染首屏可展示个数的item实例,再添加一个创建并渲染其他item的placeholder的任务到
-         * 调度器中
-         */
-        // private _renderEmptyState() {
-        //     let index = 0;
-
-        //     let renderItems = (jobInfo: Scheduler.IJobInfo) => {
-        //         if (!this._isActived) {
-        //             return;
-        //         }
-
-        //         let viewModel: RepeatItem;
-
-        //         while (index < this._virticalItemCount) {
-        //             viewModel = this._itemVms[index++];
-
-        //             dom.before(viewModel._flagNode, this._endedNode);
-
-        //             if (!viewModel._isBinded) {
-        //                 // 创建节点和生成绑定
-        //                 viewModel.element = viewModel._element = this.element.cloneNode(true);
-        //                 dom.after(viewModel._element, viewModel._flagNode);
-
-        //                 this._bindExecutor(viewModel, viewModel.element);
-        //                 viewModel._isBinded = true;
-        //             }
-        //             else {
-        //                 dom.after(viewModel._element, viewModel._flagNode);
-        //             }
-        //         }
-
-        //         this._renderJob = Scheduler.schedule(() => {
-        //             if (!this._isActived || this._virticalItemCount >= this._items.length) {
-        //                 return;
-        //             }
-
-        //             index = this._virticalItemCount;
-        //             while (index < this._items.length) {
-        //                 dom.before(this._itemVms[index++]._placeholder, this._endedNode);
-        //             }
-        //         }, Scheduler.Priority.idle);
-        //     };
-
-        //     Scheduler.schedule(renderItems, Scheduler.Priority.aboveNormal);
-        // }
 
         /**
          * 渲染item元素
@@ -394,6 +288,7 @@ module drunk {
             let index = 0;
             let length = this._items.length;
             let placeholder;
+            let job: Scheduler.IJob;
 
             let next = (node: Node) => {
                 placeholder = node.nextSibling;
@@ -403,50 +298,67 @@ module drunk {
                 }
             };
 
-            let renderItems = (jobInfo: Scheduler.IJobInfo) => {
-                if (!this._isActived) {
-                    return;
-                }
-
-                let viewModel: RepeatItem;
+            return new Promise((resolve, reject) => {
+                let promiseList: Promise<any>[] = [];
                 
-                // 100ms作为当前线程跑的时长，超过该时间则让出线程
-                let endTime = Date.now() + 100;
+                let renderItems = (jobInfo: Scheduler.IJobInfo) => {
+                    if (!this._isActived) {
+                        return resolve('该repeat绑定已被销毁');
+                    }
 
-                while (index < length) {
-                    viewModel = this._itemVms[index++];
+                    let viewModel: RepeatItem;
+                
+                    // 100ms作为当前线程跑的时长，超过该时间则让出线程
+                    let endTime = Date.now() + 100;
 
-                    if (viewModel._flagNode !== placeholder) {
-                        // 判断占位节点是否是当前item的节点，不是则换位
-                        dom.before(viewModel._flagNode, placeholder);
+                    while (index < length) {
+                        viewModel = this._itemVms[index++];
 
-                        if (!viewModel._isBinded) {
-                            // 创建节点和生成绑定
-                            viewModel.element = viewModel._element = this.element.cloneNode(true);
-                            dom.after(viewModel._element, viewModel._flagNode);
+                        if (viewModel._flagNode !== placeholder) {
+                            // 判断占位节点是否是当前item的节点，不是则换位
+                            dom.before(viewModel._flagNode, placeholder);
 
-                            this._bindExecutor(viewModel, viewModel.element);
-                            viewModel._isBinded = true;
+                            if (!viewModel._isBinded) {
+                                // 创建节点和生成绑定
+                                viewModel.element = viewModel._element = this.element.cloneNode(true);
+                                dom.after(viewModel._element, viewModel._flagNode);
+
+                                promiseList.push(this._bind(viewModel, viewModel.element).promise);
+                                viewModel._isBinded = true;
+                            }
+                            else {
+                                dom.after(viewModel._element, viewModel._flagNode);
+                            }
+
+                            if (Date.now() >= endTime && index < length) {
+                                // 如果创建节点达到了一定时间，让出线程给ui线程
+                                return jobInfo.setPromise(Promise.resolve(renderItems));
+                            }
                         }
                         else {
-                            dom.after(viewModel._element, viewModel._flagNode);
-                        }
-
-                        if (Date.now() >= endTime && index < length) {
-                            // 如果创建节点达到了一定时间，让出线程给ui线程
-                            return jobInfo.setPromise(Promise.resolve(renderItems));
+                            next(placeholder);
                         }
                     }
-                    else {
-                        next(placeholder);
-                    }
-                }
 
-                this._renderJob = null;
-            };
+                    resolve(promiseList);
+                    
+                    job = null;
+                    promiseList = null;
+                    this._cancelRenderJob = null;
+                };
 
-            next(this._startNode);
-            Scheduler.schedule(renderItems, Scheduler.Priority.aboveNormal);
+                next(this._startNode);
+                job = Scheduler.schedule(renderItems, Scheduler.Priority.aboveNormal);
+                
+                this._cancelRenderJob = () => {
+                    job.cancel();
+                    resolve('repeat-item渲染中断');
+                    
+                    this._cancelRenderJob = null;
+                    job = null;
+                    promiseList = null;
+                };
+            });
         }
 
         /**
@@ -486,7 +398,7 @@ module drunk {
 
             let viewModel = new RepeatItem(this.viewModel, options);
             let viewModelList = this._map.get(value);
-            
+
             viewModel._flagNode = document.createComment(this._flagNodeContent);
             // viewModel._placeholder = this._placeholderNode.cloneNode(true);
 
@@ -557,9 +469,8 @@ module drunk {
             if (this._itemVms && this._itemVms.length) {
                 this._unrealizeUnusedItems(true);
             }
-            if (this._renderJob) {
-                this._renderJob.cancel();
-                this._renderJob = null;
+            if (this._cancelRenderJob) {
+                this._cancelRenderJob();
             }
 
             dom.remove(this._startNode);
@@ -569,7 +480,7 @@ module drunk {
             this._map = null;
             this._items = null;
             this._itemVms = null;
-            this._bindExecutor = null;
+            this._bind = null;
             this._startNode = null;
             this._endedNode = null;
         }

@@ -1924,28 +1924,36 @@ var drunk;
          */
         Binding.prototype.initialize = function (parentViewModel, placeholder) {
             var _this = this;
+            var initResult;
             if (this.init) {
-                this.init(parentViewModel, placeholder);
+                initResult = drunk.Promise.resolve(this.init(parentViewModel, placeholder));
             }
             this._isActived = true;
-            if (!this.update) {
-                return;
-            }
-            var expression = this.expression;
-            var isInterpolate = this.isInterpolate;
-            var viewModel = this.viewModel;
-            var getter = drunk.parser.parseGetter(expression, isInterpolate);
-            if (!getter.dynamic) {
-                // 如果只是一个静态表达式直接取值更新
-                return this.update(viewModel.$eval(expression, isInterpolate), undefined);
-            }
-            this._update = function (newValue, oldValue) {
-                if (!_this._isActived) {
-                    return;
+            return new drunk.Promise(function (resolve, reject) {
+                if (!_this.update) {
+                    return resolve(initResult);
                 }
-                _this.update(newValue, oldValue);
-            };
-            this._unwatch = viewModel.$watch(expression, this._update, this.isDeepWatch, true);
+                var expression = _this.expression;
+                var isInterpolate = _this.isInterpolate;
+                var viewModel = _this.viewModel;
+                var getter = drunk.parser.parseGetter(expression, isInterpolate);
+                if (!getter.dynamic) {
+                    // 如果只是一个静态表达式直接取值更新
+                    return resolve(drunk.Promise.all([_this.update(viewModel.$eval(expression, isInterpolate), undefined), initResult]));
+                }
+                _this._update = function (newValue, oldValue) {
+                    if (!_this._isActived) {
+                        return;
+                    }
+                    var res = _this.update(newValue, oldValue);
+                    if (resolve) {
+                        resolve([initResult, res]);
+                        resolve = null;
+                        initResult = null;
+                    }
+                };
+                _this._unwatch = viewModel.$watch(expression, _this._update, _this.isDeepWatch, true);
+            });
         };
         /**
          * 移除绑定并销毁
@@ -3005,7 +3013,7 @@ var drunk;
                     resolve();
                 }
                 function onAnimationEnd() {
-                    element.classList.remove(className);
+                    // element.classList.remove(className);
                     element.removeEventListener(transitionEndEvent, onTransitionEnd, false);
                     element.removeEventListener(animationEndEvent, onAnimationEnd, false);
                     resolve();
@@ -3345,19 +3353,23 @@ var drunk;
                 var allBindings = viewModel._bindings;
                 var startIndex = allBindings.length;
                 var bindingList;
+                var promiseList = [];
                 if (executor) {
-                    executor(viewModel, element, ownerViewModel, placeholder);
+                    promiseList.push(executor(viewModel, element, ownerViewModel, placeholder));
                 }
                 if (childExecutor) {
-                    childExecutor(viewModel, element.childNodes, ownerViewModel, placeholder);
+                    promiseList.push(childExecutor(viewModel, element.childNodes, ownerViewModel, placeholder));
                 }
                 bindingList = viewModel._bindings.slice(startIndex);
-                return function () {
-                    bindingList.forEach(function (binding) {
-                        binding.dispose();
-                    });
-                    startIndex = allBindings.indexOf(bindingList[0]);
-                    allBindings.splice(startIndex, bindingList.length);
+                return {
+                    promise: drunk.Promise.all(promiseList),
+                    unbind: function () {
+                        bindingList.forEach(function (binding) {
+                            binding.dispose();
+                        });
+                        startIndex = allBindings.indexOf(bindingList[0]);
+                        allBindings.splice(startIndex, bindingList.length);
+                    }
                 };
             };
         }
@@ -3398,16 +3410,18 @@ var drunk;
                     var i = 0;
                     var nodeExecutor;
                     var childExecutor;
+                    var promiseList = [];
                     drunk.util.toArray(nodes).forEach(function (node) {
                         nodeExecutor = executors[i++];
                         childExecutor = executors[i++];
                         if (nodeExecutor) {
-                            nodeExecutor(viewModel, node, ownerViewModel, placeholder);
+                            promiseList.push(nodeExecutor(viewModel, node, ownerViewModel, placeholder));
                         }
                         if (childExecutor) {
-                            childExecutor(viewModel, node.childNodes, ownerViewModel, placeholder);
+                            promiseList.push(childExecutor(viewModel, node.childNodes, ownerViewModel, placeholder));
                         }
                     });
+                    return drunk.Promise.all(promiseList);
                 };
             }
         }
@@ -3438,7 +3452,7 @@ var drunk;
                 executor = function (viewModel, textarea) {
                     textarea.value = viewModel.$eval(textarea.value, true);
                     if (originExecutor) {
-                        originExecutor(viewModel, textarea);
+                        return originExecutor(viewModel, textarea);
                     }
                 };
             }
@@ -3532,9 +3546,9 @@ var drunk;
                 });
                 // 存在绑定
                 return function (viewModel, element, ownerViewModel, placeholder) {
-                    executors.forEach(function (executor) {
-                        executor(viewModel, element, ownerViewModel, placeholder);
-                    });
+                    return drunk.Promise.all(executors.map(function (executor) {
+                        return executor(viewModel, element, ownerViewModel, placeholder);
+                    }));
                 };
             }
         }
@@ -3554,7 +3568,7 @@ var drunk;
             }
             drunk.util.extend(descriptor, definition);
             executor = function (viewModel, element, ownerViewModel, placeholder) {
-                drunk.Binding.create(viewModel, element, descriptor, ownerViewModel, placeholder);
+                return drunk.Binding.create(viewModel, element, descriptor, ownerViewModel, placeholder);
             };
             executor.isTerminal = definition.isTerminal;
             executor.priority = definition.priority;
@@ -3859,7 +3873,7 @@ var drunk;
                 console.warn("模板加载失败: " + templateUrl, reason);
             }
             if (typeof templateUrl === 'string') {
-                return drunk.Template.load(templateUrl).then(drunk.dom.create).catch(onFailed);
+                return drunk.Template.renderFragment(templateUrl, null, true).then(function (fragment) { return drunk.util.toArray(fragment.childNodes); }).catch(onFailed);
             }
             if (this.element) {
                 return drunk.Promise.resolve(this.element);
@@ -3869,9 +3883,9 @@ var drunk;
             }
             templateUrl = this.templateUrl;
             if (typeof templateUrl === 'string') {
-                return drunk.Template.load(templateUrl).then(drunk.dom.create).catch(onFailed);
+                return drunk.Template.renderFragment(templateUrl, null, true).then(function (fragment) { return drunk.util.toArray(fragment.childNodes); }).catch(onFailed);
             }
-            throw new Error((this.name || this.constructor.name) + "组件模板未指定");
+            throw new Error((this.name || this.constructor.name) + "组件的模板未指定");
         };
         /**
          * 把组件挂载到元素上
@@ -3882,12 +3896,14 @@ var drunk;
         Component.prototype.$mount = function (element, ownerViewModel, placeholder) {
             console.assert(!this._isMounted, "该组件已有挂载到", this.element);
             if (Component.getByElement(element)) {
-                return console.error("Component#mount(element): 尝试挂载到一个已经挂载过组件实例的元素节点", element);
+                console.error("$mount(element): 尝试挂载到一个已经挂载过组件实例的元素节点", element);
+                return drunk.Promise.reject();
             }
-            drunk.Template.compile(element)(this, element, ownerViewModel, placeholder);
+            var res = drunk.Template.compile(element)(this, element, ownerViewModel, placeholder);
             Component.setWeakRef(element, this);
             this.element = element;
             this._isMounted = true;
+            return res.promise;
         };
         /**
          * 释放组件
@@ -4323,66 +4339,22 @@ var drunk;
     function invalidExpression(expression) {
         throw new TypeError('错误的' + drunk.config.prefix + 'repeat表达式: ' + expression);
     }
-    // let initialized: boolean = false;
-    // let scrollHandlers: Function[] = [];
-    // function addScrollHandler(handler: Function) {
-    //     util.addArrayItem(scrollHandlers, handler);
-    //     if (!initialized) {
-    //         window.addEventListener('scroll', (e) => {
-    //             scrollHandlers.forEach((handler) => {
-    //                 handler(e);
-    //             });
-    //         });
-    //         initialized = true;
-    //     }
-    // }
     /**
      * drunk-repeat的绑定实现类
      */
     var RepeatBinding = (function () {
         function RepeatBinding() {
         }
-        // private _asListView: boolean;
-        // private _placeholderNode: any;
-        // private _itemWidth: number;
-        // private _itemHeight: number;
-        // private _virticalItemCount: number;
-        // private _horizontalItemCount: number;
-        // private _scrollHandler: Function;
         /**
          * 初始化绑定
          */
         RepeatBinding.prototype.init = function () {
-            // this._calcItemSize();
             this._createCommentNodes();
             this._parseDefinition();
             this._map = new drunk.Map();
             this._items = [];
-            this._bindExecutor = drunk.Template.compile(this.element);
+            this._bind = drunk.Template.compile(this.element);
         };
-        // private _calcItemSize() {
-        //     // this._asListView = this.element.hasAttribute('as-list-view');
-        //     // if (!this._asListView) {
-        //     //     return;
-        //     // }
-        //     let style = getComputedStyle(this.element, null);
-        //     let width = this.element.offsetWidth + parseInt(style.marginLeft, 10) + parseInt(style.marginRight, 10);
-        //     let height = this.element.offsetHeight + parseInt(style.marginTop, 10) + parseInt(style.marginBottom, 10);
-        //     let tpl = document.createElement(this.element.tagName);
-        //     tpl.style.width = width + 'px';
-        //     tpl.style.height = height + 'px';
-        //     this._placeholderNode = tpl;
-        //     this._itemHeight = height;
-        //     this._itemWidth = width;
-        //     this._virticalItemCount = (window.innerHeight/ height | 0) + 1;
-        //     this._horizontalItemCount = (window.innerWidth / width | 0) + 1;
-        //     this._scrollHandler = (e) => {
-        //         if (!this._isActived) {
-        //             return;
-        //         }
-        //     };
-        //     addScrollHandler(this._scrollHandler);
-        // }
         /**
          * 创建注释标记标签
          */
@@ -4427,8 +4399,8 @@ var drunk;
          */
         RepeatBinding.prototype.update = function (newValue) {
             var _this = this;
-            if (this._renderJob) {
-                this._renderJob.cancel();
+            if (this._cancelRenderJob) {
+                this._cancelRenderJob();
             }
             var items = this._items = RepeatItem.toList(newValue);
             var isEmpty = !this._itemVms || this._itemVms.length === 0;
@@ -4445,51 +4417,8 @@ var drunk;
             if (!newVms.length) {
                 return;
             }
-            this._render();
-            // if (isEmpty) {
-            //     this._renderEmptyState();
-            // }
-            // else {
-            //     this._render();
-            // }
+            return this._render();
         };
-        /**
-         * 目前列表是空的,创建并渲染首屏可展示个数的item实例,再添加一个创建并渲染其他item的placeholder的任务到
-         * 调度器中
-         */
-        // private _renderEmptyState() {
-        //     let index = 0;
-        //     let renderItems = (jobInfo: Scheduler.IJobInfo) => {
-        //         if (!this._isActived) {
-        //             return;
-        //         }
-        //         let viewModel: RepeatItem;
-        //         while (index < this._virticalItemCount) {
-        //             viewModel = this._itemVms[index++];
-        //             dom.before(viewModel._flagNode, this._endedNode);
-        //             if (!viewModel._isBinded) {
-        //                 // 创建节点和生成绑定
-        //                 viewModel.element = viewModel._element = this.element.cloneNode(true);
-        //                 dom.after(viewModel._element, viewModel._flagNode);
-        //                 this._bindExecutor(viewModel, viewModel.element);
-        //                 viewModel._isBinded = true;
-        //             }
-        //             else {
-        //                 dom.after(viewModel._element, viewModel._flagNode);
-        //             }
-        //         }
-        //         this._renderJob = Scheduler.schedule(() => {
-        //             if (!this._isActived || this._virticalItemCount >= this._items.length) {
-        //                 return;
-        //             }
-        //             index = this._virticalItemCount;
-        //             while (index < this._items.length) {
-        //                 dom.before(this._itemVms[index++]._placeholder, this._endedNode);
-        //             }
-        //         }, Scheduler.Priority.idle);
-        //     };
-        //     Scheduler.schedule(renderItems, Scheduler.Priority.aboveNormal);
-        // }
         /**
          * 渲染item元素
          */
@@ -4498,6 +4427,7 @@ var drunk;
             var index = 0;
             var length = this._items.length;
             var placeholder;
+            var job;
             var next = function (node) {
                 placeholder = node.nextSibling;
                 while (placeholder && placeholder !== _this._endedNode &&
@@ -4505,41 +4435,54 @@ var drunk;
                     placeholder = placeholder.nextSibling;
                 }
             };
-            var renderItems = function (jobInfo) {
-                if (!_this._isActived) {
-                    return;
-                }
-                var viewModel;
-                // 100ms作为当前线程跑的时长，超过该时间则让出线程
-                var endTime = Date.now() + 100;
-                while (index < length) {
-                    viewModel = _this._itemVms[index++];
-                    if (viewModel._flagNode !== placeholder) {
-                        // 判断占位节点是否是当前item的节点，不是则换位
-                        drunk.dom.before(viewModel._flagNode, placeholder);
-                        if (!viewModel._isBinded) {
-                            // 创建节点和生成绑定
-                            viewModel.element = viewModel._element = _this.element.cloneNode(true);
-                            drunk.dom.after(viewModel._element, viewModel._flagNode);
-                            _this._bindExecutor(viewModel, viewModel.element);
-                            viewModel._isBinded = true;
+            return new drunk.Promise(function (resolve, reject) {
+                var promiseList = [];
+                var renderItems = function (jobInfo) {
+                    if (!_this._isActived) {
+                        return resolve('该repeat绑定已被销毁');
+                    }
+                    var viewModel;
+                    // 100ms作为当前线程跑的时长，超过该时间则让出线程
+                    var endTime = Date.now() + 100;
+                    while (index < length) {
+                        viewModel = _this._itemVms[index++];
+                        if (viewModel._flagNode !== placeholder) {
+                            // 判断占位节点是否是当前item的节点，不是则换位
+                            drunk.dom.before(viewModel._flagNode, placeholder);
+                            if (!viewModel._isBinded) {
+                                // 创建节点和生成绑定
+                                viewModel.element = viewModel._element = _this.element.cloneNode(true);
+                                drunk.dom.after(viewModel._element, viewModel._flagNode);
+                                promiseList.push(_this._bind(viewModel, viewModel.element).promise);
+                                viewModel._isBinded = true;
+                            }
+                            else {
+                                drunk.dom.after(viewModel._element, viewModel._flagNode);
+                            }
+                            if (Date.now() >= endTime && index < length) {
+                                // 如果创建节点达到了一定时间，让出线程给ui线程
+                                return jobInfo.setPromise(drunk.Promise.resolve(renderItems));
+                            }
                         }
                         else {
-                            drunk.dom.after(viewModel._element, viewModel._flagNode);
-                        }
-                        if (Date.now() >= endTime && index < length) {
-                            // 如果创建节点达到了一定时间，让出线程给ui线程
-                            return jobInfo.setPromise(drunk.Promise.resolve(renderItems));
+                            next(placeholder);
                         }
                     }
-                    else {
-                        next(placeholder);
-                    }
-                }
-                _this._renderJob = null;
-            };
-            next(this._startNode);
-            drunk.Scheduler.schedule(renderItems, drunk.Scheduler.Priority.aboveNormal);
+                    resolve(promiseList);
+                    job = null;
+                    promiseList = null;
+                    _this._cancelRenderJob = null;
+                };
+                next(_this._startNode);
+                job = drunk.Scheduler.schedule(renderItems, drunk.Scheduler.Priority.aboveNormal);
+                _this._cancelRenderJob = function () {
+                    job.cancel();
+                    resolve('repeat-item渲染中断');
+                    _this._cancelRenderJob = null;
+                    job = null;
+                    promiseList = null;
+                };
+            });
         };
         /**
          * 根据item信息对象获取或创建RepeatItem实例
@@ -4630,9 +4573,8 @@ var drunk;
             if (this._itemVms && this._itemVms.length) {
                 this._unrealizeUnusedItems(true);
             }
-            if (this._renderJob) {
-                this._renderJob.cancel();
-                this._renderJob = null;
+            if (this._cancelRenderJob) {
+                this._cancelRenderJob();
             }
             drunk.dom.remove(this._startNode);
             drunk.dom.remove(this._endedNode);
@@ -4640,7 +4582,7 @@ var drunk;
             this._map = null;
             this._items = null;
             this._itemVms = null;
-            this._bindExecutor = null;
+            this._bind = null;
             this._startNode = null;
             this._endedNode = null;
         };
@@ -4769,7 +4711,7 @@ var drunk;
                 drunk.dom.replace(startNode, element);
                 drunk.dom.after(endedNode, startNode);
                 drunk.dom.after(template, startNode);
-                component.$mount(template, viewModel, element);
+                var promise = component.$mount(template, viewModel, element);
                 var nodeList = [startNode];
                 var currNode = startNode.nextSibling;
                 while (currNode && currNode !== endedNode) {
@@ -4782,8 +4724,9 @@ var drunk;
                         viewModel._element = nodeList;
                     }
                 }
+                return promise;
             }).catch(function (error) {
-                console.warn("组件创建失败:\n", error);
+                console.warn(_this.expression + ": \u7EC4\u4EF6\u521B\u5EFA\u5931\u8D25\n", error);
             });
         };
         /**
@@ -4879,14 +4822,14 @@ drunk.Binding.register("if", {
     init: function () {
         this._startNode = document.createComment("[start]if: " + this.expression);
         this._endedNode = document.createComment("[ended]if: " + this.expression);
-        this._bindExecutor = drunk.Template.compile(this.element);
+        this._bind = drunk.Template.compile(this.element);
         this._inDocument = false;
         drunk.dom.replace(this._startNode, this.element);
         drunk.dom.after(this._endedNode, this._startNode);
     },
     update: function (value) {
         if (!!value) {
-            this.addToDocument();
+            return this.addToDocument();
         }
         else {
             this.removeFromDocument();
@@ -4898,16 +4841,18 @@ drunk.Binding.register("if", {
         }
         this._tmpElement = this.element.cloneNode(true);
         drunk.dom.after(this._tmpElement, this._startNode);
-        this._unbindExecutor = this._bindExecutor(this.viewModel, this._tmpElement);
+        var res = this._bind(this.viewModel, this._tmpElement);
+        this._unbind = res.unbind;
         this._inDocument = true;
+        return res.promise;
     },
     removeFromDocument: function () {
-        if (!this._inDocument) {
+        if (!this._inDocument || !this._unbind) {
             return;
         }
-        this._unbindExecutor();
+        this._unbind();
         drunk.dom.remove(this._tmpElement);
-        this._unbindExecutor = null;
+        this._unbind = null;
         this._tmpElement = null;
         this._inDocument = false;
     },
@@ -4917,41 +4862,48 @@ drunk.Binding.register("if", {
         this._endedNode.parentNode.removeChild(this._endedNode);
         this._startNode = null;
         this._endedNode = null;
-        this._bindExecutor = null;
+        this._bind = null;
     }
 });
 /// <reference path="../binding" />
 /// <reference path="../../template/loader" />
 /// <reference path="../../template/compiler" />
+/// <reference path="../../config/config" />
+/// <reference path="../../promise/promise" />
 drunk.Binding.register("include", {
-    _unbindExecutor: null,
+    _unbind: null,
     _url: null,
+    _elements: null,
     update: function (url) {
         if (!this._isActived || (url && url === this._url)) {
             return;
         }
-        this._unbind();
         this._url = url;
+        var promiseList = [];
+        if (this._elements) {
+            promiseList.push(drunk.dom.remove(this._elements).then(this._removeBind.bind(this)));
+        }
         if (url) {
-            drunk.Template.load(url).then(this._createBinding.bind(this));
+            promiseList.push(drunk.Template.renderFragment(url, null, true).then(this._createBinding.bind(this)));
         }
-        else {
-            drunk.dom.html(this.element, '');
+        if (promiseList.length) {
+            return drunk.Promise.all(promiseList);
         }
     },
-    _createBinding: function (template) {
-        if (!this._isActived) {
-            return;
-        }
-        drunk.dom.html(this.element, template);
-        var nodes = drunk.util.toArray(this.element.childNodes);
-        this._unbindExecutor = drunk.Template.compile(nodes)(this.viewModel, nodes);
+    _createBinding: function (fragment) {
+        var _this = this;
+        this._elements = drunk.util.toArray(fragment.childNodes);
+        this._elements.forEach(function (el) { return _this.element.appendChild(el); });
+        var result = drunk.Template.compile(this._elements)(this.viewModel, this._elements);
+        this._unbind = result.unbind;
+        return result.promise;
     },
-    _unbind: function () {
-        if (this._unbindExecutor) {
-            this._unbindExecutor();
-            this._unbindExecutor = null;
+    _removeBind: function () {
+        if (this._unbind) {
+            this._unbind();
+            this._unbind = null;
         }
+        this._elements = null;
     },
     release: function () {
         this._unbind();
@@ -5067,6 +5019,7 @@ drunk.Binding.register("show", {
 /// <reference path="../../component/component" />
 /// <reference path="../../util/dom" />
 /// <reference path="../../template/compiler" />
+/// <reference path="../../promise/promise" />
 drunk.Binding.register("transclude", {
     /**
      * 初始化绑定,先注册transcludeResponse事件用于获取transclude的viewModel和nodelist
@@ -5078,6 +5031,7 @@ drunk.Binding.register("transclude", {
         }
         var nodes = [];
         var unbinds = [];
+        var promiseList = [];
         var transclude = placeholder.childNodes;
         var fragment = document.createDocumentFragment();
         drunk.util.toArray(transclude).forEach(function (node) {
@@ -5090,18 +5044,23 @@ drunk.Binding.register("transclude", {
             // 编译模板并获取绑定创建函数
             // 保存解绑函数
             var bind = drunk.Template.compile(node);
-            unbinds.push(bind(ownerViewModel, node));
+            var result = bind(ownerViewModel, node);
+            unbinds.push(result.unbind);
+            promiseList.push(result.promise);
         });
         this._nodes = nodes;
-        this._unbindExecutors = unbinds;
+        this._unbinds = unbinds;
+        if (promiseList.length) {
+            return drunk.Promise.all(promiseList);
+        }
     },
     /**
      * 释放绑定
      */
     release: function () {
-        this._unbindExecutors.forEach(function (unbind) { return unbind(); });
+        this._unbinds.forEach(function (unbind) { return unbind(); });
         this._nodes.forEach(function (node) { return drunk.dom.remove(node); });
-        this._unbindExecutors = null;
+        this._unbinds = null;
         this._nodes = null;
     }
 });

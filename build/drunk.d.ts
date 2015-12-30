@@ -640,12 +640,21 @@ declare module drunk {
         release?(): void;
     }
     /**
-     * 绑定构建函数接口
+     * 绑定实例构建函数接口
      */
-    interface IBindExecutor {
+    interface IBindingExecutor {
         (viewModel: ViewModel, element: any, parentViewModel?: ViewModel, placeHolder?: HTMLElement): any;
         isTerminal?: boolean;
         priority?: number;
+    }
+    /**
+     * 元素与viewModel绑定创建的函数接口
+     */
+    interface IBindingGenerator {
+        (viewModel: ViewModel, element: any, parentViewModel?: ViewModel, placeHolder?: HTMLElement): {
+            promise: Promise<any>;
+            unbind: Function;
+        };
     }
     /**
      * 绑定类
@@ -703,7 +712,7 @@ declare module drunk {
         /**
          * 初始化绑定
          */
-        initialize(parentViewModel: any, placeholder?: HTMLElement): any;
+        initialize(parentViewModel: any, placeholder?: HTMLElement): Promise<{}>;
         /**
          * 移除绑定并销毁
          */
@@ -766,7 +775,7 @@ declare module drunk {
          * @param   viewModel  ViewModel实例
          * @param   element    元素
          */
-        function create(viewModel: any, element: any, descriptor: IBindingDefinition, parentViewModel?: any, placeholder?: HTMLElement): any;
+        function create(viewModel: any, element: any, descriptor: IBindingDefinition, parentViewModel?: any, placeholder?: HTMLElement): Promise<{}>;
     }
 }
 declare module drunk {
@@ -1082,7 +1091,7 @@ declare module drunk.Template {
      * @param   isRootNode  是否是根元素
      * @return              绑定元素与viewModel的方法
      */
-    function compile(node: any): IBindExecutor;
+    function compile(node: any): IBindingGenerator;
 }
 declare module drunk.Template {
     /**
@@ -1204,7 +1213,7 @@ declare module drunk {
          * @param  ownerViewModel  父级viewModel实例
          * @param  placeholder     组件占位标签
          */
-        $mount<T extends Component>(element: Node | Node[], ownerViewModel?: T, placeholder?: HTMLElement): void;
+        $mount<T extends Component>(element: Node | Node[], ownerViewModel?: T, placeholder?: HTMLElement): Promise<any>;
         /**
          * 释放组件
          */

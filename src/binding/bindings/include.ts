@@ -1,44 +1,53 @@
 /// <reference path="../binding" />
 /// <reference path="../../template/loader" />
 /// <reference path="../../template/compiler" />
+/// <reference path="../../config/config" />
+/// <reference path="../../promise/promise" />
 
 drunk.Binding.register("include", {
 
-    _unbindExecutor: null,
+    _unbind: null,
     _url: null,
+    _elements: null,
 
     update(url: string) {
         if (!this._isActived || (url && url === this._url)) {
             return;
         }
 
-        this._unbind();
         this._url = url;
 
+        let promiseList = [];
+
+        if (this._elements) {
+            promiseList.push(drunk.dom.remove(this._elements).then(this._removeBind.bind(this)));
+        }
+
         if (url) {
-            drunk.Template.load(url).then(this._createBinding.bind(this));
+            promiseList.push(drunk.Template.renderFragment(url, null, true).then(this._createBinding.bind(this)));
         }
-        else {
-            drunk.dom.html(this.element, '');
+        
+        if (promiseList.length) {
+            return drunk.Promise.all(promiseList);
         }
     },
 
-    _createBinding(template: string) {
-        if (!this._isActived) {
-            return;
-        }
-
-        drunk.dom.html(this.element, template);
-
-        let nodes = drunk.util.toArray(this.element.childNodes);
-        this._unbindExecutor = drunk.Template.compile(nodes)(this.viewModel, nodes);
+    _createBinding(fragment: Node) {
+        this._elements = drunk.util.toArray(fragment.childNodes);
+        this._elements.forEach(el => this.element.appendChild(el));
+        
+        let result = drunk.Template.compile(this._elements)(this.viewModel, this._elements);
+        this._unbind = result.unbind;
+        
+        return result.promise;
     },
 
-    _unbind() {
-        if (this._unbindExecutor) {
-            this._unbindExecutor();
-            this._unbindExecutor = null;
+    _removeBind() {
+        if (this._unbind) {
+            this._unbind();
+            this._unbind = null;
         }
+        this._elements = null;
     },
 
     release() {

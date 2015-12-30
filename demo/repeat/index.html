@@ -1,78 +1,100 @@
 <!DOCTYPE html>
 <html>
-    
-    <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="initial-scale=1,user-scalable=no" />
-        <title>drunk-repeat - demo</title>
-        <script src="../../build/drunk.js"></script>
-        <style>
-            body {background: #000;color:#eee;}
-            .slide-item1 {
-                opacity: 0;
-                -webkit-transform: translateX(80px);
-                -webkit-transition: 0.5s cubic-bezier(0, 1.13, 1, 1) all;
-            }
-            .slide-item2 {
-                -webkit-transform: translateX(80px);
-                -webkit-transition: 0.8s cubic-bezier(0, 1.13, 1, 1) all;
-                display: flex;
-                flex-direction: row;
-                background: #333;
-                color: #fff;
-                margin-bottom: 1px;
-                padding: 10px;
-            }
-            .slide-item2 .name {
-                width: 80px;
-                line-height: 80px;
-                border-radius: 80px;
-                background: #666;
-                text-align: center;
-            }
-            .slide-item2 .info {
-                flex-grow: 10;
-                padding-left: 20px;
-            }
-            .info-item {
-                -webkit-transform: translateX(80px);
-                -webkit-transition: 1.2s cubic-bezier(0, 1.13, 1, 1) all;
-            }
-            .slide-created {
-                -webkit-transform: translateX(0px);
-                opacity: 1;
-            }
-            .slide-removed {
-                -webkit-transform: translateX(80px);
-                opacity: 0;
-            }
-            .load-more-btn {
-                width: 100%;
-                height: 40px;
-                background: #2c2c2c;
-                border: 2px solid #666;
-                color: #eee;
-                margin-top: 20px;
-            }
-        </style>
-    </head>
-    
-    <body>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="initial-scale=1,user-scalable=no" />
+    <title>drunk-repeat - demo</title>
+    <script src="../../build/drunk.js"></script>
+    <style>
+        body {
+            background: #000;
+            color: #eee;
+        }
         
-        <div class="slide-item1" drunk-repeat="team,teamName in group" drunk-action="slide">
-            <h2>{{teamName}}</h2>
-            <div class="slide-item2" drunk-repeat="student in team" drunk-action="slide">
-                <div class="name">{{student.name}}</div>
-                <div class="info">
-                    <p class="info-item" drunk-action="slide">{{student.age}} years old</p>
-                    <p class="info-item" drunk-action="slide">{{student.like}}</p>
-                </div>
-            </div>
+        .slide-item1 {
+            opacity: 0;
+            -webkit-transform: translateX(80px);
+            -webkit-transition: 0.5s cubic-bezier(0, 1.13, 1, 1) all;
+        }
+        
+        .slide-item2 {
+            -webkit-transform: translateX(80px);
+            -webkit-transition: 0.8s cubic-bezier(0, 1.13, 1, 1) all;
+            display: flex;
+            flex-direction: row;
+            background: #333;
+            color: #fff;
+            margin-bottom: 1px;
+            padding: 10px;
+        }
+        
+        .slide-item2 .name {
+            width: 80px;
+            line-height: 80px;
+            border-radius: 80px;
+            background: #666;
+            text-align: center;
+        }
+        
+        .slide-item2 .info {
+            flex-grow: 10;
+            padding-left: 20px;
+        }
+        
+        .info-item {
+            -webkit-transform: translateX(80px);
+            -webkit-transition: 1.2s cubic-bezier(0, 1.13, 1, 1) all;
+        }
+        
+        .slide-created {
+            -webkit-transform: translateX(0px);
+            opacity: 1;
+        }
+        
+        .slide-removed {
+            -webkit-transform: translateX(80px);
+            opacity: 0;
+        }
+        
+        .load-more-btn {
+            width: 100%;
+            height: 40px;
+            background: #2c2c2c;
+            border: 2px solid #666;
+            color: #eee;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="slide-item1" drunk-repeat="team,teamName in group" drunk-action="slide">
+        <h2>{{teamName}}</h2>
+        <div class="slide-item2" drunk-repeat="student in team" drunk-action="slide" drunk-include="tpl">
+
         </div>
-        <button class="load-more-btn" drunk-on="click: loadMore()">Load more</button>
-        
-        <script>
-            var count = 3;
+    </div>
+    <button class="load-more-btn" drunk-on="click: loadMore()">Load more</button>
+
+    <script type="text/tpl" id="a">
+        <div class="name">{{student.name}}</div>
+        <div class="info">
+            <p class="info-item" drunk-action="slide">{{student.age}} years old</p>
+            <p class="info-item" drunk-action="slide">{{student.like}}</p>
+        </div>
+    </script>
+    <script type="text/tpl" id="b">
+        <div class="name">{{student.name}} XXXXX</div>
+        <div class="info">
+            <p class="info-item" drunk-action="slide">{{student.age}} years old</p>
+            <p class="info-item" drunk-action="slide">{{student.like}}</p>
+        </div>
+    </script>
+
+    <script>
+        var count = 3;
             var app = new drunk.Component({
                 group: {
                     'team 1': [
@@ -112,6 +134,8 @@
                 }
             });
             
+            app.tpl = 'a';
+            
             app.loadMore = function () {
                 this.group.$set('team' + count++, [
                     {
@@ -131,8 +155,8 @@
                     }
                 ]);
             };
-            app.$mount(document.body);
-        </script>
-    </body>
+            app.$mount(document.body).then(function () {console.log('rendered')});
+    </script>
+</body>
 
 </html>

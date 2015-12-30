@@ -163,7 +163,7 @@ module drunk {
             }
 
             if (typeof templateUrl === 'string') {
-                return Template.load(templateUrl).then(dom.create).catch(onFailed);
+                return Template.renderFragment(templateUrl, null, true).then(fragment => util.toArray(fragment.childNodes)).catch(onFailed);
             }
 
             if (this.element) {
@@ -177,10 +177,10 @@ module drunk {
             templateUrl = this.templateUrl;
             
             if (typeof templateUrl === 'string') {
-                return Template.load(templateUrl).then(dom.create).catch(onFailed);
+                return Template.renderFragment(templateUrl, null, true).then(fragment => util.toArray(fragment.childNodes)).catch(onFailed);
             }
 
-            throw new Error((this.name || (<any>this.constructor).name) + "组件模板未指定");
+            throw new Error((this.name || (<any>this.constructor).name) + "组件的模板未指定");
         }
         
         /**
@@ -189,18 +189,21 @@ module drunk {
          * @param  ownerViewModel  父级viewModel实例
          * @param  placeholder     组件占位标签
          */
-        $mount<T extends Component>(element: Node | Node[], ownerViewModel?: T, placeholder?: HTMLElement) {
+        $mount<T extends Component>(element: Node | Node[], ownerViewModel?: T, placeholder?: HTMLElement): Promise<any> {
             console.assert(!this._isMounted, "该组件已有挂载到", this.element);
 
             if (Component.getByElement(element)) {
-                return console.error("Component#mount(element): 尝试挂载到一个已经挂载过组件实例的元素节点", element);
+                console.error("$mount(element): 尝试挂载到一个已经挂载过组件实例的元素节点", element);
+                return Promise.reject();
             }
 
-            Template.compile(element)(this, element, ownerViewModel, placeholder);
+            let res = Template.compile(element)(this, element, ownerViewModel, placeholder);
             Component.setWeakRef(element, this);
 
             this.element = element;
             this._isMounted = true;
+            
+            return res.promise;
         }
         
         /**
@@ -275,7 +278,6 @@ module drunk {
          * 定义的组件记录
          */
         let definedComponentMap: { [name: string]: IComponentContructor<any> } = {};
-        
         
         /**
          * 根据组件名字获取组件构造函数

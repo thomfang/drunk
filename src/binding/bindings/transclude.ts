@@ -2,6 +2,7 @@
 /// <reference path="../../component/component" />
 /// <reference path="../../util/dom" />
 /// <reference path="../../template/compiler" />
+/// <reference path="../../promise/promise" />
 
 drunk.Binding.register("transclude", {
 
@@ -16,6 +17,7 @@ drunk.Binding.register("transclude", {
 
         let nodes = [];
         let unbinds = [];
+        let promiseList = [];
         let transclude = placeholder.childNodes;
         let fragment = document.createDocumentFragment();
 
@@ -31,20 +33,26 @@ drunk.Binding.register("transclude", {
             // 编译模板并获取绑定创建函数
             // 保存解绑函数
             let bind = drunk.Template.compile(node);
-            unbinds.push(bind(ownerViewModel, node));
+            let result = bind(ownerViewModel, node);
+            unbinds.push(result.unbind);
+            promiseList.push(result.promise);
         });
 
         this._nodes = nodes;
-        this._unbindExecutors = unbinds;
+        this._unbinds = unbinds;
+
+        if (promiseList.length) {
+            return drunk.Promise.all(promiseList);
+        }
     },
 
     /**
      * 释放绑定
      */
     release() {
-        this._unbindExecutors.forEach(unbind => unbind());
+        this._unbinds.forEach(unbind => unbind());
         this._nodes.forEach(node => drunk.dom.remove(node));
-        this._unbindExecutors = null;
+        this._unbinds = null;
         this._nodes = null;
     }
 });

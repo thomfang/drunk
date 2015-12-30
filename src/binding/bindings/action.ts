@@ -204,7 +204,7 @@ module drunk {
                     resolve();
                 }
                 function onAnimationEnd() {
-                    element.classList.remove(className);
+                    // element.classList.remove(className);
                     element.removeEventListener(transitionEndEvent, onTransitionEnd, false);
                     element.removeEventListener(animationEndEvent, onAnimationEnd, false);
                     resolve();

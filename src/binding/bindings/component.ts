@@ -152,7 +152,7 @@ module drunk {
                 dom.after(endedNode, startNode);
                 dom.after(template, startNode);
 
-                component.$mount(template, viewModel, element);
+                let promise = component.$mount(template, viewModel, element);
 
                 let nodeList: any[] = [startNode];
                 let currNode = startNode.nextSibling;
@@ -167,13 +167,11 @@ module drunk {
                     if (viewModel._element === element) {
                         viewModel._element = nodeList;
                     }
-                    // if (!Array.isArray(viewModel._element)) {
-                    //     viewModel._element = [viewModel._element];
-                    // }
-                    // viewModel._element.push(...nodeList);
                 }
+                
+                return promise;
             }).catch((error) => {
-                console.warn("组件创建失败:\n", error);
+                console.warn(`${this.expression}: 组件创建失败\n`, error);
             });
         }
         
