@@ -53,6 +53,8 @@ module drunk.util {
          */
         timeout?: number;
     }
+    
+    const FORM_DATA_CONTENT_TYPE = 'application/x-www-form-urlencoded; charset=UTF-8';
 
     /**
      * XMLHTTP request工具方法
@@ -61,8 +63,8 @@ module drunk.util {
     export function ajax<T>(options: IAjaxOptions): Promise<T> {
         var xhr = new XMLHttpRequest();
 
-        if (typeof options.url !== 'string') {
-            throw new Error('发送ajax请求失败:url未提供');
+        if (typeof options.url !== 'string' || !options.url) {
+            throw new Error('发送ajax请求失败:url未提供或不合法');
         }
 
         return new Promise<T>((resolve, reject) => {
@@ -70,8 +72,9 @@ module drunk.util {
             var type = (options.type || 'GET').toUpperCase();
             var headers = options.headers || {};
             var data: any = options.data;
-            var contentType: string = options.contentType || 'application/x-www-form-urlencoded; charset=UTF-8';
+            var contentType: string = options.contentType || FORM_DATA_CONTENT_TYPE;
             var timerID: number;
+            
             var rejectAndClearTimer = () => {
                 clearTimeout(timerID);
                 if (reject) {

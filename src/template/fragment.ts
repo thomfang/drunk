@@ -13,17 +13,17 @@ module drunk.Template {
     /**
      * 把模块连接渲染为documentFragment,会对样式和脚本进行处理,避免重复加载,如果提供宿主容器元素,则会把
      * 模板渲染到改容器中
-     * @param   href              模板连接
+     * @param   url               模板连接
      * @param   hostedElement     容器元素
      * @param   useCache          是否使用缓存还是重新加载
      * @return                    返回一个Promise对象
      */
-    export function renderFragment(href: string, hostedElement?: HTMLElement, useCache?: boolean) {
-        let fragmentId = href.toLowerCase();
+    export function renderFragment(url: string, hostedElement?: HTMLElement, useCache?: boolean) {
+        let fragmentId = url.toLowerCase();
         let fragmentPromise = cacheStore.get(fragmentId);
         
         if (!useCache || !fragmentPromise) {
-            fragmentPromise = populateDocument(href);
+            fragmentPromise = populateDocument(url);
             cacheStore.set(fragmentId, fragmentPromise);
         }
         

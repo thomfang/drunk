@@ -68,26 +68,26 @@ module drunk.observable {
      * @param  data  	 JSON对象
      * @param  property  JSON对象上的字段
      */
-    export function observe(data: ObservableObject, property: string, value): void {
-        let descriptor = Object.getOwnPropertyDescriptor(data, property);
+    export function observe(target: ObservableObject, property: string, value): void {
+        let descriptor = Object.getOwnPropertyDescriptor(target, property);
         
         if (descriptor && typeof descriptor.get === 'function' && descriptor.get === descriptor.set) {
             // 如果已经绑定过了， 则不再绑定
             return;
         }
         
-        let dataOb: Observer = create(data);
-        let valueOb: Observer = create(value);
+        let targetObserver: Observer = create(target);
+        let valueObserver: Observer = create(value);
 
-        Object.defineProperty(data, property, {
+        Object.defineProperty(target, property, {
             enumerable: true,
             configurable: true,
             get: propertyGetterSetter,
             set: propertyGetterSetter
         });
         
-        if (valueOb) {
-            valueOb.addPropertyChangedCallback(propertyChanged);
+        if (valueObserver) {
+            valueObserver.addPropertyChangedCallback(propertyChanged);
         }
         
         // 属性的getter和setter，聚合在一个函数换取空间？
@@ -97,7 +97,7 @@ module drunk.observable {
                 
                 if (onPropertyAccessing) {
                     // 调用存在的onPropertyAcess方法
-                    onPropertyAccessing(dataOb, property, value, data);
+                    onPropertyAccessing(targetObserver, property, value, target);
                 }
                 
                 return value;
@@ -111,15 +111,15 @@ module drunk.observable {
                 return;
             }
             
-            if (valueOb) {
-                valueOb.addPropertyChangedCallback(propertyChanged);
+            if (valueObserver) {
+                valueObserver.addPropertyChangedCallback(propertyChanged);
             }
             
             value = newValue;
-            valueOb = create(newValue);
+            valueObserver = create(newValue);
             
-            if (valueOb) {
-                valueOb.addPropertyChangedCallback(propertyChanged);
+            if (valueObserver) {
+                valueObserver.addPropertyChangedCallback(propertyChanged);
             }
             
             propertyChanged();
@@ -128,7 +128,7 @@ module drunk.observable {
         // 假设value是一个数组，当数组添加了一个新的item时，
         // 告知data的observer实例派发property改变的通知
         function propertyChanged() {
-            dataOb.$emit(property);
+            targetObserver.$emit(property);
         }
     }
      

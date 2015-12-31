@@ -489,7 +489,7 @@ declare module drunk.observable {
      * @param  data  	 JSON对象
      * @param  property  JSON对象上的字段
      */
-    function observe(data: ObservableObject, property: string, value: any): void;
+    function observe(target: ObservableObject, property: string, value: any): void;
     /**
      * 通知数据的指定属性更新
      * @param  data       数据
@@ -1099,7 +1099,7 @@ declare module drunk.Template {
 }
 declare module drunk.Template {
     /**
-     * 加载模板，先尝试从script标签上查找，找不到再发送ajax请求，
+     * 加载模板，先尝试从指定ID的标签上查找，找不到再作为url发送ajax请求，
      * 加载到的模板字符串会进行缓存
      * @param    urlOrId  script模板标签的id或模板的url地址
      * @returns           一个Promise 对象,Promise的返回值为模板字符串
@@ -1110,12 +1110,12 @@ declare module drunk.Template {
     /**
      * 把模块连接渲染为documentFragment,会对样式和脚本进行处理,避免重复加载,如果提供宿主容器元素,则会把
      * 模板渲染到改容器中
-     * @param   href              模板连接
+     * @param   url               模板连接
      * @param   hostedElement     容器元素
      * @param   useCache          是否使用缓存还是重新加载
      * @return                    返回一个Promise对象
      */
-    function renderFragment(href: string, hostedElement?: HTMLElement, useCache?: boolean): Promise<Node>;
+    function renderFragment(url: string, hostedElement?: HTMLElement, useCache?: boolean): Promise<Node>;
 }
 declare module drunk {
     interface IComponent {

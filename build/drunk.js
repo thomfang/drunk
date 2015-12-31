@@ -912,21 +912,22 @@ var drunk;
 (function (drunk) {
     var util;
     (function (util) {
+        var FORM_DATA_CONTENT_TYPE = 'application/x-www-form-urlencoded; charset=UTF-8';
         /**
          * XMLHTTP request工具方法
          * @param   options  配置参数
          */
         function ajax(options) {
             var xhr = new XMLHttpRequest();
-            if (typeof options.url !== 'string') {
-                throw new Error('发送ajax请求失败:url未提供');
+            if (typeof options.url !== 'string' || !options.url) {
+                throw new Error('发送ajax请求失败:url未提供或不合法');
             }
             return new drunk.Promise(function (resolve, reject) {
                 var url = options.url;
                 var type = (options.type || 'GET').toUpperCase();
                 var headers = options.headers || {};
                 var data = options.data;
-                var contentType = options.contentType || 'application/x-www-form-urlencoded; charset=UTF-8';
+                var contentType = options.contentType || FORM_DATA_CONTENT_TYPE;
                 var timerID;
                 var rejectAndClearTimer = function () {
                     clearTimeout(timerID);
@@ -1450,22 +1451,22 @@ var drunk;
          * @param  data  	 JSON对象
          * @param  property  JSON对象上的字段
          */
-        function observe(data, property, value) {
-            var descriptor = Object.getOwnPropertyDescriptor(data, property);
+        function observe(target, property, value) {
+            var descriptor = Object.getOwnPropertyDescriptor(target, property);
             if (descriptor && typeof descriptor.get === 'function' && descriptor.get === descriptor.set) {
                 // 如果已经绑定过了， 则不再绑定
                 return;
             }
-            var dataOb = create(data);
-            var valueOb = create(value);
-            Object.defineProperty(data, property, {
+            var targetObserver = create(target);
+            var valueObserver = create(value);
+            Object.defineProperty(target, property, {
                 enumerable: true,
                 configurable: true,
                 get: propertyGetterSetter,
                 set: propertyGetterSetter
             });
-            if (valueOb) {
-                valueOb.addPropertyChangedCallback(propertyChanged);
+            if (valueObserver) {
+                valueObserver.addPropertyChangedCallback(propertyChanged);
             }
             // 属性的getter和setter，聚合在一个函数换取空间？
             function propertyGetterSetter() {
@@ -1473,7 +1474,7 @@ var drunk;
                     // 如果没有传入任何参数，则为访问，返回值
                     if (observable.onPropertyAccessing) {
                         // 调用存在的onPropertyAcess方法
-                        observable.onPropertyAccessing(dataOb, property, value, data);
+                        observable.onPropertyAccessing(targetObserver, property, value, target);
                     }
                     return value;
                 }
@@ -1483,20 +1484,20 @@ var drunk;
                     // 如果值相同，不做任何处理
                     return;
                 }
-                if (valueOb) {
-                    valueOb.addPropertyChangedCallback(propertyChanged);
+                if (valueObserver) {
+                    valueObserver.addPropertyChangedCallback(propertyChanged);
                 }
                 value = newValue;
-                valueOb = create(newValue);
-                if (valueOb) {
-                    valueOb.addPropertyChangedCallback(propertyChanged);
+                valueObserver = create(newValue);
+                if (valueObserver) {
+                    valueObserver.addPropertyChangedCallback(propertyChanged);
                 }
                 propertyChanged();
             }
             // 假设value是一个数组，当数组添加了一个新的item时，
             // 告知data的observer实例派发property改变的通知
             function propertyChanged() {
-                dataOb.$emit(property);
+                targetObserver.$emit(property);
             }
         }
         observable.observe = observe;
@@ -2482,7 +2483,7 @@ var drunk;
                 return Function.apply(Function, args);
             }
             catch (err) {
-                console.error('解析表达式错误\n\n', '表达式"' + expression + '", 尝试解析后的结果为:\n\n', args[args.length - 1], '\n\n');
+                console.error("\"" + expression + "\"\u8868\u8FBE\u5F0F\u89E3\u6790\u5931\u8D25,\u5C1D\u8BD5\u89E3\u6790\u540E\u7684\u7ED3\u679C\u4E3A", args[args.length - 1]);
                 throw err;
             }
         }
@@ -3600,7 +3601,7 @@ var drunk;
     (function (Template) {
         var cacheStore = new drunk.Cache(50);
         /**
-         * 加载模板，先尝试从script标签上查找，找不到再发送ajax请求，
+         * 加载模板，先尝试从指定ID的标签上查找，找不到再作为url发送ajax请求，
          * 加载到的模板字符串会进行缓存
          * @param    urlOrId  script模板标签的id或模板的url地址
          * @returns           一个Promise 对象,Promise的返回值为模板字符串
@@ -3638,16 +3639,16 @@ var drunk;
         /**
          * 把模块连接渲染为documentFragment,会对样式和脚本进行处理,避免重复加载,如果提供宿主容器元素,则会把
          * 模板渲染到改容器中
-         * @param   href              模板连接
+         * @param   url               模板连接
          * @param   hostedElement     容器元素
          * @param   useCache          是否使用缓存还是重新加载
          * @return                    返回一个Promise对象
          */
-        function renderFragment(href, hostedElement, useCache) {
-            var fragmentId = href.toLowerCase();
+        function renderFragment(url, hostedElement, useCache) {
+            var fragmentId = url.toLowerCase();
             var fragmentPromise = cacheStore.get(fragmentId);
             if (!useCache || !fragmentPromise) {
-                fragmentPromise = populateDocument(href);
+                fragmentPromise = populateDocument(url);
                 cacheStore.set(fragmentId, fragmentPromise);
             }
             return fragmentPromise.then(function (fragment) {

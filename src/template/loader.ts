@@ -7,7 +7,7 @@ module drunk.Template {
     let cacheStore = new Cache<any>(50);
     
     /**
-     * 加载模板，先尝试从script标签上查找，找不到再发送ajax请求，
+     * 加载模板，先尝试从指定ID的标签上查找，找不到再作为url发送ajax请求，
      * 加载到的模板字符串会进行缓存
      * @param    urlOrId  script模板标签的id或模板的url地址 
      * @returns           一个Promise 对象,Promise的返回值为模板字符串
