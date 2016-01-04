@@ -2926,6 +2926,27 @@ var drunk;
             return propertyPrefix + (property.charAt(0).toUpperCase() + property.slice(1));
         }
         /**
+         * 注册一个js action
+         * @method register
+         * @param  {string}              name        动画名称
+         * @param  {IActionDefinition}   definition  动画定义
+         */
+        function register(name, definition) {
+            if (definitionMap[name] != null) {
+                console.warn(name, "action的定义已经被覆盖为", definition);
+            }
+            definitionMap[name] = definition;
+        }
+        Action.register = register;
+        /**
+         * 根据名称获取注册的action实现
+         * @param   name  action名称
+         */
+        function getByName(name) {
+            return definitionMap[name];
+        }
+        Action.getByName = getByName;
+        /**
          * 设置当前正在执行的action
          * @param   element 元素节点
          * @param   action  action描述
@@ -2972,6 +2993,20 @@ var drunk;
             return runMaybeCSSAnimation(element, detail, type);
         }
         Action.run = run;
+        function process(target) {
+            var elements;
+            if (!Array.isArray(target)) {
+                elements = [target];
+            }
+            else {
+                elements = target;
+            }
+            return drunk.Promise.all(elements.map(function (el) {
+                var action = getCurrentAction(el);
+                return action && action.promise;
+            }));
+        }
+        Action.process = process;
         function wait(time) {
             var action = {};
             action.promise = new drunk.Promise(function (resolve) {
@@ -3052,27 +3087,6 @@ var drunk;
             });
             return action;
         }
-        /**
-         * 注册一个js action
-         * @method register
-         * @param  {string}              name        动画名称
-         * @param  {IActionDefinition}   definition  动画定义
-         */
-        function register(name, definition) {
-            if (definitionMap[name] != null) {
-                console.warn(name, "动画已经被覆盖为", definition);
-            }
-            definitionMap[name] = definition;
-        }
-        Action.register = register;
-        /**
-         * 根据名称获取注册的action实现
-         * @param   name  action名称
-         */
-        function getByName(name) {
-            return definitionMap[name];
-        }
-        Action.getByName = getByName;
     })(Action = drunk.Action || (drunk.Action = {}));
     /**
      * action绑定的实现
@@ -4701,8 +4715,18 @@ var drunk;
                     if (!drunk.parser.hasInterpolation(expression)) {
                         // 没有插值表达式
                         // title="someConstantValue"
-                        component[attrName] = attrValue;
-                        return;
+                        var value;
+                        if (attrValue === 'true') {
+                            value = true;
+                        }
+                        else if (attrValue === 'false') {
+                            value = false;
+                        }
+                        else {
+                            value = parseFloat(attrValue);
+                            value = isNaN(value) ? attrValue : value;
+                        }
+                        return component[attrName] = value;
                     }
                     // title="{{somelet}}"
                     _this._watchExpressionForComponent(attrName, expression, twowayBindingAttrMap[attrName]);

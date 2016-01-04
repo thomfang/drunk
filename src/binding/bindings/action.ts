@@ -32,7 +32,7 @@ module drunk {
         /**
          * action的类型
          */
-        export let Type = {
+        export const Type = {
             created: 'created',
             removed: 'removed'
         };
@@ -85,6 +85,28 @@ module drunk {
         }
 
         /**
+         * 注册一个js action
+         * @method register
+         * @param  {string}              name        动画名称
+         * @param  {IActionDefinition}   definition  动画定义
+         */
+        export function register<T extends IActionDefinition>(name: string, definition: T) {
+            if (definitionMap[name] != null) {
+                console.warn(name, "action的定义已经被覆盖为", definition);
+            }
+
+            definitionMap[name] = definition;
+        }
+        
+        /**
+         * 根据名称获取注册的action实现
+         * @param   name  action名称
+         */
+        export function getByName(name: string) {
+            return definitionMap[name];
+        }
+
+        /**
          * 设置当前正在执行的action
          * @param   element 元素节点
          * @param   action  action描述
@@ -131,6 +153,27 @@ module drunk {
             }
 
             return runMaybeCSSAnimation(element, detail, type);
+        }
+        
+        /**
+         * 确认执行元素的所有action
+         */
+        export function process(target: HTMLElement): Promise<any>;
+        export function process(target: HTMLElement[]): Promise<any>;
+        export function process(target: HTMLElement | HTMLElement[]) {
+            let elements: HTMLElement[];
+            
+            if (!Array.isArray(target)) {
+                elements = [target];
+            }
+            else {
+                elements = target;
+            }
+            
+            return Promise.all(elements.map(el => {
+                let action = getCurrentAction(el);
+                return action && action.promise;
+            }));
         }
 
         function wait(time: number) {
@@ -230,28 +273,6 @@ module drunk {
             });
 
             return action;
-        }
-
-        /**
-         * 注册一个js action
-         * @method register
-         * @param  {string}              name        动画名称
-         * @param  {IActionDefinition}   definition  动画定义
-         */
-        export function register<T extends IActionDefinition>(name: string, definition: T) {
-            if (definitionMap[name] != null) {
-                console.warn(name, "动画已经被覆盖为", definition);
-            }
-
-            definitionMap[name] = definition;
-        }
-        
-        /**
-         * 根据名称获取注册的action实现
-         * @param   name  action名称
-         */
-        export function getByName(name: string) {
-            return definitionMap[name];
         }
     }
 

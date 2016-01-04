@@ -121,8 +121,20 @@ module drunk {
                     if (!parser.hasInterpolation(expression)) {
                         // 没有插值表达式
                         // title="someConstantValue"
-                        component[attrName] = attrValue;
-                        return;
+                        let value: any;
+                        
+                        if (attrValue === 'true') {
+                            value = true;
+                        }
+                        else if (attrValue === 'false') {
+                            value = false;
+                        }
+                        else {
+                            value = parseFloat(attrValue);
+                            value = isNaN(value) ? attrValue : value;
+                        }
+                        
+                        return component[attrName] = value;
                     }
                     
                     // title="{{somelet}}"

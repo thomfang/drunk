@@ -978,10 +978,22 @@ declare module drunk {
         /**
          * action的类型
          */
-        let Type: {
+        const Type: {
             created: string;
             removed: string;
         };
+        /**
+         * 注册一个js action
+         * @method register
+         * @param  {string}              name        动画名称
+         * @param  {IActionDefinition}   definition  动画定义
+         */
+        function register<T extends IActionDefinition>(name: string, definition: T): void;
+        /**
+         * 根据名称获取注册的action实现
+         * @param   name  action名称
+         */
+        function getByName(name: string): IActionDefinition;
         /**
          * 设置当前正在执行的action
          * @param   element 元素节点
@@ -1006,17 +1018,10 @@ declare module drunk {
          */
         function run(element: HTMLElement, detail: string, type: string): IAction;
         /**
-         * 注册一个js action
-         * @method register
-         * @param  {string}              name        动画名称
-         * @param  {IActionDefinition}   definition  动画定义
+         * 确认执行元素的所有action
          */
-        function register<T extends IActionDefinition>(name: string, definition: T): void;
-        /**
-         * 根据名称获取注册的action实现
-         * @param   name  action名称
-         */
-        function getByName(name: string): IActionDefinition;
+        function process(target: HTMLElement): Promise<any>;
+        function process(target: HTMLElement[]): Promise<any>;
     }
 }
 /**
