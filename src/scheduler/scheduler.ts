@@ -15,9 +15,9 @@ module drunk.Scheduler {
      */
     export function schedule(work: IWork, priority?: Priority, context?: any): IJob {
         let job = new Job(work, clampPriority(priority), context);
-        
+
         addJobToQueue(job);
-        
+
         return job;
     }
     
@@ -39,13 +39,13 @@ module drunk.Scheduler {
         pause(): void;
         resume(): void;
     }
-    
+
     export interface IJobInfo {
         shouldYield: boolean;
         setWork(work: (jobInfo: IJobInfo) => any): void;
         setPromise(promise: Promise<IWork>): void;
     }
-    
+
     export interface IWork {
         (jobInfo: IJobInfo): any;
     }
@@ -89,7 +89,7 @@ module drunk.Scheduler {
          * @param  _context 回调的this参数
          */
         constructor(private _work: IWork, private _priority: Priority, private _context: any) {
-            
+
         }
         
         /**
@@ -142,14 +142,14 @@ module drunk.Scheduler {
             let work = this._work;
             let context = this._context;
             let priority = this._priority;
-            
+
             this._release();
-            
+
             work.call(context, jobInfo);
-            
+
             let result: any = jobInfo._result;
             jobInfo._release();
-            
+
             if (result) {
                 if (typeof result === 'function') {
                     this._work = result;
@@ -158,13 +158,13 @@ module drunk.Scheduler {
                     addJobToQueue(this);
                 }
                 else {
+                    this._priority = priority;
+                    this._context = context;
                     result.then((newWork: IWork) => {
                         if (this._cancelled) {
                             return;
                         }
                         this._work = newWork;
-                        this._priority = priority;
-                        this._context = context;
                         addJobToQueue(this);
                     });
                 }
@@ -191,7 +191,7 @@ module drunk.Scheduler {
             this._priority = null;
         }
     }
-    
+
     class JobInfo implements IJobInfo {
         
         /**
@@ -203,9 +203,9 @@ module drunk.Scheduler {
          * 调度工作执行后的后续工作
          */
         _result: Function | Promise<IWork>;
-        
+
         constructor(private _shouldYield: () => boolean) {
-            
+
         }
         
         /**
@@ -250,26 +250,26 @@ module drunk.Scheduler {
             }
         }
     }
-    
+
     var isRunning = false;
     var immediateYield = false;
-    
+
     var drainEventEmitter = new EventEmitter();
-    
+
     const TIME_SLICE = 30;
     const PRIORITY_TAIL = Priority.min - 1;
-    
+
     var drainPriorityQueue: Priority[] = [];
-    var jobStore: {[key: number]: Job[]} = { };
-    
+    var jobStore: { [key: number]: Job[] } = {};
+
     for (let i = Priority.min; i <= Priority.max; i++) {
         jobStore[i] = [];
     }
-    
+
     function getJobListAtPriority(priority: Priority) {
         return jobStore[priority];
     }
-    
+
     function getHighestPriority() {
         for (let priority = Priority.max; priority >= Priority.min; priority--) {
             if (jobStore[priority].length) {
@@ -278,41 +278,41 @@ module drunk.Scheduler {
         }
         return PRIORITY_TAIL;
     }
-    
+
     function getHighestPriorityJobList() {
         return jobStore[getHighestPriority()];
     }
-    
+
     function addJobToQueue(job: Job) {
         let jobList = getJobListAtPriority(job.priority);
         jobList.push(job);
-        
+
         if (job.priority > getHighestPriority()) {
             immediateYield = true;
         }
-        
+
         startRunning();
     }
-    
+
     function clampPriority(priority: Priority) {
         priority = priority || Priority.normal;
         return Math.min(Priority.max, Math.max(Priority.min, priority));
     }
-    
+
     function run() {
         if (isRunning) {
             return;
         }
-        
+
         if (drainPriorityQueue.length && getHighestPriority() === PRIORITY_TAIL) {
             return drainPriorityQueue.forEach(priority => drainEventEmitter.$emit(String(priority)));
         }
-        
+
         isRunning = true;
         immediateYield = false;
-        
+
         let endTime = Date.now() + TIME_SLICE;
-        
+
         function shouldYield(): boolean {
             if (immediateYield) {
                 return true;
@@ -322,46 +322,46 @@ module drunk.Scheduler {
             }
             return Date.now() > endTime;
         }
-        
+
         while (getHighestPriority() >= Priority.min && !shouldYield()) {
             let jobList = getHighestPriorityJobList();
             let currJob = jobList.shift();
-            
+
             do {
                 currJob._execute(shouldYield);
                 currJob = jobList.shift();
             } while (currJob && !immediateYield);
-            
+
             notifyDrainPriority();
         }
-        
+
         immediateYield = false;
         isRunning = false;
-        
+
         if (getHighestPriority() > PRIORITY_TAIL) {
             startRunning();
         }
     }
-    
+
     function notifyDrainPriority() {
         let count = 0;
         let highestPriority = getHighestPriority();
-        
+
         drainPriorityQueue.some((priority) => {
             if (priority > highestPriority) {
                 count += 1;
                 drainEventEmitter.$emit(String(priority));
                 return true;
             }
-            
+
             return false;
         });
-        
+
         if (count > 0) {
             drainPriorityQueue.splice(0, count);
         }
     }
-    
+
     function startRunning() {
         if (!isRunning) {
             util.execAsyncWork(run);

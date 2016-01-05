@@ -1107,13 +1107,13 @@ var drunk;
                         addJobToQueue(this);
                     }
                     else {
+                        this._priority = priority;
+                        this._context = context;
                         result.then(function (newWork) {
                             if (_this._cancelled) {
                                 return;
                             }
                             _this._work = newWork;
-                            _this._priority = priority;
-                            _this._context = context;
                             addJobToQueue(_this);
                         });
                     }
