@@ -59,11 +59,15 @@
                 var markNode = drunk.dom.create('<p>start to render</p>');
                 document.body.insertBefore(markNode, container);
                 drunk.Scheduler.schedule(function () {
-                    console.time('render');
+                    console.time('process dom');
                     createNodesByCount(totalCount);
                     
                     drunk.Scheduler.requestDrain(drunk.Scheduler.Priority.normal, function () {
-                        console.timeEnd('render');
+                        console.timeEnd('process dom');
+                        console.time('render');
+                        drunk.util.execAsyncWork(function () {
+                            console.timeEnd('render');
+                        });
                     });
                 }, drunk.Scheduler.Priority.idle);
             }, 1000);

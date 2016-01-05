@@ -160,7 +160,7 @@ module drunk {
          */
         export function process(target: HTMLElement): Promise<any>;
         export function process(target: HTMLElement[]): Promise<any>;
-        export function process(target: HTMLElement | HTMLElement[]) {
+        export function process(target: any) {
             let elements: HTMLElement[];
             
             if (!Array.isArray(target)) {

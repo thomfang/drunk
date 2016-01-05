@@ -139,13 +139,8 @@ module drunk.Scheduler {
          */
         _execute(shouldYield) {
             let jobInfo = new JobInfo(shouldYield);
-            let work = this._work;
-            let context = this._context;
-            let priority = this._priority;
 
-            this._release();
-
-            work.call(context, jobInfo);
+            this._work.call(this._context, jobInfo);
 
             let result: any = jobInfo._result;
             jobInfo._release();
@@ -153,13 +148,9 @@ module drunk.Scheduler {
             if (result) {
                 if (typeof result === 'function') {
                     this._work = result;
-                    this._priority = priority;
-                    this._context = context;
                     addJobToQueue(this);
                 }
                 else {
-                    this._priority = priority;
-                    this._context = context;
                     result.then((newWork: IWork) => {
                         if (this._cancelled) {
                             return;
@@ -170,6 +161,7 @@ module drunk.Scheduler {
                 }
             }
             else {
+                this._release();
                 this.completed = true;
             }
         }

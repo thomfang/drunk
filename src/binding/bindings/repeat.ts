@@ -453,12 +453,12 @@ module drunk {
                 placeholder.textContent = 'Unused repeat item';
                 viewModel.$release();
 
-                Scheduler.schedule(() => {
-                    dom.remove(placeholder);
-                    if (element) {
-                        dom.remove(element);
-                    }
-                }, Scheduler.Priority.normal);
+                if (placeholder.parentNode) {
+                    placeholder.parentNode.removeChild(placeholder);
+                }
+                if (element) {
+                    dom.remove(element);
+                }
             });
         }
 

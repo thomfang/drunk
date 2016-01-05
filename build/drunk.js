@@ -1092,23 +1092,15 @@ var drunk;
             Job.prototype._execute = function (shouldYield) {
                 var _this = this;
                 var jobInfo = new JobInfo(shouldYield);
-                var work = this._work;
-                var context = this._context;
-                var priority = this._priority;
-                this._release();
-                work.call(context, jobInfo);
+                this._work.call(this._context, jobInfo);
                 var result = jobInfo._result;
                 jobInfo._release();
                 if (result) {
                     if (typeof result === 'function') {
                         this._work = result;
-                        this._priority = priority;
-                        this._context = context;
                         addJobToQueue(this);
                     }
                     else {
-                        this._priority = priority;
-                        this._context = context;
                         result.then(function (newWork) {
                             if (_this._cancelled) {
                                 return;
@@ -1119,6 +1111,7 @@ var drunk;
                     }
                 }
                 else {
+                    this._release();
                     this.completed = true;
                 }
             };
@@ -4588,12 +4581,12 @@ var drunk;
                 var placeholder = viewModel._flagNode;
                 placeholder.textContent = 'Unused repeat item';
                 viewModel.$release();
-                drunk.Scheduler.schedule(function () {
-                    drunk.dom.remove(placeholder);
-                    if (element) {
-                        drunk.dom.remove(element);
-                    }
-                }, drunk.Scheduler.Priority.normal);
+                if (placeholder.parentNode) {
+                    placeholder.parentNode.removeChild(placeholder);
+                }
+                if (element) {
+                    drunk.dom.remove(element);
+                }
             });
         };
         /**
