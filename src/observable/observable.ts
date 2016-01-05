@@ -112,7 +112,7 @@ module drunk.observable {
             }
             
             if (valueObserver) {
-                valueObserver.addPropertyChangedCallback(propertyChanged);
+                valueObserver.removePropertyChangedCallback(propertyChanged);
             }
             
             value = newValue;

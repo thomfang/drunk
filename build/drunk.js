@@ -1369,9 +1369,9 @@ var drunk;
              */
             Observer.prototype.removePropertyChangedCallback = function (callback) {
                 if (!this._propertyChangedCallbackList) {
-                    this._propertyChangedCallbackList = [];
+                    return;
                 }
-                drunk.util.addArrayItem(this._propertyChangedCallbackList, callback);
+                drunk.util.removeArrayItem(this._propertyChangedCallbackList, callback);
                 if (this._propertyChangedCallbackList.length === 0) {
                     this._propertyChangedCallbackList = null;
                 }
@@ -1478,7 +1478,7 @@ var drunk;
                     return;
                 }
                 if (valueObserver) {
-                    valueObserver.addPropertyChangedCallback(propertyChanged);
+                    valueObserver.removePropertyChangedCallback(propertyChanged);
                 }
                 value = newValue;
                 valueObserver = create(newValue);
@@ -1746,10 +1746,9 @@ var drunk;
          * 数据更新派发，会先做缓冲，防止在同一时刻对此出发更新操作，等下一次系统轮训时再真正执行更新操作
          */
         Watcher.prototype.__propertyChanged = function () {
-            if (this._runActionJob) {
-                this._runActionJob.cancel();
+            if (!this._runActionJob) {
+                this._runActionJob = drunk.util.execAsyncWork(this.__flush, this);
             }
-            this._runActionJob = drunk.util.execAsyncWork(this.__flush, this);
         };
         /**
          * 立即获取最新的数据判断并判断是否已经更新，如果已经更新，执行所有的回调

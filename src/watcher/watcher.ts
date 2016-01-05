@@ -19,9 +19,9 @@ module drunk {
         private _isInterpolate: boolean;
         private _actions: IBindingUpdateAction[] = [];
         private _observers: { [id: string]: observable.Observer } = {};
-        private _properties: { [number: string]: {[property: string]: boolean}} = {};
+        private _properties: { [number: string]: { [property: string]: boolean } } = {};
         private _tmpObservers: { [id: string]: observable.Observer };
-        private _tmpProperties: { [number: string]: {[property: string]: boolean}};
+        private _tmpProperties: { [number: string]: { [property: string]: boolean } };
         private _isActived: boolean = true;
         private _runActionJob: util.IAsyncJob;
         private _getter: parser.IGetter;
@@ -40,11 +40,11 @@ module drunk {
         constructor(private viewModel: ViewModel, private expression: string, private isDeepWatch?: boolean) {
             this._isInterpolate = parser.hasInterpolation(expression);
             this._getter = this._isInterpolate ? parser.parseInterpolate(expression) : parser.parseGetter(expression);
-            
+
             if (!this._getter.dynamic) {
                 throw new Error('不能监控一个静态表达式:"' + expression + '"');
             }
-            
+
             this.__propertyChanged = this.__propertyChanged.bind(this);
             this.value = this.__getValue();
         }
@@ -68,7 +68,7 @@ module drunk {
             if (!this._isActived) {
                 return;
             }
-            
+
             util.removeArrayItem(this._actions, action);
 
             if (!this._actions.length) {
@@ -80,11 +80,9 @@ module drunk {
          * 数据更新派发，会先做缓冲，防止在同一时刻对此出发更新操作，等下一次系统轮训时再真正执行更新操作
          */
         __propertyChanged(): void {
-            if (this._runActionJob) {
-                this._runActionJob.cancel();
+            if (!this._runActionJob) {
+                this._runActionJob = util.execAsyncWork(this.__flush, this);
             }
-            
-            this._runActionJob = util.execAsyncWork(this.__flush, this);
         }
         
         /**
@@ -94,7 +92,7 @@ module drunk {
             if (!this._isActived) {
                 return;
             }
-            
+
             let oldValue: any = this.value;
             let newValue: any = this.__getValue();
 
@@ -104,7 +102,7 @@ module drunk {
                     action(newValue, oldValue);
                 });
             }
-            
+
             this._runActionJob = null;
         }
         
@@ -121,7 +119,7 @@ module drunk {
                     this._observers[id].$removeListener(property, this.__propertyChanged);
                 });
             });
-            
+
             if (this._runActionJob) {
                 this._runActionJob.cancel();
                 this._runActionJob = null;
@@ -133,7 +131,7 @@ module drunk {
             this.value = null;
             this.viewModel = null;
             this.expression = null;
-            
+
             this._getter = null;
             this._actions = null;
             this._observers = null;
@@ -180,24 +178,24 @@ module drunk {
         private __afterGetValue(): void {
             // 清楚属性访问回调
             observable.onPropertyAccessing = null;
-            
+
             let observers = this._observers;
             let properties = this._properties;
             let tmpObservers = this._tmpObservers;
             let tmpProperties = this._tmpProperties;
             let propertyChanged = this.__propertyChanged;
-            
-            Object.keys(observers).forEach(function (id) {
+
+            Object.keys(observers).forEach(function(id) {
                 let observer = observers[id];
-                
+
                 if (!tmpObservers[id]) {
                     // 如果没有再订阅该observer,取消订阅所有的属性
-                    Object.keys(properties[id]).forEach(function (property) {
+                    Object.keys(properties[id]).forEach(function(property) {
                         observer.$removeListener(property, propertyChanged);
                     });
                 }
                 else {
-                    Object.keys(properties[id]).forEach(function (property) {
+                    Object.keys(properties[id]).forEach(function(property) {
                         if (!tmpProperties[id][property]) {
                             // 如果没有再订阅该属性,取消订阅该属性
                             observer.$removeListener(property, propertyChanged);
@@ -219,19 +217,19 @@ module drunk {
         private _subscribePropertyChanged(observer: observable.Observer, property: string) {
             let id = util.uuid(observer);
             let propertyChanged = this.__propertyChanged;
-    
+
             if (!this._tmpObservers[id]) {
                 // 添加到临时订阅observer表
                 // 添加到临时订阅属性列表
                 this._tmpObservers[id] = observer;
-                this._tmpProperties[id] = {[property]: true};
-                
-    
+                this._tmpProperties[id] = { [property]: true };
+
+
                 if (!this._observers[id]) {
                     // 如果旧的订阅表也没有,则添加到旧表,并在判断
                     this._observers[id] = observer;
-                    this._properties[id] = {[property]: true};
-                    
+                    this._properties[id] = { [property]: true };
+
                     observer.$addListener(property, propertyChanged);
                 }
                 else if (!this._properties[id][property]) {
@@ -242,7 +240,7 @@ module drunk {
             }
             else if (!this._tmpProperties[id][property]) {
                 this._tmpProperties[id][property] = true;
-                
+
                 if (!this._properties[id][property]) {
                     observer.$addListener(property, propertyChanged);
                     this._properties[id][property] = true;

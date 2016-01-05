@@ -30,9 +30,9 @@ module drunk.observable {
          */
         removePropertyChangedCallback(callback: IEventListener) {
             if (!this._propertyChangedCallbackList) {
-                this._propertyChangedCallbackList = [];
+                return;
             }
-            util.addArrayItem(this._propertyChangedCallbackList, callback);
+            util.removeArrayItem(this._propertyChangedCallbackList, callback);
             
             if (this._propertyChangedCallbackList.length === 0) {
                 this._propertyChangedCallbackList = null;
