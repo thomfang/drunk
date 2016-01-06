@@ -2,7 +2,7 @@
 /// <reference path="./querystring" />
 /// <reference path="../promise/promise" />
 
-module drunk.util {
+namespace drunk.util {
 
     /**
      * ajax方法参数接口

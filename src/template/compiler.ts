@@ -8,7 +8,7 @@
 /**
  * 模板工具模块， 提供编译创建绑定，模板加载的工具方法
  */
-module drunk.Template {
+namespace drunk.Template {
     
     /**
      * 编译模板元素生成绑定方法

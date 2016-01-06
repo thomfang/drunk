@@ -3,7 +3,7 @@
 /// <reference path="../../promise/promise" />
 /// <reference path="../../scheduler/scheduler" />
 
-module drunk {
+namespace drunk {
 
     export interface IActionExecutor {
         (element: HTMLElement, ondone: Function): () => void;

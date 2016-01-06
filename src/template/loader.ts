@@ -2,7 +2,7 @@
 /// <reference path="../util/xhr.ts" />
 /// <reference path="../cache/cache" />
 
-module drunk.Template {
+namespace drunk.Template {
     
     let cacheStore = new Cache<any>(50);
     

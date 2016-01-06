@@ -1,4 +1,4 @@
-declare module drunk {
+declare namespace drunk {
     interface IThenable<R> {
         then<U>(onFulfillment?: (value: R) => U | IThenable<U>, onRejection?: (error: any) => U | IThenable<U>): IThenable<U>;
     }
@@ -32,7 +32,7 @@ declare module drunk {
 /**
  * 配置模块
  */
-declare module drunk.config {
+declare namespace drunk.config {
     /**
      * 绑定指令的前缀
      */
@@ -42,7 +42,7 @@ declare module drunk.config {
      */
     var debug: boolean;
 }
-declare module drunk {
+declare namespace drunk {
     /**
      * LRU Cache类
      */
@@ -97,7 +97,7 @@ declare module drunk {
 /**
  * 工具方法模块
  */
-declare module drunk.util {
+declare namespace drunk.util {
     /**
      * 获取对象的唯一id
      * @param  target  设置的对象
@@ -171,7 +171,7 @@ declare module drunk.util {
      */
     function execAsyncWork(work: () => any, context?: any): IAsyncJob;
 }
-declare module drunk {
+declare namespace drunk {
     /**
      * Map类，可把任务类型的对象作为key
      */
@@ -237,7 +237,7 @@ declare module drunk {
         size: number;
     }
 }
-declare module drunk {
+declare namespace drunk {
     interface IEventListener {
         (...args: any[]): void;
         __isOnce?: boolean;
@@ -302,7 +302,7 @@ declare module drunk {
 /**
  * 搜索字符串解析模块
  */
-declare module drunk.querystring {
+declare namespace drunk.querystring {
     /**
      * 解析字符串生成一个键值对表
      * @param  str  搜索字符串
@@ -316,7 +316,7 @@ declare module drunk.querystring {
      */
     function stringify(obj: Object): string;
 }
-declare module drunk.util {
+declare namespace drunk.util {
     /**
      * ajax方法参数接口
      */
@@ -371,7 +371,7 @@ declare module drunk.util {
 /**
  * 调度器模块
  */
-declare module drunk.Scheduler {
+declare namespace drunk.Scheduler {
     /**
      * 调度方法
      * @param  work      调度的执行函数
@@ -417,7 +417,7 @@ declare module drunk.Scheduler {
  * 转换后的可以监控对象
  * 添加了设置和移除字段的两个能发送数据更新的方法。
  */
-declare module drunk.observable {
+declare namespace drunk.observable {
     /**
      * 可监控JSON对象的声明
      */
@@ -444,7 +444,7 @@ declare module drunk.observable {
      */
     var ObservableObjectPrototype: ObservableObject;
 }
-declare module drunk.observable {
+declare namespace drunk.observable {
     /**
      * 监控对象类，为每个需要监控的对象和数组生成一个实例，用于代理监听事件
      */
@@ -470,7 +470,7 @@ declare module drunk.observable {
 /**
  * observable模块的工具方法，用于创建可观察的数据，数据绑定等
  */
-declare module drunk.observable {
+declare namespace drunk.observable {
     /**
      * 根据数据返回对应的Observer 实例，如果该数据已经存在对应的 Observer 实例则直接返回，否则创建一个新的实例
      * @param data 数组或JSON对象
@@ -502,7 +502,7 @@ declare module drunk.observable {
  * 除了有常规数组的所有方法外还添加了几个工具方法，并在某些修改自身的方法调用后对新数据进行处理和
  * 发送数据更新的通知。
  */
-declare module drunk.observable {
+declare namespace drunk.observable {
     /**
      * 可监控数组的声明
      */
@@ -547,7 +547,7 @@ declare module drunk.observable {
      */
     function removeAll<T>(array: ObservableArray<T>): void;
 }
-declare module drunk {
+declare namespace drunk {
     class Watcher {
         private viewModel;
         private expression;
@@ -620,7 +620,7 @@ declare module drunk {
         private _subscribePropertyChanged(observer, property);
     }
 }
-declare module drunk {
+declare namespace drunk {
     /**
      * 更新函数接口
      */
@@ -716,7 +716,7 @@ declare module drunk {
         /**
          * 初始化绑定
          */
-        initialize(parentViewModel: any, placeholder?: HTMLElement): Promise<{}>;
+        initialize(parentViewModel: any, placeholder?: HTMLElement): Promise<any>;
         /**
          * 移除绑定并销毁
          */
@@ -779,10 +779,10 @@ declare module drunk {
          * @param   viewModel  ViewModel实例
          * @param   element    元素
          */
-        function create(viewModel: any, element: any, descriptor: IBindingDefinition, parentViewModel?: any, placeholder?: HTMLElement): Promise<{}>;
+        function create(viewModel: any, element: any, descriptor: IBindingDefinition, parentViewModel?: any, placeholder?: HTMLElement): Promise<any>;
     }
 }
-declare module drunk {
+declare namespace drunk {
     interface IModel extends observable.ObservableObject {
         [key: string]: any;
     }
@@ -880,7 +880,7 @@ declare module drunk {
 /**
  * 简单的解析器,只是做了字符串替换,然后使用new Function生成函数
  */
-declare module drunk.parser {
+declare namespace drunk.parser {
     interface IGetter {
         (viewModel: ViewModel, ...args: Array<any>): any;
         filters?: Array<filter.IFilterDef>;
@@ -925,7 +925,7 @@ declare module drunk.parser {
  * 数据过滤器模块
  * @module drunk.filter
  */
-declare module drunk.filter {
+declare namespace drunk.filter {
     /**
      * Filter声明
      * @param   input       输入
@@ -955,7 +955,7 @@ declare module drunk.filter {
         [name: string]: IFilter;
     };
 }
-declare module drunk {
+declare namespace drunk {
     interface IActionExecutor {
         (element: HTMLElement, ondone: Function): () => void;
     }
@@ -1027,7 +1027,7 @@ declare module drunk {
 /**
  * DOM操作的工具方法模块
  */
-declare module drunk.dom {
+declare namespace drunk.dom {
     /**
      * 根据提供的html字符串创建html元素
      * @param   html  html字符串
@@ -1093,7 +1093,7 @@ declare module drunk.dom {
 /**
  * 模板工具模块， 提供编译创建绑定，模板加载的工具方法
  */
-declare module drunk.Template {
+declare namespace drunk.Template {
     /**
      * 编译模板元素生成绑定方法
      * @param   node        模板元素
@@ -1102,7 +1102,7 @@ declare module drunk.Template {
      */
     function compile(node: any): IBindingGenerator;
 }
-declare module drunk.Template {
+declare namespace drunk.Template {
     /**
      * 加载模板，先尝试从指定ID的标签上查找，找不到再作为url发送ajax请求，
      * 加载到的模板字符串会进行缓存
@@ -1111,7 +1111,7 @@ declare module drunk.Template {
      */
     function load(urlOrId: string): Promise<string>;
 }
-declare module drunk.Template {
+declare namespace drunk.Template {
     /**
      * 把模块连接渲染为documentFragment,会对样式和脚本进行处理,避免重复加载,如果提供宿主容器元素,则会把
      * 模板渲染到改容器中
@@ -1122,7 +1122,7 @@ declare module drunk.Template {
      */
     function renderFragment(url: string, hostedElement?: HTMLElement, useCache?: boolean): Promise<Node>;
 }
-declare module drunk {
+declare namespace drunk {
     interface IComponent {
         name?: string;
         init?: () => void;
@@ -1280,9 +1280,9 @@ declare module drunk {
         function register(name: string, componentCtor: any): void;
     }
 }
-declare module drunk {
+declare namespace drunk {
 }
-declare module drunk {
+declare namespace drunk {
     interface IItemDataDescriptor {
         key: string | number;
         idx: number;
@@ -1333,7 +1333,7 @@ declare module drunk {
         static toList(target: any): IItemDataDescriptor[];
     }
 }
-declare module drunk {
+declare namespace drunk {
 }
-declare module drunk {
+declare namespace drunk {
 }

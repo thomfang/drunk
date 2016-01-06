@@ -3,7 +3,7 @@
 /// <reference path="../cache/cache" />
 /// <reference path="../promise/promise" />
 
-module drunk.Template {
+namespace drunk.Template {
     
     let cacheStore = new Cache<Promise<DocumentFragment>>(50);
     let styleRecord = {};

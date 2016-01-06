@@ -5,7 +5,7 @@
 /// <reference path="../../scheduler/scheduler" />
 /// <reference path="../../map/map" />
 
-module drunk {
+namespace drunk {
 
     export interface IItemDataDescriptor {
         key: string | number;

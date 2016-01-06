@@ -6,7 +6,7 @@
 /// <reference path="../filter/filter" />
 /// <reference path="../events/eventemitter" />
 
-module drunk {
+namespace drunk {
 
     export interface IModel extends observable.ObservableObject {
         [key: string]: any;

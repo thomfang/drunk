@@ -4,7 +4,7 @@
 /// <reference path="../config/config" />
 /// <reference path="../util/dom" />
 
-module drunk {
+namespace drunk {
 
     export interface IComponent {
         name?: string;

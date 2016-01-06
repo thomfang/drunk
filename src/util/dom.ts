@@ -5,7 +5,7 @@
 /**
  * DOM操作的工具方法模块
  */
-module drunk.dom {
+namespace drunk.dom {
 
     /**
      * 根据提供的html字符串创建html元素

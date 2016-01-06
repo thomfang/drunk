@@ -3,7 +3,7 @@
 /// <reference path="../parser/parser.ts" />
 /// <reference path="../observable/observable.ts" />
 
-module drunk {
+namespace drunk {
 
     export class Watcher {
         

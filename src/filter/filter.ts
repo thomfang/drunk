@@ -5,7 +5,7 @@
  * 数据过滤器模块
  * @module drunk.filter
  */
-module drunk.filter {
+namespace drunk.filter {
     
     /**
      * Filter声明

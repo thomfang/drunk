@@ -3,7 +3,7 @@
 /**
  * 搜索字符串解析模块
  */
-module drunk.querystring {
+namespace drunk.querystring {
     
     /**
      * 解析字符串生成一个键值对表

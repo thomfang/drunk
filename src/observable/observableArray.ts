@@ -6,7 +6,7 @@
  * 除了有常规数组的所有方法外还添加了几个工具方法，并在某些修改自身的方法调用后对新数据进行处理和
  * 发送数据更新的通知。
  */
-module drunk.observable {
+namespace drunk.observable {
 
     /**
      * 可监控数组的声明

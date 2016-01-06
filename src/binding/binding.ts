@@ -2,7 +2,7 @@
 /// <reference path="../util/util" />
 /// <reference path="../viewmodel/viewmodel" />
 
-module drunk {
+namespace drunk {
 
     /**
      * 更新函数接口
@@ -122,7 +122,7 @@ module drunk {
 
             this._isActived = true;
 
-            return new Promise((resolve, reject) => {
+            return new Promise<any>((resolve, reject) => {
                 if (!this.update) {
                     return resolve(initResult);
                 }

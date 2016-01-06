@@ -1,7 +1,7 @@
 /// <reference path="../binding" />
 /// <reference path="../../util/dom" />
 
-module drunk {
+namespace drunk {
 
     Binding.register("model", {
 

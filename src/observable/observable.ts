@@ -7,7 +7,7 @@
 /**
  * observable模块的工具方法，用于创建可观察的数据，数据绑定等
  */
-module drunk.observable {
+namespace drunk.observable {
      
     /**
      * 根据数据返回对应的Observer 实例，如果该数据已经存在对应的 Observer 实例则直接返回，否则创建一个新的实例

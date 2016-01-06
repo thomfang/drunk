@@ -1,6 +1,6 @@
 /// <reference path="../util/util.ts" />
 
-module drunk {
+namespace drunk {
     
     export interface IEventListener {
         (...args: any[]): void;

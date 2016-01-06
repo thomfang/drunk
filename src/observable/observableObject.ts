@@ -5,7 +5,7 @@
  * 转换后的可以监控对象
  * 添加了设置和移除字段的两个能发送数据更新的方法。
  */
-module drunk.observable {
+namespace drunk.observable {
     
     /**
      * 可监控JSON对象的声明

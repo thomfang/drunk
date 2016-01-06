@@ -1,7 +1,7 @@
 ﻿/**
  * 工具方法模块
  */
-module drunk.util {
+namespace drunk.util {
     
     var nameOfUid: string = '__DRUNK_UUID__';
     var counter: number = 0;

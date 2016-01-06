@@ -3,7 +3,7 @@
 /// <reference path="../../util/dom" />
 /// <reference path="../../config/config" />
 
-module drunk {
+namespace drunk {
 
     let reg = {
         semic: /\s*;\s*/,

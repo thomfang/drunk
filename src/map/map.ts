@@ -1,6 +1,6 @@
 /// <reference path="../util/util" />
 
-module drunk {
+namespace drunk {
     
     const uuidOfNaN = util.uuid({});
     const uuidOfNull = util.uuid({});

@@ -5,7 +5,7 @@
 /**
  * 调度器模块
  */
-module drunk.Scheduler {
+namespace drunk.Scheduler {
     
     /**
      * 调度方法

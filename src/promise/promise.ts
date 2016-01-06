@@ -1,4 +1,4 @@
-module drunk {
+namespace drunk {
 
     export interface IThenable<R> {
         then<U>(onFulfillment?: (value: R) => U | IThenable<U>, onRejection?: (error: any) => U | IThenable<U>): IThenable<U>;

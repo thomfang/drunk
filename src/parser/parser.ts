@@ -5,7 +5,7 @@
 /**
  * 简单的解析器,只是做了字符串替换,然后使用new Function生成函数
  */
-module drunk.parser {
+namespace drunk.parser {
     
     export interface IGetter {
         (viewModel: ViewModel, ...args: Array<any>): any;

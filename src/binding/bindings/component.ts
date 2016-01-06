@@ -4,7 +4,7 @@
 /// <reference path="./repeat" />
 /// <reference path="../../template/fragment" />
 
-module drunk {
+namespace drunk {
 
     let reOneInterpolate = /^\{\{([^{]+)\}\}$/;
 

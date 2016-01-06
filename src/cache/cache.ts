@@ -1,4 +1,4 @@
-module drunk {
+namespace drunk {
 
     interface ICacheNode {
         prev: ICacheNode;

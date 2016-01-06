@@ -1,7 +1,8 @@
 ﻿///<reference path="../component/component.ts" />
 ///<reference path="../viewmodel/viewmodel.ts" />
 ///<reference path="../config/config.ts" />
-module drunk {
+
+namespace drunk {
 
     interface IRouter {
         routeReg: RegExp;
@@ -23,7 +24,7 @@ module drunk {
         back(): void;
     }
 
-    class ApplicationLauncher extends Component implements IApplication {
+    export class ApplicationLauncher extends Component implements IApplication {
 
         private _index: string;
         private _routers: IRouter[] = [];
@@ -34,6 +35,11 @@ module drunk {
 
         private pageVisible: IModel = {};
 
+        /**
+         * 启动
+         * @param  rootElement  默认以document.body启动
+         * @param  url          启动的路由
+         */        
         start(rootElement = document.body, url = location.hash.slice(1)) {
 
             this.__scanElement(rootElement);
@@ -43,6 +49,12 @@ module drunk {
             this.__navigate(url);
         }
 
+        /**
+         * 导航到指定url
+         * @param  url           url参数
+         * @param  replaceState  是否替换掉当前的页面历史纪录
+         * @param  state         传递的参数
+         */        
         navigate(url: string, replaceState?: boolean, state?: any) {
             this._navigationState = state;
             if (replaceState) {
@@ -53,6 +65,9 @@ module drunk {
             }
         }
 
+        /**
+         * 后退
+         */        
         back() {
             history.back();
         }

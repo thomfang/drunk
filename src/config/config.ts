@@ -1,7 +1,7 @@
 /**
  * 配置模块
  */
-module drunk.config {
+namespace drunk.config {
     
     /**
      * 绑定指令的前缀
