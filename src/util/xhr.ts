@@ -103,6 +103,7 @@ namespace drunk.util {
                         var res: any = xhr.responseText;
                         xhr = null;
                         resolve(options.dataType === 'json' ? JSON.parse(res) : res);
+                        clearTimeout(timerID);
                     }
                     else {
                         rejectAndClearTimer();

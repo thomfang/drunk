@@ -954,6 +954,7 @@ var drunk;
                             var res = xhr.responseText;
                             xhr = null;
                             resolve(options.dataType === 'json' ? JSON.parse(res) : res);
+                            clearTimeout(timerID);
                         }
                         else {
                             rejectAndClearTimer();
