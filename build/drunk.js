@@ -430,7 +430,7 @@ var drunk;
          * @param   target 判断目标
          */
         function isObject(target) {
-            if (!target) {
+            if (!target || typeof target !== 'object') {
                 return false;
             }
             var proto = Object.getPrototypeOf(target);

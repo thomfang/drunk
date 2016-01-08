@@ -22,7 +22,7 @@ namespace drunk.util {
      * @param   target 判断目标
      */
     export function isObject(target: any): boolean {
-        if (!target) {
+        if (!target || typeof target !== 'object') {
             return false;
         }
         let proto = Object.getPrototypeOf(target);
