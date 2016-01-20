@@ -1755,6 +1755,7 @@ var drunk;
          * 立即获取最新的数据判断并判断是否已经更新，如果已经更新，执行所有的回调
          */
         Watcher.prototype.__flush = function () {
+            var _this = this;
             if (!this._isActived) {
                 return;
             }
@@ -1763,7 +1764,9 @@ var drunk;
             if ((typeof newValue === 'object' && newValue != null) || newValue !== oldValue) {
                 this.value = newValue;
                 this._actions.slice().forEach(function (action) {
-                    action(newValue, oldValue);
+                    if (_this._isActived) {
+                        action(newValue, oldValue);
+                    }
                 });
             }
             this._runActionJob = null;
@@ -1790,6 +1793,7 @@ var drunk;
             this.value = null;
             this.viewModel = null;
             this.expression = null;
+            this.__propertyChanged = null;
             this._getter = null;
             this._actions = null;
             this._observers = null;

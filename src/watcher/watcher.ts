@@ -99,7 +99,9 @@ namespace drunk {
             if ((typeof newValue === 'object' && newValue != null) || newValue !== oldValue) {
                 this.value = newValue;
                 this._actions.slice().forEach((action) => {
-                    action(newValue, oldValue);
+                    if (this._isActived) {
+                        action(newValue, oldValue);
+                    }
                 });
             }
 
@@ -131,6 +133,8 @@ namespace drunk {
             this.value = null;
             this.viewModel = null;
             this.expression = null;
+            
+            this.__propertyChanged = null;
 
             this._getter = null;
             this._actions = null;
