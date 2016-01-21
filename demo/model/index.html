@@ -10,7 +10,7 @@
     <body>
         
         <textarea drunk-model="content"></textarea>
-        <p>input: {{content}}</p>
+        <p>input: {{content|truncate:4}}</p>
         <button drunk-on="click: content = ''">clear</button>
         
         

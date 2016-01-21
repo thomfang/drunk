@@ -152,6 +152,8 @@ namespace drunk {
                 }
 
                 this._unwatch = viewModel.$watch(expression, this._update, this.isDeepWatch, true);
+            }).catch(err => {
+                console.error(err);
             });
         }
         

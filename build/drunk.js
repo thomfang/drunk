@@ -1966,6 +1966,8 @@ var drunk;
                     }
                 };
                 _this._unwatch = viewModel.$watch(expression, _this._update, _this.isDeepWatch, true);
+            }).catch(function (err) {
+                console.error(err);
             });
         };
         /**
@@ -4655,6 +4657,9 @@ var drunk;
         ComponentBinding.prototype._initAsyncComponent = function (src) {
             var _this = this;
             return drunk.Template.renderFragment(src, null, true).then(function (fragment) {
+                if (_this.isDisposed) {
+                    return;
+                }
                 var Ctor = drunk.Component.getByName(_this.expression);
                 if (!Ctor) {
                     throw new Error(_this.expression + ": 未找到该组件.");

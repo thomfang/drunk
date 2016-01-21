@@ -51,6 +51,10 @@ namespace drunk {
          */
         private _initAsyncComponent(src: string) {
             return Template.renderFragment(src, null, true).then((fragment) => {
+                if (this.isDisposed) {
+                    return;
+                }
+                
                 let Ctor = Component.getByName(this.expression);
                 if (!Ctor) {
                     throw new Error(this.expression + ": 未找到该组件.");

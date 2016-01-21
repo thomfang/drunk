@@ -716,7 +716,7 @@ declare namespace drunk {
         /**
          * 初始化绑定
          */
-        initialize(parentViewModel: any, placeholder?: HTMLElement): Promise<any>;
+        initialize(parentViewModel: any, placeholder?: HTMLElement): Promise<void>;
         /**
          * 移除绑定并销毁
          */
@@ -779,7 +779,7 @@ declare namespace drunk {
          * @param   viewModel  ViewModel实例
          * @param   element    元素
          */
-        function create(viewModel: any, element: any, descriptor: IBindingDefinition, parentViewModel?: any, placeholder?: HTMLElement): Promise<any>;
+        function create(viewModel: any, element: any, descriptor: IBindingDefinition, parentViewModel?: any, placeholder?: HTMLElement): Promise<void>;
     }
 }
 declare namespace drunk {
