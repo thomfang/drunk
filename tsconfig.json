@@ -2,7 +2,7 @@
     "compilerOptions": {
         "noImplicitAny": false,
         "removeComments": false,
-        "target": "ES5",
+        "target": "es5",
         "preserveConstEnums": true,
         "out": "build/drunk.js",
         "declaration": true,

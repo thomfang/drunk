@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="initial-scale=1,user-scalable=no" />
+        <title>drunk.Component - demo</title>
+        <script src="../../build/drunk.js"></script>
+        
+        <style>
+            .hide {display: none;}
+            .strike {text-decoration: line-through;}
+        </style>
+    </head>
+    
+    <body drunk-index="/a">
+        <header>Header</header>
+        <view-a drunk-route="/a" template-url="a"></view-a>
+        <view-b drunk-route="/b" template-url="b"></view-b>
+        <footer>Footer</footer>
+        
+        <script type="text/tpl" id="a">
+        This is content of view-a
+        <a href="#/b">Go to view-b</a>
+        </script>
+        <script type="text/tpl" id="b">
+        This is content of view-b
+        <a href="#/a">Go to view-a</a>
+        </script>
+        
+        <script type="text/tpl" id="b"></script>
+        <script>
+            drunk.Component.define('view-a', {
+                
+            });
+            drunk.Component.define('view-b', {
+                
+            });
+            drunk.Application.start();
+        </script>
+    </body>
+</html>

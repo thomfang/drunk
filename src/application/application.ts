@@ -158,7 +158,7 @@ namespace drunk {
 
         private __initNavigationEvent() {
             window.addEventListener("hashchange", () => {
-                this.__navigate(location.hash);
+                this.__navigate(location.hash.slice(1));
             });
         }
 
