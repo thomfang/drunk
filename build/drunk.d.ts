@@ -1318,6 +1318,7 @@ declare namespace drunk {
          * 重写代理方法,顺便也让父级viewModel代理该属性
          */
         $proxy(property: string): void;
+        $getModel(): any;
         /**
          * 重写获取事件处理方法,忘父级查找该方法
          */

@@ -83,6 +83,14 @@ namespace drunk {
             }
         }
         
+        $getModel() {
+            let result = super.$getModel();
+            this._models.forEach(model => {
+                util.extend(result, util.deepClone(model));
+            });
+            return result;
+        }
+        
         /**
          * 重写获取事件处理方法,忘父级查找该方法
          */

@@ -4290,6 +4290,13 @@ var drunk;
                 this._parent.$proxy(property);
             }
         };
+        RepeatItem.prototype.$getModel = function () {
+            var result = _super.prototype.$getModel.call(this);
+            this._models.forEach(function (model) {
+                drunk.util.extend(result, drunk.util.deepClone(model));
+            });
+            return result;
+        };
         /**
          * 重写获取事件处理方法,忘父级查找该方法
          */
