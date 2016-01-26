@@ -3588,7 +3588,7 @@ var drunk;
             var definition = drunk.Binding.getByName(descriptor.name);
             var executor;
             if (!definition && drunk.config.debug) {
-                console.warn(descriptor.name, "没有找到该绑定的定义");
+                console.warn(drunk.config.prefix + descriptor.name, "没有找到该绑定的定义");
                 return;
             }
             if (!definition.retainAttribute && element.removeAttribute) {

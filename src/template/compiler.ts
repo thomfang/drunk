@@ -277,8 +277,8 @@ namespace drunk.Template {
         let definition = Binding.getByName(descriptor.name);
         let executor: IBindingExecutor;
 
-        if (!definition && config.debug) {
-            console.warn(descriptor.name, "没有找到该绑定的定义");
+        if (!definition) {
+            console.warn(config.prefix + descriptor.name, "没有找到该绑定的定义");
             return;
         }
 

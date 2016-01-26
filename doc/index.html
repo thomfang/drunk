@@ -65,8 +65,133 @@
 	<div class="row">
 		<div class="col-8 col-content">
 			<div class="tsd-panel tsd-typography">
-				<h1 id="let-s-drunk-">Let&#39;s drunk!</h1>
-				<p>Just for fun...</p>
+				<h1 id="-">快速了解</h1>
+				<ul>
+					<li><p>最简单的用法，生成一个component实例并与dom元素建立绑定</p>
+						<pre><code class="lang-javascript">  <span class="hljs-comment">// 绑定到body</span>
+
+  <span class="hljs-keyword">var</span> bindingView = <span class="hljs-keyword">new</span> drunk.Component();
+  bindingView.$mount(<span class="hljs-built_in">document</span>.body);
+</code></pre>
+					</li>
+				</ul>
+				<ul>
+					<li><p>数据绑定</p>
+						<pre><code class="lang-html">  <span class="hljs-tag">&lt;<span class="hljs-title">body</span>&gt;</span>
+      Hello! {{greeting}}
+  <span class="hljs-tag">&lt;/<span class="hljs-title">body</span>&gt;</span>
+</code></pre>
+						<pre><code class="lang-javascript">  bindingView.greeting = <span class="hljs-string">'world'</span>;
+</code></pre>
+					</li>
+					<li><p>自定义组件</p>
+						<pre><code class="lang-javascript">  <span class="hljs-comment">// 不带模板链接</span>
+  <span class="hljs-keyword">var</span> MyComponent = drunk.Component.define({
+
+      init: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+
+      }
+  });
+
+  <span class="hljs-keyword">var</span> app = <span class="hljs-keyword">new</span> MyComponent();
+  app.$mount(<span class="hljs-built_in">document</span>.body);
+
+  <span class="hljs-comment">// 带模板链接</span>
+  <span class="hljs-keyword">var</span> MyComponent2 = drunk.Component.define({
+
+      templateUrl: <span class="hljs-string">'xxxx.html'</span>,
+
+      init: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+
+      }
+  });
+
+  <span class="hljs-keyword">var</span> app2 = <span class="hljs-keyword">new</span> MyComponent2();
+  app2.$processTemplate().then(<span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">element</span>) </span>{
+      <span class="hljs-comment">// element为模板生成的dom元素</span>
+      app2.$mount(element);
+  });
+</code></pre>
+					</li>
+					<li><p>异步组件</p>
+						<p>  alert.html:</p>
+						<pre><code class="lang-html">  <span class="hljs-comment">&lt;!--这里可以直接引用样式文件--&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-title">link</span> <span class="hljs-attribute">rel</span>=<span class="hljs-value">'stylesheet'</span> <span class="hljs-attribute">type</span>=<span class="hljs-value">'text/css'</span> <span class="hljs-attribute">href</span>=<span class="hljs-value">'alert.css'</span> /&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-title">div</span> <span class="hljs-attribute">class</span>=<span class="hljs-value">"alert"</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-title">p</span>&gt;</span>{{content}}<span class="hljs-tag">&lt;/<span class="hljs-title">p</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-title">button</span> <span class="hljs-attribute">drunk-on</span>=<span class="hljs-value">"click: cancel()"</span>&gt;</span>取消<span class="hljs-tag">&lt;/<span class="hljs-title">button</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-title">button</span> <span class="hljs-attribute">drunk-on</span>=<span class="hljs-value">"click: confirm()"</span>&gt;</span>确认<span class="hljs-tag">&lt;/<span class="hljs-title">button</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-title">div</span>&gt;</span>
+
+  <span class="hljs-comment">&lt;!--可以直接引组件的js文件--&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-title">script</span> <span class="hljs-attribute">src</span>=<span class="hljs-value">'alert.js'</span>&gt;</span><span class="undefined"></span><span class="hljs-tag">&lt;/<span class="hljs-title">script</span>&gt;</span>
+</code></pre>
+						<p>  alert.js</p>
+						<pre><code class="lang-javascript">  drunk.Component.define(<span class="hljs-string">'ui-alert-view'</span>, {
+      cancel: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+          <span class="hljs-keyword">this</span>.$emit(<span class="hljs-string">'cancel'</span>);
+      },
+      confirm: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+          <span class="hljs-keyword">this</span>.$emit(<span class="hljs-string">'confirm'</span>);
+      }
+  });
+</code></pre>
+						<p>  使用方式:</p>
+						<pre><code class="lang-html">  <span class="hljs-tag">&lt;<span class="hljs-title">body</span>&gt;</span>
+      <span class="hljs-comment">&lt;!--直接写组件的标签和该组件的html路径(写在src属性上),不用关心组件加载的问题--&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-title">ui-alert-view</span>
+          <span class="hljs-attribute">drunk-if</span>=<span class="hljs-value">"alertVisible"</span>
+          <span class="hljs-attribute">src</span>=<span class="hljs-value">'alert.html'</span>
+          <span class="hljs-attribute">on-confirm</span>=<span class="hljs-value">"alertVisible = false, doConfirm()"</span>
+          <span class="hljs-attribute">on-cancel</span>=<span class="hljs-value">"alertVisible = false, doCancel()"</span>&gt;</span>
+      <span class="hljs-tag">&lt;/<span class="hljs-title">ui-alert-view</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-title">body</span>&gt;</span>
+</code></pre>
+					</li>
+					<li><p>单页面应用</p>
+						<p>  每个页面定义为一个组件，并有自己的模板</p>
+						<p>  首页(home-page.js):</p>
+						<pre><code class="lang-javascript">  drunk.Component.define(<span class="hljs-string">'home-page'</span>, {
+
+      templateUrl: <span class="hljs-string">'home-page.html'</span>,
+
+      init: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+
+      },
+
+      onEnter: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">state</span>) </span>{
+         <span class="hljs-comment">// 进入这个页面，会把路由参数这些状态都传进来</span>
+      }
+  });
+</code></pre>
+						<p>  订单页面(order-page.js):</p>
+						<pre><code class="lang-javascript">  drunk.Component.define(<span class="hljs-string">'order-page'</span>, {
+
+      templateUrl: <span class="hljs-string">'order-page.html'</span>,
+
+      init: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+
+      },
+
+      onEnter: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">state</span>) </span>{
+
+      }
+  });
+</code></pre>
+						<p>  在index.html里面引入drunk.js和drunk.application.js以及所有的页面组件，然后声明路由器如下：</p>
+						<pre><code class="lang-html">  <span class="hljs-comment">&lt;!--  drunk-index属性的值表明路由器的默认页为:'#/home/jczq'(playtype为jczq)  --&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-title">body</span> <span class="hljs-attribute">drunk-index</span>=<span class="hljs-value">"/home/jczq"</span>&gt;</span>
+      <span class="hljs-comment">&lt;!--页面的标签,并声明其各自的路由规则--&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-title">home-page</span> <span class="hljs-attribute">drunk-route</span>=<span class="hljs-value">"/home/:playtype"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">home-page</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-title">order-page</span> <span class="hljs-attribute">drunk-route</span>=<span class="hljs-value">"/order"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">order-page</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-title">body</span>&gt;</span>
+</code></pre>
+						<p>  初始化脚本,页面就渲染出来了,不用自己new组件实例，只用关心组件的业务逻辑的实现</p>
+						<pre><code class="lang-javascript">  <span class="hljs-comment">// drunk.config.debug = true;</span>
+  drunk.Application.start();
+</code></pre>
+					</li>
+				</ul>
 			</div>
 		</div>
 		<div class="col-4 col-menu menu-sticky-wrap menu-highlight">
@@ -75,8 +200,119 @@
 					<li class="globals  ">
 						<a href="globals.html"><em>Globals</em></a>
 					</li>
-					<li class=" tsd-kind-module">
-						<a href="modules/drunk.html">drunk</a>
+					<li class="label tsd-is-external">
+						<span>Internals</span>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_application_application_.html">"application/application"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_binding_binding_.html">"binding/binding"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_binding_bindings_action_.html">"binding/bindings/action"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_binding_bindings_attr_.html">"binding/bindings/attr"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_binding_bindings_bind_.html">"binding/bindings/bind"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_binding_bindings_class_.html">"binding/bindings/class"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_binding_bindings_component_.html">"binding/bindings/component"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_binding_bindings_if_.html">"binding/bindings/if"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_binding_bindings_include_.html">"binding/bindings/include"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_binding_bindings_model_.html">"binding/bindings/model"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_binding_bindings_on_.html">"binding/bindings/on"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_binding_bindings_repeat_.html">"binding/bindings/repeat"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_binding_bindings_show_.html">"binding/bindings/show"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_binding_bindings_transclude_.html">"binding/bindings/transclude"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_cache_cache_.html">"cache/cache"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_component_component_.html">"component/component"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_config_config_.html">"config/config"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_events_eventemitter_.html">"events/eventemitter"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_filter_filter_.html">"filter/filter"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_map_map_.html">"map/map"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_observable_observable_.html">"observable/observable"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_observable_observablearray_.html">"observable/observable<wbr>Array"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_observable_observableobject_.html">"observable/observable<wbr>Object"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_observable_observer_.html">"observable/observer"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_parser_parser_.html">"parser/parser"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_promise_promise_.html">"promise/promise"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_scheduler_scheduler_.html">"scheduler/scheduler"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_template_compiler_.html">"template/compiler"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_template_fragment_.html">"template/fragment"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_template_loader_.html">"template/loader"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_util_dom_.html">"util/dom"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_util_querystring_.html">"util/querystring"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_util_util_.html">"util/util"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_util_xhr_.html">"util/xhr"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_watcher_watcher_.html">"watcher/watcher"</a>
+					</li>
+					<li class="label tsd-is-external">
+						<span>Externals</span>
+					</li>
+					<li class=" tsd-kind-external-module tsd-is-external">
+						<a href="modules/_viewmodel_viewmodel_.html">"viewmodel/viewmodel"</a>
 					</li>
 				</ul>
 			</nav>
