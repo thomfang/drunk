@@ -93,6 +93,8 @@ namespace drunk {
                 return;
             }
 
+            this._runActionJob = null;
+
             let oldValue: any = this.value;
             let newValue: any = this.__getValue();
 
@@ -104,8 +106,6 @@ namespace drunk {
                     }
                 });
             }
-
-            this._runActionJob = null;
         }
         
         /**

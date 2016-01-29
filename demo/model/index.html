@@ -9,14 +9,19 @@
     
     <body>
         
-        <textarea drunk-model="content"></textarea>
-        <p>input: {{content|truncate:4}}</p>
+        <input type="text" drunk-model="content">
+        <p>input: {{content}}</p>
         <button drunk-on="click: content = ''">clear</button>
         
         
         <script type="text/javascript">
             /// <reference path="../../build/drunk.d.ts" />
             var app = new drunk.Component();
+            app.$watch('content', function (newValue) {
+                if (newValue && newValue.length > 3) {
+                    this.content = newValue.slice(0, 3);
+                }
+            });
             app.$mount(document.body);
             
         </script>

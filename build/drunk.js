@@ -1759,6 +1759,7 @@ var drunk;
             if (!this._isActived) {
                 return;
             }
+            this._runActionJob = null;
             var oldValue = this.value;
             var newValue = this.__getValue();
             if ((typeof newValue === 'object' && newValue != null) || newValue !== oldValue) {
@@ -1769,7 +1770,6 @@ var drunk;
                     }
                 });
             }
-            this._runActionJob = null;
         };
         /**
          * 释放引用和内存
@@ -3587,7 +3587,7 @@ var drunk;
         function createExecutor(element, descriptor) {
             var definition = drunk.Binding.getByName(descriptor.name);
             var executor;
-            if (!definition && drunk.config.debug) {
+            if (!definition) {
                 console.warn(drunk.config.prefix + descriptor.name, "没有找到该绑定的定义");
                 return;
             }
