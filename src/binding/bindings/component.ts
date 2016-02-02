@@ -162,8 +162,8 @@ namespace drunk {
                     return;
                 }
 
-                let startNode = this._startNode = document.createComment(`[start]component: ${this.expression}`);
-                let endedNode = this._endedNode = document.createComment(`[ended]component: ${this.expression}`);
+                let startNode = this._startNode = document.createComment(`<component>: ${this.expression}`);
+                let endedNode = this._endedNode = document.createComment(`</component>: ${this.expression}`);
                 dom.replace(startNode, element);
                 dom.after(endedNode, startNode);
                 dom.after(template, startNode);

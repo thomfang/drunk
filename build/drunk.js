@@ -4396,8 +4396,8 @@ var drunk;
          */
         RepeatBinding.prototype._createCommentNodes = function () {
             this._flagNodeContent = "[repeat-item]" + this.expression;
-            this._startNode = document.createComment('[start]repeat: ' + this.expression);
-            this._endedNode = document.createComment('[ended]repeat: ' + this.expression);
+            this._startNode = document.createComment('<repeat>: ' + this.expression);
+            this._endedNode = document.createComment('</repeat>: ' + this.expression);
             drunk.dom.before(this._startNode, this.element);
             drunk.dom.replace(this._endedNode, this.element);
         };
@@ -4755,8 +4755,8 @@ var drunk;
                 if (_this.isDisposed) {
                     return;
                 }
-                var startNode = _this._startNode = document.createComment("[start]component: " + _this.expression);
-                var endedNode = _this._endedNode = document.createComment("[ended]component: " + _this.expression);
+                var startNode = _this._startNode = document.createComment("<component>: " + _this.expression);
+                var endedNode = _this._endedNode = document.createComment("</component>: " + _this.expression);
                 drunk.dom.replace(startNode, element);
                 drunk.dom.after(endedNode, startNode);
                 drunk.dom.after(template, startNode);
@@ -4869,8 +4869,8 @@ drunk.Binding.register("if", {
     isTerminal: true,
     priority: drunk.Binding.Priority.aboveNormal + 2,
     init: function () {
-        this._startNode = document.createComment("[start]if: " + this.expression);
-        this._endedNode = document.createComment("[ended]if: " + this.expression);
+        this._startNode = document.createComment("<if>: " + this.expression);
+        this._endedNode = document.createComment("</if>: " + this.expression);
         this._bind = drunk.Template.compile(this.element);
         this._inDocument = false;
         drunk.dom.replace(this._startNode, this.element);

@@ -215,8 +215,8 @@ namespace drunk {
          */
         private _createCommentNodes() {
             this._flagNodeContent = `[repeat-item]${this.expression}`;
-            this._startNode = document.createComment('[start]repeat: ' + this.expression);
-            this._endedNode = document.createComment('[ended]repeat: ' + this.expression);
+            this._startNode = document.createComment('<repeat>: ' + this.expression);
+            this._endedNode = document.createComment('</repeat>: ' + this.expression);
 
             dom.before(this._startNode, this.element);
             dom.replace(this._endedNode, this.element);

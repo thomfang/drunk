@@ -8,8 +8,8 @@ drunk.Binding.register("if", {
     priority: drunk.Binding.Priority.aboveNormal + 2,
 
     init() {
-        this._startNode = document.createComment("[start]if: " + this.expression);
-        this._endedNode = document.createComment("[ended]if: " + this.expression);
+        this._startNode = document.createComment("<if>: " + this.expression);
+        this._endedNode = document.createComment("</if>: " + this.expression);
         this._bind = drunk.Template.compile(this.element);
         this._inDocument = false;
 
