@@ -13,7 +13,7 @@ namespace drunk.observable {
      * 根据数据返回对应的Observer 实例，如果该数据已经存在对应的 Observer 实例则直接返回，否则创建一个新的实例
      * @param data 数组或JSON对象
      */
-    export function create<T>(data: ObservableArray<T> | ObservableObject | any): Observer {
+    export function create<T>(data: IObservableArray<T> | IObservableObject | any): Observer {
         let isObject = util.isObject(data);
 
         if (!isObject && !Array.isArray(data)) {
@@ -61,14 +61,14 @@ namespace drunk.observable {
      * @param   value     对应字段的数据
      * @param   data      可观察数据
      */
-    export let onPropertyAccessing: (observer: Observer, property: string, value: any, data: ObservableObject) => void;
+    export let onPropertyAccessing: (observer: Observer, property: string, value: any, data: IObservableObject) => void;
      
     /**
      * 转换对象属性的getter/setter，使其能在数据更新是能接受到事件
      * @param  data  	 JSON对象
      * @param  property  JSON对象上的字段
      */
-    export function observe(target: ObservableObject, property: string, value): void {
+    export function observe(target: IObservableObject, property: string, value): void {
         let descriptor = Object.getOwnPropertyDescriptor(target, property);
         
         if (descriptor && typeof descriptor.get === 'function' && descriptor.get === descriptor.set) {
@@ -137,7 +137,7 @@ namespace drunk.observable {
      * @param  data       数据
      * @param  property   要通知的字段名，如果该参数不提供，则派发该该数据更新的通知
      */
-    export function notify<T>(data: ObservableArray<T> | ObservableObject): void {
+    export function notify<T>(data: IObservableArray<T> | IObservableObject): void {
         let ob: Observer = data.__observer__;
 
         if (ob) {

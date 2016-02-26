@@ -8,7 +8,7 @@
 
 namespace drunk {
 
-    export interface IModel extends observable.ObservableObject {
+    export interface IModel extends observable.IObservableObject {
         [key: string]: any;
     }
     

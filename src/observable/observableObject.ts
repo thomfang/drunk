@@ -10,7 +10,7 @@ namespace drunk.observable {
     /**
      * 可监控JSON对象的声明
      */
-    export interface ObservableObject {
+    export interface IObservableObject {
         [name: string]: any;
         __observer__?: Observer;
         $set?(name: string, value: any): void;
@@ -22,7 +22,7 @@ namespace drunk.observable {
      * @param  data   JSON对象或已经为observable的JSON对象
      * @param  name   字段名
      */
-    export function $set(data: ObservableObject, name: string, value: any): void {
+    export function $set(data: IObservableObject, name: string, value: any): void {
         var descriptor = Object.getOwnPropertyDescriptor(data, name);
         
         if (!descriptor || (!descriptor.get && !descriptor.set)) {
@@ -44,7 +44,7 @@ namespace drunk.observable {
      * @param  data  JSON对象或已经为observable的JSON对象
      * @param  name  字段名
      */
-    export function $remove(data: ObservableObject, name: string): void {
+    export function $remove(data: IObservableObject, name: string): void {
         if (!data.hasOwnProperty(name)) {
             return;
         }
@@ -56,7 +56,7 @@ namespace drunk.observable {
     /**
      * 对象转换成observable后指向的原型对象
      */
-    export var ObservableObjectPrototype: ObservableObject = {};
+    export var ObservableObjectPrototype: IObservableObject = {};
     
     /**
      * 设置对象的指定字段的值

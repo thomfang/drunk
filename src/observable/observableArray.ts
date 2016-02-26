@@ -11,7 +11,7 @@ namespace drunk.observable {
     /**
      * 可监控数组的声明
      */
-    export interface ObservableArray<T> extends Array<T> {
+    export interface IObservableArray<T> extends Array<T> {
         __observer__?: Observer;
         $setAt?(index: number, value: any): void;
         $removeAt?<T>(index: number): T;
@@ -22,7 +22,7 @@ namespace drunk.observable {
     /**
      * 数组转换成observable后指向的原型对象
      */
-    export var ObservableArrayPrototype: ObservableArray<any> = Object.create(Array.prototype);
+    export var ObservableArrayPrototype: IObservableArray<any> = Object.create(Array.prototype);
 
     /**
      * 设置数组指定数组下标的值，并发送数组更新通知
@@ -30,7 +30,7 @@ namespace drunk.observable {
      * @param  index   要设置的数组下标
      * @param  value   要设置的值
      */
-    export function $setAt<T>(array: ObservableArray<T>, index: number, value: T): void {
+    export function $setAt<T>(array: IObservableArray<T>, index: number, value: T): void {
         if (index > array.length) {
             array.length = index + 1;
         }
@@ -43,7 +43,7 @@ namespace drunk.observable {
      * @param  array  observableArray类型的数组
      * @param  index  要移除的下标
      */
-    export function $removeAt<T>(array: ObservableArray<T>, index: number): T {
+    export function $removeAt<T>(array: IObservableArray<T>, index: number): T {
         let result: T;
 
         if (index > -1 && index < array.length) {
@@ -60,7 +60,7 @@ namespace drunk.observable {
      * @param  array  observableArray类型的数组
      * @param  value  要移除的值
      */
-    export function $removeItem<T>(array: ObservableArray<T>, value: any): void {
+    export function $removeItem<T>(array: IObservableArray<T>, value: any): void {
         util.removeArrayItem(array, value);
     }
     
@@ -69,7 +69,7 @@ namespace drunk.observable {
      * @param  array  observableArray类型的数组
      * @param  value  要移除的值
      */
-    export function $removeAllItem<T>(array: ObservableArray<T>, value: any): void {
+    export function $removeAllItem<T>(array: IObservableArray<T>, value: any): void {
         let $removeItemIndexs: number[] = [];
         let step = 0;
         
@@ -90,7 +90,7 @@ namespace drunk.observable {
     /**
      * 删除所有数组元素
      */
-    export function removeAll<T>(array: ObservableArray<T>) {
+    export function removeAll<T>(array: IObservableArray<T>) {
         if (array.length) {
             array.length = 0;
             notify(array);
@@ -141,7 +141,7 @@ namespace drunk.observable {
     /**
      * 调用原生方法并发送通知
      */
-    function executeArrayMethodAndNotify<T>(array: ObservableArray<T>, methodName: string, args: any[], callback?: () => void): any {
+    function executeArrayMethodAndNotify<T>(array: IObservableArray<T>, methodName: string, args: any[], callback?: () => void): any {
         let result = Array.prototype[methodName].apply(array, args);
 
         if (callback) {

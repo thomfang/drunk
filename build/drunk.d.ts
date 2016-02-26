@@ -421,7 +421,7 @@ declare namespace drunk.observable {
     /**
      * 可监控JSON对象的声明
      */
-    interface ObservableObject {
+    interface IObservableObject {
         [name: string]: any;
         __observer__?: Observer;
         $set?(name: string, value: any): void;
@@ -432,17 +432,17 @@ declare namespace drunk.observable {
      * @param  data   JSON对象或已经为observable的JSON对象
      * @param  name   字段名
      */
-    function $set(data: ObservableObject, name: string, value: any): void;
+    function $set(data: IObservableObject, name: string, value: any): void;
     /**
      * 移除对象属性，并会发送更新的消息
      * @param  data  JSON对象或已经为observable的JSON对象
      * @param  name  字段名
      */
-    function $remove(data: ObservableObject, name: string): void;
+    function $remove(data: IObservableObject, name: string): void;
     /**
      * 对象转换成observable后指向的原型对象
      */
-    var ObservableObjectPrototype: ObservableObject;
+    var ObservableObjectPrototype: IObservableObject;
 }
 declare namespace drunk.observable {
     /**
@@ -475,7 +475,7 @@ declare namespace drunk.observable {
      * 根据数据返回对应的Observer 实例，如果该数据已经存在对应的 Observer 实例则直接返回，否则创建一个新的实例
      * @param data 数组或JSON对象
      */
-    function create<T>(data: ObservableArray<T> | ObservableObject | any): Observer;
+    function create<T>(data: IObservableArray<T> | IObservableObject | any): Observer;
     /**
      * 访问observableObject的字段时会调用的回调
      * @param   observer  返回的当前正在访问的数据的observer对象
@@ -483,19 +483,19 @@ declare namespace drunk.observable {
      * @param   value     对应字段的数据
      * @param   data      可观察数据
      */
-    let onPropertyAccessing: (observer: Observer, property: string, value: any, data: ObservableObject) => void;
+    let onPropertyAccessing: (observer: Observer, property: string, value: any, data: IObservableObject) => void;
     /**
      * 转换对象属性的getter/setter，使其能在数据更新是能接受到事件
      * @param  data  	 JSON对象
      * @param  property  JSON对象上的字段
      */
-    function observe(target: ObservableObject, property: string, value: any): void;
+    function observe(target: IObservableObject, property: string, value: any): void;
     /**
      * 通知数据的指定属性更新
      * @param  data       数据
      * @param  property   要通知的字段名，如果该参数不提供，则派发该该数据更新的通知
      */
-    function notify<T>(data: ObservableArray<T> | ObservableObject): void;
+    function notify<T>(data: IObservableArray<T> | IObservableObject): void;
 }
 /**
  * 转换后的可以监控数组
@@ -506,7 +506,7 @@ declare namespace drunk.observable {
     /**
      * 可监控数组的声明
      */
-    interface ObservableArray<T> extends Array<T> {
+    interface IObservableArray<T> extends Array<T> {
         __observer__?: Observer;
         $setAt?(index: number, value: any): void;
         $removeAt?<T>(index: number): T;
@@ -516,36 +516,36 @@ declare namespace drunk.observable {
     /**
      * 数组转换成observable后指向的原型对象
      */
-    var ObservableArrayPrototype: ObservableArray<any>;
+    var ObservableArrayPrototype: IObservableArray<any>;
     /**
      * 设置数组指定数组下标的值，并发送数组更新通知
      * @param  array   observableArray类型的数组
      * @param  index   要设置的数组下标
      * @param  value   要设置的值
      */
-    function $setAt<T>(array: ObservableArray<T>, index: number, value: T): void;
+    function $setAt<T>(array: IObservableArray<T>, index: number, value: T): void;
     /**
      * 根据索引移除数组中的元素，并发送数组更新通知
      * @param  array  observableArray类型的数组
      * @param  index  要移除的下标
      */
-    function $removeAt<T>(array: ObservableArray<T>, index: number): T;
+    function $removeAt<T>(array: IObservableArray<T>, index: number): T;
     /**
      * 删除数组中出现的一个指定值，并发送数组更新通知
      * @param  array  observableArray类型的数组
      * @param  value  要移除的值
      */
-    function $removeItem<T>(array: ObservableArray<T>, value: any): void;
+    function $removeItem<T>(array: IObservableArray<T>, value: any): void;
     /**
      * 删除数组中所有的指定值，并发送数组更新通知
      * @param  array  observableArray类型的数组
      * @param  value  要移除的值
      */
-    function $removeAllItem<T>(array: ObservableArray<T>, value: any): void;
+    function $removeAllItem<T>(array: IObservableArray<T>, value: any): void;
     /**
      * 删除所有数组元素
      */
-    function removeAll<T>(array: ObservableArray<T>): void;
+    function removeAll<T>(array: IObservableArray<T>): void;
 }
 declare namespace drunk {
     class Watcher {
@@ -783,7 +783,7 @@ declare namespace drunk {
     }
 }
 declare namespace drunk {
-    interface IModel extends observable.ObservableObject {
+    interface IModel extends observable.IObservableObject {
         [key: string]: any;
     }
     /**
