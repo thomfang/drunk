@@ -17,7 +17,6 @@ drunk.Binding.register("transclude", {
 
         let nodes = [];
         let unbinds = [];
-        let promiseList = [];
         let transclude = placeholder.childNodes;
         let fragment = document.createDocumentFragment();
 
@@ -33,17 +32,11 @@ drunk.Binding.register("transclude", {
             // 编译模板并获取绑定创建函数
             // 保存解绑函数
             let bind = drunk.Template.compile(node);
-            let result = bind(ownerViewModel, node);
-            unbinds.push(result.unbind);
-            promiseList.push(result.promise);
+            unbinds.push(bind(ownerViewModel, node));
         });
 
         this._nodes = nodes;
         this._unbinds = unbinds;
-
-        if (promiseList.length) {
-            return drunk.Promise.all(promiseList);
-        }
     },
 
     /**

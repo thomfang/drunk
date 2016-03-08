@@ -189,21 +189,19 @@ namespace drunk {
          * @param  ownerViewModel  父级viewModel实例
          * @param  placeholder     组件占位标签
          */
-        $mount<T extends Component>(element: Node | Node[], ownerViewModel?: T, placeholder?: HTMLElement): Promise<any> {
+        $mount<T extends Component>(element: Node | Node[], ownerViewModel?: T, placeholder?: HTMLElement) {
             console.assert(!this._isMounted, "该组件已有挂载到", this.element);
 
             if (Component.getByElement(element)) {
                 console.error("$mount(element): 尝试挂载到一个已经挂载过组件实例的元素节点", element);
-                return Promise.reject();
+                return;
             }
 
-            let res = Template.compile(element)(this, element, ownerViewModel, placeholder);
+            Template.compile(element)(this, element, ownerViewModel, placeholder);
             Component.setWeakRef(element, this);
 
             this.element = element;
             this._isMounted = true;
-            
-            return res.promise;
         }
         
         /**

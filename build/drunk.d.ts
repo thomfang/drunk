@@ -655,10 +655,7 @@ declare namespace drunk {
      * 元素与viewModel绑定创建的函数接口
      */
     interface IBindingGenerator {
-        (viewModel: ViewModel, element: any, parentViewModel?: ViewModel, placeHolder?: HTMLElement): {
-            promise: Promise<any>;
-            unbind: Function;
-        };
+        (viewModel: ViewModel, element: any, parentViewModel?: ViewModel, placeHolder?: HTMLElement): Function;
     }
     /**
      * 绑定类
@@ -716,7 +713,7 @@ declare namespace drunk {
         /**
          * 初始化绑定
          */
-        initialize(parentViewModel: any, placeholder?: HTMLElement): Promise<void>;
+        initialize(ownerViewModel: any, placeholder?: HTMLElement): any;
         /**
          * 移除绑定并销毁
          */
@@ -779,7 +776,7 @@ declare namespace drunk {
          * @param   viewModel  ViewModel实例
          * @param   element    元素
          */
-        function create(viewModel: any, element: any, descriptor: IBindingDefinition, parentViewModel?: any, placeholder?: HTMLElement): Promise<void>;
+        function create(viewModel: any, element: any, descriptor: IBindingDefinition, parentViewModel?: any, placeholder?: HTMLElement): void;
     }
 }
 declare namespace drunk {
@@ -1222,7 +1219,7 @@ declare namespace drunk {
          * @param  ownerViewModel  父级viewModel实例
          * @param  placeholder     组件占位标签
          */
-        $mount<T extends Component>(element: Node | Node[], ownerViewModel?: T, placeholder?: HTMLElement): Promise<any>;
+        $mount<T extends Component>(element: Node | Node[], ownerViewModel?: T, placeholder?: HTMLElement): void;
         /**
          * 释放组件
          */

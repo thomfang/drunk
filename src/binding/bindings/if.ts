@@ -34,11 +34,8 @@ drunk.Binding.register("if", {
         this._tmpElement = this.element.cloneNode(true);
         drunk.dom.after(this._tmpElement, this._startNode);
 
-        let res = this._bind(this.viewModel, this._tmpElement);
-        this._unbind = res.unbind;
+        this._unbind =this._bind(this.viewModel, this._tmpElement);
         this._inDocument = true;
-        
-        return res.promise;
 
     },
 

@@ -33,27 +33,23 @@ namespace drunk.Template {
             let allBindings = viewModel._bindings;
             let startIndex: number = allBindings.length;
             let bindingList: Binding[];
-            let promiseList: Promise<any>[] = [];
 
             if (executor) {
-                promiseList.push(executor(viewModel, element, ownerViewModel, placeholder));
+                executor(viewModel, element, ownerViewModel, placeholder);
             }
             if (childExecutor) {
-                promiseList.push(childExecutor(viewModel, element.childNodes, ownerViewModel, placeholder));
+                childExecutor(viewModel, element.childNodes, ownerViewModel, placeholder);
             }
 
             bindingList = viewModel._bindings.slice(startIndex);
-            
-            return {
-                promise: Promise.all(promiseList),
-                unbind: () => {
-                    bindingList.forEach((binding) => {
-                        binding.dispose();
-                    });
 
-                    startIndex = allBindings.indexOf(bindingList[0]);
-                    allBindings.splice(startIndex, bindingList.length);
-                }
+            return () => {
+                bindingList.forEach((binding) => {
+                    binding.dispose();
+                });
+
+                startIndex = allBindings.indexOf(bindingList[0]);
+                allBindings.splice(startIndex, bindingList.length);
             };
         };
     }
@@ -102,21 +98,18 @@ namespace drunk.Template {
                 let i = 0;
                 let nodeExecutor: IBindingExecutor;
                 let childExecutor: IBindingExecutor;
-                let promiseList: Promise<any>[] = [];
 
                 util.toArray(nodes).forEach((node) => {
                     nodeExecutor = executors[i++];
                     childExecutor = executors[i++];
 
                     if (nodeExecutor) {
-                        promiseList.push(nodeExecutor(viewModel, node, ownerViewModel, placeholder));
+                        nodeExecutor(viewModel, node, ownerViewModel, placeholder);
                     }
                     if (childExecutor) {
-                        promiseList.push(childExecutor(viewModel, node.childNodes, ownerViewModel, placeholder));
+                        childExecutor(viewModel, node.childNodes, ownerViewModel, placeholder);
                     }
                 });
-                
-                return Promise.all(promiseList);
             };
         }
     }
@@ -263,9 +256,9 @@ namespace drunk.Template {
             });
             // 存在绑定
             return (viewModel: ViewModel, element: any, ownerViewModel?: ViewModel, placeholder?: HTMLElement) => {
-                return Promise.all(executors.map((executor) => {
-                    return executor(viewModel, element, ownerViewModel, placeholder);
-                }));
+                executors.forEach((executor) => {
+                    executor(viewModel, element, ownerViewModel, placeholder);
+                });
             };
         }
     }
@@ -290,7 +283,7 @@ namespace drunk.Template {
         util.extend(descriptor, definition);
 
         executor = (viewModel, element, ownerViewModel?: ViewModel, placeholder?: HTMLElement) => {
-            return Binding.create(viewModel, element, descriptor, ownerViewModel, placeholder);
+            Binding.create(viewModel, element, descriptor, ownerViewModel, placeholder);
         };
         executor.isTerminal = definition.isTerminal;
         executor.priority = definition.priority;

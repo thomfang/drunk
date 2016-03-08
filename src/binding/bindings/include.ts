@@ -17,18 +17,12 @@ drunk.Binding.register("include", {
 
         this._url = url;
 
-        let promiseList = [];
-
         if (this._elements) {
-            promiseList.push(drunk.dom.remove(this._elements).then(this._removeBind.bind(this)));
+            drunk.dom.remove(this._elements).then(this._removeBind.bind(this));
         }
 
         if (url) {
-            promiseList.push(drunk.Template.renderFragment(url, null, true).then(this._createBinding.bind(this)));
-        }
-        
-        if (promiseList.length) {
-            return drunk.Promise.all(promiseList);
+            drunk.Template.renderFragment(url, null, true).then((fragment) => this._createBinding(fragment));
         }
     },
 
@@ -36,10 +30,7 @@ drunk.Binding.register("include", {
         this._elements = drunk.util.toArray(fragment.childNodes);
         this._elements.forEach(el => this.element.appendChild(el));
         
-        let result = drunk.Template.compile(this._elements)(this.viewModel, this._elements);
-        this._unbind = result.unbind;
-        
-        return result.promise;
+        this._unbind = drunk.Template.compile(this._elements)(this.viewModel, this._elements);
     },
 
     _removeBind() {

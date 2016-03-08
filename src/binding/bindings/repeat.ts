@@ -82,7 +82,7 @@ namespace drunk {
                 this._parent.$proxy(property);
             }
         }
-        
+
         $getModel() {
             let result = super.$getModel();
             this._models.forEach(model => {
@@ -306,67 +306,59 @@ namespace drunk {
                 }
             };
 
-            return new Promise((resolve, reject) => {
-                let promiseList: Promise<any>[] = [];
+            let renderItems = (jobInfo: Scheduler.IJobInfo) => {
+                if (!this._isActived) {
+                    // return console.log('该repeat绑定已被销毁');
+                    return;
+                }
+
+                let viewModel: RepeatItem;
                 
-                let renderItems = (jobInfo: Scheduler.IJobInfo) => {
-                    if (!this._isActived) {
-                        return resolve('该repeat绑定已被销毁');
-                    }
+                // 100ms作为当前线程跑的时长，超过该时间则让出线程
+                let endTime = Date.now() + 100;
 
-                    let viewModel: RepeatItem;
-                
-                    // 100ms作为当前线程跑的时长，超过该时间则让出线程
-                    let endTime = Date.now() + 100;
+                while (index < length) {
+                    viewModel = this._itemVms[index++];
 
-                    while (index < length) {
-                        viewModel = this._itemVms[index++];
+                    if (viewModel._flagNode !== placeholder) {
+                        // 判断占位节点是否是当前item的节点，不是则换位
+                        dom.before(viewModel._flagNode, placeholder);
 
-                        if (viewModel._flagNode !== placeholder) {
-                            // 判断占位节点是否是当前item的节点，不是则换位
-                            dom.before(viewModel._flagNode, placeholder);
+                        if (!viewModel._isBinded) {
+                            // 创建节点和生成绑定
+                            viewModel.element = viewModel._element = this.element.cloneNode(true);
+                            dom.after(viewModel._element, viewModel._flagNode);
 
-                            if (!viewModel._isBinded) {
-                                // 创建节点和生成绑定
-                                viewModel.element = viewModel._element = this.element.cloneNode(true);
-                                dom.after(viewModel._element, viewModel._flagNode);
-
-                                promiseList.push(this._bind(viewModel, viewModel.element).promise);
-                                viewModel._isBinded = true;
-                            }
-                            else {
-                                dom.after(viewModel._element, viewModel._flagNode);
-                            }
-
-                            if (Date.now() >= endTime && index < length) {
-                                // 如果创建节点达到了一定时间，让出线程给ui线程
-                                return jobInfo.setPromise(Promise.resolve(renderItems));
-                            }
+                            this._bind(viewModel, viewModel.element);
+                            viewModel._isBinded = true;
                         }
                         else {
-                            next(placeholder);
+                            dom.after(viewModel._element, viewModel._flagNode);
+                        }
+
+                        if (Date.now() >= endTime && index < length) {
+                            // 如果创建节点达到了一定时间，让出线程给ui线程
+                            return jobInfo.setPromise(Promise.resolve(renderItems));
                         }
                     }
+                    else {
+                        next(placeholder);
+                    }
+                }
 
-                    resolve(promiseList);
-                    
-                    job = null;
-                    promiseList = null;
-                    this._cancelRenderJob = null;
-                };
+                job = null;
+                this._cancelRenderJob = null;
+            };
 
-                next(this._startNode);
-                job = Scheduler.schedule(renderItems, Scheduler.Priority.aboveNormal);
-                
-                this._cancelRenderJob = () => {
-                    job.cancel();
-                    resolve('repeat-item渲染中断');
-                    
-                    this._cancelRenderJob = null;
-                    job = null;
-                    promiseList = null;
-                };
-            });
+            next(this._startNode);
+            job = Scheduler.schedule(renderItems, Scheduler.Priority.aboveNormal);
+
+            this._cancelRenderJob = () => {
+                job.cancel();
+
+                this._cancelRenderJob = null;
+                job = null;
+            };
         }
 
         /**
