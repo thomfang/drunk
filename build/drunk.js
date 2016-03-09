@@ -29,7 +29,7 @@ var drunk;
         }
         // 模拟 chrome 和 safari，不是标准
         if (promise === value) {
-            publish(promise, undefined, PromiseState.RESOLVED);
+            publish(promise, new TypeError('Chaining cycle detected for promise #<Promise>'), PromiseState.REJECTED);
         }
         else if (isThenable(value)) {
             handleThenable(value, promise);
@@ -44,7 +44,7 @@ var drunk;
         }
         // 模拟 chrome 和 safari，不是标准
         if (promise === reason) {
-            reason = undefined;
+            reason = new TypeError('Chaining cycle detected for promise #<Promise>');
         }
         publish(promise, reason, PromiseState.REJECTED);
     }
