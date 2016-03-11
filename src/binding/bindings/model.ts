@@ -1,5 +1,5 @@
-/// <reference path="../binding" />
-/// <reference path="../../util/dom" />
+/// <reference path="../binding.ts" />
+/// <reference path="../../util/dom.ts" />
 
 namespace drunk {
 

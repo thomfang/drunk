@@ -1,4 +1,4 @@
-/// <reference path="../util/util" />
+/// <reference path="../util/util.ts" />
 
 namespace drunk {
     

@@ -1,4 +1,4 @@
-/// <reference path="./util" />
+/// <reference path="./util.ts" />
 
 /**
  * 搜索字符串解析模块

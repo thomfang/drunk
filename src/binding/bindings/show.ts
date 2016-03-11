@@ -1,4 +1,4 @@
-/// <reference path="../binding" />
+/// <reference path="../binding.ts" />
 
 drunk.Binding.register("show", {
 

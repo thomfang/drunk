@@ -7,16 +7,17 @@ namespace drunk {
         __isOnce?: boolean;
     }
     
-    let eventStore: {[id: number]: {[type: string]: IEventListener[]}} = {};
+    let eventCache: {[id: number]: {[type: string]: IEventListener[]}} = {};
+    let prefixKey = 'DRUNK-ONCE-EVENT-';
     
-    function getStore(emitter: EventEmitter) {
+    function getCache(emitter: EventEmitter) {
         let id = util.uuid(emitter);
         
-        if (!eventStore[id]) {
-            eventStore[id] = {};
+        if (!eventCache[id]) {
+            eventCache[id] = {};
         }
         
-        return eventStore[id];
+        return eventCache[id];
     }
     
     /**
@@ -30,13 +31,13 @@ namespace drunk {
          * @param  listener   事件回调
          */
         $addListener(type: string, listener: IEventListener) {
-            let store = getStore(this);
+            let cache = getCache(this);
             
-            if (!store[type]) {
-                store[type] = [];
+            if (!cache[type]) {
+                cache[type] = [];
             }
             
-            util.addArrayItem(store[type], listener);
+            util.addArrayItem(cache[type], listener);
             return this;
         }
         
@@ -55,7 +56,7 @@ namespace drunk {
          * @param   listener  事件回调
          */
         $once(type: string, listener: IEventListener) {
-            listener.__isOnce = true;
+            listener[prefixKey + util.uuid(this)] = true;
             this.$addListener(type, listener);
             return this;
         }
@@ -66,8 +67,8 @@ namespace drunk {
          * @param   listener 事件回调
          */
         $removeListener(type: string, listener: IEventListener) {
-            let store = getStore(this);
-            let listeners = store[type];
+            let cache = getCache(this);
+            let listeners = cache[type];
             
             if (!listeners || !listeners.length) {
                 return;
@@ -86,7 +87,7 @@ namespace drunk {
                 EventEmitter.cleanup(this);
             }
             else {
-                getStore(this)[type] = null;
+                getCache(this)[type] = null;
             }
             return this;
         }
@@ -97,8 +98,9 @@ namespace drunk {
          * @param   ...args     其他参数
          */
         $emit(type: string, ...args: any[]) {
-            let store = getStore(this);
-            let listeners = store[type];
+            let cache = getCache(this);
+            let listeners = cache[type];
+            let onceKey = prefixKey + util.uuid(this);
             
             if (!listeners || !listeners.length) {
                 return;
@@ -107,8 +109,9 @@ namespace drunk {
             listeners.slice().forEach((listener) => {
                 listener.apply(this, args);
                 
-                if (listener.__isOnce) {
+                if (listener[onceKey]) {
                     util.removeArrayItem(listeners, listener);
+                    delete listener[onceKey];
                 }
             });
             
@@ -120,7 +123,7 @@ namespace drunk {
          * @param   type  事件类型
          */
         $listeners(type: string): IEventListener[] {
-            var listeners: IEventListener[] = getStore(this)[type];
+            var listeners: IEventListener[] = getCache(this)[type];
             return listeners ? listeners.slice() : [];
         }
         
@@ -130,13 +133,13 @@ namespace drunk {
          * @param  type     事件类型
          */
         static listenerCount(emitter: EventEmitter, type: string): number {
-            let store = getStore(emitter);
+            let cache = getCache(emitter);
             
-            if (!store[type]) {
+            if (!cache[type]) {
                 return 0;
             }
             
-            return store[type].length;
+            return cache[type].length;
         }
         
         /**
@@ -145,7 +148,7 @@ namespace drunk {
          */
         static cleanup(emitter: EventEmitter) {
             let id = util.uuid(emitter);
-            eventStore[id] = null;
+            eventCache[id] = null;
         }
     }
 }

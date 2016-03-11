@@ -1,8 +1,8 @@
-/// <reference path="../binding" />
-/// <reference path="../../component/component" />
-/// <reference path="../../util/dom" />
-/// <reference path="../../template/compiler" />
-/// <reference path="../../promise/promise" />
+/// <reference path="../binding.ts" />
+/// <reference path="../../component/component.ts" />
+/// <reference path="../../util/dom.ts" />
+/// <reference path="../../template/compiler.ts" />
+/// <reference path="../../promise/promise.ts" />
 
 drunk.Binding.register("transclude", {
 

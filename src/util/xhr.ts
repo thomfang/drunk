@@ -1,6 +1,6 @@
-/// <reference path="./util" />
-/// <reference path="./querystring" />
-/// <reference path="../promise/promise" />
+/// <reference path="./util.ts" />
+/// <reference path="./querystring.ts" />
+/// <reference path="../promise/promise.ts" />
 
 namespace drunk.util {
 

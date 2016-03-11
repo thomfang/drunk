@@ -1,6 +1,6 @@
-﻿/// <reference path="../promise/promise" />
-/// <reference path="./util" />
-/// <reference path="../binding/bindings/action" />
+﻿/// <reference path="../promise/promise.ts" />
+/// <reference path="./util.ts" />
+/// <reference path="../binding/bindings/action.ts" />
 
 /**
  * DOM操作的工具方法模块

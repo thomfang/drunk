@@ -2,7 +2,7 @@
 /// <reference path="./observableArray.ts" />
 /// <reference path="./observableObject.ts" />
 /// <reference path="./observer.ts" />
-/// <reference path="../events/eventemitter" />
+/// <reference path="../events/eventemitter.ts" />
 
 /**
  * observable模块的工具方法，用于创建可观察的数据，数据绑定等

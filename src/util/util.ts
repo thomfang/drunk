@@ -2,10 +2,10 @@
  * 工具方法模块
  */
 namespace drunk.util {
-    
+
     var nameOfUid: string = '__DRUNK_UUID__';
     var counter: number = 0;
-    
+
     /**
      * 获取对象的唯一id
      * @param  target  设置的对象
@@ -45,7 +45,7 @@ namespace drunk.util {
         });
         return destination;
     }
-    
+
     /**
      * 深度拷贝对象
      * @param   target  需要拷贝的对象
@@ -97,7 +97,7 @@ namespace drunk.util {
             array.splice(index, 1);
         }
     }
-    
+
     /**
      * 字符串驼峰化
      * @param   str 字符串
@@ -121,7 +121,7 @@ namespace drunk.util {
             enumerable: !!enumerable
         });
     }
-    
+
     /**
      * 属性代理,把a对象的某个属性的读写代理到b对象上,返回代理是否成功的结果
      * @param   a         对象a
@@ -131,33 +131,33 @@ namespace drunk.util {
      */
     export function proxy(a: Object, property: string, b: Object) {
         var des = Object.getOwnPropertyDescriptor(a, property);
-        
+
         if (des && typeof des.get === 'function' && des.get === des.set) {
             return false;
         }
-        
+
         function proxyGetterSetter() {
             if (arguments.length === 0) {
                 return b[property];
             }
             b[property] = arguments[0];
         }
-        
+
         Object.defineProperty(a, property, {
             enumerable: true,
             configurable: true,
             set: proxyGetterSetter,
             get: proxyGetterSetter
         });
-        
+
         return true;
     }
-    
+
     export interface IAsyncJob {
         completed: boolean;
         cancel(): void;
     }
-    
+
     /**
      * 创建一个异步工作
      * @param   work       回调函数
@@ -172,14 +172,16 @@ namespace drunk.util {
                 if (!job.completed) {
                     clearTimeout(timerId);
                 }
+                context = work = null;
             }
         };
-        
+
         timerId = setTimeout(() => {
             work.call(context);
             job.completed = true;
+            context = work = null;
         }, 0);
-        
+
         return job;
     }
 }

@@ -575,18 +575,20 @@ var drunk;
                     if (!job.completed) {
                         clearTimeout(timerId);
                     }
+                    context = work = null;
                 }
             };
             timerId = setTimeout(function () {
                 work.call(context);
                 job.completed = true;
+                context = work = null;
             }, 0);
             return job;
         }
         util.execAsyncWork = execAsyncWork;
     })(util = drunk.util || (drunk.util = {}));
 })(drunk || (drunk = {}));
-/// <reference path="../util/util" />
+/// <reference path="../util/util.ts" />
 var drunk;
 (function (drunk) {
     var uuidOfNaN = drunk.util.uuid({});
@@ -745,13 +747,14 @@ var drunk;
 /// <reference path="../util/util.ts" />
 var drunk;
 (function (drunk) {
-    var eventStore = {};
-    function getStore(emitter) {
+    var eventCache = {};
+    var prefixKey = 'DRUNK-ONCE-EVENT-';
+    function getCache(emitter) {
         var id = drunk.util.uuid(emitter);
-        if (!eventStore[id]) {
-            eventStore[id] = {};
+        if (!eventCache[id]) {
+            eventCache[id] = {};
         }
-        return eventStore[id];
+        return eventCache[id];
     }
     /**
      * 事件管理类
@@ -765,11 +768,11 @@ var drunk;
          * @param  listener   事件回调
          */
         EventEmitter.prototype.$addListener = function (type, listener) {
-            var store = getStore(this);
-            if (!store[type]) {
-                store[type] = [];
+            var cache = getCache(this);
+            if (!cache[type]) {
+                cache[type] = [];
             }
-            drunk.util.addArrayItem(store[type], listener);
+            drunk.util.addArrayItem(cache[type], listener);
             return this;
         };
         /**
@@ -786,7 +789,7 @@ var drunk;
          * @param   listener  事件回调
          */
         EventEmitter.prototype.$once = function (type, listener) {
-            listener.__isOnce = true;
+            listener[prefixKey + drunk.util.uuid(this)] = true;
             this.$addListener(type, listener);
             return this;
         };
@@ -796,8 +799,8 @@ var drunk;
          * @param   listener 事件回调
          */
         EventEmitter.prototype.$removeListener = function (type, listener) {
-            var store = getStore(this);
-            var listeners = store[type];
+            var cache = getCache(this);
+            var listeners = cache[type];
             if (!listeners || !listeners.length) {
                 return;
             }
@@ -813,7 +816,7 @@ var drunk;
                 EventEmitter.cleanup(this);
             }
             else {
-                getStore(this)[type] = null;
+                getCache(this)[type] = null;
             }
             return this;
         };
@@ -828,15 +831,17 @@ var drunk;
             for (var _i = 1; _i < arguments.length; _i++) {
                 args[_i - 1] = arguments[_i];
             }
-            var store = getStore(this);
-            var listeners = store[type];
+            var cache = getCache(this);
+            var listeners = cache[type];
+            var onceKey = prefixKey + drunk.util.uuid(this);
             if (!listeners || !listeners.length) {
                 return;
             }
             listeners.slice().forEach(function (listener) {
                 listener.apply(_this, args);
-                if (listener.__isOnce) {
+                if (listener[onceKey]) {
                     drunk.util.removeArrayItem(listeners, listener);
+                    delete listener[onceKey];
                 }
             });
             return this;
@@ -846,7 +851,7 @@ var drunk;
          * @param   type  事件类型
          */
         EventEmitter.prototype.$listeners = function (type) {
-            var listeners = getStore(this)[type];
+            var listeners = getCache(this)[type];
             return listeners ? listeners.slice() : [];
         };
         /**
@@ -855,11 +860,11 @@ var drunk;
          * @param  type     事件类型
          */
         EventEmitter.listenerCount = function (emitter, type) {
-            var store = getStore(emitter);
-            if (!store[type]) {
+            var cache = getCache(emitter);
+            if (!cache[type]) {
                 return 0;
             }
-            return store[type].length;
+            return cache[type].length;
         };
         /**
          * 移除对象的所有事件回调引用
@@ -867,13 +872,13 @@ var drunk;
          */
         EventEmitter.cleanup = function (emitter) {
             var id = drunk.util.uuid(emitter);
-            eventStore[id] = null;
+            eventCache[id] = null;
         };
         return EventEmitter;
     })();
     drunk.EventEmitter = EventEmitter;
 })(drunk || (drunk = {}));
-/// <reference path="./util" />
+/// <reference path="./util.ts" />
 /**
  * 搜索字符串解析模块
  */
@@ -905,9 +910,9 @@ var drunk;
         querystring.stringify = stringify;
     })(querystring = drunk.querystring || (drunk.querystring = {}));
 })(drunk || (drunk = {}));
-/// <reference path="./util" />
-/// <reference path="./querystring" />
-/// <reference path="../promise/promise" />
+/// <reference path="./util.ts" />
+/// <reference path="./querystring.ts" />
+/// <reference path="../promise/promise.ts" />
 var drunk;
 (function (drunk) {
     var util;
@@ -1338,7 +1343,7 @@ var drunk;
 /// <reference path="../util/util.ts" />
 /// <reference path="./observableArray.ts" />
 /// <reference path="./observableObject.ts" />
-/// <reference path="../events/eventemitter" />
+/// <reference path="../events/eventemitter.ts" />
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
@@ -1395,7 +1400,7 @@ var drunk;
 /// <reference path="./observableArray.ts" />
 /// <reference path="./observableObject.ts" />
 /// <reference path="./observer.ts" />
-/// <reference path="../events/eventemitter" />
+/// <reference path="../events/eventemitter.ts" />
 /**
  * observable模块的工具方法，用于创建可观察的数据，数据绑定等
  */
@@ -1789,16 +1794,17 @@ var drunk;
                 this._runActionJob = null;
             }
             var key = Watcher.getNameOfKey(this.expression, this.isDeepWatch);
-            this.viewModel._watchers[key] = null;
-            this.value = null;
-            this.viewModel = null;
-            this.expression = null;
-            this.__propertyChanged = null;
-            this._getter = null;
-            this._actions = null;
-            this._observers = null;
-            this._properties = null;
-            this._tmpObservers = null;
+            this.viewModel._watchers[key] =
+                this.value =
+                    this.viewModel =
+                        this.expression =
+                            this.__propertyChanged =
+                                this._getter =
+                                    this._actions =
+                                        this._observers =
+                                            this._properties =
+                                                this._tmpProperties =
+                                                    this._tmpObservers = null;
             this._isActived = false;
         };
         /**
@@ -1865,28 +1871,32 @@ var drunk;
         Watcher.prototype._subscribePropertyChanged = function (observer, property) {
             var id = drunk.util.uuid(observer);
             var propertyChanged = this.__propertyChanged;
-            if (!this._tmpObservers[id]) {
+            var observers = this._observers;
+            var properties = this._properties;
+            var tmpObservers = this._tmpObservers;
+            var tmpProperties = this._tmpProperties;
+            if (!tmpObservers[id]) {
                 // 添加到临时订阅observer表
                 // 添加到临时订阅属性列表
-                this._tmpObservers[id] = observer;
-                this._tmpProperties[id] = (_a = {}, _a[property] = true, _a);
-                if (!this._observers[id]) {
+                tmpObservers[id] = observer;
+                tmpProperties[id] = (_a = {}, _a[property] = true, _a);
+                if (!observers[id]) {
                     // 如果旧的订阅表也没有,则添加到旧表,并在判断
-                    this._observers[id] = observer;
-                    this._properties[id] = (_b = {}, _b[property] = true, _b);
+                    observers[id] = observer;
+                    properties[id] = (_b = {}, _b[property] = true, _b);
                     observer.$addListener(property, propertyChanged);
                 }
-                else if (!this._properties[id][property]) {
+                else if (!properties[id][property]) {
                     // 如果没有订阅过该属性
-                    this._properties[id][property] = true;
+                    properties[id][property] = true;
                     observer.$addListener(property, propertyChanged);
                 }
             }
-            else if (!this._tmpProperties[id][property]) {
-                this._tmpProperties[id][property] = true;
-                if (!this._properties[id][property]) {
+            else if (!tmpProperties[id][property]) {
+                tmpProperties[id][property] = true;
+                if (!properties[id][property]) {
                     observer.$addListener(property, propertyChanged);
-                    this._properties[id][property] = true;
+                    properties[id][property] = true;
                 }
             }
             var _a, _b;
@@ -1908,11 +1918,16 @@ var drunk;
         }
     }
 })(drunk || (drunk = {}));
-/// <reference path="../promise/promise" />
-/// <reference path="../util/util" />
-/// <reference path="../viewmodel/viewmodel" />
+/// <reference path="../promise/promise.ts" />
+/// <reference path="../util/util.ts" />
+/// <reference path="../viewmodel/viewmodel.ts" />
 var drunk;
 (function (drunk) {
+    var refKey = 'DRUNK-BINDING-ID-LIST';
+    /** 终止型绑定信息列表,每个绑定信息包含了name(名字)和priority(优先级)信息 */
+    var terminalBindingDescriptors = [];
+    /** 终止型绑定的名称 */
+    var terminalBindings = [];
     /**
      * 绑定类
      */
@@ -1930,8 +1945,106 @@ var drunk;
              * 是否已经不可用
              */
             this._isActived = true;
+            Binding.instancesById[drunk.util.uuid(this)] = this;
             drunk.util.extend(this, descriptor);
         }
+        /**
+         * 获取元素的所有绑定实例
+         * @param  element  元素节点
+         */
+        Binding.getByElement = function (element) {
+            if (!element[refKey]) {
+                return [];
+            }
+            return element[refKey].map(function (id) { return Binding.instancesById[id]; });
+        };
+        /**
+         * 添加引用
+         * @param  element  元素节点
+         * @param  binding  绑定实例
+         */
+        Binding.setWeakRef = function (element, binding) {
+            if (!element[refKey]) {
+                element[refKey] = [];
+            }
+            drunk.util.addArrayItem(element[refKey], drunk.util.uuid(binding));
+        };
+        /**
+         * 移除引用
+         * @param   element  元素节点
+         * @param   binding  绑定实例
+         */
+        Binding.removeWeakRef = function (element, binding) {
+            if (element[refKey]) {
+                drunk.util.removeArrayItem(element[refKey], drunk.util.uuid(binding));
+            }
+        };
+        /**
+         * 根据一个绑定原型对象注册一个binding指令
+         * @param   name  指令名
+         * @param   def   binding实现的定义对象或绑定的更新函数
+         */
+        Binding.register = function (name, definition) {
+            definition.priority = definition.priority || Binding.Priority.normal;
+            if (definition.isTerminal) {
+                Binding._setTernimalBinding(name, definition.priority);
+            }
+            if (Binding.definitions[name]) {
+                console.warn(name, "绑定原已定义为：", Binding.definitions[name]);
+                console.warn("替换为", definition);
+            }
+            Binding.definitions[name] = definition;
+        };
+        /**
+         * 根据绑定名获取绑定的定义
+         * @param   name      绑定的名称
+         * @return            具有绑定定义信息的对象
+         */
+        Binding.getByName = function (name) {
+            return Binding.definitions[name];
+        };
+        /**
+         * 获取已经根据优先级排序的终止型绑定的名称列表
+         * @return 返回绑定名称列表
+         */
+        Binding.getTerminalBindings = function () {
+            return terminalBindings.slice();
+        };
+        /**
+         * 创建viewModel与模板元素的绑定
+         * @param   viewModel  ViewModel实例
+         * @param   element    元素
+         */
+        Binding.create = function (viewModel, element, descriptor, parentViewModel, placeholder) {
+            var binding = new Binding(viewModel, element, descriptor);
+            drunk.util.addArrayItem(viewModel._bindings, binding);
+            Binding.setWeakRef(element, binding);
+            drunk.Component.setWeakRef(element, viewModel);
+            binding.initialize(parentViewModel, placeholder);
+        };
+        /**
+         * 设置终止型的绑定，根据提供的优先级对终止型绑定列表进行排序，优先级高的绑定会先于优先级的绑定创建
+         * @param   name      绑定的名称
+         * @param   priority  绑定的优先级
+         */
+        Binding._setTernimalBinding = function (name, priority) {
+            // 检测是否已经存在该绑定
+            for (var i = 0, item = void 0; item = terminalBindingDescriptors[i]; i++) {
+                if (item.name === name) {
+                    item.priority = priority;
+                    break;
+                }
+            }
+            // 添加到列表中
+            terminalBindingDescriptors.push({
+                name: name,
+                priority: priority
+            });
+            // 重新根据优先级排序
+            terminalBindingDescriptors.sort(function (a, b) { return b.priority - a.priority; });
+            // 更新名字列表
+            terminalBindings = terminalBindingDescriptors.map(function (item) { return item.name; });
+        };
         /**
          * 初始化绑定
          */
@@ -1974,88 +2087,34 @@ var drunk;
                 this._unwatch();
             }
             Binding.removeWeakRef(this.element, this);
-            this._unwatch = null;
-            this._update = null;
+            delete Binding.instancesById[drunk.util.uuid(this)];
+            this._unwatch =
+                this._update =
+                    this.element =
+                        this.expression =
+                            this.viewModel = null;
             this._isActived = false;
-            this.element = null;
-            this.expression = null;
-            this.viewModel = null;
         };
         /**
-         * 设置表达式的值到viewModel上,因为值更新会触发视图更新,会返回来触发当前绑定的update方法,所以为了避免不必要的
-         * 性能消耗,这里提供加锁操作,在当前帧内设置锁定状态,发现是锁定的情况就不再调用update方法,下一帧的时候再把锁定状态取消
+         * 设置表达式的值到viewModel上
          * @param  value    要设置的值
-         * @param  isLocked 是否加锁
          */
         Binding.prototype.setValue = function (value) {
             this.viewModel.$setValue(this.expression, value);
         };
+        /** 实例 */
+        Binding.instancesById = {};
+        /**
+         * 缓存的所有绑定声明的表
+         */
+        Binding.definitions = {};
         return Binding;
     })();
     drunk.Binding = Binding;
     var Binding;
     (function (Binding) {
         /**
-         * 终止型绑定信息列表,每个绑定信息包含了name(名字)和priority(优先级)信息
-         */
-        var terminalBindingDescriptors = [];
-        /**
-         * 终止型绑定的名称
-         */
-        var terminalBindings = [];
-        /**
-         * 缓存的所有绑定声明的表
-         */
-        var definitions = {};
-        /**
-         * Binding实例与元素的弱引用关系表
-         */
-        var weakRefMap = {};
-        /**
-         * 获取元素的所有绑定实例
-         * @param  element  元素节点
-         */
-        function getAllBindingsByElement(element) {
-            var id = drunk.util.uuid(element);
-            var bindings = weakRefMap[id];
-            if (bindings) {
-                return bindings.slice();
-            }
-        }
-        Binding.getAllBindingsByElement = getAllBindingsByElement;
-        /**
-         * 添加引用
-         * @param  element  元素节点
-         * @param  binding  绑定实例
-         */
-        function setWeakRef(element, binding) {
-            var id = drunk.util.uuid(element);
-            if (!weakRefMap[id]) {
-                weakRefMap[id] = [];
-            }
-            drunk.util.addArrayItem(weakRefMap[id], binding);
-        }
-        Binding.setWeakRef = setWeakRef;
-        /**
-         * 移除引用
-         * @param   element  元素节点
-         * @param   binding  绑定实例
-         */
-        function removeWeakRef(element, binding) {
-            var id = drunk.util.uuid(element);
-            var bindings = weakRefMap[id];
-            if (!bindings) {
-                return;
-            }
-            drunk.util.removeArrayItem(bindings, binding);
-            if (bindings.length === 0) {
-                weakRefMap[id] = null;
-                drunk.Component.removeWeakRef(element);
-            }
-        }
-        Binding.removeWeakRef = removeWeakRef;
-        /**
-         * 绑定创建的优先级
+         * 优先级(没办法啊，枚举类型不能在类里面定义)
          */
         (function (Priority) {
             Priority[Priority["low"] = -100] = "low";
@@ -2065,77 +2124,6 @@ var drunk;
             Priority[Priority["belowNormal"] = -50] = "belowNormal";
         })(Binding.Priority || (Binding.Priority = {}));
         var Priority = Binding.Priority;
-        ;
-        /**
-         * 根据一个绑定原型对象注册一个binding指令
-         * @param   name  指令名
-         * @param   def   binding实现的定义对象或绑定的更新函数
-         */
-        function register(name, definition) {
-            definition.priority = definition.priority || Priority.normal;
-            if (definition.isTerminal) {
-                setTernimalBinding(name, definition.priority);
-            }
-            if (definitions[name]) {
-                console.warn(name, "绑定原已定义为：", definitions[name]);
-                console.warn("替换为", definition);
-            }
-            definitions[name] = definition;
-        }
-        Binding.register = register;
-        /**
-         * 根据绑定名获取绑定的定义
-         * @param   name      绑定的名称
-         * @return            具有绑定定义信息的对象
-         */
-        function getByName(name) {
-            return definitions[name];
-        }
-        Binding.getByName = getByName;
-        /**
-         * 获取已经根据优先级排序的终止型绑定的名称列表
-         * @return 返回绑定名称列表
-         */
-        function getTerminalBindings() {
-            return terminalBindings.slice();
-        }
-        Binding.getTerminalBindings = getTerminalBindings;
-        /**
-         * 创建viewModel与模板元素的绑定
-         * @param   viewModel  ViewModel实例
-         * @param   element    元素
-         */
-        function create(viewModel, element, descriptor, parentViewModel, placeholder) {
-            var binding = new Binding(viewModel, element, descriptor);
-            drunk.util.addArrayItem(viewModel._bindings, binding);
-            Binding.setWeakRef(element, binding);
-            drunk.Component.setWeakRef(element, viewModel);
-            binding.initialize(parentViewModel, placeholder);
-        }
-        Binding.create = create;
-        /**
-         * 设置终止型的绑定，根据提供的优先级对终止型绑定列表进行排序，优先级高的绑定会先于优先级的绑定创建
-         * @param   name      绑定的名称
-         * @param   priority  绑定的优先级
-         */
-        function setTernimalBinding(name, priority) {
-            // 检测是否已经存在该绑定
-            for (var i = 0, item = void 0; item = terminalBindingDescriptors[i]; i++) {
-                if (item.name === name) {
-                    item.priority = priority;
-                    break;
-                }
-            }
-            // 添加到列表中
-            terminalBindingDescriptors.push({
-                name: name,
-                priority: priority
-            });
-            // 重新根据优先级排序
-            terminalBindingDescriptors.sort(function (a, b) { return b.priority - a.priority; });
-            // 更新名字列表
-            terminalBindings = terminalBindingDescriptors.map(function (item) { return item.name; });
-        }
     })(Binding = drunk.Binding || (drunk.Binding = {}));
 })(drunk || (drunk = {}));
 /// <reference path="../util/util.ts" />
@@ -2143,8 +2131,8 @@ var drunk;
 /// <reference path="../promise/promise.ts" />
 /// <reference path="../watcher/watcher.ts" />
 /// <reference path="../binding/binding.ts" />
-/// <reference path="../filter/filter" />
-/// <reference path="../events/eventemitter" />
+/// <reference path="../filter/filter.ts" />
+/// <reference path="../events/eventemitter.ts" />
 var drunk;
 (function (drunk) {
     /**
@@ -2315,8 +2303,8 @@ var drunk;
     drunk.ViewModel = ViewModel;
 })(drunk || (drunk = {}));
 /// <reference path="../viewmodel/viewmodel.ts" />
-/// <reference path="../filter/filter" />
-/// <reference path="../cache/cache" />
+/// <reference path="../filter/filter.ts" />
+/// <reference path="../cache/cache.ts" />
 /**
  * 简单的解析器,只是做了字符串替换,然后使用new Function生成函数
  */
@@ -2611,8 +2599,8 @@ var drunk;
         }
     })(parser = drunk.parser || (drunk.parser = {}));
 })(drunk || (drunk = {}));
-/// <reference path="../parser/parser" />
-/// <reference path="../viewmodel/viewModel" />
+/// <reference path="../parser/parser.ts" />
+/// <reference path="../viewmodel/viewModel.ts" />
 /**
  * 数据过滤器模块
  * @module drunk.filter
@@ -2857,10 +2845,10 @@ var drunk;
         }
     })(filter = drunk.filter || (drunk.filter = {}));
 })(drunk || (drunk = {}));
-/// <reference path="../binding" />
-/// <reference path="../../config/config" />
-/// <reference path="../../promise/promise" />
-/// <reference path="../../scheduler/scheduler" />
+/// <reference path="../binding.ts" />
+/// <reference path="../../config/config.ts" />
+/// <reference path="../../promise/promise.ts" />
+/// <reference path="../../scheduler/scheduler.ts" />
 var drunk;
 (function (drunk) {
     /**
@@ -3171,9 +3159,9 @@ var drunk;
     }
     drunk.Binding.register('action', ActionBinding.prototype);
 })(drunk || (drunk = {}));
-/// <reference path="../promise/promise" />
-/// <reference path="./util" />
-/// <reference path="../binding/bindings/action" />
+/// <reference path="../promise/promise.ts" />
+/// <reference path="./util.ts" />
+/// <reference path="../binding/bindings/action.ts" />
 /**
  * DOM操作的工具方法模块
  */
@@ -3341,7 +3329,7 @@ var drunk;
 /// <reference path="../viewmodel/viewModel.ts" />
 /// <reference path="../promise/promise.ts" />
 /// <reference path="../util/xhr.ts" />
-/// <reference path="../util/dom" />
+/// <reference path="../util/dom.ts" />
 /// <reference path="../config/config.ts" />
 /// <reference path="../parser/parser.ts" />
 /**
@@ -3591,7 +3579,7 @@ var drunk;
 })(drunk || (drunk = {}));
 /// <reference path="../promise/promise.ts" />
 /// <reference path="../util/xhr.ts" />
-/// <reference path="../cache/cache" />
+/// <reference path="../cache/cache.ts" />
 var drunk;
 (function (drunk) {
     var Template;
@@ -3621,10 +3609,10 @@ var drunk;
         Template.load = load;
     })(Template = drunk.Template || (drunk.Template = {}));
 })(drunk || (drunk = {}));
-/// <reference path="./loader" />
-/// <reference path="../util/dom" />
-/// <reference path="../cache/cache" />
-/// <reference path="../promise/promise" />
+/// <reference path="./loader.ts" />
+/// <reference path="../util/dom.ts" />
+/// <reference path="../cache/cache.ts" />
+/// <reference path="../promise/promise.ts" />
 var drunk;
 (function (drunk) {
     var Template;
@@ -3803,11 +3791,11 @@ var drunk;
         }
     })(Template = drunk.Template || (drunk.Template = {}));
 })(drunk || (drunk = {}));
-/// <reference path="../viewmodel/viewmodel" />
-/// <reference path="../template/loader" />
-/// <reference path="../template/compiler" />
-/// <reference path="../config/config" />
-/// <reference path="../util/dom" />
+/// <reference path="../viewmodel/viewmodel.ts" />
+/// <reference path="../template/loader.ts" />
+/// <reference path="../template/compiler.ts" />
+/// <reference path="../config/config.ts" />
+/// <reference path="../util/dom.ts" />
 var drunk;
 (function (drunk) {
     var Component = (function (_super) {
@@ -3818,6 +3806,7 @@ var drunk;
          */
         function Component(model) {
             _super.call(this, model);
+            Component.instancesById[drunk.util.uuid(this)] = this;
         }
         /**
          * 实例创建时会调用的初始化方法,派生类可覆盖该方法
@@ -3907,15 +3896,17 @@ var drunk;
          * @param  placeholder     组件占位标签
          */
         Component.prototype.$mount = function (element, ownerViewModel, placeholder) {
+            var _this = this;
             console.assert(!this._isMounted, "该组件已有挂载到", this.element);
             if (Component.getByElement(element)) {
                 console.error("$mount(element): 尝试挂载到一个已经挂载过组件实例的元素节点", element);
                 return;
             }
             drunk.Template.compile(element)(this, element, ownerViewModel, placeholder);
-            Component.setWeakRef(element, this);
             this.element = element;
             this._isMounted = true;
+            var nodeList = Array.isArray(element) ? element : [element];
+            nodeList.forEach(function (node) { return Component.setWeakRef(node, _this); });
         };
         /**
          * 释放组件
@@ -3924,17 +3915,24 @@ var drunk;
             this.$emit(Component.Event.release, this);
             _super.prototype.$release.call(this);
             if (this._isMounted) {
-                Component.removeWeakRef(this.element);
                 this._isMounted = false;
+                var nodeList = Array.isArray(this.element) ? this.element : [this.element];
+                nodeList.forEach(function (node) { return Component.removeWeakRef(node); });
             }
-            this.element = null;
+            Component.instancesById[drunk.util.uuid(this)] = this.element = null;
         };
         return Component;
     })(drunk.ViewModel);
     drunk.Component = Component;
     var Component;
     (function (Component) {
-        var weakRefMap = {};
+        var refKey = 'DRUNK-COMPONENT-ID';
+        /**
+         * 定义的组件记录
+         */
+        Component.constructorsByName = {};
+        /** 组件实例 */
+        Component.instancesById = {};
         /**
          * 组件的事件名称
          */
@@ -3949,8 +3947,7 @@ var drunk;
          * @return  Component实例
          */
         function getByElement(element) {
-            var uid = drunk.util.uuid(element);
-            return weakRefMap[uid];
+            return element && Component.instancesById[element[refKey]];
         }
         Component.getByElement = getByElement;
         /**
@@ -3959,13 +3956,7 @@ var drunk;
          * @param   component  组件实例
          */
         function setWeakRef(element, component) {
-            var uid = drunk.util.uuid(element);
-            if (weakRefMap[uid] !== undefined && weakRefMap[uid] !== component) {
-                console.error(element, '元素尝试挂载到不同的组件实例');
-            }
-            else {
-                weakRefMap[uid] = component;
-            }
+            element[refKey] = drunk.util.uuid(component);
         }
         Component.setWeakRef = setWeakRef;
         /**
@@ -3973,25 +3964,18 @@ var drunk;
          * @param  element  元素
          */
         function removeWeakRef(element) {
-            var uid = drunk.util.uuid(element);
-            if (weakRefMap[uid]) {
-                delete weakRefMap[uid];
-            }
+            delete element[refKey];
         }
         Component.removeWeakRef = removeWeakRef;
-        /**
-         * 定义的组件记录
-         */
-        var definedComponentMap = {};
         /**
          * 根据组件名字获取组件构造函数
          * @param  name  组件名
          * @return  组件类的构造函数
          */
-        function getByName(name) {
-            return definedComponentMap[name];
+        function getConstructorByName(name) {
+            return Component.constructorsByName[name];
         }
-        Component.getByName = getByName;
+        Component.getConstructorByName = getConstructorByName;
         function define() {
             var args = [];
             for (var _i = 0; _i < arguments.length; _i++) {
@@ -4044,11 +4028,11 @@ var drunk;
          */
         function register(name, componentCtor) {
             console.assert(name.indexOf('-') > -1, name, '组件明必须在中间带"-"字符,如"custom-view"');
-            if (definedComponentMap[name] != null) {
+            if (Component.constructorsByName[name] != null) {
                 console.warn('组件 "' + name + '" 已被覆盖,请确认该操作');
             }
             componentCtor.extend = Component.extend;
-            definedComponentMap[name] = componentCtor;
+            Component.constructorsByName[name] = componentCtor;
             addHiddenStyleForComponent(name);
         }
         Component.register = register;
@@ -4073,10 +4057,10 @@ var drunk;
         register(drunk.config.prefix + 'view', Component);
     })(Component = drunk.Component || (drunk.Component = {}));
 })(drunk || (drunk = {}));
-/// <reference path="../binding" />
-/// <reference path="../../template/compiler" />
-/// <reference path="../../util/dom" />
-/// <reference path="../../config/config" />
+/// <reference path="../binding.ts" />
+/// <reference path="../../template/compiler.ts" />
+/// <reference path="../../util/dom.ts" />
+/// <reference path="../../config/config.ts" />
 var drunk;
 (function (drunk) {
     var reg = {
@@ -4115,8 +4099,8 @@ var drunk;
         }
     });
 })(drunk || (drunk = {}));
-/// <reference path="../binding" />
-/// <reference path="../../util/util" />
+/// <reference path="../binding.ts" />
+/// <reference path="../../util/util.ts" />
 drunk.Binding.register('attr', {
     // attrName: null,
     update: function (newValue) {
@@ -4138,8 +4122,8 @@ drunk.Binding.register('attr', {
         this.element.setAttribute(name, value);
     }
 });
-/// <reference path="../binding" />
-/// <reference path="../../util/dom" />
+/// <reference path="../binding.ts" />
+/// <reference path="../../util/dom.ts" />
 drunk.Binding.register("bind", {
     update: function (newValue) {
         newValue = newValue == null ? '' : newValue;
@@ -4160,8 +4144,8 @@ drunk.Binding.register("bind", {
         }
     }
 });
-/// <reference path="../binding" />
-/// <reference path="../../util/dom" />
+/// <reference path="../binding.ts" />
+/// <reference path="../../util/dom.ts" />
 drunk.Binding.register("class", {
     _oldValue: null,
     update: function (data) {
@@ -4210,14 +4194,19 @@ drunk.Binding.register("class", {
         this._oldValue = null;
     }
 });
-/// <reference path="../binding" />
-/// <reference path="../../util/dom" />
-/// <reference path="../../component/component" />
-/// <reference path="../../template/compiler" />
-/// <reference path="../../scheduler/scheduler" />
-/// <reference path="../../map/map" />
+/// <reference path="../binding.ts" />
+/// <reference path="../../util/dom.ts" />
+/// <reference path="../../component/component.ts" />
+/// <reference path="../../template/compiler.ts" />
+/// <reference path="../../scheduler/scheduler.ts" />
+/// <reference path="../../map/map.ts" />
+/// <reference path="../../promise/promise.ts" />
 var drunk;
 (function (drunk) {
+    var Map = drunk.Map;
+    var Binding = drunk.Binding;
+    var Template = drunk.Template;
+    var Scheduler = drunk.Scheduler;
     /**
      * 用于repeat作用域下的子viewModel
      * @param _parent     父级ViewModel
@@ -4370,19 +4359,21 @@ var drunk;
         RepeatBinding.prototype.init = function () {
             this._createCommentNodes();
             this._parseDefinition();
-            this._map = new drunk.Map();
+            this._map = new Map();
             this._items = [];
-            this._bind = drunk.Template.compile(this.element);
+            this._bind = Template.compile(this.element);
         };
         /**
          * 创建注释标记标签
          */
         RepeatBinding.prototype._createCommentNodes = function () {
             this._flagNodeContent = "[repeat-item]" + this.expression;
-            this._startNode = document.createComment('<repeat>: ' + this.expression);
-            this._endedNode = document.createComment('</repeat>: ' + this.expression);
-            drunk.dom.before(this._startNode, this.element);
-            drunk.dom.replace(this._endedNode, this.element);
+            this._headNode = document.createComment('<repeat>: ' + this.expression);
+            this._tailNode = document.createComment('</repeat>: ' + this.expression);
+            drunk.dom.before(this._headNode, this.element);
+            drunk.dom.replace(this._tailNode, this.element);
+            Binding.setWeakRef(this._headNode, this);
+            Binding.setWeakRef(this._tailNode, this);
         };
         /**
          * 解析表达式定义
@@ -4449,7 +4440,7 @@ var drunk;
             var job;
             var next = function (node) {
                 placeholder = node.nextSibling;
-                while (placeholder && placeholder !== _this._endedNode &&
+                while (placeholder && placeholder !== _this._tailNode &&
                     (placeholder.nodeType !== 8 || placeholder.textContent != _this._flagNodeContent)) {
                     placeholder = placeholder.nextSibling;
                 }
@@ -4479,7 +4470,7 @@ var drunk;
                         }
                         if (Date.now() >= endTime && index < length) {
                             // 如果创建节点达到了一定时间，让出线程给ui线程
-                            return jobInfo.setPromise(drunk.Promise.resolve(renderItems));
+                            return jobInfo.setWork(renderItems);
                         }
                     }
                     else {
@@ -4489,8 +4480,8 @@ var drunk;
                 job = null;
                 _this._cancelRenderJob = null;
             };
-            next(this._startNode);
-            job = drunk.Scheduler.schedule(renderItems, drunk.Scheduler.Priority.aboveNormal);
+            next(this._headNode);
+            job = Scheduler.schedule(renderItems, Scheduler.Priority.aboveNormal);
             this._cancelRenderJob = function () {
                 job.cancel();
                 _this._cancelRenderJob = null;
@@ -4589,30 +4580,34 @@ var drunk;
             if (this._cancelRenderJob) {
                 this._cancelRenderJob();
             }
-            drunk.dom.remove(this._startNode);
-            drunk.dom.remove(this._endedNode);
+            Binding.removeWeakRef(this._headNode, this);
+            Binding.removeWeakRef(this._tailNode, this);
+            drunk.dom.remove(this._headNode);
+            drunk.dom.remove(this._tailNode);
             this._map.clear();
-            this._map = null;
-            this._items = null;
-            this._itemVms = null;
-            this._bind = null;
-            this._startNode = null;
-            this._endedNode = null;
+            this._map =
+                this._items =
+                    this._itemVms =
+                        this._bind =
+                            this._headNode =
+                                this._tailNode = null;
         };
         return RepeatBinding;
     })();
     ;
     RepeatBinding.prototype.isTerminal = true;
-    RepeatBinding.prototype.priority = drunk.Binding.Priority.aboveNormal + 1;
-    drunk.Binding.register("repeat", RepeatBinding.prototype);
+    RepeatBinding.prototype.priority = Binding.Priority.aboveNormal + 1;
+    Binding.register("repeat", RepeatBinding.prototype);
 })(drunk || (drunk = {}));
-/// <reference path="../binding" />
-/// <reference path="../../component/component" />
-/// <reference path="../../util/dom" />
-/// <reference path="./repeat" />
-/// <reference path="../../template/fragment" />
+/// <reference path="./repeat.ts" />
+/// <reference path="../binding.ts" />
+/// <reference path="../../component/component.ts" />
+/// <reference path="../../util/dom.ts" />
+/// <reference path="../../template/fragment.ts" />
 var drunk;
 (function (drunk) {
+    var dom = drunk.dom;
+    var Binding = drunk.Binding;
     var reOneInterpolate = /^\{\{([^{]+)\}\}$/;
     var ComponentBinding = (function () {
         function ComponentBinding() {
@@ -4626,7 +4621,7 @@ var drunk;
             if (src) {
                 return this._initAsyncComponent(src);
             }
-            var Ctor = drunk.Component.getByName(this.expression);
+            var Ctor = drunk.Component.getConstructorByName(this.expression);
             if (!Ctor) {
                 throw new Error(this.expression + ": 未找到该组件.");
             }
@@ -4644,7 +4639,7 @@ var drunk;
                 if (_this.isDisposed) {
                     return;
                 }
-                var Ctor = drunk.Component.getByName(_this.expression);
+                var Ctor = drunk.Component.getConstructorByName(_this.expression);
                 if (!Ctor) {
                     throw new Error(_this.expression + ": 未找到该组件.");
                 }
@@ -4732,28 +4727,27 @@ var drunk;
                 if (_this.isDisposed) {
                     return;
                 }
-                var startNode = _this._startNode = document.createComment("<component>: " + _this.expression);
-                var endedNode = _this._endedNode = document.createComment("</component>: " + _this.expression);
-                drunk.dom.replace(startNode, element);
-                drunk.dom.after(endedNode, startNode);
-                drunk.dom.after(template, startNode);
-                var promise = component.$mount(template, viewModel, element);
-                var nodeList = [startNode];
-                var currNode = startNode.nextSibling;
-                while (currNode && currNode !== endedNode) {
+                var headNode = _this._headNode = document.createComment("<component>: " + _this.expression);
+                var tailNode = _this._tailNode = document.createComment("</component>: " + _this.expression);
+                dom.replace(headNode, element);
+                dom.after(tailNode, headNode);
+                dom.after(template, headNode);
+                Binding.setWeakRef(headNode, _this);
+                Binding.setWeakRef(tailNode, _this);
+                component.$mount(template, viewModel, element);
+                var currNode = headNode.nextSibling;
+                var nodeList = [headNode];
+                while (currNode && currNode !== tailNode) {
                     nodeList.push(currNode);
                     currNode = currNode.nextSibling;
                 }
-                nodeList.push(endedNode);
+                nodeList.push(tailNode);
                 if (viewModel instanceof drunk.RepeatItem) {
                     if (viewModel._element === element) {
                         viewModel._element = nodeList;
                     }
                 }
-                return promise;
-            }).catch(function (error) {
-                console.warn(_this.expression + ": \u7EC4\u4EF6\u521B\u5EFA\u5931\u8D25\n", error);
-            });
+            }).catch(function (error) { return console.warn(_this.expression + ": \u7EC4\u4EF6\u521B\u5EFA\u5931\u8D25\n", error); });
         };
         /**
          * 注册组件的事件
@@ -4762,7 +4756,7 @@ var drunk;
             var _this = this;
             var viewModel = this.viewModel;
             var func = drunk.parser.parse(expression);
-            this.component.$addListener(eventName, function () {
+            this.component.$on(eventName, function () {
                 var args = [];
                 for (var _i = 0; _i < arguments.length; _i++) {
                     args[_i - 0] = arguments[_i];
@@ -4772,7 +4766,8 @@ var drunk;
                 // $el字段为该组件实例
                 func.call(undefined, viewModel, {
                     type: eventName,
-                    args: args
+                    args: args,
+                    target: _this.component
                 }, _this.component);
             });
         };
@@ -4815,20 +4810,22 @@ var drunk;
                 var element = component.element;
                 component.$release();
                 if (element) {
-                    drunk.dom.remove(element);
+                    dom.remove(element);
                 }
             }
             if (this.unwatches) {
                 // 移除所有的属性监控
                 this.unwatches.forEach(function (unwatch) { return unwatch(); });
             }
-            if (this._startNode && this._endedNode) {
-                drunk.dom.remove(this._startNode);
-                drunk.dom.remove(this._endedNode);
+            if (this._headNode && this._tailNode) {
+                dom.remove(this._headNode);
+                dom.remove(this._tailNode);
+                Binding.removeWeakRef(this._headNode, this);
+                Binding.removeWeakRef(this._tailNode, this);
             }
             // 移除所有引用
-            this._startNode = null;
-            this._endedNode = null;
+            this._headNode = null;
+            this._tailNode = null;
             this.component = null;
             this.unwatches = null;
             this.isDisposed = true;
@@ -4836,22 +4833,24 @@ var drunk;
         return ComponentBinding;
     })();
     ComponentBinding.prototype.isTerminal = true;
-    ComponentBinding.prototype.priority = drunk.Binding.Priority.aboveNormal;
-    drunk.Binding.register('component', ComponentBinding.prototype);
+    ComponentBinding.prototype.priority = Binding.Priority.aboveNormal;
+    Binding.register('component', ComponentBinding.prototype);
 })(drunk || (drunk = {}));
-/// <reference path="../binding" />
-/// <reference path="../../util/dom" />
-/// <reference path="../../template/compiler" />
+/// <reference path="../binding.ts" />
+/// <reference path="../../util/dom.ts" />
+/// <reference path="../../template/compiler.ts" />
 drunk.Binding.register("if", {
     isTerminal: true,
     priority: drunk.Binding.Priority.aboveNormal + 2,
     init: function () {
-        this._startNode = document.createComment("<if>: " + this.expression);
-        this._endedNode = document.createComment("</if>: " + this.expression);
+        this._headNode = document.createComment("<if>: " + this.expression);
+        this._tailNode = document.createComment("</if>: " + this.expression);
         this._bind = drunk.Template.compile(this.element);
         this._inDocument = false;
-        drunk.dom.replace(this._startNode, this.element);
-        drunk.dom.after(this._endedNode, this._startNode);
+        drunk.dom.replace(this._headNode, this.element);
+        drunk.dom.after(this._tailNode, this._headNode);
+        drunk.Binding.setWeakRef(this._headNode, this);
+        drunk.Binding.setWeakRef(this._tailNode, this);
     },
     update: function (value) {
         if (!!value) {
@@ -4866,7 +4865,8 @@ drunk.Binding.register("if", {
             return;
         }
         this._tmpElement = this.element.cloneNode(true);
-        drunk.dom.after(this._tmpElement, this._startNode);
+        drunk.dom.after(this._tmpElement, this._headNode);
+        drunk.Binding.setWeakRef(this._tmpElement, this);
         this._unbind = this._bind(this.viewModel, this._tmpElement);
         this._inDocument = true;
     },
@@ -4876,37 +4876,54 @@ drunk.Binding.register("if", {
         }
         this._unbind();
         drunk.dom.remove(this._tmpElement);
+        drunk.Binding.removeWeakRef(this._tmpElement, this);
         this._unbind = null;
         this._tmpElement = null;
         this._inDocument = false;
     },
     release: function () {
         this.removeFromDocument();
-        this._startNode.parentNode.removeChild(this._startNode);
-        this._endedNode.parentNode.removeChild(this._endedNode);
-        this._startNode = null;
-        this._endedNode = null;
+        this._headNode.parentNode.removeChild(this._headNode);
+        this._tailNode.parentNode.removeChild(this._tailNode);
+        drunk.Binding.removeWeakRef(this._headNode, this);
+        drunk.Binding.removeWeakRef(this._tailNode, this);
+        this._headNode = null;
+        this._tailNode = null;
         this._bind = null;
     }
 });
-/// <reference path="../binding" />
-/// <reference path="../../template/loader" />
-/// <reference path="../../template/compiler" />
-/// <reference path="../../config/config" />
-/// <reference path="../../promise/promise" />
+/// <reference path="../binding.ts" />
+/// <reference path="../../template/loader.ts" />
+/// <reference path="../../template/compiler.ts" />
+/// <reference path="../../config/config.ts" />
+/// <reference path="../../promise/promise.ts" />
+/// <reference path="../../util/dom.ts" />
 drunk.Binding.register("include", {
     _unbind: null,
     _url: null,
     _elements: null,
+    _replaceNode: false,
+    init: function () {
+        this._replaceNode = this.element.getAttribute('replace-node') != null;
+        this._headNode = document.createComment('<drunk-include>');
+        this._tailNode = document.createComment('</drunk-include>');
+        if (this._replaceNode) {
+            this.element.appendChild(this._headNode);
+            this.element.appendChild(this._tailNode);
+            drunk.Binding.setWeakRef(this._headNode, this);
+            drunk.Binding.setWeakRef(this._tailNode, this);
+        }
+        else {
+            drunk.dom.replace([this._headNode, this._tailNode], this.element);
+        }
+    },
     update: function (url) {
         var _this = this;
         if (!this._isActived || (url && url === this._url)) {
             return;
         }
         this._url = url;
-        if (this._elements) {
-            drunk.dom.remove(this._elements).then(this._removeBind.bind(this));
-        }
+        this._removeBind();
         if (url) {
             drunk.Template.renderFragment(url, null, true).then(function (fragment) { return _this._createBinding(fragment); });
         }
@@ -4914,23 +4931,29 @@ drunk.Binding.register("include", {
     _createBinding: function (fragment) {
         var _this = this;
         this._elements = drunk.util.toArray(fragment.childNodes);
-        this._elements.forEach(function (el) { return _this.element.appendChild(el); });
+        this._elements.forEach(function (el) { return drunk.dom.before(el, _this._tailNode); });
         this._unbind = drunk.Template.compile(this._elements)(this.viewModel, this._elements);
     },
     _removeBind: function () {
-        if (this._unbind) {
-            this._unbind();
-            this._unbind = null;
+        if (this._elements) {
+            var unbind = this._unbind;
+            drunk.dom.remove(this._elements).then(function () {
+                unbind();
+            });
+            this._elements = null;
         }
-        this._elements = null;
     },
     release: function () {
-        this._unbind();
-        this._url = null;
+        drunk.Binding.removeWeakRef(this._headNode, this);
+        drunk.Binding.removeWeakRef(this._tailNode, this);
+        this._headNode.parentNode.removeChild(this._headNode);
+        this._tailNode.parentNode.removeChild(this._tailNode);
+        this._removeBind();
+        this._url = this._unbind = this._heaNode = this._tailNode = null;
     }
 });
-/// <reference path="../binding" />
-/// <reference path="../../util/dom" />
+/// <reference path="../binding.ts" />
+/// <reference path="../../util/dom.ts" />
 var drunk;
 (function (drunk) {
     drunk.Binding.register("model", {
@@ -5022,7 +5045,7 @@ var drunk;
         return this.element.value;
     }
 })(drunk || (drunk = {}));
-/// <reference path="../binding" />
+/// <reference path="../binding.ts" />
 drunk.Binding.register("show", {
     update: function (isVisible) {
         var style = this.element.style;
@@ -5034,11 +5057,11 @@ drunk.Binding.register("show", {
         }
     }
 });
-/// <reference path="../binding" />
-/// <reference path="../../component/component" />
-/// <reference path="../../util/dom" />
-/// <reference path="../../template/compiler" />
-/// <reference path="../../promise/promise" />
+/// <reference path="../binding.ts" />
+/// <reference path="../../component/component.ts" />
+/// <reference path="../../util/dom.ts" />
+/// <reference path="../../template/compiler.ts" />
+/// <reference path="../../promise/promise.ts" />
 drunk.Binding.register("transclude", {
     /**
      * 初始化绑定,先注册transcludeResponse事件用于获取transclude的viewModel和nodelist

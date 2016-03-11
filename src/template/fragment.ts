@@ -1,7 +1,7 @@
-/// <reference path="./loader" />
-/// <reference path="../util/dom" />
-/// <reference path="../cache/cache" />
-/// <reference path="../promise/promise" />
+/// <reference path="./loader.ts" />
+/// <reference path="../util/dom.ts" />
+/// <reference path="../cache/cache.ts" />
+/// <reference path="../promise/promise.ts" />
 
 namespace drunk.Template {
     

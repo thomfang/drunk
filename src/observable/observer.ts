@@ -1,7 +1,7 @@
 /// <reference path="../util/util.ts" />
 /// <reference path="./observableArray.ts" />
 /// <reference path="./observableObject.ts" />
-/// <reference path="../events/eventemitter" />
+/// <reference path="../events/eventemitter.ts" />
 
 namespace drunk.observable {
     

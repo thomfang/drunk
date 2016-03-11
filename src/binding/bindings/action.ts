@@ -1,7 +1,7 @@
-/// <reference path="../binding" />
-/// <reference path="../../config/config" />
-/// <reference path="../../promise/promise" />
-/// <reference path="../../scheduler/scheduler" />
+/// <reference path="../binding.ts" />
+/// <reference path="../../config/config.ts" />
+/// <reference path="../../promise/promise.ts" />
+/// <reference path="../../scheduler/scheduler.ts" />
 
 namespace drunk {
 

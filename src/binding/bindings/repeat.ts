@@ -1,11 +1,18 @@
-/// <reference path="../binding" />
-/// <reference path="../../util/dom" />
-/// <reference path="../../component/component" />
-/// <reference path="../../template/compiler" />
-/// <reference path="../../scheduler/scheduler" />
-/// <reference path="../../map/map" />
+/// <reference path="../binding.ts" />
+/// <reference path="../../util/dom.ts" />
+/// <reference path="../../component/component.ts" />
+/// <reference path="../../template/compiler.ts" />
+/// <reference path="../../scheduler/scheduler.ts" />
+/// <reference path="../../map/map.ts" />
+/// <reference path="../../promise/promise.ts" />
 
 namespace drunk {
+
+    import Map = drunk.Map;
+    import Promise = drunk.Promise;
+    import Binding = drunk.Binding;
+    import Template = drunk.Template;
+    import Scheduler = drunk.Scheduler;
 
     export interface IItemDataDescriptor {
         key: string | number;
@@ -32,7 +39,7 @@ namespace drunk {
             super(ownModel);
             this.__inheritParentMembers();
         }
-        
+
         /**
          * 这里只初始化私有model
          */
@@ -40,7 +47,7 @@ namespace drunk {
             this.__proxyModel(ownModel);
             observable.create(ownModel);
         }
-        
+
         /**
          * 继承父级viewModel的filter和私有model
          */
@@ -58,7 +65,7 @@ namespace drunk {
                 });
             }
         }
-        
+
         /**
          * 代理指定model上的所有属性
          */
@@ -73,7 +80,7 @@ namespace drunk {
 
             this._models.push(model);
         }
-        
+
         /**
          * 重写代理方法,顺便也让父级viewModel代理该属性
          */
@@ -90,7 +97,7 @@ namespace drunk {
             });
             return result;
         }
-        
+
         /**
          * 重写获取事件处理方法,忘父级查找该方法
          */
@@ -116,7 +123,7 @@ namespace drunk {
                 return handler.apply(context, args);
             };
         }
-        
+
         /**
          * 实例释放
          */
@@ -187,8 +194,8 @@ namespace drunk {
         viewModel: Component;
         expression: string;
 
-        private _startNode: Node;
-        private _endedNode: Node;
+        private _headNode: Node;
+        private _tailNode: Node;
         private _param: { key?: string; val: string };
         private _bind: IBindingGenerator;
         private _itemVms: RepeatItem[];
@@ -209,17 +216,20 @@ namespace drunk {
             this._items = [];
             this._bind = Template.compile(this.element);
         }
-        
+
         /**
          * 创建注释标记标签
          */
         private _createCommentNodes() {
             this._flagNodeContent = `[repeat-item]${this.expression}`;
-            this._startNode = document.createComment('<repeat>: ' + this.expression);
-            this._endedNode = document.createComment('</repeat>: ' + this.expression);
+            this._headNode = document.createComment('<repeat>: ' + this.expression);
+            this._tailNode = document.createComment('</repeat>: ' + this.expression);
 
-            dom.before(this._startNode, this.element);
-            dom.replace(this._endedNode, this.element);
+            dom.before(this._headNode, this.element);
+            dom.replace(this._tailNode, this.element);
+
+            Binding.setWeakRef(this._headNode, <any>this);
+            Binding.setWeakRef(this._tailNode, <any>this);
         }
 
         /**
@@ -300,7 +310,7 @@ namespace drunk {
 
             let next = (node: Node) => {
                 placeholder = node.nextSibling;
-                while (placeholder && placeholder !== this._endedNode &&
+                while (placeholder && placeholder !== this._tailNode &&
                     (placeholder.nodeType !== 8 || placeholder.textContent != this._flagNodeContent)) {
                     placeholder = placeholder.nextSibling;
                 }
@@ -313,7 +323,7 @@ namespace drunk {
                 }
 
                 let viewModel: RepeatItem;
-                
+
                 // 100ms作为当前线程跑的时长，超过该时间则让出线程
                 let endTime = Date.now() + 100;
 
@@ -338,7 +348,7 @@ namespace drunk {
 
                         if (Date.now() >= endTime && index < length) {
                             // 如果创建节点达到了一定时间，让出线程给ui线程
-                            return jobInfo.setPromise(Promise.resolve(renderItems));
+                            return jobInfo.setWork(renderItems);
                         }
                     }
                     else {
@@ -350,7 +360,7 @@ namespace drunk {
                 this._cancelRenderJob = null;
             };
 
-            next(this._startNode);
+            next(this._headNode);
             job = Scheduler.schedule(renderItems, Scheduler.Priority.aboveNormal);
 
             this._cancelRenderJob = () => {
@@ -473,16 +483,20 @@ namespace drunk {
                 this._cancelRenderJob();
             }
 
-            dom.remove(this._startNode);
-            dom.remove(this._endedNode);
+            Binding.removeWeakRef(this._headNode, <any>this);
+            Binding.removeWeakRef(this._tailNode, <any>this);
+            
+            dom.remove(this._headNode);
+            dom.remove(this._tailNode);
 
             this._map.clear();
-            this._map = null;
-            this._items = null;
-            this._itemVms = null;
-            this._bind = null;
-            this._startNode = null;
-            this._endedNode = null;
+
+            this._map =
+                this._items =
+                this._itemVms =
+                this._bind =
+                this._headNode =
+                this._tailNode = null;
         }
     };
 

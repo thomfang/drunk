@@ -622,12 +622,6 @@ declare namespace drunk {
 }
 declare namespace drunk {
     /**
-     * 更新函数接口
-     */
-    interface IBindingUpdateAction {
-        (newValue: any, oldValue: any): any;
-    }
-    /**
      * 绑定声明接口
      */
     interface IBindingDefinition {
@@ -658,11 +652,73 @@ declare namespace drunk {
         (viewModel: ViewModel, element: any, parentViewModel?: ViewModel, placeHolder?: HTMLElement): Function;
     }
     /**
+     * 更新函数接口
+     */
+    interface IBindingUpdateAction {
+        (newValue: any, oldValue: any): any;
+    }
+    /**
      * 绑定类
      */
     class Binding {
         viewModel: ViewModel;
         element: any;
+        /** 实例 */
+        static instancesById: {
+            [id: number]: Binding;
+        };
+        /**
+         * 缓存的所有绑定声明的表
+         */
+        static definitions: {
+            [name: string]: IBindingDefinition;
+        };
+        /**
+         * 获取元素的所有绑定实例
+         * @param  element  元素节点
+         */
+        static getByElement(element: Node): Binding[];
+        /**
+         * 添加引用
+         * @param  element  元素节点
+         * @param  binding  绑定实例
+         */
+        static setWeakRef(element: Node, binding: Binding): void;
+        /**
+         * 移除引用
+         * @param   element  元素节点
+         * @param   binding  绑定实例
+         */
+        static removeWeakRef(element: Node, binding: Binding): void;
+        /**
+         * 根据一个绑定原型对象注册一个binding指令
+         * @param   name  指令名
+         * @param   def   binding实现的定义对象或绑定的更新函数
+         */
+        static register<T extends IBindingDefinition>(name: string, definition: T): void;
+        /**
+         * 根据绑定名获取绑定的定义
+         * @param   name      绑定的名称
+         * @return            具有绑定定义信息的对象
+         */
+        static getByName(name: string): IBindingDefinition;
+        /**
+         * 获取已经根据优先级排序的终止型绑定的名称列表
+         * @return 返回绑定名称列表
+         */
+        static getTerminalBindings(): string[];
+        /**
+         * 创建viewModel与模板元素的绑定
+         * @param   viewModel  ViewModel实例
+         * @param   element    元素
+         */
+        static create(viewModel: any, element: any, descriptor: IBindingDefinition, parentViewModel?: any, placeholder?: HTMLElement): void;
+        /**
+         * 设置终止型的绑定，根据提供的优先级对终止型绑定列表进行排序，优先级高的绑定会先于优先级的绑定创建
+         * @param   name      绑定的名称
+         * @param   priority  绑定的优先级
+         */
+        private static _setTernimalBinding(name, priority);
         /**
          * binding名称
          */
@@ -719,33 +775,14 @@ declare namespace drunk {
          */
         dispose(): void;
         /**
-         * 设置表达式的值到viewModel上,因为值更新会触发视图更新,会返回来触发当前绑定的update方法,所以为了避免不必要的
-         * 性能消耗,这里提供加锁操作,在当前帧内设置锁定状态,发现是锁定的情况就不再调用update方法,下一帧的时候再把锁定状态取消
+         * 设置表达式的值到viewModel上
          * @param  value    要设置的值
-         * @param  isLocked 是否加锁
          */
         setValue(value: any): void;
     }
-    namespace Binding {
+    module Binding {
         /**
-         * 获取元素的所有绑定实例
-         * @param  element  元素节点
-         */
-        function getAllBindingsByElement(element: Node): Binding[];
-        /**
-         * 添加引用
-         * @param  element  元素节点
-         * @param  binding  绑定实例
-         */
-        function setWeakRef(element: Node, binding: Binding): void;
-        /**
-         * 移除引用
-         * @param   element  元素节点
-         * @param   binding  绑定实例
-         */
-        function removeWeakRef(element: Node, binding: Binding): void;
-        /**
-         * 绑定创建的优先级
+         * 优先级(没办法啊，枚举类型不能在类里面定义)
          */
         enum Priority {
             low = -100,
@@ -754,29 +791,6 @@ declare namespace drunk {
             aboveNormal = 50,
             belowNormal = -50,
         }
-        /**
-         * 根据一个绑定原型对象注册一个binding指令
-         * @param   name  指令名
-         * @param   def   binding实现的定义对象或绑定的更新函数
-         */
-        function register<T extends IBindingDefinition>(name: string, definition: T): void;
-        /**
-         * 根据绑定名获取绑定的定义
-         * @param   name      绑定的名称
-         * @return            具有绑定定义信息的对象
-         */
-        function getByName(name: string): IBindingDefinition;
-        /**
-         * 获取已经根据优先级排序的终止型绑定的名称列表
-         * @return 返回绑定名称列表
-         */
-        function getTerminalBindings(): string[];
-        /**
-         * 创建viewModel与模板元素的绑定
-         * @param   viewModel  ViewModel实例
-         * @param   element    元素
-         */
-        function create(viewModel: any, element: any, descriptor: IBindingDefinition, parentViewModel?: any, placeholder?: HTMLElement): void;
     }
 }
 declare namespace drunk {
@@ -1227,9 +1241,19 @@ declare namespace drunk {
     }
     namespace Component {
         /**
+         * 定义的组件记录
+         */
+        var constructorsByName: {
+            [name: string]: IComponentContructor<any>;
+        };
+        /** 组件实例 */
+        var instancesById: {
+            [id: number]: Component;
+        };
+        /**
          * 组件的事件名称
          */
-        let Event: IComponentEvent;
+        const Event: IComponentEvent;
         /**
          * 获取挂在在元素上的viewModel实例
          * @param   element 元素
@@ -1252,7 +1276,7 @@ declare namespace drunk {
          * @param  name  组件名
          * @return  组件类的构造函数
          */
-        function getByName(name: string): IComponentContructor<any>;
+        function getConstructorByName(name: string): IComponentContructor<any>;
         /**
          * 自定义一个组件类
          * @param  name     组件名，必然包含'-'在中间

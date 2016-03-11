@@ -1,6 +1,6 @@
 /// <reference path="../promise/promise.ts" />
 /// <reference path="../util/xhr.ts" />
-/// <reference path="../cache/cache" />
+/// <reference path="../cache/cache.ts" />
 
 namespace drunk.Template {
     

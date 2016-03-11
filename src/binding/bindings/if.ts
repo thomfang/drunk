@@ -1,6 +1,6 @@
-/// <reference path="../binding" />
-/// <reference path="../../util/dom" />
-/// <reference path="../../template/compiler" />
+/// <reference path="../binding.ts" />
+/// <reference path="../../util/dom.ts" />
+/// <reference path="../../template/compiler.ts" />
 
 drunk.Binding.register("if", {
 
@@ -8,13 +8,16 @@ drunk.Binding.register("if", {
     priority: drunk.Binding.Priority.aboveNormal + 2,
 
     init() {
-        this._startNode = document.createComment("<if>: " + this.expression);
-        this._endedNode = document.createComment("</if>: " + this.expression);
+        this._headNode = document.createComment("<if>: " + this.expression);
+        this._tailNode = document.createComment("</if>: " + this.expression);
         this._bind = drunk.Template.compile(this.element);
         this._inDocument = false;
 
-        drunk.dom.replace(this._startNode, this.element);
-        drunk.dom.after(this._endedNode, this._startNode);
+        drunk.dom.replace(this._headNode, this.element);
+        drunk.dom.after(this._tailNode, this._headNode);
+
+        drunk.Binding.setWeakRef(this._headNode, this);
+        drunk.Binding.setWeakRef(this._tailNode, this);
     },
 
     update(value) {
@@ -32,11 +35,11 @@ drunk.Binding.register("if", {
         }
 
         this._tmpElement = this.element.cloneNode(true);
-        drunk.dom.after(this._tmpElement, this._startNode);
+        drunk.dom.after(this._tmpElement, this._headNode);
+        drunk.Binding.setWeakRef(this._tmpElement, this);
 
-        this._unbind =this._bind(this.viewModel, this._tmpElement);
+        this._unbind = this._bind(this.viewModel, this._tmpElement);
         this._inDocument = true;
-
     },
 
     removeFromDocument() {
@@ -47,6 +50,7 @@ drunk.Binding.register("if", {
         this._unbind();
 
         drunk.dom.remove(this._tmpElement);
+        drunk.Binding.removeWeakRef(this._tmpElement, this);
 
         this._unbind = null;
         this._tmpElement = null;
@@ -57,11 +61,14 @@ drunk.Binding.register("if", {
     release() {
         this.removeFromDocument();
 
-        this._startNode.parentNode.removeChild(this._startNode);
-        this._endedNode.parentNode.removeChild(this._endedNode);
+        this._headNode.parentNode.removeChild(this._headNode);
+        this._tailNode.parentNode.removeChild(this._tailNode);
+        
+        drunk.Binding.removeWeakRef(this._headNode, this);
+        drunk.Binding.removeWeakRef(this._tailNode, this);
 
-        this._startNode = null;
-        this._endedNode = null;
+        this._headNode = null;
+        this._tailNode = null;
         this._bind = null;
     }
 });

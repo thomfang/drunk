@@ -6,7 +6,7 @@
 namespace drunk {
 
     export class Watcher {
-        
+
         /**
          * 根据表达式和是否深度监听生成唯一的key,用于储存在关联的viewModel实例的watcher表中
          * @param   expression  表达式
@@ -25,12 +25,12 @@ namespace drunk {
         private _isActived: boolean = true;
         private _runActionJob: util.IAsyncJob;
         private _getter: parser.IGetter;
-        
+
         /**
          * 表达式求值的结果
          */
         value: any;
-        
+
         /**
          * 每个watcher对应一个表达式,watcher管理着对应这个表达式更新的回调函数.watcher在对表达式进行求值是,访问每个数据的getter,并得到该数据的observer引用,然后订阅该observer.当某个数据更新时该数据的observer实例会发送通知给所有的watcher,watcher接收到消息后会调用所有的表达式更新的回调.
          * @param   viewModel   ViewModel实例，用于访问数据
@@ -48,7 +48,7 @@ namespace drunk {
             this.__propertyChanged = this.__propertyChanged.bind(this);
             this.value = this.__getValue();
         }
-        
+
         /**
          * 添加数据更新回调
          * @param  action  回调函数
@@ -59,7 +59,7 @@ namespace drunk {
             }
             util.addArrayItem(this._actions, action);
         }
-        
+
         /**
          * 移除数据更新回调
          * @param  action 回调函数
@@ -75,7 +75,7 @@ namespace drunk {
                 this.dispose();
             }
         }
-        
+
         /**
          * 数据更新派发，会先做缓冲，防止在同一时刻对此出发更新操作，等下一次系统轮训时再真正执行更新操作
          */
@@ -84,7 +84,7 @@ namespace drunk {
                 this._runActionJob = util.execAsyncWork(this.__flush, this);
             }
         }
-        
+
         /**
          * 立即获取最新的数据判断并判断是否已经更新，如果已经更新，执行所有的回调
          */
@@ -107,7 +107,7 @@ namespace drunk {
                 });
             }
         }
-        
+
         /**
          * 释放引用和内存
          */
@@ -128,22 +128,22 @@ namespace drunk {
             }
 
             let key: string = Watcher.getNameOfKey(this.expression, this.isDeepWatch);
-            this.viewModel._watchers[key] = null;
 
-            this.value = null;
-            this.viewModel = null;
-            this.expression = null;
-            
-            this.__propertyChanged = null;
+            this.viewModel._watchers[key] =
+                this.value =
+                this.viewModel =
+                this.expression =
+                this.__propertyChanged =
+                this._getter =
+                this._actions =
+                this._observers =
+                this._properties =
+                this._tmpProperties =
+                this._tmpObservers = null;
 
-            this._getter = null;
-            this._actions = null;
-            this._observers = null;
-            this._properties = null;
-            this._tmpObservers = null;
             this._isActived = false;
         }
-        
+
         /**
          * 执行表达式函数获取最新的数据
          */
@@ -166,7 +166,7 @@ namespace drunk {
 
             return newValue;
         }
-        
+
         /**
          * 设置observable的属性访问回调为当前watcher实例的订阅方法,当访问某个属性是就会对该属性进行订阅
          */
@@ -175,7 +175,7 @@ namespace drunk {
             this._tmpProperties = {};
             observable.onPropertyAccessing = this._subscribePropertyChanged.bind(this);
         }
-        
+
         /**
          * 表达式求解完后的收尾工作,取消注册onPropertyAccessed回调,并对比旧的observer表和新的表看有哪些实例已经不需要订阅
          */
@@ -189,17 +189,17 @@ namespace drunk {
             let tmpProperties = this._tmpProperties;
             let propertyChanged = this.__propertyChanged;
 
-            Object.keys(observers).forEach(function(id) {
+            Object.keys(observers).forEach(id => {
                 let observer = observers[id];
 
                 if (!tmpObservers[id]) {
                     // 如果没有再订阅该observer,取消订阅所有的属性
-                    Object.keys(properties[id]).forEach(function(property) {
+                    Object.keys(properties[id]).forEach(property => {
                         observer.$removeListener(property, propertyChanged);
                     });
                 }
                 else {
-                    Object.keys(properties[id]).forEach(function(property) {
+                    Object.keys(properties[id]).forEach(property => {
                         if (!tmpProperties[id][property]) {
                             // 如果没有再订阅该属性,取消订阅该属性
                             observer.$removeListener(property, propertyChanged);
@@ -207,12 +207,12 @@ namespace drunk {
                     });
                 }
             });
-            
+
             // 换成最新的
             this._observers = tmpObservers;
             this._properties = tmpProperties;
         }
-    
+
         /**
          * 订阅属性的更新消息
          * @param  observer 属性的所属观察者
@@ -221,38 +221,42 @@ namespace drunk {
         private _subscribePropertyChanged(observer: observable.Observer, property: string) {
             let id = util.uuid(observer);
             let propertyChanged = this.__propertyChanged;
+            let observers = this._observers;
+            let properties = this._properties;
+            let tmpObservers = this._tmpObservers;
+            let tmpProperties = this._tmpProperties;
 
-            if (!this._tmpObservers[id]) {
+            if (!tmpObservers[id]) {
                 // 添加到临时订阅observer表
                 // 添加到临时订阅属性列表
-                this._tmpObservers[id] = observer;
-                this._tmpProperties[id] = { [property]: true };
+                tmpObservers[id] = observer;
+                tmpProperties[id] = { [property]: true };
 
 
-                if (!this._observers[id]) {
+                if (!observers[id]) {
                     // 如果旧的订阅表也没有,则添加到旧表,并在判断
-                    this._observers[id] = observer;
-                    this._properties[id] = { [property]: true };
+                    observers[id] = observer;
+                    properties[id] = { [property]: true };
 
                     observer.$addListener(property, propertyChanged);
                 }
-                else if (!this._properties[id][property]) {
+                else if (!properties[id][property]) {
                     // 如果没有订阅过该属性
-                    this._properties[id][property] = true;
+                    properties[id][property] = true;
                     observer.$addListener(property, propertyChanged);
                 }
             }
-            else if (!this._tmpProperties[id][property]) {
-                this._tmpProperties[id][property] = true;
+            else if (!tmpProperties[id][property]) {
+                tmpProperties[id][property] = true;
 
-                if (!this._properties[id][property]) {
+                if (!properties[id][property]) {
                     observer.$addListener(property, propertyChanged);
-                    this._properties[id][property] = true;
+                    properties[id][property] = true;
                 }
             }
         }
     }
-    
+
     // 遍历访问所有的属性以订阅所有的数据
     function visit(target: any) {
         if (util.isObject(target)) {

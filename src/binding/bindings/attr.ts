@@ -1,5 +1,5 @@
-/// <reference path="../binding" />
-/// <reference path="../../util/util" />
+/// <reference path="../binding.ts" />
+/// <reference path="../../util/util.ts" />
 
 drunk.Binding.register('attr', {
 

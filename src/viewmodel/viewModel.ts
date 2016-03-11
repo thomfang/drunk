@@ -3,8 +3,8 @@
 /// <reference path="../promise/promise.ts" />
 /// <reference path="../watcher/watcher.ts" />
 /// <reference path="../binding/binding.ts" />
-/// <reference path="../filter/filter" />
-/// <reference path="../events/eventemitter" />
+/// <reference path="../filter/filter.ts" />
+/// <reference path="../events/eventemitter.ts" />
 
 namespace drunk {
 

@@ -1,7 +1,7 @@
-/// <reference path="../binding" />
-/// <reference path="../../template/compiler" />
-/// <reference path="../../util/dom" />
-/// <reference path="../../config/config" />
+/// <reference path="../binding.ts" />
+/// <reference path="../../template/compiler.ts" />
+/// <reference path="../../util/dom.ts" />
+/// <reference path="../../config/config.ts" />
 
 namespace drunk {
 

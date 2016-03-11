@@ -1,10 +1,13 @@
-/// <reference path="../binding" />
-/// <reference path="../../component/component" />
-/// <reference path="../../util/dom" />
-/// <reference path="./repeat" />
-/// <reference path="../../template/fragment" />
+/// <reference path="./repeat.ts" />
+/// <reference path="../binding.ts" />
+/// <reference path="../../component/component.ts" />
+/// <reference path="../../util/dom.ts" />
+/// <reference path="../../template/fragment.ts" />
 
 namespace drunk {
+
+    import dom = drunk.dom;
+    import Binding = drunk.Binding;
 
     let reOneInterpolate = /^\{\{([^{]+)\}\}$/;
 
@@ -21,8 +24,8 @@ namespace drunk {
         isTerminal: boolean;
         priority: number;
 
-        private _startNode: any;
-        private _endedNode: any;
+        private _headNode: any;
+        private _tailNode: any;
 
         /**
          * 初始化组件,找到组件类并生成实例,创建组件的绑定
@@ -34,7 +37,7 @@ namespace drunk {
                 return this._initAsyncComponent(src);
             }
 
-            let Ctor = Component.getByName(this.expression);
+            let Ctor = Component.getConstructorByName(this.expression);
             if (!Ctor) {
                 throw new Error(this.expression + ": 未找到该组件.");
             }
@@ -45,7 +48,7 @@ namespace drunk {
             this._processComponentAttributes();
             return this._processComponentBinding();
         }
-        
+
         /**
          * 初始化异步组件,先加载为fragment,再设置为组件的element,在进行初始化
          */
@@ -54,8 +57,8 @@ namespace drunk {
                 if (this.isDisposed) {
                     return;
                 }
-                
-                let Ctor = Component.getByName(this.expression);
+
+                let Ctor = Component.getConstructorByName(this.expression);
                 if (!Ctor) {
                     throw new Error(this.expression + ": 未找到该组件.");
                 }
@@ -85,7 +88,7 @@ namespace drunk {
             }
             return marked;
         }
-        
+
         /**
          * 为组件准备数据和绑定事件
          */
@@ -95,7 +98,7 @@ namespace drunk {
             let twowayBindingAttrMap = this._getTwowayBindingAttrMap();
 
             if (element.hasAttributes()) {
-            
+
                 // 遍历元素上所有的属性做数据准备或数据绑定的处理
                 // 如果某个属性用到插值表达式,如"a={{b}}",则对起进行表达式监听(当b改变时通知component的a属性更新到最新的值)
                 util.toArray(element.attributes).forEach((attr: Attr) => {
@@ -126,7 +129,7 @@ namespace drunk {
                         // 没有插值表达式
                         // title="someConstantValue"
                         let value: any;
-                        
+
                         if (attrValue === 'true') {
                             value = true;
                         }
@@ -137,10 +140,10 @@ namespace drunk {
                             value = parseFloat(attrValue);
                             value = isNaN(value) ? attrValue : value;
                         }
-                        
+
                         return component[attrName] = value;
                     }
-                    
+
                     // title="{{somelet}}"
                     this._watchExpressionForComponent(attrName, expression, twowayBindingAttrMap[attrName]);
                 });
@@ -148,7 +151,7 @@ namespace drunk {
 
             component.$emit(Component.Event.created, component);
         }
-        
+
         /**
          * 处理组件的视图与数据绑定
          */
@@ -157,40 +160,40 @@ namespace drunk {
             let component = this.component;
             let viewModel = this.viewModel;
 
-            return component.$processTemplate().then((template) => {
+            return component.$processTemplate().then(template => {
                 if (this.isDisposed) {
                     return;
                 }
 
-                let startNode = this._startNode = document.createComment(`<component>: ${this.expression}`);
-                let endedNode = this._endedNode = document.createComment(`</component>: ${this.expression}`);
-                dom.replace(startNode, element);
-                dom.after(endedNode, startNode);
-                dom.after(template, startNode);
+                let headNode = this._headNode = document.createComment(`<component>: ${this.expression}`);
+                let tailNode = this._tailNode = document.createComment(`</component>: ${this.expression}`);
 
-                let promise = component.$mount(template, viewModel, element);
+                dom.replace(headNode, element);
+                dom.after(tailNode, headNode);
+                dom.after(template, headNode);
 
-                let nodeList: any[] = [startNode];
-                let currNode = startNode.nextSibling;
+                Binding.setWeakRef(headNode, <any>this);
+                Binding.setWeakRef(tailNode, <any>this);
 
-                while (currNode && currNode !== endedNode) {
+                component.$mount(template, viewModel, element);
+
+                let currNode = headNode.nextSibling;
+                let nodeList: any[] = [headNode];
+
+                while (currNode && currNode !== tailNode) {
                     nodeList.push(currNode);
                     currNode = currNode.nextSibling;
                 }
-                nodeList.push(endedNode);
+                nodeList.push(tailNode);
 
                 if (viewModel instanceof RepeatItem) {
                     if (viewModel._element === element) {
                         viewModel._element = nodeList;
                     }
                 }
-                
-                return promise;
-            }).catch((error) => {
-                console.warn(`${this.expression}: 组件创建失败\n`, error);
-            });
+            }).catch((error) => console.warn(`${this.expression}: 组件创建失败\n`, error));
         }
-        
+
         /**
          * 注册组件的事件
          */
@@ -198,17 +201,18 @@ namespace drunk {
             let viewModel: Component = this.viewModel;
             let func = parser.parse(expression);
 
-            this.component.$addListener(eventName, (...args: any[]) => {
+            this.component.$on(eventName, (...args: any[]) => {
                 // 事件的处理函数,会生成一个$event对象,在表达式中可以访问该对象.
                 // $event对象有type和args两个字段,args字段是组件派发这个事件所传递的参数的列表
                 // $el字段为该组件实例
                 func.call(undefined, viewModel, {
                     type: eventName,
-                    args: args
+                    args: args,
+                    target: this.component
                 }, this.component);
             });
         }
-        
+
         /**
          * 监控绑定表达式,表达式里任意数据更新时,同步到component的指定属性
          */
@@ -266,14 +270,17 @@ namespace drunk {
                 this.unwatches.forEach(unwatch => unwatch());
             }
 
-            if (this._startNode && this._endedNode) {
-                dom.remove(this._startNode);
-                dom.remove(this._endedNode);
+            if (this._headNode && this._tailNode) {
+                dom.remove(this._headNode);
+                dom.remove(this._tailNode);
+                
+                Binding.removeWeakRef(this._headNode, <any>this);
+                Binding.removeWeakRef(this._tailNode, <any>this);
             }
-            
+
             // 移除所有引用
-            this._startNode = null;
-            this._endedNode = null;
+            this._headNode = null;
+            this._tailNode = null;
             this.component = null;
             this.unwatches = null;
             this.isDisposed = true;
