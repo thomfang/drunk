@@ -6,8 +6,7 @@ var drunk;
         PromiseState[PromiseState["REJECTED"] = 2] = "REJECTED";
     })(drunk.PromiseState || (drunk.PromiseState = {}));
     var PromiseState = drunk.PromiseState;
-    function noop() {
-    }
+    function noop() { }
     function init(promise, executor) {
         function resolve(value) {
             resolvePromise(promise, value);
@@ -27,7 +26,6 @@ var drunk;
         if (promise._state !== PromiseState.PENDING) {
             return;
         }
-        // 模拟 chrome 和 safari，不是标准
         if (promise === value) {
             publish(promise, new TypeError('Chaining cycle detected for promise #<Promise>'), PromiseState.REJECTED);
         }
@@ -42,7 +40,6 @@ var drunk;
         if (promise._state !== PromiseState.PENDING) {
             return;
         }
-        // 模拟 chrome 和 safari，不是标准
         if (promise === reason) {
             reason = new TypeError('Chaining cycle detected for promise #<Promise>');
         }
@@ -79,15 +76,15 @@ var drunk;
         promise._state = state;
         promise._value = value;
         nextTick(function () {
-            var arr = promise._listeners;
-            var len = arr.length;
-            if (!len) {
+            var listeners = promise._listeners;
+            var total = listeners.length;
+            if (!total) {
                 return;
             }
-            for (var i = 0; i < len; i += 3) {
-                invokeCallback(state, arr[i], arr[i + state], value);
+            for (var i = 0; i < total; i += 3) {
+                invokeCallback(state, listeners[i], listeners[i + state], value);
             }
-            arr.length = 0;
+            listeners.length = 0;
         });
     }
     function nextTick(callback) {
@@ -99,7 +96,7 @@ var drunk;
         var fail = false;
         if (hasCallback) {
             try {
-                value = callback.call(null, value);
+                value = callback.call(undefined, value);
                 done = true;
             }
             catch (e) {
@@ -150,24 +147,24 @@ var drunk;
                 throw new TypeError("Promise constructor takes a function argument");
             }
             if (!(this instanceof Promise)) {
-                throw new TypeError("Promise instance muse be created by 'new' operator");
+                throw new TypeError("Promise instance must be created by 'new' operator");
             }
             init(this, executor);
         }
         Promise.all = function (iterable) {
             return new Promise(function (resolve, reject) {
-                var len = iterable.length;
+                var total = iterable.length;
                 var count = 0;
-                var result = [];
                 var rejected = false;
+                var result = [];
                 var check = function (i, value) {
                     result[i] = value;
-                    if (++count === len) {
+                    if (++count === total) {
                         resolve(result);
                         result = null;
                     }
                 };
-                if (!len) {
+                if (!total) {
                     return resolve(result);
                 }
                 iterable.forEach(function (thenable, i) {
@@ -175,17 +172,15 @@ var drunk;
                         return check(i, thenable);
                     }
                     thenable.then(function (value) {
-                        if (rejected) {
-                            return;
+                        if (!rejected) {
+                            check(i, value);
                         }
-                        check(i, value);
                     }, function (reason) {
-                        if (rejected) {
-                            return;
+                        if (!rejected) {
+                            rejected = true;
+                            result = null;
+                            reject(reason);
                         }
-                        rejected = true;
-                        result = null;
-                        reject(reason);
                     });
                 });
                 iterable = null;
@@ -193,7 +188,7 @@ var drunk;
         };
         Promise.race = function (iterable) {
             return new Promise(function (resolve, reject) {
-                var len = iterable.length;
+                var total = iterable.length;
                 var ended = false;
                 var check = function (value, rejected) {
                     if (rejected) {
@@ -204,7 +199,7 @@ var drunk;
                     }
                     ended = true;
                 };
-                for (var i = 0, thenable = void 0; i < len; i++) {
+                for (var i = 0, thenable = void 0; i < total; i++) {
                     thenable = iterable[i];
                     if (!isThenable(thenable)) {
                         resolve(thenable);
@@ -215,11 +210,7 @@ var drunk;
                         break;
                     }
                     else {
-                        thenable.then(function (value) {
-                            check(value);
-                        }, function (reason) {
-                            check(reason, true);
-                        });
+                        thenable.then(function (value) { return check(value); }, function (reason) { return check(reason, true); });
                     }
                 }
                 iterable = null;
@@ -989,9 +980,9 @@ var drunk;
         util.ajax = ajax;
     })(util = drunk.util || (drunk.util = {}));
 })(drunk || (drunk = {}));
-/// <reference path="../promise/promise" />
-/// <reference path="../util/util" />
-/// <reference path="../events/eventemitter" />
+/// <reference path="../promise/promise.ts" />
+/// <reference path="../util/util.ts" />
+/// <reference path="../events/eventemitter.ts" />
 /**
  * 调度器模块
  */
@@ -999,29 +990,6 @@ var drunk;
 (function (drunk) {
     var Scheduler;
     (function (Scheduler) {
-        /**
-         * 调度方法
-         * @param  work      调度的执行函数
-         * @param  priority  优先级
-         * @param  context   上下文
-         */
-        function schedule(work, priority, context) {
-            var job = new Job(work, clampPriority(priority), context);
-            addJobToQueue(job);
-            return job;
-        }
-        Scheduler.schedule = schedule;
-        /**
-         * 当指定优化级的任何都执行完成后触发的回调
-         * @param  priority  优先级
-         * @param  callback  回调
-         */
-        function requestDrain(priority, callback) {
-            drunk.util.addArrayItem(drainPriorityQueue, priority);
-            drainPriorityQueue.sort();
-            drainEventEmitter.$once(String(priority), callback);
-        }
-        Scheduler.requestDrain = requestDrain;
         /**
          * 调度器优先级
          */
@@ -1036,6 +1004,41 @@ var drunk;
         })(Scheduler.Priority || (Scheduler.Priority = {}));
         var Priority = Scheduler.Priority;
         ;
+        var TIME_SLICE = 30;
+        var PRIORITY_TAIL = Priority.min - 1;
+        var isRunning = false;
+        var immediateYield = false;
+        var highWaterMark = PRIORITY_TAIL;
+        var jobStore = {};
+        var drainPriorityQueue = [];
+        var drainListeners = {};
+        /**
+         * 调度方法
+         * @param  work      调度的执行函数
+         * @param  priority  优先级
+         * @param  context   上下文
+         */
+        function schedule(work, priority, context) {
+            if (priority === void 0) { priority = Priority.normal; }
+            var job = new Job(work, clampPriority(priority), context);
+            addJobAtTailOfPriority(job);
+            return job;
+        }
+        Scheduler.schedule = schedule;
+        /**
+         * 当指定优化级的任何都执行完成后触发的回调
+         * @param  priority  优先级
+         * @param  callback  回调
+         */
+        function requestDrain(priority, callback) {
+            if (!drainListeners[priority]) {
+                drainListeners[priority] = [];
+            }
+            drunk.util.addArrayItem(drainPriorityQueue, priority);
+            drunk.util.addArrayItem(drainListeners[priority], callback);
+            drainPriorityQueue.sort();
+        }
+        Scheduler.requestDrain = requestDrain;
         /**
          * 调度器生成的工作对象类
          */
@@ -1088,7 +1091,7 @@ var drunk;
              */
             Job.prototype.resume = function () {
                 if (!this.completed && !this._cancelled && this._isPaused) {
-                    addJobToQueue(this);
+                    addJobAtTailOfPriority(this);
                     this._isPaused = false;
                 }
             };
@@ -1104,7 +1107,7 @@ var drunk;
                 if (result) {
                     if (typeof result === 'function') {
                         this._work = result;
-                        addJobToQueue(this);
+                        addJobAtHeadOfPriority(this);
                     }
                     else {
                         result.then(function (newWork) {
@@ -1112,7 +1115,7 @@ var drunk;
                                 return;
                             }
                             _this._work = newWork;
-                            addJobToQueue(_this);
+                            addJobAtTailOfPriority(_this);
                         });
                     }
                 }
@@ -1125,8 +1128,7 @@ var drunk;
              * 从调度任务队列中移除
              */
             Job.prototype._remove = function () {
-                var jobList = getJobListAtPriority(this.priority);
-                drunk.util.removeArrayItem(jobList, this);
+                drunk.util.removeArrayItem(jobStore[this.priority], this);
             };
             /**
              * 释放引用
@@ -1185,93 +1187,97 @@ var drunk;
             };
             return JobInfo;
         })();
-        var isRunning = false;
-        var immediateYield = false;
-        var drainEventEmitter = new drunk.EventEmitter();
-        var TIME_SLICE = 30;
-        var PRIORITY_TAIL = Priority.min - 1;
-        var drainPriorityQueue = [];
-        var jobStore = {};
         for (var i = Priority.min; i <= Priority.max; i++) {
             jobStore[i] = [];
         }
-        function getJobListAtPriority(priority) {
-            return jobStore[priority];
-        }
-        function getHighestPriority() {
-            for (var priority = Priority.max; priority >= Priority.min; priority--) {
-                if (jobStore[priority].length) {
-                    return priority;
+        function addJobAtTailOfPriority(job) {
+            var jobList = jobStore[job.priority];
+            jobList.push(job);
+            if (job.priority > highWaterMark) {
+                highWaterMark = job.priority;
+                if (isRunning) {
+                    immediateYield = true;
                 }
             }
-            return PRIORITY_TAIL;
+            startRunning();
         }
-        function getHighestPriorityJobList() {
-            return jobStore[getHighestPriority()];
-        }
-        function addJobToQueue(job) {
-            var jobList = getJobListAtPriority(job.priority);
-            jobList.push(job);
-            if (job.priority > getHighestPriority()) {
-                immediateYield = true;
+        function addJobAtHeadOfPriority(job) {
+            var jobList = jobStore[job.priority];
+            jobList.unshift(job);
+            if (job.priority > highWaterMark) {
+                highWaterMark = job.priority;
+                if (isRunning) {
+                    immediateYield = true;
+                }
             }
             startRunning();
         }
         function clampPriority(priority) {
-            priority = priority || Priority.normal;
+            priority = priority | 0;
             return Math.min(Priority.max, Math.max(Priority.min, priority));
         }
         function run() {
-            if (isRunning) {
-                return;
+            if (drainPriorityQueue.length && highWaterMark === PRIORITY_TAIL) {
+                isRunning = false;
+                return drainPriorityQueue.forEach(function (priority) { return notifyAtPriorityDrainListener(priority); });
             }
-            if (drainPriorityQueue.length && getHighestPriority() === PRIORITY_TAIL) {
-                return drainPriorityQueue.forEach(function (priority) { return drainEventEmitter.$emit(String(priority)); });
-            }
-            isRunning = true;
             immediateYield = false;
             var endTime = Date.now() + TIME_SLICE;
-            function shouldYield() {
-                if (immediateYield) {
-                    return true;
+            var yieldForPriorityBoundary;
+            var ranJobSuccessfully;
+            var currJob;
+            try {
+                function shouldYield() {
+                    if (immediateYield) {
+                        return true;
+                    }
+                    if (drainPriorityQueue.length) {
+                        return false;
+                    }
+                    return Date.now() > endTime;
                 }
-                if (drainPriorityQueue.length) {
-                    return false;
+                while (highWaterMark >= Priority.min && !shouldYield() && !yieldForPriorityBoundary) {
+                    var currPriority = highWaterMark;
+                    var jobList = jobStore[currPriority];
+                    do {
+                        currJob = jobList.shift();
+                        ranJobSuccessfully = false;
+                        currJob._execute(shouldYield);
+                        ranJobSuccessfully = true;
+                    } while (jobList.length && !shouldYield());
+                    if (ranJobSuccessfully && !jobList.length) {
+                        notifyAtPriorityDrainListener(currPriority);
+                        yieldForPriorityBoundary = true;
+                    }
                 }
-                return Date.now() > endTime;
             }
-            while (getHighestPriority() >= Priority.min && !shouldYield()) {
-                var jobList = getHighestPriorityJobList();
-                var currJob = jobList.shift();
-                do {
-                    currJob._execute(shouldYield);
-                    currJob = jobList.shift();
-                } while (currJob && !immediateYield);
-                notifyDrainPriority();
+            finally {
+                if (!ranJobSuccessfully) {
+                    currJob.cancel();
+                }
+                var priority = Priority.max;
+                while (priority > PRIORITY_TAIL && !jobStore[priority].length) {
+                    priority -= 1;
+                }
+                highWaterMark = priority;
             }
             immediateYield = false;
             isRunning = false;
-            if (getHighestPriority() > PRIORITY_TAIL) {
+            if (highWaterMark >= Priority.min) {
                 startRunning();
             }
         }
-        function notifyDrainPriority() {
-            var count = 0;
-            var highestPriority = getHighestPriority();
-            drainPriorityQueue.some(function (priority) {
-                if (priority > highestPriority) {
-                    count += 1;
-                    drainEventEmitter.$emit(String(priority));
-                    return true;
-                }
-                return false;
-            });
-            if (count > 0) {
-                drainPriorityQueue.splice(0, count);
+        function notifyAtPriorityDrainListener(priority) {
+            if (!drainListeners[priority] || !drainListeners[priority].length) {
+                return;
             }
+            drainListeners[priority].forEach(function (listener) { return listener(); });
+            drainListeners[priority].length = 0;
+            drunk.util.removeArrayItem(drainPriorityQueue, priority);
         }
         function startRunning() {
             if (!isRunning) {
+                isRunning = true;
                 drunk.util.execAsyncWork(run);
             }
         }
@@ -4204,6 +4210,7 @@ drunk.Binding.register("class", {
 var drunk;
 (function (drunk) {
     var Map = drunk.Map;
+    var Promise = drunk.Promise;
     var Binding = drunk.Binding;
     var Template = drunk.Template;
     var Scheduler = drunk.Scheduler;
@@ -4470,7 +4477,7 @@ var drunk;
                         }
                         if (Date.now() >= endTime && index < length) {
                             // 如果创建节点达到了一定时间，让出线程给ui线程
-                            return jobInfo.setWork(renderItems);
+                            return jobInfo.setPromise(Promise.resolve(renderItems));
                         }
                     }
                     else {

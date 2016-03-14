@@ -373,6 +373,18 @@ declare namespace drunk.util {
  */
 declare namespace drunk.Scheduler {
     /**
+     * 调度器优先级
+     */
+    enum Priority {
+        max = 15,
+        high = 13,
+        aboveNormal = 9,
+        normal = 0,
+        belowNormal = -9,
+        idle = -13,
+        min = -15,
+    }
+    /**
      * 调度方法
      * @param  work      调度的执行函数
      * @param  priority  优先级
@@ -399,18 +411,6 @@ declare namespace drunk.Scheduler {
     }
     interface IWork {
         (jobInfo: IJobInfo): any;
-    }
-    /**
-     * 调度器优先级
-     */
-    enum Priority {
-        max = 15,
-        high = 13,
-        aboveNormal = 9,
-        normal = 0,
-        belowNormal = -9,
-        idle = -13,
-        min = -15,
     }
 }
 /**

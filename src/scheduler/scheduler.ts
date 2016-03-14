@@ -1,35 +1,60 @@
-/// <reference path="../promise/promise" />
-/// <reference path="../util/util" />
-/// <reference path="../events/eventemitter" />
+/// <reference path="../promise/promise.ts" />
+/// <reference path="../util/util.ts" />
+/// <reference path="../events/eventemitter.ts" />
 
 /**
  * 调度器模块
  */
 namespace drunk.Scheduler {
-    
+
+    /**
+     * 调度器优先级
+     */
+    export enum Priority {
+        max = 15,
+        high = 13,
+        aboveNormal = 9,
+        normal = 0,
+        belowNormal = -9,
+        idle = -13,
+        min = -15
+    };
+
+    const TIME_SLICE = 30;
+    const PRIORITY_TAIL = Priority.min - 1;
+
+    var isRunning = false;
+    var immediateYield = false;
+    var highWaterMark = PRIORITY_TAIL;
+
+    var jobStore: { [key: number]: Job[] } = {};
+    var drainPriorityQueue: Priority[] = [];
+    var drainListeners: { [priority: number]: Array<() => any> } = {};
+
     /**
      * 调度方法
      * @param  work      调度的执行函数
      * @param  priority  优先级
      * @param  context   上下文
      */
-    export function schedule(work: IWork, priority?: Priority, context?: any): IJob {
+    export function schedule(work: IWork, priority: Priority = Priority.normal, context?: any): IJob {
         let job = new Job(work, clampPriority(priority), context);
-
-        addJobToQueue(job);
-
+        addJobAtTailOfPriority(job);
         return job;
     }
-    
+
     /**
      * 当指定优化级的任何都执行完成后触发的回调
      * @param  priority  优先级
      * @param  callback  回调
      */
     export function requestDrain(priority: Priority, callback: () => any) {
+        if (!drainListeners[priority]) {
+            drainListeners[priority] = [];
+        }
         util.addArrayItem(drainPriorityQueue, priority);
+        util.addArrayItem(drainListeners[priority], callback);
         drainPriorityQueue.sort();
-        drainEventEmitter.$once(String(priority), callback);
     }
 
     export interface IJob {
@@ -49,40 +74,27 @@ namespace drunk.Scheduler {
     export interface IWork {
         (jobInfo: IJobInfo): any;
     }
-    
-    /**
-     * 调度器优先级
-     */
-    export enum Priority {
-        max = 15,
-        high = 13,
-        aboveNormal = 9,
-        normal = 0,
-        belowNormal = -9,
-        idle = -13,
-        min = -15
-    };
-    
+
     /**
      * 调度器生成的工作对象类
      */
     class Job implements IJob {
-        
+
         /**
          * 是否已经暂停
          */
         private _isPaused: boolean;
-        
+
         /**
          * 是否已经取消
          */
         private _cancelled: boolean;
-        
+
         /**
          * 是否已经完成
          */
         completed: boolean;
-        
+
         /**
          * @param  _work    调度的回调
          * @param  priority 工作的优先级
@@ -91,7 +103,7 @@ namespace drunk.Scheduler {
         constructor(private _work: IWork, private _priority: Priority, private _context: any) {
 
         }
-        
+
         /**
          * 优先级
          */
@@ -101,7 +113,7 @@ namespace drunk.Scheduler {
         set priority(value: Priority) {
             this._priority = clampPriority(value);
         }
-        
+
         /**
          * 取消该否工作，会释放引用
          */
@@ -112,7 +124,7 @@ namespace drunk.Scheduler {
             this._remove();
             this._release();
         }
-        
+
         /**
          * 暂停该工作，不会释放引用
          */
@@ -123,17 +135,17 @@ namespace drunk.Scheduler {
             this._remove();
             this._isPaused = true;
         }
-        
+
         /**
          * 恢复工作
          */
         resume() {
             if (!this.completed && !this._cancelled && this._isPaused) {
-                addJobToQueue(this);
+                addJobAtTailOfPriority(this);
                 this._isPaused = false;
             }
         }
-        
+
         /**
          * 内部方法，执行回调
          */
@@ -148,7 +160,7 @@ namespace drunk.Scheduler {
             if (result) {
                 if (typeof result === 'function') {
                     this._work = result;
-                    addJobToQueue(this);
+                    addJobAtHeadOfPriority(this);
                 }
                 else {
                     result.then((newWork: IWork) => {
@@ -156,7 +168,7 @@ namespace drunk.Scheduler {
                             return;
                         }
                         this._work = newWork;
-                        addJobToQueue(this);
+                        addJobAtTailOfPriority(this);
                     });
                 }
             }
@@ -165,15 +177,14 @@ namespace drunk.Scheduler {
                 this.completed = true;
             }
         }
-        
+
         /**
          * 从调度任务队列中移除
          */
         private _remove() {
-            let jobList = getJobListAtPriority(this.priority);
-            util.removeArrayItem(jobList, this);
+            util.removeArrayItem(jobStore[this.priority], this);
         }
-        
+
         /**
          * 释放引用
          */
@@ -185,12 +196,12 @@ namespace drunk.Scheduler {
     }
 
     class JobInfo implements IJobInfo {
-        
+
         /**
          * 公共API是否还能访问
          */
         private _publicApiDisabled: boolean;
-        
+
         /**
          * 调度工作执行后的后续工作
          */
@@ -199,7 +210,7 @@ namespace drunk.Scheduler {
         constructor(private _shouldYield: () => boolean) {
 
         }
-        
+
         /**
          * 是否应该让出线程
          */
@@ -207,7 +218,7 @@ namespace drunk.Scheduler {
             this._throwIfDisabled();
             return this._shouldYield();
         }
-        
+
         /**
          * 设置当前优先级的新一个调度工作，会立即添加到该优先级的任务队列尾部
          */
@@ -215,7 +226,7 @@ namespace drunk.Scheduler {
             this._throwIfDisabled();
             this._result = work;
         }
-        
+
         /**
          * 当promise任务完成后设置当前优先级的新一个调度工作，会添加到该优先级的任务队列尾部
          */
@@ -223,7 +234,7 @@ namespace drunk.Scheduler {
             this._throwIfDisabled();
             this._result = promise;
         }
-        
+
         /**
          * 释放引用并设置API不再可用
          */
@@ -232,7 +243,7 @@ namespace drunk.Scheduler {
             this._result = null;
             this._shouldYield = null;
         }
-        
+
         /**
          * 如果API不再可用，用户尝试调用会抛出错误
          */
@@ -243,119 +254,118 @@ namespace drunk.Scheduler {
         }
     }
 
-    var isRunning = false;
-    var immediateYield = false;
-
-    var drainEventEmitter = new EventEmitter();
-
-    const TIME_SLICE = 30;
-    const PRIORITY_TAIL = Priority.min - 1;
-
-    var drainPriorityQueue: Priority[] = [];
-    var jobStore: { [key: number]: Job[] } = {};
-
     for (let i = Priority.min; i <= Priority.max; i++) {
         jobStore[i] = [];
     }
 
-    function getJobListAtPriority(priority: Priority) {
-        return jobStore[priority];
-    }
-
-    function getHighestPriority() {
-        for (let priority = Priority.max; priority >= Priority.min; priority--) {
-            if (jobStore[priority].length) {
-                return priority;
-            }
-        }
-        return PRIORITY_TAIL;
-    }
-
-    function getHighestPriorityJobList() {
-        return jobStore[getHighestPriority()];
-    }
-
-    function addJobToQueue(job: Job) {
-        let jobList = getJobListAtPriority(job.priority);
+    function addJobAtTailOfPriority(job: Job) {
+        let jobList = jobStore[job.priority];
         jobList.push(job);
 
-        if (job.priority > getHighestPriority()) {
-            immediateYield = true;
+        if (job.priority > highWaterMark) {
+            highWaterMark = job.priority;
+
+            if (isRunning) {
+                immediateYield = true;
+            }
+        }
+
+        startRunning();
+    }
+
+    function addJobAtHeadOfPriority(job: Job) {
+        let jobList = jobStore[job.priority];
+        jobList.unshift(job);
+
+        if (job.priority > highWaterMark) {
+            highWaterMark = job.priority;
+            
+            if (isRunning) {
+                immediateYield = true;
+            }
         }
 
         startRunning();
     }
 
     function clampPriority(priority: Priority) {
-        priority = priority || Priority.normal;
+        priority = priority | 0;
         return Math.min(Priority.max, Math.max(Priority.min, priority));
     }
 
     function run() {
-        if (isRunning) {
-            return;
+        if (drainPriorityQueue.length && highWaterMark === PRIORITY_TAIL) {
+            isRunning = false;
+            return drainPriorityQueue.forEach(priority => notifyAtPriorityDrainListener(priority));
         }
 
-        if (drainPriorityQueue.length && getHighestPriority() === PRIORITY_TAIL) {
-            return drainPriorityQueue.forEach(priority => drainEventEmitter.$emit(String(priority)));
-        }
-
-        isRunning = true;
         immediateYield = false;
 
         let endTime = Date.now() + TIME_SLICE;
+        let yieldForPriorityBoundary: boolean;
+        let ranJobSuccessfully: boolean;
+        let currJob: Job;
 
-        function shouldYield(): boolean {
-            if (immediateYield) {
-                return true;
+        try {
+            function shouldYield(): boolean {
+                if (immediateYield) {
+                    return true;
+                }
+                if (drainPriorityQueue.length) {
+                    return false;
+                }
+                return Date.now() > endTime;
             }
-            if (drainPriorityQueue.length) {
-                return false;
+
+            while (highWaterMark >= Priority.min && !shouldYield() && !yieldForPriorityBoundary) {
+                let currPriority = highWaterMark;
+                let jobList = jobStore[currPriority];
+
+                do {
+                    currJob = jobList.shift();
+                    ranJobSuccessfully = false;
+                    currJob._execute(shouldYield);
+                    ranJobSuccessfully = true;
+                } while (jobList.length && !shouldYield());
+
+                if (ranJobSuccessfully && !jobList.length) {
+                    notifyAtPriorityDrainListener(currPriority);
+                    yieldForPriorityBoundary = true;
+                }
             }
-            return Date.now() > endTime;
         }
-
-        while (getHighestPriority() >= Priority.min && !shouldYield()) {
-            let jobList = getHighestPriorityJobList();
-            let currJob = jobList.shift();
-
-            do {
-                currJob._execute(shouldYield);
-                currJob = jobList.shift();
-            } while (currJob && !immediateYield);
-
-            notifyDrainPriority();
+        finally {
+            if (!ranJobSuccessfully) {
+                currJob.cancel();
+            }
+            
+            let priority = Priority.max;
+            while (priority > PRIORITY_TAIL && !jobStore[priority].length) {
+                priority -= 1;
+            }
+            highWaterMark = priority;
         }
 
         immediateYield = false;
         isRunning = false;
 
-        if (getHighestPriority() > PRIORITY_TAIL) {
+        if (highWaterMark >= Priority.min) {
             startRunning();
         }
     }
 
-    function notifyDrainPriority() {
-        let count = 0;
-        let highestPriority = getHighestPriority();
-
-        drainPriorityQueue.some((priority) => {
-            if (priority > highestPriority) {
-                count += 1;
-                drainEventEmitter.$emit(String(priority));
-                return true;
-            }
-
-            return false;
-        });
-
-        if (count > 0) {
-            drainPriorityQueue.splice(0, count);
+    function notifyAtPriorityDrainListener(priority: Priority) {
+        if (!drainListeners[priority] || !drainListeners[priority].length) {
+            return;
         }
+        drainListeners[priority].forEach(listener => listener());
+        drainListeners[priority].length = 0;
+        util.removeArrayItem(drainPriorityQueue, priority);
     }
 
     function startRunning() {
         if (!isRunning) {
+            isRunning = true;
             util.execAsyncWork(run);
         }
     }

@@ -11,9 +11,7 @@ namespace drunk {
 
     export enum PromiseState { PENDING, RESOLVED, REJECTED }
 
-    function noop() {
-
-    }
+    function noop() { }
 
     function init<R>(promise: Promise<R>, executor: IPromiseExecutor<R>): void {
         function resolve<R>(value: R | IThenable<R>): void {
@@ -37,8 +35,7 @@ namespace drunk {
         if (promise._state !== PromiseState.PENDING) {
             return;
         }
-        
-        // 模拟 chrome 和 safari，不是标准
+
         if (promise === value) {
             publish(promise, new TypeError('Chaining cycle detected for promise #<Promise>'), PromiseState.REJECTED);
         }
@@ -54,28 +51,27 @@ namespace drunk {
         if (promise._state !== PromiseState.PENDING) {
             return;
         }
-        
-        // 模拟 chrome 和 safari，不是标准
+
         if (promise === reason) {
             reason = new TypeError('Chaining cycle detected for promise #<Promise>');
         }
 
         publish(promise, reason, PromiseState.REJECTED);
     }
-    
+
     // 够不够严谨？
-    function isThenable(target: any): boolean {
+    function isThenable(target): boolean {
         return target && typeof target.then === 'function';
     }
 
     function handleThenable<R>(thenable: any, promise: Promise<R>) {
-        let toResolve = (value: any) => {
+        let toResolve = value => {
             resolvePromise(promise, value);
         };
-        let toReject = (reason: any) => {
+        let toReject = reason => {
             rejectPromise(promise, reason);
         };
-        
+
         // 如果是自己实现的 Promise 类实例，直接publish 不同放进下一帧了
         if (thenable instanceof Promise) {
             if (thenable._state === PromiseState.PENDING) {
@@ -99,18 +95,18 @@ namespace drunk {
         promise._value = value;
 
         nextTick(() => {
-            let arr = promise._listeners;
-            let len = arr.length;
+            let listeners = promise._listeners;
+            let total = listeners.length;
 
-            if (!len) {
+            if (!total) {
                 return;
             }
 
-            for (let i = 0; i < len; i += 3) {
-                invokeCallback(state, arr[i], arr[i + state], value);
+            for (let i = 0; i < total; i += 3) {
+                invokeCallback(state, listeners[i], listeners[i + state], value);
             }
 
-            arr.length = 0;
+            listeners.length = 0;
         });
     }
 
@@ -125,7 +121,7 @@ namespace drunk {
 
         if (hasCallback) {
             try {
-                value = callback.call(null, value);
+                value = callback.call(undefined, value);
                 done = true;
             }
             catch (e) {
@@ -133,12 +129,12 @@ namespace drunk {
                 fail = true;
             }
         }
-    
+
         // 已经被处理过的就不管了
         if (promise._state !== PromiseState.PENDING) {
             return;
         }
-    
+
         // 处理成功
         if (hasCallback && done) {
             resolvePromise(promise, value);
@@ -155,7 +151,7 @@ namespace drunk {
             rejectPromise(promise, value);
         }
     }
-    
+
     // 三个 item 为一个 子promise的订阅
     // 每段的第一个 item 为子 promise 实例
     // 第二个 item 为fulfillment 回调
@@ -176,21 +172,21 @@ namespace drunk {
 
         static all<R>(iterable: any[]): Promise<R[]> {
             return new Promise((resolve, reject) => {
-                let len: number = iterable.length;
-                let count: number = 0;
-                let result: any[] = [];
-                let rejected: boolean = false;
+                let total = iterable.length;
+                let count = 0;
+                let rejected = false;
+                let result = [];
 
-                let check = (i: number, value: any) => {
+                let check = (i: number, value) => {
                     result[i] = value;
 
-                    if (++count === len) {
+                    if (++count === total) {
                         resolve(result);
                         result = null;
                     }
                 };
 
-                if (!len) {
+                if (!total) {
                     return resolve(result);
                 }
 
@@ -199,23 +195,17 @@ namespace drunk {
                         return check(i, thenable);
                     }
 
-                    thenable.then(
-                        (value: any) => {
-                            if (rejected) {
-                                return;
-                            }
-
+                    thenable.then(value => {
+                        if (!rejected) {
                             check(i, value);
-                        },
-                        (reason: any) => {
-                            if (rejected) {
-                                return;
-                            }
-
+                        }
+                    }, reason => {
+                        if (!rejected) {
                             rejected = true;
                             result = null;
                             reject(reason);
-                        });
+                        }
+                    });
                 });
 
                 iterable = null;
@@ -224,7 +214,7 @@ namespace drunk {
 
         static race<R>(iterable: any[]): Promise<R> {
             return new Promise((resolve, reject) => {
-                let len = iterable.length;
+                let total = iterable.length;
                 let ended = false;
 
                 let check = (value: any, rejected?: boolean) => {
@@ -237,7 +227,7 @@ namespace drunk {
                     ended = true;
                 };
 
-                for (let i = 0, thenable: any; i < len; i++) {
+                for (let i = 0, thenable: any; i < total; i++) {
                     thenable = iterable[i];
 
                     if (!isThenable(thenable)) {
@@ -249,13 +239,7 @@ namespace drunk {
                         break;
                     }
                     else {
-                        thenable.then(
-                            (value: any) => {
-                                check(value);
-                            },
-                            (reason: any) => {
-                                check(reason, true);
-                            });
+                        thenable.then(value => check(value), reason => check(reason, true));
                     }
                 }
 
@@ -301,7 +285,7 @@ namespace drunk {
                 throw new TypeError("Promise constructor takes a function argument");
             }
             if (!(this instanceof Promise)) {
-                throw new TypeError("Promise instance muse be created by 'new' operator");
+                throw new TypeError("Promise instance must be created by 'new' operator");
             }
 
             init(this, executor);

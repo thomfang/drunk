@@ -36,7 +36,7 @@ namespace drunk.filter {
         if (isInterpolate) {
             // 如果是插值表达式,插值表达式的每个token对应自己的filter,需要一个个进行处理,
             // 如果某个token没有filter说明那个token只是普通的字符串,直接返回
-            value = value.map(function(item, i) {
+            value = value.map((item, i) => {
                 if (!filterDefs[i]) {
                     return item;
                 }

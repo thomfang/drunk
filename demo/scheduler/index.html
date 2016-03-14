@@ -1,24 +1,52 @@
 <!doctype html>
 <html>
-    
-    <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="initial-scale=1" />
-        <title>scheduler - demo</title>
-        <script src="../../build/drunk.js"></script>
-    </head>
-    
-    <body>
-        
-        <div id='container'>
-            <div id="tpl">
-                <h2>Title</h2>
-                <section>Some content here</section>
-            </div>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="initial-scale=1" />
+    <title>scheduler - demo</title>
+    <script src="../../build/drunk.js"></script>
+</head>
+
+<body>
+
+    <div id='container'>
+        <div id="tpl">
+            <h2>Title</h2>
+            <section>Some content here</section>
         </div>
-        
-        <script>
-            /// <reference path="../../build/drunk.d.ts" />
+    </div>
+
+    <script>
+        /// <reference path="../../build/drunk.d.ts" />
+            
+            
+            // drunk.Scheduler.schedule(function (jobInfo) {
+            //     var start = Date.now();
+            //     while (Date.now() - start < 100);
+                
+            //     console.log('should yield:', jobInfo.shouldYield, Date.now() - start);
+                
+            //     drunk.util.execAsyncWork(function () {
+            //         console.log('async work at Normal')
+            //     });
+            //     jobInfo.setWork(function () {
+            //         console.log('Normal 1')
+            //     });
+            // });
+            
+            // drunk.Scheduler.schedule(function () {
+            //     console.log("Normal 2");
+            // });
+            
+            // drunk.Scheduler.schedule(function () {
+            //     console.log('idle');
+            // }, drunk.Scheduler.Priority.idle);
+            
+            // drunk.Scheduler.requestDrain(drunk.Scheduler.Priority.normal, function () {
+            //     console.log('drain normal');
+            // });
+            
             
             var container = document.getElementById('container');
             var tplNode = document.getElementById('tpl');
@@ -71,7 +99,7 @@
                     });
                 }, drunk.Scheduler.Priority.idle);
             }, 1000);
-        
-        </script>
-    </body>
+    </script>
+</body>
+
 </html>
