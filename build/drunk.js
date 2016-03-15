@@ -982,7 +982,6 @@ var drunk;
 })(drunk || (drunk = {}));
 /// <reference path="../promise/promise.ts" />
 /// <reference path="../util/util.ts" />
-/// <reference path="../events/eventemitter.ts" />
 /**
  * 调度器模块
  */
@@ -990,6 +989,7 @@ var drunk;
 (function (drunk) {
     var Scheduler;
     (function (Scheduler) {
+        var Promise = drunk.Promise;
         /**
          * 调度器优先级
          */
@@ -1031,6 +1031,9 @@ var drunk;
          * @param  callback  回调
          */
         function requestDrain(priority, callback) {
+            if (highWaterMark === PRIORITY_TAIL) {
+                return callback();
+            }
             if (!drainListeners[priority]) {
                 drainListeners[priority] = [];
             }
@@ -1039,6 +1042,15 @@ var drunk;
             drainPriorityQueue.sort();
         }
         Scheduler.requestDrain = requestDrain;
+        /**
+         * 当指定优化级的任何都执行完成后触发的回调
+         * @param  priority  优先级
+         * @param  callback  回调
+         */
+        function requestDrainPromise(priority) {
+            return new Promise(function (resolve) { return requestDrain(priority, resolve); });
+        }
+        Scheduler.requestDrainPromise = requestDrainPromise;
         /**
          * 调度器生成的工作对象类
          */
@@ -1129,6 +1141,7 @@ var drunk;
              */
             Job.prototype._remove = function () {
                 drunk.util.removeArrayItem(jobStore[this.priority], this);
+                updateHighWaterMark();
             };
             /**
              * 释放引用
@@ -1252,20 +1265,23 @@ var drunk;
                 }
             }
             finally {
-                if (!ranJobSuccessfully) {
+                if (!ranJobSuccessfully && currJob) {
                     currJob.cancel();
                 }
-                var priority = Priority.max;
-                while (priority > PRIORITY_TAIL && !jobStore[priority].length) {
-                    priority -= 1;
-                }
-                highWaterMark = priority;
+                updateHighWaterMark();
             }
             immediateYield = false;
             isRunning = false;
             if (highWaterMark >= Priority.min) {
                 startRunning();
             }
+        }
+        function updateHighWaterMark() {
+            var priority = Priority.max;
+            while (priority > PRIORITY_TAIL && !jobStore[priority].length) {
+                priority -= 1;
+            }
+            highWaterMark = priority;
         }
         function notifyAtPriorityDrainListener(priority) {
             if (!drainListeners[priority] || !drainListeners[priority].length) {

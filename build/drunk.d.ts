@@ -372,6 +372,7 @@ declare namespace drunk.util {
  * 调度器模块
  */
 declare namespace drunk.Scheduler {
+    import Promise = drunk.Promise;
     /**
      * 调度器优先级
      */
@@ -396,7 +397,13 @@ declare namespace drunk.Scheduler {
      * @param  priority  优先级
      * @param  callback  回调
      */
-    function requestDrain(priority: Priority, callback: () => any): void;
+    function requestDrain(priority: Priority, callback: () => any): any;
+    /**
+     * 当指定优化级的任何都执行完成后触发的回调
+     * @param  priority  优先级
+     * @param  callback  回调
+     */
+    function requestDrainPromise(priority: Priority): Promise<{}>;
     interface IJob {
         priority: Priority;
         completed: boolean;

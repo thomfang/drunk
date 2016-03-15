@@ -21,60 +21,63 @@
         /// <reference path="../../build/drunk.d.ts" />
             
             
-            // drunk.Scheduler.schedule(function (jobInfo) {
-            //     var start = Date.now();
-            //     while (Date.now() - start < 100);
+            drunk.Scheduler.schedule(function (jobInfo) {
+                var start = Date.now();
+                while (Date.now() - start < 100);
                 
-            //     console.log('should yield:', jobInfo.shouldYield, Date.now() - start);
+                console.log('should yield:', jobInfo.shouldYield, Date.now() - start);
                 
-            //     drunk.util.execAsyncWork(function () {
-            //         console.log('async work at Normal')
-            //     });
-            //     jobInfo.setWork(function () {
-            //         console.log('Normal 1')
-            //     });
-            // });
+                drunk.util.execAsyncWork(function () {
+                    console.log('async work at Normal')
+                });
+                jobInfo.setWork(function () {
+                    console.log('Normal 1')
+                });
+            });
             
-            // drunk.Scheduler.schedule(function () {
-            //     console.log("Normal 2");
-            // });
+            drunk.Scheduler.schedule(function () {
+                console.log("Normal 2");
+                drunk.util.execAsyncWork(function() {
+                    idleJob.cancel();
+                })
+            });
             
-            // drunk.Scheduler.schedule(function () {
-            //     console.log('idle');
-            // }, drunk.Scheduler.Priority.idle);
+            var idleJob = drunk.Scheduler.schedule(function () {
+                console.log('idle');
+            }, drunk.Scheduler.Priority.idle);
             
             // drunk.Scheduler.requestDrain(drunk.Scheduler.Priority.normal, function () {
             //     console.log('drain normal');
             // });
             
             
-            var container = document.getElementById('container');
-            var tplNode = document.getElementById('tpl');
-            var totalCount = 100000;
+            // var container = document.getElementById('container');
+            // var tplNode = document.getElementById('tpl');
+            // var totalCount = 100000;
             
-            function createNodesByCount(count) {
+            // function createNodesByCount(count) {
                 
-                drunk.Scheduler.schedule(function (jobInfo) {
-                    var i = 0;
-                    var start = Date.now();
-                    for (; i < count; i++) {
-                        if (Date.now() - start > 100) {
-                            jobInfo.setPromise(drunk.Promise.resolve(newWork));
-                            console.log(Date.now() - start);
-                            break;
-                        }
-                        else {
-                            var newNode = tplNode.cloneNode(true);
-                            container.appendChild(newNode);
-                        }
-                    }
+            //     drunk.Scheduler.schedule(function (jobInfo) {
+            //         var i = 0;
+            //         var start = Date.now();
+            //         for (; i < count; i++) {
+            //             if (Date.now() - start > 100) {
+            //                 jobInfo.setPromise(drunk.Promise.resolve(newWork));
+            //                 console.log(Date.now() - start);
+            //                 break;
+            //             }
+            //             else {
+            //                 var newNode = tplNode.cloneNode(true);
+            //                 container.appendChild(newNode);
+            //             }
+            //         }
                     
-                    function newWork() {
-                        console.log(i, count - i);
-                        createNodesByCount(count - i);
-                    }
-                }, drunk.Scheduler.Priority.normal);
-            }
+            //         function newWork() {
+            //             console.log(i, count - i);
+            //             createNodesByCount(count - i);
+            //         }
+            //     }, drunk.Scheduler.Priority.normal);
+            // }
             
             // function createNodesByCount(count) {
             //     for (var i = 0; i < count; i++) {
@@ -83,22 +86,22 @@
             //     }
             // }
             
-            setTimeout(function () {
-                var markNode = drunk.dom.create('<p>start to render</p>');
-                document.body.insertBefore(markNode, container);
-                drunk.Scheduler.schedule(function () {
-                    console.time('process dom');
-                    createNodesByCount(totalCount);
+            // setTimeout(function () {
+            //     var markNode = drunk.dom.create('<p>start to render</p>');
+            //     document.body.insertBefore(markNode, container);
+            //     drunk.Scheduler.schedule(function () {
+            //         console.time('process dom');
+            //         createNodesByCount(totalCount);
                     
-                    drunk.Scheduler.requestDrain(drunk.Scheduler.Priority.normal, function () {
-                        console.timeEnd('process dom');
-                        console.time('render');
-                        drunk.util.execAsyncWork(function () {
-                            console.timeEnd('render');
-                        });
-                    });
-                }, drunk.Scheduler.Priority.idle);
-            }, 1000);
+            //         drunk.Scheduler.requestDrain(drunk.Scheduler.Priority.normal, function () {
+            //             console.timeEnd('process dom');
+            //             console.time('render');
+            //             drunk.util.execAsyncWork(function () {
+            //                 console.timeEnd('render');
+            //             });
+            //         });
+            //     }, drunk.Scheduler.Priority.idle);
+            // }, 1000);
     </script>
 </body>
 

@@ -1,11 +1,12 @@
 /// <reference path="../promise/promise.ts" />
 /// <reference path="../util/util.ts" />
-/// <reference path="../events/eventemitter.ts" />
 
 /**
  * 调度器模块
  */
 namespace drunk.Scheduler {
+
+    import Promise = drunk.Promise;
 
     /**
      * 调度器优先级
@@ -49,12 +50,25 @@ namespace drunk.Scheduler {
      * @param  callback  回调
      */
     export function requestDrain(priority: Priority, callback: () => any) {
+        if (highWaterMark === PRIORITY_TAIL) {
+            return callback();
+        }
+
         if (!drainListeners[priority]) {
             drainListeners[priority] = [];
         }
         util.addArrayItem(drainPriorityQueue, priority);
         util.addArrayItem(drainListeners[priority], callback);
         drainPriorityQueue.sort();
+    }
+
+    /**
+     * 当指定优化级的任何都执行完成后触发的回调
+     * @param  priority  优先级
+     * @param  callback  回调
+     */
+    export function requestDrainPromise(priority: Priority) {
+        return new Promise(resolve => requestDrain(priority, resolve));
     }
 
     export interface IJob {
@@ -183,6 +197,7 @@ namespace drunk.Scheduler {
          */
         private _remove() {
             util.removeArrayItem(jobStore[this.priority], this);
+            updateHighWaterMark();
         }
 
         /**
@@ -279,7 +294,7 @@ namespace drunk.Scheduler {
 
         if (job.priority > highWaterMark) {
             highWaterMark = job.priority;
-            
+
             if (isRunning) {
                 immediateYield = true;
             }
@@ -335,15 +350,11 @@ namespace drunk.Scheduler {
             }
         }
         finally {
-            if (!ranJobSuccessfully) {
+            if (!ranJobSuccessfully && currJob) {
                 currJob.cancel();
             }
-            
-            let priority = Priority.max;
-            while (priority > PRIORITY_TAIL && !jobStore[priority].length) {
-                priority -= 1;
-            }
-            highWaterMark = priority;
+
+            updateHighWaterMark();
         }
 
         immediateYield = false;
@@ -352,6 +363,14 @@ namespace drunk.Scheduler {
         if (highWaterMark >= Priority.min) {
             startRunning();
         }
+    }
+
+    function updateHighWaterMark() {
+        let priority = Priority.max;
+        while (priority > PRIORITY_TAIL && !jobStore[priority].length) {
+            priority -= 1;
+        }
+        highWaterMark = priority;
     }
 
     function notifyAtPriorityDrainListener(priority: Priority) {
