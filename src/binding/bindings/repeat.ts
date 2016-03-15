@@ -348,7 +348,7 @@ namespace drunk {
 
                         if (Date.now() >= endTime && index < length) {
                             // 如果创建节点达到了一定时间，让出线程给ui线程
-                            return jobInfo.setPromise(Promise.resolve(renderItems));
+                            return jobInfo.setWork(renderItems);
                         }
                     }
                     else {

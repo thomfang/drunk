@@ -4210,7 +4210,6 @@ drunk.Binding.register("class", {
 var drunk;
 (function (drunk) {
     var Map = drunk.Map;
-    var Promise = drunk.Promise;
     var Binding = drunk.Binding;
     var Template = drunk.Template;
     var Scheduler = drunk.Scheduler;
@@ -4477,7 +4476,7 @@ var drunk;
                         }
                         if (Date.now() >= endTime && index < length) {
                             // 如果创建节点达到了一定时间，让出线程给ui线程
-                            return jobInfo.setPromise(Promise.resolve(renderItems));
+                            return jobInfo.setWork(renderItems);
                         }
                     }
                     else {
@@ -4909,21 +4908,6 @@ drunk.Binding.register("include", {
     _unbind: null,
     _url: null,
     _elements: null,
-    _replaceNode: false,
-    init: function () {
-        this._replaceNode = this.element.getAttribute('replace-node') != null;
-        this._headNode = document.createComment('<drunk-include>');
-        this._tailNode = document.createComment('</drunk-include>');
-        if (this._replaceNode) {
-            this.element.appendChild(this._headNode);
-            this.element.appendChild(this._tailNode);
-            drunk.Binding.setWeakRef(this._headNode, this);
-            drunk.Binding.setWeakRef(this._tailNode, this);
-        }
-        else {
-            drunk.dom.replace([this._headNode, this._tailNode], this.element);
-        }
-    },
     update: function (url) {
         var _this = this;
         if (!this._isActived || (url && url === this._url)) {
@@ -4938,7 +4922,7 @@ drunk.Binding.register("include", {
     _createBinding: function (fragment) {
         var _this = this;
         this._elements = drunk.util.toArray(fragment.childNodes);
-        this._elements.forEach(function (el) { return drunk.dom.before(el, _this._tailNode); });
+        this._elements.forEach(function (el) { return _this.element.appendChild(el); });
         this._unbind = drunk.Template.compile(this._elements)(this.viewModel, this._elements);
     },
     _removeBind: function () {
@@ -4951,12 +4935,8 @@ drunk.Binding.register("include", {
         }
     },
     release: function () {
-        drunk.Binding.removeWeakRef(this._headNode, this);
-        drunk.Binding.removeWeakRef(this._tailNode, this);
-        this._headNode.parentNode.removeChild(this._headNode);
-        this._tailNode.parentNode.removeChild(this._tailNode);
         this._removeBind();
-        this._url = this._unbind = this._heaNode = this._tailNode = null;
+        this._url = this._unbind = null;
     }
 });
 /// <reference path="../binding.ts" />
