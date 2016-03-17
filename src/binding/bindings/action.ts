@@ -4,6 +4,11 @@
 /// <reference path="../../scheduler/scheduler.ts" />
 
 namespace drunk {
+    
+    import util = drunk.util;
+    import config = drunk.config;
+    import Promise = drunk.Promise;
+    import Scheduler = drunk.Scheduler;
 
     export interface IActionExecutor {
         (element: HTMLElement, ondone: Function): () => void;

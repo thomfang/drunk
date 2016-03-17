@@ -5,6 +5,11 @@
 
 namespace drunk.Template {
     
+    import dom = drunk.dom;
+    import util = drunk.util;
+    import Cache = drunk.Cache;
+    import Promise = drunk.Promise;
+    
     let cacheStore = new Cache<Promise<DocumentFragment>>(50);
     let styleRecord = {};
     let linkRecord = {};

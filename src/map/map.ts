@@ -2,6 +2,8 @@
 
 namespace drunk {
     
+    import util = drunk.util;
+    
     const uuidOfNaN = util.uuid({});
     const uuidOfNull = util.uuid({});
     const uuidOfUndefined = util.uuid({});

@@ -1,8 +1,10 @@
 ﻿///<reference path="../component/component.ts" />
-///<reference path="../viewmodel/viewmodel.ts" />
 ///<reference path="../config/config.ts" />
 
 namespace drunk {
+    
+    import config = drunk.config;
+    import Component = drunk.Component;
 
     interface IRouter {
         routeReg: RegExp;
@@ -44,10 +46,8 @@ namespace drunk {
             this.__scanElement(rootElement);
             this.__initNavigationEvent();
 
-            let promise = this.$mount(util.toArray(rootElement.childNodes));
+            this.$mount(util.toArray(rootElement.childNodes));
             this.__navigate(url);
-
-            return promise;
         }
 
         /**

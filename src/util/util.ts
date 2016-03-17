@@ -132,7 +132,7 @@ namespace drunk.util {
     export function proxy(a: Object, property: string, b: Object) {
         var des = Object.getOwnPropertyDescriptor(a, property);
 
-        if (des && typeof des.get === 'function' && des.get === des.set) {
+        if (des && ((typeof des.get === 'function' && des.get === des.set) || !des.configurable)) {
             return false;
         }
 

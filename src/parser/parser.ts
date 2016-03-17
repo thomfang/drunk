@@ -7,6 +7,8 @@
  */
 namespace drunk.parser {
     
+    import Cache = drunk.Cache;
+    
     export interface IGetter {
         (viewModel: ViewModel, ...args: Array<any>): any;
         filters?: Array<filter.IFilterDef>;

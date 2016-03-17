@@ -4,6 +4,9 @@
 
 namespace drunk.Template {
     
+    import Cache = drunk.Cache;
+    import Promise = drunk.Promise;
+    
     let cacheStore = new Cache<any>(50);
     
     /**

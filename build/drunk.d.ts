@@ -452,6 +452,7 @@ declare namespace drunk.observable {
     var ObservableObjectPrototype: IObservableObject;
 }
 declare namespace drunk.observable {
+    import EventEmitter = drunk.EventEmitter;
     /**
      * 监控对象类，为每个需要监控的对象和数组生成一个实例，用于代理监听事件
      */
@@ -801,6 +802,10 @@ declare namespace drunk {
     }
 }
 declare namespace drunk {
+    import filter = drunk.filter;
+    import Watcher = drunk.Watcher;
+    import observable = drunk.observable;
+    import EventEmitter = drunk.EventEmitter;
     interface IModel extends observable.IObservableObject {
         [key: string]: any;
     }
@@ -875,6 +880,10 @@ declare namespace drunk {
          * @return              返回一个取消监听的函数
          */
         $watch(expression: string, action: IBindingUpdateAction, isDeepWatch?: boolean, isImmediate?: boolean): () => void;
+        $computed(property: string, descriptor: {
+            set?: (value: any) => void;
+            get?: () => any;
+        }): void;
         /**
          * 释放ViewModel实例的所有元素与数据的绑定,解除所有的代理属性,解除所有的视图于数据绑定,移除事件缓存,销毁所有的watcher
          */
@@ -974,6 +983,7 @@ declare namespace drunk.filter {
     };
 }
 declare namespace drunk {
+    import Promise = drunk.Promise;
     interface IActionExecutor {
         (element: HTMLElement, ondone: Function): () => void;
     }
@@ -1121,6 +1131,7 @@ declare namespace drunk.Template {
     function compile(node: any): IBindingGenerator;
 }
 declare namespace drunk.Template {
+    import Promise = drunk.Promise;
     /**
      * 加载模板，先尝试从指定ID的标签上查找，找不到再作为url发送ajax请求，
      * 加载到的模板字符串会进行缓存
@@ -1130,6 +1141,7 @@ declare namespace drunk.Template {
     function load(urlOrId: string): Promise<string>;
 }
 declare namespace drunk.Template {
+    import Promise = drunk.Promise;
     /**
      * 把模块连接渲染为documentFragment,会对样式和脚本进行处理,避免重复加载,如果提供宿主容器元素,则会把
      * 模板渲染到改容器中
@@ -1141,6 +1153,7 @@ declare namespace drunk.Template {
     function renderFragment(url: string, hostedElement?: HTMLElement, useCache?: boolean): Promise<Node>;
 }
 declare namespace drunk {
+    import ViewModel = drunk.ViewModel;
     interface IComponent {
         name?: string;
         init?: () => void;

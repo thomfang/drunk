@@ -6,6 +6,7 @@
  */
 namespace drunk.Scheduler {
 
+    import util = drunk.util;
     import Promise = drunk.Promise;
 
     /**

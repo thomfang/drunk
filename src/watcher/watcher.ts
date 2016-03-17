@@ -4,6 +4,11 @@
 /// <reference path="../observable/observable.ts" />
 
 namespace drunk {
+    
+    import util = drunk.util;
+    import parser = drunk.parser;
+    import Promise = drunk.Promise;
+    import observable = drunk.observable;
 
     export class Watcher {
 

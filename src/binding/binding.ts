@@ -1,8 +1,9 @@
-/// <reference path="../promise/promise.ts" />
 /// <reference path="../util/util.ts" />
 /// <reference path="../viewmodel/viewmodel.ts" />
 
 namespace drunk {
+    
+    import util = drunk.util;
 
     /**
      * 绑定声明接口

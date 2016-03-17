@@ -3,8 +3,16 @@
 /// <reference path="../template/compiler.ts" />
 /// <reference path="../config/config.ts" />
 /// <reference path="../util/dom.ts" />
+/// <reference path="../util/util.ts" />
+
 
 namespace drunk {
+    
+    import dom = drunk.dom;
+    import util = drunk.util;
+    import config = drunk.config;
+    import Template = drunk.Template;
+    import ViewModel = drunk.ViewModel;
 
     export interface IComponent {
         name?: string;

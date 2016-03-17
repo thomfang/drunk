@@ -59,7 +59,7 @@ namespace drunk {
         publish(promise, reason, PromiseState.REJECTED);
     }
 
-    // 够不够严谨？
+    // 够不够严谨?
     function isThenable(target): boolean {
         return target && typeof target.then === 'function';
     }

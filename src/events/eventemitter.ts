@@ -2,6 +2,8 @@
 
 namespace drunk {
     
+    import util = drunk.util;
+    
     export interface IEventListener {
         (...args: any[]): void;
         __isOnce?: boolean;

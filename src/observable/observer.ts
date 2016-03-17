@@ -5,6 +5,9 @@
 
 namespace drunk.observable {
     
+    import util = drunk.util;
+    import EventEmitter = drunk.EventEmitter;
+    
     /**
      * 监控对象类，为每个需要监控的对象和数组生成一个实例，用于代理监听事件
      */
