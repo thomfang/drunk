@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="initial-scale=1" />
+    <title>drunk-if - demo</title>
+    <script src="../../build/drunk.js"></script>
+</head>
+
+<body>
+
+    <div id='container'>
+        <div drunk-if="something">Something aaa</div>
+    </div>
+    
+    <div drunk-if="something">This is a condition content</div>
+    
+    <div drunk-on="click: alert($el.innerHTML)">adsadasdsd</div>
+
+    <script>
+        var view = new drunk.Component({
+                something: true
+            });
+            view.$mount(drunk.util.toArray(document.body.children));
+    </script>
+</body>
+
+</html>

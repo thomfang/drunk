@@ -1,4 +1,3 @@
-/// <reference path="../viewmodel/viewmodel.ts" />
 /// <reference path="../filter/filter.ts" />
 /// <reference path="../cache/cache.ts" />
 

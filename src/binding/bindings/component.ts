@@ -256,14 +256,7 @@ namespace drunk {
          */
         release() {
             if (this.component) {
-                let component = this.component;
-                let element = component.element;
-
-                component.$release();
-
-                if (element) {
-                    dom.remove(element);
-                }
+                this.component.$release();
             }
             if (this.unwatches) {
                 // 移除所有的属性监控

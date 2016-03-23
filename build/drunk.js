@@ -588,11 +588,11 @@ var drunk;
 var drunk;
 (function (drunk) {
     var util = drunk.util;
-    var uuidOfNaN = util.uuid({});
-    var uuidOfNull = util.uuid({});
-    var uuidOfUndefined = util.uuid({});
-    var uuidOfTrue = util.uuid({});
-    var uuidOfFalse = util.uuid({});
+    var UUID_OF_NAN = util.uuid({});
+    var UUID_OF_NULL = util.uuid({});
+    var UUID_OF_TRUE = util.uuid({});
+    var UUID_OF_FALSE = util.uuid({});
+    var UUID_OF_UNDEFINED = util.uuid({});
     /**
      * Map类，可把任务类型的对象作为key
      */
@@ -619,19 +619,19 @@ var drunk;
             var uuid;
             if (type !== 'object') {
                 if (isNaN(key)) {
-                    uuid = uuidOfNaN;
+                    uuid = UUID_OF_NAN;
                 }
                 else if (key === null) {
-                    uuid = uuidOfNull;
+                    uuid = UUID_OF_NULL;
                 }
                 else if (key === undefined) {
-                    uuid = uuidOfUndefined;
+                    uuid = UUID_OF_UNDEFINED;
                 }
                 else if (key === true) {
-                    uuid = uuidOfTrue;
+                    uuid = UUID_OF_TRUE;
                 }
                 else if (key === false) {
-                    uuid = uuidOfFalse;
+                    uuid = UUID_OF_FALSE;
                 }
                 else if (type === 'string') {
                     uuid = '"' + key + '"';
@@ -640,7 +640,7 @@ var drunk;
                     uuid = '-' + key + '-';
                 }
                 else {
-                    throw new Error('Not support type');
+                    throw new Error('不支持的数据类型:' + type);
                 }
             }
             else {
@@ -1317,6 +1317,7 @@ var drunk;
 (function (drunk) {
     var observable;
     (function (observable) {
+        var util = drunk.util;
         /**
          * 设置对象的属性，并发送更新的消息
          * @param  data   JSON对象或已经为observable的JSON对象
@@ -1358,14 +1359,14 @@ var drunk;
          * @param   name  字段名
          * @param   value 值
          */
-        drunk.util.defineProperty(observable.ObservableObjectPrototype, "$set", function setObservableObjectProperty(name, value) {
+        util.defineProperty(observable.ObservableObjectPrototype, "$set", function setObservableObjectProperty(name, value) {
             $set(this, name, value);
         });
         /**
          * 删除对象的指定字段的值
          * @param   name  字段名
          */
-        drunk.util.defineProperty(observable.ObservableObjectPrototype, "$remove", function removeObservableObjectProperty(name) {
+        util.defineProperty(observable.ObservableObjectPrototype, "$remove", function removeObservableObjectProperty(name) {
             $remove(this, name);
         });
     })(observable = drunk.observable || (drunk.observable = {}));
@@ -1557,6 +1558,7 @@ var drunk;
 (function (drunk) {
     var observable;
     (function (observable) {
+        var util = drunk.util;
         /**
          * 数组转换成observable后指向的原型对象
          */
@@ -1594,7 +1596,7 @@ var drunk;
          * @param  value  要移除的值
          */
         function $removeItem(array, value) {
-            drunk.util.removeArrayItem(array, value);
+            util.removeArrayItem(array, value);
         }
         observable.$removeItem = $removeItem;
         /**
@@ -1633,35 +1635,35 @@ var drunk;
          * @param   index  数组下标
          * @param   value  要设置的值
          */
-        drunk.util.defineProperty(observable.ObservableArrayPrototype, "$setAt", function setObservableArrayItem(index, value) {
+        util.defineProperty(observable.ObservableArrayPrototype, "$setAt", function setObservableArrayItem(index, value) {
             $setAt(this, index, value);
         });
         /**
          * 根据下标移除数组的值，并发送数据更新的通知
          * @param   index  数组下标
          */
-        drunk.util.defineProperty(observable.ObservableArrayPrototype, "$removeAt", function removeObservalbeArrayByIndex(index) {
+        util.defineProperty(observable.ObservableArrayPrototype, "$removeAt", function removeObservalbeArrayByIndex(index) {
             return $removeAt(this, index);
         });
         /**
          * 移除指定的值，并发送数据更新的通知
          * @param  value  指定值
          */
-        drunk.util.defineProperty(observable.ObservableArrayPrototype, "$removeItem", function removeObservableArrayItem(value) {
+        util.defineProperty(observable.ObservableArrayPrototype, "$removeItem", function removeObservableArrayItem(value) {
             return $removeItem(this, value);
         });
         /**
          * 移除数组中所有指定的值，并发送数据更新的通知
          * @param  value  指定值
          */
-        drunk.util.defineProperty(observable.ObservableArrayPrototype, "$removeAllItem", function removeAllObservableArrayItem(value) {
+        util.defineProperty(observable.ObservableArrayPrototype, "$removeAllItem", function removeAllObservableArrayItem(value) {
             return $removeAllItem(this, value);
         });
         /**
          * 删除所有数组元素
          * @method removeAll
          */
-        drunk.util.defineProperty(observable.ObservableArrayPrototype, 'removeAll', function () {
+        util.defineProperty(observable.ObservableArrayPrototype, 'removeAll', function () {
             return removeAll(this);
         });
         /**
@@ -1675,13 +1677,13 @@ var drunk;
             observable.notify(array);
             return result;
         }
-        drunk.util.defineProperty(observable.ObservableArrayPrototype, "pop", function pop() {
+        util.defineProperty(observable.ObservableArrayPrototype, "pop", function pop() {
             return executeArrayMethodAndNotify(this, "pop", []);
         });
-        drunk.util.defineProperty(observable.ObservableArrayPrototype, "shift", function shift() {
+        util.defineProperty(observable.ObservableArrayPrototype, "shift", function shift() {
             return executeArrayMethodAndNotify(this, "shift", []);
         });
-        drunk.util.defineProperty(observable.ObservableArrayPrototype, "push", function push() {
+        util.defineProperty(observable.ObservableArrayPrototype, "push", function push() {
             var args = [];
             for (var _i = 0; _i < arguments.length; _i++) {
                 args[_i - 0] = arguments[_i];
@@ -1690,7 +1692,7 @@ var drunk;
                 args.forEach(observable.create);
             });
         });
-        drunk.util.defineProperty(observable.ObservableArrayPrototype, "unshift", function unshift() {
+        util.defineProperty(observable.ObservableArrayPrototype, "unshift", function unshift() {
             var args = [];
             for (var _i = 0; _i < arguments.length; _i++) {
                 args[_i - 0] = arguments[_i];
@@ -1699,7 +1701,7 @@ var drunk;
                 args.forEach(observable.create);
             });
         });
-        drunk.util.defineProperty(observable.ObservableArrayPrototype, "splice", function splice() {
+        util.defineProperty(observable.ObservableArrayPrototype, "splice", function splice() {
             var args = [];
             for (var _i = 0; _i < arguments.length; _i++) {
                 args[_i - 0] = arguments[_i];
@@ -1708,13 +1710,555 @@ var drunk;
                 args.slice(2).forEach(observable.create);
             });
         });
-        drunk.util.defineProperty(observable.ObservableArrayPrototype, "sort", function sort(callback) {
+        util.defineProperty(observable.ObservableArrayPrototype, "sort", function sort(callback) {
             return executeArrayMethodAndNotify(this, "sort", [callback]);
         });
-        drunk.util.defineProperty(observable.ObservableArrayPrototype, "reverse", function reverse() {
+        util.defineProperty(observable.ObservableArrayPrototype, "reverse", function reverse() {
             return executeArrayMethodAndNotify(this, "reverse", []);
         });
     })(observable = drunk.observable || (drunk.observable = {}));
+})(drunk || (drunk = {}));
+/// <reference path="../filter/filter.ts" />
+/// <reference path="../cache/cache.ts" />
+/**
+ * 简单的解析器,只是做了字符串替换,然后使用new Function生成函数
+ */
+var drunk;
+(function (drunk) {
+    var parser;
+    (function (parser) {
+        var Cache = drunk.Cache;
+        var eventName = "$event";
+        var elementName = "$el";
+        var valueName = "__value";
+        var contextName = "__context";
+        var proxyOperation = contextName + ".$proxy";
+        var getHandlerOperation = contextName + ".__getHandler";
+        // 保留关键字
+        var reserved = [
+            'break', 'case', 'catch', 'continue', 'debugger', 'default', 'delete', 'do',
+            'else', 'finally', 'for', 'function', 'if', 'in', 'instanceof', 'new', 'return',
+            'switch', 'this', 'throw', 'try', 'typeof', 'let', 'void', 'while',
+            'class', 'null', 'undefined', 'true', 'false', 'with', eventName, elementName,
+            'let', 'abstract', 'import', 'yield', 'arguments'
+        ];
+        var tokenCache = new Cache(500);
+        var getterCache = new Cache(500);
+        var setterCache = new Cache(500);
+        var filterCache = new Cache(500);
+        var expressionCache = new Cache(500);
+        var identifierCache = new Cache(500);
+        var interpolateGetterCache = new Cache(500);
+        var reIdentifier = /("|').*?\1|[a-zA-Z$_][a-z0-9A-Z$_]*/g;
+        var reFilter = /("|').*?\1|\|\||\|\s*([a-zA-Z$_][a-z0-9A-Z$_]*)(:[^|]*)?/g;
+        var reInterpolate = /\{\{([^{]+)\}\}/g;
+        var reBrackets = /^\([^)]*\)/;
+        var reObjectKey = /[{,]\s*$/;
+        var reColon = /^\s*:/;
+        var reAnychar = /\S+/;
+        /**
+         *  解析filter定义
+         */
+        function parseFilterDef(str, skipSetter) {
+            if (skipSetter === void 0) { skipSetter = false; }
+            if (!filterCache.get(str)) {
+                var def_1 = [];
+                var idx_1;
+                str.replace(reFilter, function ($0, quote, name, args, i) {
+                    if (!name) {
+                        return $0;
+                    }
+                    if (idx_1 == null) {
+                        // 记录filter开始的位置， 因为filter只能是连续的出现一直到表达式结尾
+                        idx_1 = i;
+                    }
+                    var param;
+                    if (args) {
+                        param = parseGetter('[' + args.slice(1) + ']', false, true);
+                    }
+                    def_1.push({ name: name, param: param });
+                });
+                if (!def_1.length) {
+                    return;
+                }
+                filterCache.set(str, {
+                    input: str.slice(0, idx_1).trim(),
+                    filters: def_1
+                });
+            }
+            return filterCache.get(str);
+        }
+        /**
+         *  断言非空字符串
+         */
+        function assertNotEmptyString(target, message) {
+            if (!(typeof target === 'string' && reAnychar.test(target))) {
+                throw new Error(message + ": 表达式为空");
+            }
+        }
+        /**
+         *  是否是对象的key
+         */
+        function isObjectKey(str) {
+            return str.match(reObjectKey) != null;
+        }
+        /**
+         *  前一个字符是否是冒号
+         */
+        function isColon(str) {
+            return str.match(reColon) != null;
+        }
+        /**
+         *  是否是一个方法调用
+         */
+        function isCallFunction(str) {
+            return str.match(reBrackets) != null;
+        }
+        /**
+         *  解析所有的标记并对表达式进行格式化
+         */
+        function parseIdentifier(str) {
+            var cache = identifierCache.get(str);
+            if (!cache) {
+                var index_1 = 0;
+                var proxies_1 = [];
+                var identifiers_1 = [];
+                var formated = str.replace(reIdentifier, function (x, p, i) {
+                    if (p === '"' || p === "'" || str[i - 1] === '.') {
+                        // 如果是字符串: "aaa"
+                        // 或对象的属性: .aaa
+                        index_1 = i + x.length;
+                        return x;
+                    }
+                    var prefix = str.slice(index_1, i); // 前一个字符
+                    var suffix = str.slice(i + x.length); // 后一个字符
+                    index_1 = i + x.length;
+                    if (isColon(suffix) && isObjectKey(prefix)) {
+                        // 如果前一个字符是冒号，再判断是否是对象的Key
+                        return x;
+                    }
+                    if (reserved.indexOf(x) > -1) {
+                        // 如果是保留关键字直接返回原字符串
+                        return x;
+                    }
+                    if (isCallFunction(suffix)) {
+                        // 如果后面有连续的字符是一对括号则为方法调用
+                        // method(a) 会转成 __context.getHandler("method")(a)
+                        return getHandlerOperation + ' && ' + getHandlerOperation + '("' + x + '")';
+                    }
+                    if (identifiers_1.indexOf(x) < 0) {
+                        // 标记未添加到列表中是
+                        proxies_1.push('  ' + proxyOperation + '("' + x + '")');
+                        identifiers_1.push(x);
+                    }
+                    // 否则为属性访问， 直接加上下文
+                    // a 转成  __context.a
+                    return contextName + '.' + x;
+                });
+                cache = {
+                    proxies: identifiers_1.length ? ('if (' + proxyOperation + ') {\n' + proxies_1.join(';\n') + ';\n}\n') : '',
+                    formated: formated,
+                    identifiers: identifiers_1
+                };
+                identifierCache.set(str, cache);
+            }
+            return cache;
+        }
+        /**
+         *  创建函数
+         */
+        function createFunction(expression) {
+            var args = [];
+            for (var _i = 1; _i < arguments.length; _i++) {
+                args[_i - 1] = arguments[_i];
+            }
+            try {
+                return Function.apply(Function, args);
+            }
+            catch (err) {
+                console.error("\"" + expression + "\"\u8868\u8FBE\u5F0F\u89E3\u6790\u5931\u8D25,\u5C1D\u8BD5\u89E3\u6790\u540E\u7684\u7ED3\u679C\u4E3A", args[args.length - 1]);
+                throw err;
+            }
+        }
+        /**
+         * 解析表达式
+         * @param  expression  表达式
+         */
+        function parse(expression) {
+            assertNotEmptyString(expression, "解析表达式失败");
+            var fn = expressionCache.get(expression);
+            if (!fn) {
+                var detail = parseIdentifier(expression);
+                var fnBody = detail.proxies + "return (" + detail.formated + ");";
+                fn = createFunction(expression, contextName, eventName, elementName, fnBody);
+                expressionCache.set(expression, fn);
+            }
+            return fn;
+        }
+        parser.parse = parse;
+        /**
+         * 解析表达式生成getter函数
+         * @param   expression      表达式字符串
+         * @param   isInterpolate   是否是一哥插值表达式
+         * @param   skipFilter      跳过解析filter
+         */
+        function parseGetter(expression, isInterpolate, skipFilter) {
+            assertNotEmptyString(expression, "创建getter失败");
+            if (isInterpolate) {
+                return parseInterpolate(expression);
+            }
+            var getter = getterCache.get(expression);
+            if (!getter) {
+                var input = expression;
+                var filter_1;
+                if (!skipFilter && (filter_1 = parseFilterDef(expression))) {
+                    input = filter_1.input;
+                }
+                var detail = parseIdentifier(input);
+                var fnBody = detail.proxies + "try{return (" + detail.formated + ");}catch(e){}";
+                getter = createFunction(expression, contextName, eventName, elementName, fnBody);
+                getter.dynamic = !!detail.identifiers.length;
+                getter.filters = filter_1 ? filter_1.filters : null;
+                getterCache.set(expression, getter);
+            }
+            return getter;
+        }
+        parser.parseGetter = parseGetter;
+        /**
+         * 解析表达式生成setter函数
+         * @param   expression 表达式字符串
+         */
+        function parseSetter(expression) {
+            assertNotEmptyString(expression, "创建setter失败");
+            var setter = setterCache.get(expression);
+            if (!setter) {
+                var detail = parseIdentifier(expression);
+                var fnBody = detail.proxies + "return (" + detail.formated + " = " + valueName + ");";
+                setter = createFunction(expression, contextName, valueName, fnBody);
+                setterCache.set(expression, setter);
+            }
+            return setter;
+        }
+        parser.parseSetter = parseSetter;
+        function parseInterpolate(expression, justTokens) {
+            console.assert(hasInterpolation(expression), "parseInterpolate: 非法表达式", expression);
+            var tokens = tokenCache.get(expression);
+            if (!tokens) {
+                tokens = [];
+                var index_2 = 0;
+                var length_1 = expression.length;
+                expression.replace(reInterpolate, function ($0, exp, i) {
+                    if (i > index_2) {
+                        tokens.push(expression.slice(index_2, i));
+                    }
+                    tokens.push({
+                        expression: exp.trim()
+                    });
+                    index_2 = i + $0.length;
+                    return $0;
+                });
+                if (index_2 < length_1 && index_2 !== 0) {
+                    tokens.push(expression.slice(index_2));
+                }
+                tokenCache.set(expression, tokens);
+            }
+            if (!tokens.length) {
+                return;
+            }
+            return justTokens ? tokens : tokensToGetter(tokens, expression);
+        }
+        parser.parseInterpolate = parseInterpolate;
+        /**
+         * 是否有插值语法
+         * @param   str  字符串
+         */
+        function hasInterpolation(str) {
+            return typeof str === 'string' && str.match(reAnychar) !== null && str.match(reInterpolate) !== null;
+        }
+        parser.hasInterpolation = hasInterpolation;
+        // 根据token生成getter函数
+        function tokensToGetter(tokens, expression) {
+            var getter = interpolateGetterCache.get(expression);
+            if (!getter) {
+                var dynamic_1 = false;
+                var filters_1 = [];
+                tokens = tokens.map(function (item, i) {
+                    if (typeof item === 'string') {
+                        filters_1[i] = null;
+                        return item;
+                    }
+                    if (item && item.expression != null) {
+                        getter = parseGetter(item.expression);
+                        filters_1[i] = getter.filters;
+                        if (!getter.dynamic) {
+                            return getter((null));
+                        }
+                        dynamic_1 = true;
+                        return getter;
+                    }
+                    console.error("非法的token:\n", item);
+                });
+                getter = function (ctx) {
+                    return tokens.map(function (item) {
+                        if (typeof item === 'string') {
+                            return item;
+                        }
+                        return item.call(null, ctx);
+                    });
+                };
+                getter.dynamic = dynamic_1;
+                getter.filters = filters_1;
+                getter.isInterpolate = true;
+                interpolateGetterCache.set(expression, getter);
+            }
+            return getter;
+        }
+    })(parser = drunk.parser || (drunk.parser = {}));
+})(drunk || (drunk = {}));
+/// <reference path="../parser/parser.ts" />
+/**
+ * 数据过滤器模块
+ * @module drunk.filter
+ */
+var drunk;
+(function (drunk) {
+    var filter;
+    (function (filter) {
+        /**
+         * 使用提供的filter列表处理数据
+         * @param   value       输入
+         * @param   filterDefs  filter定义集合
+         * @param   viewModel   ViewModel实例
+         * @param   ...args     其他参数
+         */
+        function pipeFor(value, filterDefs, filterMap, isInterpolate) {
+            var args = [];
+            for (var _i = 4; _i < arguments.length; _i++) {
+                args[_i - 4] = arguments[_i];
+            }
+            if (!filterDefs) {
+                return isInterpolate ? getInterpolateValue(value) : value;
+            }
+            if (isInterpolate) {
+                // 如果是插值表达式,插值表达式的每个token对应自己的filter,需要一个个进行处理,
+                // 如果某个token没有filter说明那个token只是普通的字符串,直接返回
+                value = value.map(function (item, i) {
+                    if (!filterDefs[i]) {
+                        return item;
+                    }
+                    return filter.pipeFor.apply(filter, [item, filterDefs[i], filterMap, false].concat(args));
+                });
+                // 对所有token求值得到的结果做处理,如果是undefined或null类型直接转成空字符串,避免页面显示出undefined或null
+                return getInterpolateValue(value);
+            }
+            var name;
+            var param;
+            var method;
+            // 应用于所有的filter
+            filterDefs.forEach(function (def) {
+                name = def.name;
+                method = filterMap[name];
+                if (typeof method !== 'function') {
+                    throw new Error('Filter "' + name + '" not found');
+                }
+                param = def.param ? def.param.apply(def, args) : [];
+                value = method.apply(void 0, [value].concat(param));
+            });
+            return value;
+        }
+        filter.pipeFor = pipeFor;
+        /**
+         * 判断插值表达式的值个数,如果只有一个,则返回该值,如果有多个,则返回所有值的字符串相加
+         */
+        function getInterpolateValue(values) {
+            if (values.length === 1) {
+                return values[0];
+            }
+            return values.map(function (item) {
+                if (item == null) {
+                    return '';
+                }
+                return typeof item === 'object' ? JSON.stringify(item) : item;
+            }).join('');
+        }
+        var reg = {
+            escape: /[<>& "']/gm,
+            unescape: /&.+?;/g,
+            striptags: /(<([^>]+)>)/ig,
+            format: /(yy|M|d|h|m|s)(\1)*/g
+        };
+        var escapeChars = {
+            '&': "&amp;",
+            ' ': "&nbsp;",
+            '"': "&quot;",
+            "'": "&#x27;",
+            "<": "&lt;",
+            ">": "&gt;"
+        };
+        var unescapeChars = {
+            '&amp;': "&",
+            "&nbsp;": " ",
+            "&quot;": '"',
+            "&#x27;": "'",
+            "&lt;": "<",
+            "&gt;": ">"
+        };
+        /**
+         * filter方法表
+         */
+        filter.filters = {
+            /**
+             * 对输入的字符串进行编码
+             * @param  input  输入
+             */
+            escape: function (input) {
+                return input.replace(reg.escape, function (x) {
+                    return escapeChars[x];
+                });
+            },
+            /**
+             * 对输入的字符串进行解码
+             * @param  input  输入
+             */
+            unescape: function (input) {
+                return input.replace(reg.unescape, function (a) {
+                    return unescapeChars[a];
+                });
+            },
+            /**
+             * 对输入的字符串进行截断
+             * @param   input  输入
+             * @param   length 保留的最大长度
+             * @param   tail   结尾的字符串,默认为'...'
+             */
+            truncate: function (input, length, tail) {
+                if (input.length <= length) {
+                    return input;
+                }
+                return input.slice(0, length) + (tail != null ? tail : "...");
+            },
+            /**
+             * 为特殊字符添加斜杠
+             * @param  input  输入
+             */
+            addslashes: function (input) {
+                return input.replace(/[\\"']/g, '\\$&').replace(/\u0000/g, '\\0');
+            },
+            /**
+             * 移除特殊字符的斜杠
+             * @param  input  输入
+             */
+            stripslashes: function (input) {
+                return input.replace(/\\'/g, "'").replace(/\\"/g, '"').replace(/\\0/g, '\0').replace(/\\\\/g, '\\');
+            },
+            /**
+             * 计算输入的长度，支持字符串、数组和对象
+             * @param  input 输入
+             */
+            size: function (input) {
+                if (input == null) {
+                    return 0;
+                }
+                if (input.length != null) {
+                    return input.length;
+                }
+                if (typeof input === 'object') {
+                    var length_2 = 0;
+                    for (var k in input) {
+                        if (input.hasOwnProperty(k)) {
+                            length_2 += 1;
+                        }
+                    }
+                    return length_2;
+                }
+            },
+            /**
+             * JSON.stringify的别名
+             * @param   input     输入
+             * @param   ident     缩进
+             */
+            json: function (input, ident) {
+                return JSON.stringify(input, null, ident || 4);
+            },
+            /**
+             * 移除所有tag标签字符串,比如"<div>123</div>" => "123"
+             * @param   input  输入
+             */
+            striptags: function (input) {
+                return input.replace(reg.striptags, "");
+            },
+            /**
+             * 当输入为undefined或null是返回默认值
+             * @param  input        输入
+             * @param  defaultValue 默认值
+             */
+            default: function (input, defaltValue) {
+                return input == null ? defaltValue : input;
+            },
+            /**
+             * 根据输入的时间戳返回指定格式的日期字符串
+             * @param   input  时间戳
+             * @param   format 要返回的时间格式
+             */
+            date: function (input, format) {
+                return formatDate(input, format);
+            },
+            /**
+             * 在控制台上打印输入
+             * @param  input  输入
+             */
+            log: function (input) {
+                console.log("[Filter.log]: ", input);
+                return input;
+            }
+        };
+        function formatDate(time, format) {
+            if (!time) {
+                return '';
+            }
+            if (typeof time === 'string') {
+                time = time.replace(/-/g, "/");
+            }
+            var t = new Date(time);
+            var y = String(t.getFullYear());
+            var M = t.getMonth() + 1;
+            var d = t.getDate();
+            var H = t.getHours();
+            var m = t.getMinutes();
+            var s = t.getSeconds();
+            return format.replace(reg.format, function (x) {
+                switch (x) {
+                    case "yyyy":
+                        return y;
+                    case "yy":
+                        return y.slice(2);
+                    case "MM":
+                        return padded(M);
+                    case "M":
+                        return M;
+                    case "dd":
+                        return padded(d);
+                    case "d":
+                        return d;
+                    case "h":
+                        return H;
+                    case "hh":
+                        return padded(H);
+                    case "mm":
+                        return padded(m);
+                    case "m":
+                        return m;
+                    case "s":
+                        return s;
+                    case "ss":
+                        return padded(s);
+                }
+            });
+        }
+        function padded(n) {
+            return n < 10 ? '0' + n : n;
+        }
+    })(filter = drunk.filter || (drunk.filter = {}));
 })(drunk || (drunk = {}));
 /// <reference path="../util/util.ts" />
 /// <reference path="../promise/promise.ts" />
@@ -1723,7 +2267,6 @@ var drunk;
 var drunk;
 (function (drunk) {
     var util = drunk.util;
-    var parser = drunk.parser;
     var observable = drunk.observable;
     var Watcher = (function () {
         /**
@@ -1740,8 +2283,8 @@ var drunk;
             this._observers = {};
             this._properties = {};
             this._isActived = true;
-            this._isInterpolate = parser.hasInterpolation(expression);
-            this._getter = this._isInterpolate ? parser.parseInterpolate(expression) : parser.parseGetter(expression);
+            this._isInterpolate = drunk.parser.hasInterpolation(expression);
+            this._getter = this._isInterpolate ? drunk.parser.parseInterpolate(expression) : drunk.parser.parseGetter(expression);
             if (!this._getter.dynamic) {
                 throw new Error('不能监控一个静态表达式:"' + expression + '"');
             }
@@ -2166,7 +2709,6 @@ var drunk;
 var drunk;
 (function (drunk) {
     var util = drunk.util;
-    var filter = drunk.filter;
     var parser = drunk.parser;
     var Watcher = drunk.Watcher;
     var observable = drunk.observable;
@@ -2191,7 +2733,7 @@ var drunk;
             var _this = this;
             model = model || {};
             observable.create(model);
-            util.defineProperty(this, "$filter", Object.create(filter.filters));
+            util.defineProperty(this, "$filter", Object.create(drunk.filter.filters));
             util.defineProperty(this, "_model", model);
             util.defineProperty(this, "_bindings", []);
             util.defineProperty(this, "_watchers", {});
@@ -2307,15 +2849,12 @@ var drunk;
                     _this._watchers[key].dispose();
                 }
             });
-            this._bindings.forEach(function (binding) {
+            this._bindings.slice().forEach(function (binding) {
                 binding.dispose();
             });
             EventEmitter.cleanup(this);
             this._isActived = false;
-            this._model = null;
-            this._bindings = null;
-            this._watchers = null;
-            this.$filter = null;
+            this._model = this._bindings = this._watchers = this.$filter = null;
         };
         /**
          * 获取事件回调,内置方法
@@ -2352,555 +2891,11 @@ var drunk;
         ViewModel.prototype.__getValueByGetter = function (getter, isInterpolate) {
             var args = [this].concat(util.toArray(arguments).slice(1));
             var value = getter.apply(null, args);
-            return filter.pipeFor.apply(null, [value, getter.filters, this.$filter, isInterpolate].concat(args));
+            return drunk.filter.pipeFor.apply(null, [value, getter.filters, this.$filter, isInterpolate].concat(args));
         };
         return ViewModel;
     }(EventEmitter));
     drunk.ViewModel = ViewModel;
-})(drunk || (drunk = {}));
-/// <reference path="../viewmodel/viewmodel.ts" />
-/// <reference path="../filter/filter.ts" />
-/// <reference path="../cache/cache.ts" />
-/**
- * 简单的解析器,只是做了字符串替换,然后使用new Function生成函数
- */
-var drunk;
-(function (drunk) {
-    var parser;
-    (function (parser) {
-        var Cache = drunk.Cache;
-        var eventName = "$event";
-        var elementName = "$el";
-        var valueName = "__value";
-        var contextName = "__context";
-        var proxyOperation = contextName + ".$proxy";
-        var getHandlerOperation = contextName + ".__getHandler";
-        // 保留关键字
-        var reserved = [
-            'break', 'case', 'catch', 'continue', 'debugger', 'default', 'delete', 'do',
-            'else', 'finally', 'for', 'function', 'if', 'in', 'instanceof', 'new', 'return',
-            'switch', 'this', 'throw', 'try', 'typeof', 'let', 'void', 'while',
-            'class', 'null', 'undefined', 'true', 'false', 'with', eventName, elementName,
-            'let', 'abstract', 'import', 'yield', 'arguments'
-        ];
-        var tokenCache = new Cache(500);
-        var getterCache = new Cache(500);
-        var setterCache = new Cache(500);
-        var filterCache = new Cache(500);
-        var expressionCache = new Cache(500);
-        var identifierCache = new Cache(500);
-        var interpolateGetterCache = new Cache(500);
-        var reIdentifier = /("|').*?\1|[a-zA-Z$_][a-z0-9A-Z$_]*/g;
-        var reFilter = /("|').*?\1|\|\||\|\s*([a-zA-Z$_][a-z0-9A-Z$_]*)(:[^|]*)?/g;
-        var reInterpolate = /\{\{([^{]+)\}\}/g;
-        var reBrackets = /^\([^)]*\)/;
-        var reObjectKey = /[{,]\s*$/;
-        var reColon = /^\s*:/;
-        var reAnychar = /\S+/;
-        /**
-         *  解析filter定义
-         */
-        function parseFilterDef(str, skipSetter) {
-            if (skipSetter === void 0) { skipSetter = false; }
-            if (!filterCache.get(str)) {
-                var def_1 = [];
-                var idx_1;
-                str.replace(reFilter, function ($0, quote, name, args, i) {
-                    if (!name) {
-                        return $0;
-                    }
-                    if (idx_1 == null) {
-                        // 记录filter开始的位置， 因为filter只能是连续的出现一直到表达式结尾
-                        idx_1 = i;
-                    }
-                    var param;
-                    if (args) {
-                        param = parseGetter('[' + args.slice(1) + ']', false, true);
-                    }
-                    def_1.push({ name: name, param: param });
-                });
-                if (!def_1.length) {
-                    return;
-                }
-                filterCache.set(str, {
-                    input: str.slice(0, idx_1).trim(),
-                    filters: def_1
-                });
-            }
-            return filterCache.get(str);
-        }
-        /**
-         *  断言非空字符串
-         */
-        function assertNotEmptyString(target, message) {
-            if (!(typeof target === 'string' && reAnychar.test(target))) {
-                throw new Error(message + ": 表达式为空");
-            }
-        }
-        /**
-         *  是否是对象的key
-         */
-        function isObjectKey(str) {
-            return str.match(reObjectKey) != null;
-        }
-        /**
-         *  前一个字符是否是冒号
-         */
-        function isColon(str) {
-            return str.match(reColon) != null;
-        }
-        /**
-         *  是否是一个方法调用
-         */
-        function isCallFunction(str) {
-            return str.match(reBrackets) != null;
-        }
-        /**
-         *  解析所有的标记并对表达式进行格式化
-         */
-        function parseIdentifier(str) {
-            var cache = identifierCache.get(str);
-            if (!cache) {
-                var index_1 = 0;
-                var proxies_1 = [];
-                var identifiers_1 = [];
-                var formated = str.replace(reIdentifier, function (x, p, i) {
-                    if (p === '"' || p === "'" || str[i - 1] === '.') {
-                        // 如果是字符串: "aaa"
-                        // 或对象的属性: .aaa
-                        index_1 = i + x.length;
-                        return x;
-                    }
-                    var prefix = str.slice(index_1, i); // 前一个字符
-                    var suffix = str.slice(i + x.length); // 后一个字符
-                    index_1 = i + x.length;
-                    if (isColon(suffix) && isObjectKey(prefix)) {
-                        // 如果前一个字符是冒号，再判断是否是对象的Key
-                        return x;
-                    }
-                    if (reserved.indexOf(x) > -1) {
-                        // 如果是保留关键字直接返回原字符串
-                        return x;
-                    }
-                    if (isCallFunction(suffix)) {
-                        // 如果后面有连续的字符是一对括号则为方法调用
-                        // method(a) 会转成 __context.getHandler("method")(a)
-                        return getHandlerOperation + ' && ' + getHandlerOperation + '("' + x + '")';
-                    }
-                    if (identifiers_1.indexOf(x) < 0) {
-                        // 标记未添加到列表中是
-                        proxies_1.push('  ' + proxyOperation + '("' + x + '")');
-                        identifiers_1.push(x);
-                    }
-                    // 否则为属性访问， 直接加上下文
-                    // a 转成  __context.a
-                    return contextName + '.' + x;
-                });
-                cache = {
-                    proxies: identifiers_1.length ? ('if (' + proxyOperation + ') {\n' + proxies_1.join(';\n') + ';\n}\n') : '',
-                    formated: formated,
-                    identifiers: identifiers_1
-                };
-                identifierCache.set(str, cache);
-            }
-            return cache;
-        }
-        /**
-         *  创建函数
-         */
-        function createFunction(expression) {
-            var args = [];
-            for (var _i = 1; _i < arguments.length; _i++) {
-                args[_i - 1] = arguments[_i];
-            }
-            try {
-                return Function.apply(Function, args);
-            }
-            catch (err) {
-                console.error("\"" + expression + "\"\u8868\u8FBE\u5F0F\u89E3\u6790\u5931\u8D25,\u5C1D\u8BD5\u89E3\u6790\u540E\u7684\u7ED3\u679C\u4E3A", args[args.length - 1]);
-                throw err;
-            }
-        }
-        /**
-         * 解析表达式
-         * @param  expression  表达式
-         */
-        function parse(expression) {
-            assertNotEmptyString(expression, "解析表达式失败");
-            var fn = expressionCache.get(expression);
-            if (!fn) {
-                var detail = parseIdentifier(expression);
-                var fnBody = detail.proxies + "return (" + detail.formated + ");";
-                fn = createFunction(expression, contextName, eventName, elementName, fnBody);
-                expressionCache.set(expression, fn);
-            }
-            return fn;
-        }
-        parser.parse = parse;
-        /**
-         * 解析表达式生成getter函数
-         * @param   expression      表达式字符串
-         * @param   isInterpolate   是否是一哥插值表达式
-         * @param   skipFilter      跳过解析filter
-         */
-        function parseGetter(expression, isInterpolate, skipFilter) {
-            assertNotEmptyString(expression, "创建getter失败");
-            if (isInterpolate) {
-                return parseInterpolate(expression);
-            }
-            var getter = getterCache.get(expression);
-            if (!getter) {
-                var input = expression;
-                var filter_1;
-                if (!skipFilter && (filter_1 = parseFilterDef(expression))) {
-                    input = filter_1.input;
-                }
-                var detail = parseIdentifier(input);
-                var fnBody = detail.proxies + "try{return (" + detail.formated + ");}catch(e){}";
-                getter = createFunction(expression, contextName, eventName, elementName, fnBody);
-                getter.dynamic = !!detail.identifiers.length;
-                getter.filters = filter_1 ? filter_1.filters : null;
-                getterCache.set(expression, getter);
-            }
-            return getter;
-        }
-        parser.parseGetter = parseGetter;
-        /**
-         * 解析表达式生成setter函数
-         * @param   expression 表达式字符串
-         */
-        function parseSetter(expression) {
-            assertNotEmptyString(expression, "创建setter失败");
-            var setter = setterCache.get(expression);
-            if (!setter) {
-                var detail = parseIdentifier(expression);
-                var fnBody = detail.proxies + "return (" + detail.formated + " = " + valueName + ");";
-                setter = createFunction(expression, contextName, valueName, fnBody);
-                setterCache.set(expression, setter);
-            }
-            return setter;
-        }
-        parser.parseSetter = parseSetter;
-        function parseInterpolate(expression, justTokens) {
-            console.assert(hasInterpolation(expression), "parseInterpolate: 非法表达式", expression);
-            var tokens = tokenCache.get(expression);
-            if (!tokens) {
-                tokens = [];
-                var index_2 = 0;
-                var length_1 = expression.length;
-                expression.replace(reInterpolate, function ($0, exp, i) {
-                    if (i > index_2) {
-                        tokens.push(expression.slice(index_2, i));
-                    }
-                    tokens.push({
-                        expression: exp.trim()
-                    });
-                    index_2 = i + $0.length;
-                    return $0;
-                });
-                if (index_2 < length_1 && index_2 !== 0) {
-                    tokens.push(expression.slice(index_2));
-                }
-                tokenCache.set(expression, tokens);
-            }
-            if (!tokens.length) {
-                return;
-            }
-            return justTokens ? tokens : tokensToGetter(tokens, expression);
-        }
-        parser.parseInterpolate = parseInterpolate;
-        /**
-         * 是否有插值语法
-         * @param   str  字符串
-         */
-        function hasInterpolation(str) {
-            return typeof str === 'string' && str.match(reAnychar) !== null && str.match(reInterpolate) !== null;
-        }
-        parser.hasInterpolation = hasInterpolation;
-        // 根据token生成getter函数
-        function tokensToGetter(tokens, expression) {
-            var getter = interpolateGetterCache.get(expression);
-            if (!getter) {
-                var dynamic_1 = false;
-                var filters_1 = [];
-                tokens = tokens.map(function (item, i) {
-                    if (typeof item === 'string') {
-                        filters_1[i] = null;
-                        return item;
-                    }
-                    if (item && item.expression != null) {
-                        getter = parseGetter(item.expression);
-                        filters_1[i] = getter.filters;
-                        if (!getter.dynamic) {
-                            return getter((null));
-                        }
-                        dynamic_1 = true;
-                        return getter;
-                    }
-                    console.error("非法的token:\n", item);
-                });
-                getter = function (ctx) {
-                    return tokens.map(function (item) {
-                        if (typeof item === 'string') {
-                            return item;
-                        }
-                        return item.call(null, ctx);
-                    });
-                };
-                getter.dynamic = dynamic_1;
-                getter.filters = filters_1;
-                getter.isInterpolate = true;
-                interpolateGetterCache.set(expression, getter);
-            }
-            return getter;
-        }
-    })(parser = drunk.parser || (drunk.parser = {}));
-})(drunk || (drunk = {}));
-/// <reference path="../parser/parser.ts" />
-/// <reference path="../viewmodel/viewModel.ts" />
-/**
- * 数据过滤器模块
- * @module drunk.filter
- */
-var drunk;
-(function (drunk) {
-    var filter;
-    (function (filter) {
-        /**
-         * 使用提供的filter列表处理数据
-         * @param   value       输入
-         * @param   filterDefs  filter定义集合
-         * @param   viewModel   ViewModel实例
-         * @param   ...args     其他参数
-         */
-        function pipeFor(value, filterDefs, filterMap, isInterpolate) {
-            var args = [];
-            for (var _i = 4; _i < arguments.length; _i++) {
-                args[_i - 4] = arguments[_i];
-            }
-            if (!filterDefs) {
-                return isInterpolate ? getInterpolateValue(value) : value;
-            }
-            if (isInterpolate) {
-                // 如果是插值表达式,插值表达式的每个token对应自己的filter,需要一个个进行处理,
-                // 如果某个token没有filter说明那个token只是普通的字符串,直接返回
-                value = value.map(function (item, i) {
-                    if (!filterDefs[i]) {
-                        return item;
-                    }
-                    return filter.pipeFor.apply(filter, [item, filterDefs[i], filterMap, false].concat(args));
-                });
-                // 对所有token求值得到的结果做处理,如果是undefined或null类型直接转成空字符串,避免页面显示出undefined或null
-                return getInterpolateValue(value);
-            }
-            var name;
-            var param;
-            var method;
-            // 应用于所有的filter
-            filterDefs.forEach(function (def) {
-                name = def.name;
-                method = filterMap[name];
-                if (typeof method !== 'function') {
-                    throw new Error('Filter "' + name + '" not found');
-                }
-                param = def.param ? def.param.apply(def, args) : [];
-                value = method.apply(void 0, [value].concat(param));
-            });
-            return value;
-        }
-        filter.pipeFor = pipeFor;
-        /**
-         * 判断插值表达式的值个数,如果只有一个,则返回该值,如果有多个,则返回所有值的字符串相加
-         */
-        function getInterpolateValue(values) {
-            if (values.length === 1) {
-                return values[0];
-            }
-            return values.map(function (item) {
-                if (item == null) {
-                    return '';
-                }
-                return typeof item === 'object' ? JSON.stringify(item) : item;
-            }).join('');
-        }
-        var reg = {
-            escape: /[<>& "']/gm,
-            unescape: /&.+?;/g,
-            striptags: /(<([^>]+)>)/ig,
-            format: /(yy|M|d|h|m|s)(\1)*/g
-        };
-        var escapeChars = {
-            '&': "&amp;",
-            ' ': "&nbsp;",
-            '"': "&quot;",
-            "'": "&#x27;",
-            "<": "&lt;",
-            ">": "&gt;"
-        };
-        var unescapeChars = {
-            '&amp;': "&",
-            "&nbsp;": " ",
-            "&quot;": '"',
-            "&#x27;": "'",
-            "&lt;": "<",
-            "&gt;": ">"
-        };
-        /**
-         * filter方法表
-         */
-        filter.filters = {
-            /**
-             * 对输入的字符串进行编码
-             * @param  input  输入
-             */
-            escape: function (input) {
-                return input.replace(reg.escape, function (x) {
-                    return escapeChars[x];
-                });
-            },
-            /**
-             * 对输入的字符串进行解码
-             * @param  input  输入
-             */
-            unescape: function (input) {
-                return input.replace(reg.unescape, function (a) {
-                    return unescapeChars[a];
-                });
-            },
-            /**
-             * 对输入的字符串进行截断
-             * @param   input  输入
-             * @param   length 保留的最大长度
-             * @param   tail   结尾的字符串,默认为'...'
-             */
-            truncate: function (input, length, tail) {
-                if (input.length <= length) {
-                    return input;
-                }
-                return input.slice(0, length) + (tail != null ? tail : "...");
-            },
-            /**
-             * 为特殊字符添加斜杠
-             * @param  input  输入
-             */
-            addslashes: function (input) {
-                return input.replace(/[\\"']/g, '\\$&').replace(/\u0000/g, '\\0');
-            },
-            /**
-             * 移除特殊字符的斜杠
-             * @param  input  输入
-             */
-            stripslashes: function (input) {
-                return input.replace(/\\'/g, "'").replace(/\\"/g, '"').replace(/\\0/g, '\0').replace(/\\\\/g, '\\');
-            },
-            /**
-             * 计算输入的长度，支持字符串、数组和对象
-             * @param  input 输入
-             */
-            size: function (input) {
-                if (input == null) {
-                    return 0;
-                }
-                if (input.length != null) {
-                    return input.length;
-                }
-                if (typeof input === 'object') {
-                    var length_2 = 0;
-                    for (var k in input) {
-                        if (input.hasOwnProperty(k)) {
-                            length_2 += 1;
-                        }
-                    }
-                    return length_2;
-                }
-            },
-            /**
-             * JSON.stringify的别名
-             * @param   input     输入
-             * @param   ident     缩进
-             */
-            json: function (input, ident) {
-                return JSON.stringify(input, null, ident || 4);
-            },
-            /**
-             * 移除所有tag标签字符串,比如"<div>123</div>" => "123"
-             * @param   input  输入
-             */
-            striptags: function (input) {
-                return input.replace(reg.striptags, "");
-            },
-            /**
-             * 当输入为undefined或null是返回默认值
-             * @param  input        输入
-             * @param  defaultValue 默认值
-             */
-            default: function (input, defaltValue) {
-                return input == null ? defaltValue : input;
-            },
-            /**
-             * 根据输入的时间戳返回指定格式的日期字符串
-             * @param   input  时间戳
-             * @param   format 要返回的时间格式
-             */
-            date: function (input, format) {
-                return formatDate(input, format);
-            },
-            /**
-             * 在控制台上打印输入
-             * @param  input  输入
-             */
-            log: function (input) {
-                console.log("[Filter.log]: ", input);
-                return input;
-            }
-        };
-        function formatDate(time, format) {
-            if (!time) {
-                return '';
-            }
-            if (typeof time === 'string') {
-                time = time.replace(/-/g, "/");
-            }
-            var t = new Date(time);
-            var y = String(t.getFullYear());
-            var M = t.getMonth() + 1;
-            var d = t.getDate();
-            var H = t.getHours();
-            var m = t.getMinutes();
-            var s = t.getSeconds();
-            return format.replace(reg.format, function (x) {
-                switch (x) {
-                    case "yyyy":
-                        return y;
-                    case "yy":
-                        return y.slice(2);
-                    case "MM":
-                        return padded(M);
-                    case "M":
-                        return M;
-                    case "dd":
-                        return padded(d);
-                    case "d":
-                        return d;
-                    case "h":
-                        return H;
-                    case "hh":
-                        return padded(H);
-                    case "mm":
-                        return padded(m);
-                    case "m":
-                        return m;
-                    case "s":
-                        return s;
-                    case "ss":
-                        return padded(s);
-                }
-            });
-        }
-        function padded(n) {
-            return n < 10 ? '0' + n : n;
-        }
-    })(filter = drunk.filter || (drunk.filter = {}));
 })(drunk || (drunk = {}));
 /// <reference path="../binding.ts" />
 /// <reference path="../../config/config.ts" />
@@ -3871,6 +3866,9 @@ var drunk;
     var config = drunk.config;
     var Template = drunk.Template;
     var ViewModel = drunk.ViewModel;
+    var refKey = 'DRUNK-COMPONENT-ID';
+    var record = {};
+    var styleSheet;
     var Component = (function (_super) {
         __extends(Component, _super);
         /**
@@ -3991,15 +3989,98 @@ var drunk;
                 this._isMounted = false;
                 var nodeList = Array.isArray(this.element) ? this.element : [this.element];
                 nodeList.forEach(function (node) { return Component.removeWeakRef(node); });
+                dom.remove(this.element);
             }
             Component.instancesById[util.uuid(this)] = this.element = null;
         };
-        return Component;
-    }(ViewModel));
-    drunk.Component = Component;
-    var Component;
-    (function (Component) {
-        var refKey = 'DRUNK-COMPONENT-ID';
+        /**
+         * 获取挂在在元素上的viewModel实例
+         * @param   element 元素
+         * @return  Component实例
+         */
+        Component.getByElement = function (element) {
+            return element && Component.instancesById[element[refKey]];
+        };
+        /**
+         * 设置element与viewModel的引用
+         * @param   element    元素
+         * @param   component  组件实例
+         */
+        Component.setWeakRef = function (element, component) {
+            element[refKey] = util.uuid(component);
+        };
+        /**
+         * 移除挂载引用
+         * @param  element  元素
+         */
+        Component.removeWeakRef = function (element) {
+            delete element[refKey];
+        };
+        /**
+         * 根据组件名字获取组件构造函数
+         * @param  name  组件名
+         * @return  组件类的构造函数
+         */
+        Component.getConstructorByName = function (name) {
+            return Component.constructorsByName[name];
+        };
+        Component.define = function () {
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i - 0] = arguments[_i];
+            }
+            var members;
+            if (args.length === 2) {
+                members = args[1];
+                members.name = args[0];
+            }
+            else {
+                members = args[0];
+            }
+            return Component.extend(members);
+        };
+        Component.extend = function (name, members) {
+            if (arguments.length === 1 && util.isObject(name)) {
+                members = arguments[0];
+                name = members.name;
+            }
+            else {
+                members.name = arguments[0];
+            }
+            var superClass = this;
+            var prototype = Object.create(superClass.prototype);
+            var component = function () {
+                var args = [];
+                for (var _i = 0; _i < arguments.length; _i++) {
+                    args[_i - 0] = arguments[_i];
+                }
+                superClass.apply(this, args);
+            };
+            util.extend(prototype, members);
+            component.prototype = prototype;
+            prototype.constructor = component;
+            if (name) {
+                Component.register(name, component);
+            }
+            else {
+                component.extend = Component.extend;
+            }
+            return component;
+        };
+        /**
+         * 把一个继承了drunk.Component的组件类根据组件名字注册到组件系统中
+         * @param  name          组件名
+         * @param  componentCtor 组件类
+         */
+        Component.register = function (name, componentCtor) {
+            console.assert(name.indexOf('-') > -1, name, '组件明必须在中间带"-"字符,如"custom-view"');
+            if (Component.constructorsByName[name] != null) {
+                console.warn('组件 "' + name + '" 已被覆盖,请确认该操作');
+            }
+            componentCtor.extend = Component.extend;
+            Component.constructorsByName[name] = componentCtor;
+            addHiddenStyleForComponent(name);
+        };
         /**
          * 定义的组件记录
          */
@@ -4014,121 +4095,25 @@ var drunk;
             release: 'release',
             mounted: 'mounted'
         };
-        /**
-         * 获取挂在在元素上的viewModel实例
-         * @param   element 元素
-         * @return  Component实例
-         */
-        function getByElement(element) {
-            return element && Component.instancesById[element[refKey]];
+        return Component;
+    }(ViewModel));
+    drunk.Component = Component;
+    /**
+     * 设置样式
+     */
+    function addHiddenStyleForComponent(name) {
+        if (record[name] || typeof document === 'undefined' || typeof document.head === 'undefined') {
+            return;
         }
-        Component.getByElement = getByElement;
-        /**
-         * 设置element与viewModel的引用
-         * @param   element    元素
-         * @param   component  组件实例
-         */
-        function setWeakRef(element, component) {
-            element[refKey] = util.uuid(component);
+        if (!styleSheet) {
+            var styleElement = document.createElement('style');
+            document.head.appendChild(styleElement);
+            styleSheet = styleElement.sheet;
         }
-        Component.setWeakRef = setWeakRef;
-        /**
-         * 移除挂载引用
-         * @param  element  元素
-         */
-        function removeWeakRef(element) {
-            delete element[refKey];
-        }
-        Component.removeWeakRef = removeWeakRef;
-        /**
-         * 根据组件名字获取组件构造函数
-         * @param  name  组件名
-         * @return  组件类的构造函数
-         */
-        function getConstructorByName(name) {
-            return Component.constructorsByName[name];
-        }
-        Component.getConstructorByName = getConstructorByName;
-        function define() {
-            var args = [];
-            for (var _i = 0; _i < arguments.length; _i++) {
-                args[_i - 0] = arguments[_i];
-            }
-            var members;
-            if (args.length === 2) {
-                members = args[1];
-                members.name = args[0];
-            }
-            else {
-                members = args[0];
-            }
-            return Component.extend(members);
-        }
-        Component.define = define;
-        function extend(name, members) {
-            if (arguments.length === 1 && util.isObject(name)) {
-                members = arguments[0];
-                name = members.name;
-            }
-            else {
-                members.name = arguments[0];
-            }
-            var _super = this;
-            var prototype = Object.create(_super.prototype);
-            var component = function () {
-                var args = [];
-                for (var _i = 0; _i < arguments.length; _i++) {
-                    args[_i - 0] = arguments[_i];
-                }
-                _super.apply(this, args);
-            };
-            util.extend(prototype, members);
-            component.prototype = prototype;
-            prototype.constructor = component;
-            if (name) {
-                Component.register(name, component);
-            }
-            else {
-                component.extend = Component.extend;
-            }
-            return component;
-        }
-        Component.extend = extend;
-        /**
-         * 把一个继承了drunk.Component的组件类根据组件名字注册到组件系统中
-         * @param  name          组件名
-         * @param  componentCtor 组件类
-         */
-        function register(name, componentCtor) {
-            console.assert(name.indexOf('-') > -1, name, '组件明必须在中间带"-"字符,如"custom-view"');
-            if (Component.constructorsByName[name] != null) {
-                console.warn('组件 "' + name + '" 已被覆盖,请确认该操作');
-            }
-            componentCtor.extend = Component.extend;
-            Component.constructorsByName[name] = componentCtor;
-            addHiddenStyleForComponent(name);
-        }
-        Component.register = register;
-        var record = {};
-        var styleSheet;
-        /**
-         * 设置样式
-         * @param  name  组件名
-         */
-        function addHiddenStyleForComponent(name) {
-            if (record[name]) {
-                return;
-            }
-            if (!styleSheet) {
-                var styleElement = document.createElement('style');
-                document.head.appendChild(styleElement);
-                styleSheet = styleElement.sheet;
-            }
-            styleSheet.insertRule(name + '{display:none}', styleSheet.cssRules.length);
-        }
-        // 注册内置的组件标签
-        register(config.prefix + 'view', Component);
-    })(Component = drunk.Component || (drunk.Component = {}));
+        styleSheet.insertRule(name + '{display:none}', styleSheet.cssRules.length);
+    }
+    // 注册内置的组件标签
+    Component.register(config.prefix + 'view', Component);
 })(drunk || (drunk = {}));
 /// <reference path="../binding.ts" />
 /// <reference path="../../template/compiler.ts" />
@@ -4879,12 +4864,7 @@ var drunk;
          */
         ComponentBinding.prototype.release = function () {
             if (this.component) {
-                var component = this.component;
-                var element = component.element;
-                component.$release();
-                if (element) {
-                    dom.remove(element);
-                }
+                this.component.$release();
             }
             if (this.unwatches) {
                 // 移除所有的属性监控

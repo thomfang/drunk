@@ -1,5 +1,4 @@
 /// <reference path="../parser/parser.ts" />
-/// <reference path="../viewmodel/viewModel.ts" />
 
 /**
  * 数据过滤器模块

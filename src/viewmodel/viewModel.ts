@@ -6,9 +6,8 @@
 /// <reference path="../events/eventemitter.ts" />
 
 namespace drunk {
-    
+
     import util = drunk.util;
-    import filter = drunk.filter;
     import parser = drunk.parser;
     import Watcher = drunk.Watcher;
     import observable = drunk.observable;
@@ -165,11 +164,11 @@ namespace drunk {
                 watcher.removeAction(wrappedAction);
             };
         }
-        
+
         $computed(property: string, descriptor: { set?: (value: any) => void, get?: () => any; }) {
             let getter = descriptor.get;
             let setter = descriptor.set;
-            
+
             function computedGetterAndSetter() {
                 if (!arguments.length) {
                     if (getter) {
@@ -180,7 +179,7 @@ namespace drunk {
                     setter.call(this, arguments[0]);
                 }
             }
-            
+
             Object.defineProperty(this, property, {
                 configurable: true,
                 enumerable: true,
@@ -197,27 +196,24 @@ namespace drunk {
                 return;
             }
 
-            Object.keys(this._model).forEach((property) => {
+            Object.keys(this._model).forEach(property => {
                 delete this[property];
             });
 
-            Object.keys(this._watchers).forEach((key) => {
+            Object.keys(this._watchers).forEach(key => {
                 if (this._watchers[key]) {
                     this._watchers[key].dispose();
                 }
             });
 
-            this._bindings.forEach((binding) => {
+            this._bindings.slice().forEach(binding => {
                 binding.dispose();
             });
 
             EventEmitter.cleanup(this);
 
             this._isActived = false;
-            this._model = null;
-            this._bindings = null;
-            this._watchers = null;
-            this.$filter = null;
+            this._model = this._bindings = this._watchers = this.$filter = null;
         }
 
         /**

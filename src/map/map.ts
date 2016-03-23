@@ -4,11 +4,11 @@ namespace drunk {
     
     import util = drunk.util;
     
-    const uuidOfNaN = util.uuid({});
-    const uuidOfNull = util.uuid({});
-    const uuidOfUndefined = util.uuid({});
-    const uuidOfTrue = util.uuid({});
-    const uuidOfFalse = util.uuid({});
+    const UUID_OF_NAN = util.uuid({});
+    const UUID_OF_NULL = util.uuid({});
+    const UUID_OF_TRUE = util.uuid({});
+    const UUID_OF_FALSE = util.uuid({});
+    const UUID_OF_UNDEFINED = util.uuid({});
     
     /**
      * Map类，可把任务类型的对象作为key
@@ -39,19 +39,19 @@ namespace drunk {
             
             if (type !== 'object') {
                 if (isNaN(key)) {
-                    uuid = uuidOfNaN;
+                    uuid = UUID_OF_NAN;
                 }
                 else if (key === null) {
-                    uuid = uuidOfNull;
+                    uuid = UUID_OF_NULL;
                 }
                 else if (key === undefined) {
-                    uuid = uuidOfUndefined;
+                    uuid = UUID_OF_UNDEFINED;
                 }
                 else if (key === true) {
-                    uuid = uuidOfTrue;
+                    uuid = UUID_OF_TRUE;
                 }
                 else if (key === false) {
-                    uuid = uuidOfFalse;
+                    uuid = UUID_OF_FALSE;
                 }
                 else if (type === 'string') {
                     uuid = '"' + key + '"';
@@ -60,7 +60,7 @@ namespace drunk {
                     uuid = '-' + key + '-';
                 }
                 else {
-                    throw new Error('Not support type');
+                    throw new Error('不支持的数据类型:' + type);
                 }
             }
             else {

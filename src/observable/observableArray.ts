@@ -7,6 +7,8 @@
  * 发送数据更新的通知。
  */
 namespace drunk.observable {
+    
+    import util = drunk.util;
 
     /**
      * 可监控数组的声明

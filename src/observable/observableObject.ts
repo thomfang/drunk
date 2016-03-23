@@ -7,6 +7,8 @@
  */
 namespace drunk.observable {
     
+    import util = drunk.util;
+    
     /**
      * 可监控JSON对象的声明
      */

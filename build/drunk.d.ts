@@ -555,6 +555,84 @@ declare namespace drunk.observable {
      */
     function removeAll<T>(array: IObservableArray<T>): void;
 }
+/**
+ * 简单的解析器,只是做了字符串替换,然后使用new Function生成函数
+ */
+declare namespace drunk.parser {
+    interface IGetter {
+        (viewModel: ViewModel, ...args: Array<any>): any;
+        filters?: Array<filter.IFilterDef>;
+        dynamic?: boolean;
+        isInterpolate?: boolean;
+    }
+    interface ISetter {
+        (viewModel: ViewModel, value: any): any;
+    }
+    /**
+     * 解析表达式
+     * @param  expression  表达式
+     */
+    function parse(expression: string): IGetter;
+    /**
+     * 解析表达式生成getter函数
+     * @param   expression      表达式字符串
+     * @param   isInterpolate   是否是一哥插值表达式
+     * @param   skipFilter      跳过解析filter
+     */
+    function parseGetter(expression: string, isInterpolate?: boolean, skipFilter?: boolean): IGetter;
+    /**
+     * 解析表达式生成setter函数
+     * @param   expression 表达式字符串
+     */
+    function parseSetter(expression: string): ISetter;
+    /**
+     * 解析包含插值绑定的字符串表达式， 类似"a {{interpolate_let}}"， 花括号里的就是插值变量
+     * 先判断是否存在花括号， 然后在解析成tokens， 再根据token生成getter函数
+     * @param   expression  表达式字符串
+     * @param   justTokens  是否只需要返回tokens
+     */
+    function parseInterpolate(expression: string): IGetter;
+    function parseInterpolate(expression: string, justTokens: boolean): any[];
+    /**
+     * 是否有插值语法
+     * @param   str  字符串
+     */
+    function hasInterpolation(str: string): boolean;
+}
+/**
+ * 数据过滤器模块
+ * @module drunk.filter
+ */
+declare namespace drunk.filter {
+    /**
+     * Filter声明
+     * @param   input       输入
+     * @param   ...arggs    其他参数
+     */
+    interface IFilter {
+        (...args: any[]): any;
+    }
+    interface IFilterDef {
+        name: string;
+        param?: parser.IGetter;
+    }
+    /**
+     * 使用提供的filter列表处理数据
+     * @param   value       输入
+     * @param   filterDefs  filter定义集合
+     * @param   viewModel   ViewModel实例
+     * @param   ...args     其他参数
+     */
+    function pipeFor(value: any, filterDefs: any, filterMap: {
+        [name: string]: IFilter;
+    }, isInterpolate: boolean, ...args: any[]): any;
+    /**
+     * filter方法表
+     */
+    let filters: {
+        [name: string]: IFilter;
+    };
+}
 declare namespace drunk {
     class Watcher {
         private viewModel;
@@ -802,7 +880,6 @@ declare namespace drunk {
     }
 }
 declare namespace drunk {
-    import filter = drunk.filter;
     import Watcher = drunk.Watcher;
     import observable = drunk.observable;
     import EventEmitter = drunk.EventEmitter;
@@ -903,84 +980,6 @@ declare namespace drunk {
          */
         __getValueByGetter(getter: any, isInterpolate: any): any;
     }
-}
-/**
- * 简单的解析器,只是做了字符串替换,然后使用new Function生成函数
- */
-declare namespace drunk.parser {
-    interface IGetter {
-        (viewModel: ViewModel, ...args: Array<any>): any;
-        filters?: Array<filter.IFilterDef>;
-        dynamic?: boolean;
-        isInterpolate?: boolean;
-    }
-    interface ISetter {
-        (viewModel: ViewModel, value: any): any;
-    }
-    /**
-     * 解析表达式
-     * @param  expression  表达式
-     */
-    function parse(expression: string): IGetter;
-    /**
-     * 解析表达式生成getter函数
-     * @param   expression      表达式字符串
-     * @param   isInterpolate   是否是一哥插值表达式
-     * @param   skipFilter      跳过解析filter
-     */
-    function parseGetter(expression: string, isInterpolate?: boolean, skipFilter?: boolean): IGetter;
-    /**
-     * 解析表达式生成setter函数
-     * @param   expression 表达式字符串
-     */
-    function parseSetter(expression: string): ISetter;
-    /**
-     * 解析包含插值绑定的字符串表达式， 类似"a {{interpolate_let}}"， 花括号里的就是插值变量
-     * 先判断是否存在花括号， 然后在解析成tokens， 再根据token生成getter函数
-     * @param   expression  表达式字符串
-     * @param   justTokens  是否只需要返回tokens
-     */
-    function parseInterpolate(expression: string): IGetter;
-    function parseInterpolate(expression: string, justTokens: boolean): any[];
-    /**
-     * 是否有插值语法
-     * @param   str  字符串
-     */
-    function hasInterpolation(str: string): boolean;
-}
-/**
- * 数据过滤器模块
- * @module drunk.filter
- */
-declare namespace drunk.filter {
-    /**
-     * Filter声明
-     * @param   input       输入
-     * @param   ...arggs    其他参数
-     */
-    interface IFilter {
-        (...args: any[]): any;
-    }
-    interface IFilterDef {
-        name: string;
-        param?: parser.IGetter;
-    }
-    /**
-     * 使用提供的filter列表处理数据
-     * @param   value       输入
-     * @param   filterDefs  filter定义集合
-     * @param   viewModel   ViewModel实例
-     * @param   ...args     其他参数
-     */
-    function pipeFor(value: any, filterDefs: any, filterMap: {
-        [name: string]: IFilter;
-    }, isInterpolate: boolean, ...args: any[]): any;
-    /**
-     * filter方法表
-     */
-    let filters: {
-        [name: string]: IFilter;
-    };
 }
 declare namespace drunk {
     import Promise = drunk.Promise;
@@ -1258,67 +1257,65 @@ declare namespace drunk {
          * 释放组件
          */
         $release(): void;
-    }
-    namespace Component {
         /**
          * 定义的组件记录
          */
-        var constructorsByName: {
+        static constructorsByName: {
             [name: string]: IComponentContructor<any>;
         };
         /** 组件实例 */
-        var instancesById: {
+        static instancesById: {
             [id: number]: Component;
         };
         /**
          * 组件的事件名称
          */
-        const Event: IComponentEvent;
+        static Event: IComponentEvent;
         /**
          * 获取挂在在元素上的viewModel实例
          * @param   element 元素
          * @return  Component实例
          */
-        function getByElement(element: any): Component;
+        static getByElement(element: any): Component;
         /**
          * 设置element与viewModel的引用
          * @param   element    元素
          * @param   component  组件实例
          */
-        function setWeakRef<T extends Component>(element: any, component: T): void;
+        static setWeakRef<T extends Component>(element: any, component: T): void;
         /**
          * 移除挂载引用
          * @param  element  元素
          */
-        function removeWeakRef(element: any): void;
+        static removeWeakRef(element: any): void;
         /**
          * 根据组件名字获取组件构造函数
          * @param  name  组件名
          * @return  组件类的构造函数
          */
-        function getConstructorByName(name: string): IComponentContructor<any>;
+        static getConstructorByName(name: string): IComponentContructor<any>;
         /**
          * 自定义一个组件类
          * @param  name     组件名，必然包含'-'在中间
          * @param  members  组件成员
          * @return          组件类的构造函数
          */
-        function define<T extends IComponent>(members: T): IComponentContructor<T>;
-        function define<T extends IComponent>(name: string, members: T): IComponentContructor<T>;
+        static define<T extends IComponent>(members: T): IComponentContructor<T>;
+        static define<T extends IComponent>(name: string, members: T): IComponentContructor<T>;
         /**
          * 当前组件类拓展出一个子组件
          * @param    name       子组件名
          * @param    members    子组件的成员
          * @return              组件类的构造函数
          */
-        function extend<T extends IComponent>(members: T): IComponentContructor<T>;
-        function extend<T extends IComponent>(name: string, members: T): IComponentContructor<T>;
+        static extend<T extends IComponent>(members: T): IComponentContructor<T>;
+        static extend<T extends IComponent>(name: string, members: T): IComponentContructor<T>;
         /**
          * 把一个继承了drunk.Component的组件类根据组件名字注册到组件系统中
          * @param  name          组件名
          * @param  componentCtor 组件类
          */
-        function register(name: string, componentCtor: any): void;
+        static register(name: string, componentCtor: any): void;
     }
 }
 declare namespace drunk {

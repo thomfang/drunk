@@ -7,12 +7,16 @@
 
 
 namespace drunk {
-    
+
     import dom = drunk.dom;
     import util = drunk.util;
     import config = drunk.config;
     import Template = drunk.Template;
     import ViewModel = drunk.ViewModel;
+
+    let refKey = 'DRUNK-COMPONENT-ID';
+    let record: { [name: string]: boolean } = {};
+    let styleSheet: any;
 
     export interface IComponent {
         name?: string;
@@ -225,31 +229,27 @@ namespace drunk {
 
             if (this._isMounted) {
                 this._isMounted = false;
-                
+
                 let nodeList: Node[] = Array.isArray(this.element) ? <Node[]>this.element : [<Node>this.element];
                 nodeList.forEach(node => Component.removeWeakRef(node));
+                dom.remove(this.element);
             }
 
             Component.instancesById[util.uuid(this)] = this.element = null;
         }
-    }
-
-    export namespace Component {
-
-        let refKey = 'DRUNK-COMPONENT-ID';
 
         /**
          * 定义的组件记录
          */
-        export var constructorsByName: { [name: string]: IComponentContructor<any> } = {};
+        static constructorsByName: { [name: string]: IComponentContructor<any> } = {};
 
         /** 组件实例 */
-        export var instancesById: { [id: number]: Component } = {};
+        static instancesById: { [id: number]: Component } = {};
 
         /**
          * 组件的事件名称
          */
-        export const Event: IComponentEvent = {
+        static Event: IComponentEvent = {
             created: 'created',
             release: 'release',
             mounted: 'mounted'
@@ -260,8 +260,8 @@ namespace drunk {
          * @param   element 元素
          * @return  Component实例
          */
-        export function getByElement(element: any) {
-            return element && instancesById[element[refKey]];
+        static getByElement(element: any) {
+            return element && Component.instancesById[element[refKey]];
         }
 
         /**
@@ -269,7 +269,7 @@ namespace drunk {
          * @param   element    元素
          * @param   component  组件实例
          */
-        export function setWeakRef<T extends Component>(element: any, component: T) {
+        static setWeakRef<T extends Component>(element: any, component: T) {
             element[refKey] = util.uuid(component);
         }
 
@@ -277,7 +277,7 @@ namespace drunk {
          * 移除挂载引用
          * @param  element  元素
          */
-        export function removeWeakRef(element: any) {
+        static removeWeakRef(element: any) {
             delete element[refKey];
         }
 
@@ -286,8 +286,8 @@ namespace drunk {
          * @param  name  组件名
          * @return  组件类的构造函数
          */
-        export function getConstructorByName(name: string): IComponentContructor<any> {
-            return constructorsByName[name];
+        static getConstructorByName(name: string): IComponentContructor<any> {
+            return Component.constructorsByName[name];
         }
 
         /**
@@ -296,9 +296,9 @@ namespace drunk {
          * @param  members  组件成员
          * @return          组件类的构造函数
          */
-        export function define<T extends IComponent>(members: T): IComponentContructor<T>;
-        export function define<T extends IComponent>(name: string, members: T): IComponentContructor<T>;
-        export function define<T extends IComponent>(...args: any[]) {
+        static define<T extends IComponent>(members: T): IComponentContructor<T>;
+        static define<T extends IComponent>(name: string, members: T): IComponentContructor<T>;
+        static define<T extends IComponent>(...args: any[]) {
             let members: T;
             if (args.length === 2) {
                 members = args[1];
@@ -316,9 +316,9 @@ namespace drunk {
          * @param    members    子组件的成员
          * @return              组件类的构造函数
          */
-        export function extend<T extends IComponent>(members: T): IComponentContructor<T>;
-        export function extend<T extends IComponent>(name: string, members: T): IComponentContructor<T>;
-        export function extend<T extends IComponent>(name: string | T, members?: T) {
+        static extend<T extends IComponent>(members: T): IComponentContructor<T>;
+        static extend<T extends IComponent>(name: string, members: T): IComponentContructor<T>;
+        static extend<T extends IComponent>(name: string | T, members?: T) {
             if (arguments.length === 1 && util.isObject(name)) {
                 members = arguments[0];
                 name = members.name;
@@ -327,11 +327,11 @@ namespace drunk {
                 members.name = arguments[0];
             }
 
-            var _super = this;
-            var prototype = Object.create(_super.prototype);
+            var superClass = this;
+            var prototype = Object.create(superClass.prototype);
 
             var component: IComponentContructor<T> = function(...args: any[]) {
-                _super.apply(this, args);
+                superClass.apply(this, args);
             };
 
             util.extend(prototype, members);
@@ -354,41 +354,37 @@ namespace drunk {
          * @param  name          组件名
          * @param  componentCtor 组件类
          */
-        export function register(name: string, componentCtor: any) {
+        static register(name: string, componentCtor: any) {
             console.assert(name.indexOf('-') > -1, name, '组件明必须在中间带"-"字符,如"custom-view"');
 
-            if (constructorsByName[name] != null) {
+            if (Component.constructorsByName[name] != null) {
                 console.warn('组件 "' + name + '" 已被覆盖,请确认该操作');
             }
 
             componentCtor.extend = Component.extend;
-            constructorsByName[name] = componentCtor;
+            Component.constructorsByName[name] = componentCtor;
 
             addHiddenStyleForComponent(name);
         }
+    }
 
-        let record: { [name: string]: boolean } = {};
-        let styleSheet: any;
-
-        /**
-         * 设置样式
-         * @param  name  组件名
-         */
-        function addHiddenStyleForComponent(name: string) {
-            if (record[name]) {
-                return;
-            }
-
-            if (!styleSheet) {
-                let styleElement = document.createElement('style');
-                document.head.appendChild(styleElement);
-                styleSheet = styleElement.sheet;
-            }
-
-            styleSheet.insertRule(name + '{display:none}', styleSheet.cssRules.length);
+    /**
+     * 设置样式
+     */
+    function addHiddenStyleForComponent(name: string) {
+        if (record[name] || typeof document === 'undefined' || typeof document.head === 'undefined') {
+            return;
         }
 
-        // 注册内置的组件标签
-        register(config.prefix + 'view', Component);
+        if (!styleSheet) {
+            let styleElement = document.createElement('style');
+            document.head.appendChild(styleElement);
+            styleSheet = styleElement.sheet;
+        }
+
+        styleSheet.insertRule(name + '{display:none}', styleSheet.cssRules.length);
     }
+
+    // 注册内置的组件标签
+    Component.register(config.prefix + 'view', Component);
 }
