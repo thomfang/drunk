@@ -20,11 +20,11 @@ describe("Binding", function () {
         });
     });
 
-    it("define with object handler", function () {
+    it("register with object handler", function () {
         var handler = {};
-        Binding.define("test", handler);
+        Binding.register("test", handler);
 
-        expect(Binding.getDefinintionByName('test')).toBe(handler);
+        expect(Binding.getByName('test')).toBe(handler);
     });
 
     it("normal binding", function (done) {
@@ -50,7 +50,7 @@ describe("Binding", function () {
 
         viewModel.a = 234;
 
-        drunk.util.nextTick(function () {
+        drunk.util.execAsyncWork(function () {
             expect(binding.update).toHaveBeenCalledWith(234, 1);
 
             binding.dispose();
@@ -90,19 +90,17 @@ describe("Binding", function () {
         
         var watcher = viewModel._watchers.a;
 
-        spyOn(viewModel, "setValue").and.callThrough();
-
+        spyOn(viewModel, "$setValue").and.callThrough();
+        
         binding.setValue(2, true);
 
-        expect(viewModel.setValue.calls.any()).toEqual(true);
-        expect(binding._isLocked).toBe(true);
+        expect(viewModel.$setValue.calls.any()).toEqual(true);
         expect(viewModel.a).toBe(2);
         expect(watcher.value).toBe(1);
 
-        drunk.util.nextTick(function () {
-            expect(binding.update.calls.count()).toBe(1);
+        drunk.util.execAsyncWork(function () {
+            expect(binding.update.calls.count()).toBe(2);
             expect(watcher.value).toBe(2);
-            expect(binding._isLocked).toBe(false);
 
             done();
         });
@@ -121,7 +119,7 @@ describe("Binding", function () {
 
         viewModel.b.c.d = 23;
 
-        drunk.util.nextTick(function () {
+        drunk.util.execAsyncWork(function () {
             expect(binding.update.calls.count()).toBe(2);
 
             done();
@@ -150,7 +148,7 @@ describe("Binding", function () {
 
         expect(watcher._actions.length).toBe(1);
 
-        drunk.util.nextTick(function () {
+        drunk.util.execAsyncWork(function () {
             expect(binding1.update).toHaveBeenCalledWith(2, 1);
 
             binding1.dispose();

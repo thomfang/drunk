@@ -348,7 +348,8 @@ namespace drunk {
 
                         if (Date.now() >= endTime && index < length) {
                             // 如果创建节点达到了一定时间，让出线程给ui线程
-                            return jobInfo.setWork(renderItems);
+                            job = Scheduler.schedule(renderItems, Scheduler.Priority.idle);
+                            return;// jobInfo.setWork(renderItems);
                         }
                     }
                     else {
@@ -356,8 +357,7 @@ namespace drunk {
                     }
                 }
 
-                job = null;
-                this._cancelRenderJob = null;
+                this._cancelRenderJob = job = null;
             };
 
             next(this._headNode);
@@ -365,9 +365,7 @@ namespace drunk {
 
             this._cancelRenderJob = () => {
                 job.cancel();
-
-                this._cancelRenderJob = null;
-                job = null;
+                this._cancelRenderJob = job = null;
             };
         }
 
@@ -485,7 +483,7 @@ namespace drunk {
 
             Binding.removeWeakRef(this._headNode, <any>this);
             Binding.removeWeakRef(this._tailNode, <any>this);
-            
+
             dom.remove(this._headNode);
             dom.remove(this._tailNode);
 

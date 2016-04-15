@@ -19,8 +19,8 @@ describe("observable", function () {
         expect(obj.__proto__).not.toBe(Object.prototype);
         expect(obj.__proto__).toBe(ObservableObject);
         expect(obj.__observer__).toBeDefined();
-        expect(obj.removeProperty).toBeDefined();
-        expect(obj.setProperty).toBeDefined();
+        expect(obj.$remove).toBeDefined();
+        expect(obj.$set).toBeDefined();
 
         expect(ob1).toBe(ob2);
         expect(obj.__observer__).toBe(ob1);
@@ -37,10 +37,10 @@ describe("observable", function () {
         expect(arr.__proto__).not.toBe(Array.prototype);
         expect(arr.__proto__).toBe(ObservableArray);
         expect(arr.__observer__).toBeDefined();
-        expect(arr.removeAt).toBeDefined();
-        expect(arr.removeItem).toBeDefined();
-        expect(arr.setAt).toBeDefined();
-        expect(arr.removeAllItem).toBeDefined();
+        expect(arr.$removeAt).toBeDefined();
+        expect(arr.$removeItem).toBeDefined();
+        expect(arr.$setAt).toBeDefined();
+        expect(arr.$removeAllItem).toBeDefined();
 
         expect(arr.__observer__).toBe(ob1);
         expect(ob1).toBe(ob2);
@@ -55,7 +55,7 @@ describe("observable", function () {
 
     });
 
-    it("ObservableObject.setProperty", function () {
+    it("ObservableObject.$set", function () {
         var obj = {};
         var ob = observable.create(obj);
 
@@ -67,7 +67,7 @@ describe("observable", function () {
 
         var val = { name: 'a' };
 
-        obj.setProperty("a", val);
+        obj.$set("a", val);
 
         expect(obj.a).toBe(val);
         expect(observable.observe).toHaveBeenCalledWith(obj, 'a', val);
@@ -77,13 +77,13 @@ describe("observable", function () {
         observable.observe = oldMethod;
     });
 
-    it("ObservableObject.removeProperty", function () {
+    it("ObservableObject.$remove", function () {
         var obj = { a: 'a' };
         var ob = observable.create(obj);
 
         spyOn(ob, "notify").and.callThrough();
 
-        obj.removeProperty('a');
+        obj.$remove('a');
 
         expect(ob.notify).toHaveBeenCalled();
         expect(obj.a).toBeUndefined();
@@ -171,7 +171,7 @@ describe("observable", function () {
         expect(ob.notify).toHaveBeenCalled();
     });
 
-    it("ObservableArray.setAt", function () {
+    it("ObservableArray.$setAt", function () {
         var arr = [];
         var ob = observable.create(arr);
 
@@ -179,7 +179,7 @@ describe("observable", function () {
 
         var val = { name: 'a' };
 
-        arr.setAt(0, val);
+        arr.$setAt(0, val);
 
         expect(arr[0]).toBe(val);
         expect(arr.length).toBe(1);
@@ -187,33 +187,33 @@ describe("observable", function () {
         expect(val.__observer__).toBeDefined();
     });
     
-    it("ObservableArray.removeAt", function () {
+    it("ObservableArray.$removeAt", function () {
         var arr = [1, 2, 3, 4];
         var ob = observable.create(arr);
 
         spyOn(arr, "splice").and.callThrough();
-        arr.removeAt(2);
+        arr.$removeAt(2);
 
         expect(arr).toEqual([1, 2, 4]);
     });
 
-    it("ObservableArray.removeItem", function () {
+    it("ObservableArray.$removeItem", function () {
         var arr = [1, 2, 3, 4];
         var ob = observable.create(arr);
 
         spyOn(arr, "splice").and.callThrough();
-        arr.removeItem(3);
+        arr.$removeItem(3);
 
         expect(arr).toEqual([1, 2, 4]);
         expect(arr.splice).toHaveBeenCalledWith(2, 1);
     });
     
-    it("ObservableArray.removeAllItem", function () {
+    it("ObservableArray.$removeAllItem", function () {
         var arr = [1, 2, 3, 4, 2, 454, 22, 2, 0];
         observable.create(arr);
 
         spyOn(arr, "splice").and.callThrough();
-        arr.removeAllItem(2);
+        arr.$removeAllItem(2);
 
         expect(arr).toEqual([1, 3, 4, 454, 22, 0]);
     });

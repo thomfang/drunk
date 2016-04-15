@@ -8,20 +8,20 @@ describe("ViewModel", function () {
     beforeEach(function () {
         vm =  new drunk.ViewModel({a: 123});
         
-        vm.filter.add = function (a, b) {
+        vm.$filter.add = function (a, b) {
             return a + b;
         };
     })
     
     it("common", function () {
-        expect(vm.filter).toBeDefined();
+        expect(vm.$filter).toBeDefined();
         expect(vm._model).toEqual({a: 123});
         expect(vm._watchers).toBeDefined();
         expect(vm._bindings).toBeDefined();
     });
 
     it("proxy model property", function () {
-        vm.proxy('b');
+        vm.$proxy('b');
         vm.b = '123';
         
         expect(vm._model.b).toBe('123');
@@ -53,24 +53,24 @@ describe("ViewModel", function () {
     });
     
     it("eval normal expression", function () {
-        var val = vm.eval("a|add:2");
+        var val = vm.$eval("a|add:2");
         
         expect(val).toBe(125);
     });
     
     it("parse interpolate expression", function () {
-        var val = vm.eval("{{a|add:2}}", true);
+        var val = vm.$eval("{{a|add:2}}", true);
         
         expect(val).toBe(125);
         
-        expect(vm.eval('{{a}}', true)).toBe(123)
+        expect(vm.$eval('{{a}}', true)).toBe(123)
     });
     
     it("watch an expression", function (done) {
         var spy = jasmine.createSpy();
         
-        vm.watch("a", spy);
-        vm.watch("a", function () {
+        vm.$watch("a", spy);
+        vm.$watch("a", function () {
             expect(spy).toHaveBeenCalledWith(2, 123);
             done();
         });
@@ -81,8 +81,8 @@ describe("ViewModel", function () {
     it("watch an interpolate expression", function (done) {
         var spy = jasmine.createSpy();
         
-        vm.watch("{{a}}", spy);
-        vm.watch("{{a}}", function () {
+        vm.$watch("{{a}}", spy);
+        vm.$watch("{{a}}", function () {
             expect(spy).toHaveBeenCalledWith(2, 123);
             done();
         });
@@ -91,13 +91,13 @@ describe("ViewModel", function () {
     });
     
     it("release", function () {
-        vm.proxy('b');
+        vm.$proxy('b');
         vm.b = 1;
         
         var model = vm._model;
-        vm.dispose();
+        vm.$release();
 
-        expect(vm.filter).toBeNull();
+        expect(vm.$filter).toBeNull();
         expect(vm._bindings).toBeNull();
         expect(vm._watchers).toBeNull();
         

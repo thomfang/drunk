@@ -69,10 +69,10 @@ describe("parser", function () {
         });
 
         it("dynamic literal getter with filters", function () {
-            viewModel.filter.add = function (a, b) {
+            viewModel.$filter.add = function (a, b) {
                 return a + b;
             };
-            viewModel.filter.mul = function (a, b) {
+            viewModel.$filter.mul = function (a, b) {
                 return a * b;
             };
 
@@ -116,7 +116,7 @@ describe("parser", function () {
 
                 expect(value).toBe(test.value);
                 
-                value = drunk.filter.pipeFor(value, result2.filters, viewModel.filter, false, viewModel);
+                value = drunk.filter.pipeFor(value, result2.filters, viewModel.$filter, false, viewModel);
                 expect(value).toBe(test.expected);
             });
 
@@ -156,7 +156,7 @@ describe("parser", function () {
         it("parse to getter", function () {
             result4 = parser.parseInterpolate(str2);
             var vm = new drunk.ViewModel();
-            vm.proxy("interpolate");
+            vm.$proxy("interpolate");
             vm.interpolate = "123";
             expect(result4(vm)).toEqual(['this has a ', '123']);
         });

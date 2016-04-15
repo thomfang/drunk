@@ -20,7 +20,7 @@ drunk.Binding.register("include", {
         this._removeBind();
 
         if (url) {
-            drunk.Template.renderFragment(url, null, true).then((fragment) => this._createBinding(fragment));
+            return drunk.Template.renderFragment(url, null, true).then((fragment) => this._createBinding(fragment));
         }
     },
 

@@ -50,7 +50,7 @@ namespace drunk.parser {
     
     let reIdentifier = /("|').*?\1|[a-zA-Z$_][a-z0-9A-Z$_]*/g;
     let reFilter = /("|').*?\1|\|\||\|\s*([a-zA-Z$_][a-z0-9A-Z$_]*)(:[^|]*)?/g;
-    let reInterpolate = /\{\{([^{]+)\}\}/g;
+    let reInterpolate = /\{\{(.+?)\}\}/g;
     let reBrackets = /^\([^)]*\)/;
     let reObjectKey = /[{,]\s*$/;
     let reColon = /^\s*:/;

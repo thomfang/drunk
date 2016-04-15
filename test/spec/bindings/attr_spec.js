@@ -3,12 +3,12 @@
 
 describe("Binding.attr", function () {
     
-    var definition = drunk.Binding.getDefinintionByName('attr');
+    var definition = drunk.Binding.getByName('attr');
     var binding;
     
     beforeEach(function () {
         binding = drunk.util.extend({
-            element: drunk.elementUtil.create("<div></div>")
+            element: drunk.dom.create("<div></div>")
         }, definition);
     });
     

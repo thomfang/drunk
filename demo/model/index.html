@@ -10,13 +10,25 @@
     <body>
         
         <input type="text" drunk-model="content">
+        <p>{{ {'male': '男', 'female': '女'}[gender] }}</p>
         <p>input: {{content}}</p>
         <button drunk-on="click: content = ''">clear</button>
         
+        <select drunk-model="gender">
+            <option value="male">男</option>
+            <option value="female">女</option>
+        </select>
+        
+        <label>男<input type="radio" name="gender" drunk-model="gender" value="male" /></label>
+        <label>女<input type="radio" name="gender" drunk-model="gender" value="female" /></label>
+<!--        
+        <label>男<input type="checkbox" name="gender-c" drunk-model="gender" /></label>
+        <label>女<input type="checkbox" name="gender-c" drunk-model="gender" /></label>-->
         
         <script type="text/javascript">
             /// <reference path="../../build/drunk.d.ts" />
             var app = new drunk.Component();
+            app.gender = 'male';
             app.$watch('content', function (newValue) {
                 if (newValue && newValue.length > 3) {
                     this.content = newValue.slice(0, 3);

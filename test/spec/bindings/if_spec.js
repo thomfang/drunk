@@ -2,14 +2,14 @@
 /// <reference path="../../jasmine.d.ts" />
 
 describe("Binding.if", function () {
-    var ifBinding = drunk.Binding.getDefinintionByName('if');
+    var ifBinding = drunk.Binding.getByName('if');
     
     var binding, container;
     
     beforeEach(function () {
-        container = drunk.elementUtil.create("<div></div>");
+        container = drunk.dom.create("<div></div>");
         binding = Object.create(ifBinding);
-        binding.element = drunk.elementUtil.create("<div drunk-class='a'></div>");
+        binding.element = drunk.dom.create("<div drunk-class='a'></div>");
         binding.viewModel = new drunk.ViewModel();
         
         container.appendChild(binding.element);
@@ -17,11 +17,11 @@ describe("Binding.if", function () {
     });
     
     it("should create the properties", function () {
-        expect(binding.startNode).toBeDefined();
-        expect(binding.endedNode).toBeDefined();
-        expect(binding.inDocument).toBe(false);
+        expect(binding._headNode).toBeDefined();
+        expect(binding._tailNode).toBeDefined();
+        expect(binding._inDocument).toBe(false);
         expect(binding.element.parentNode).toBeNull();
-        expect(binding.startNode.parentNode).toBe(container);
+        expect(binding._headNode.parentNode).toBe(container);
     });
     
     it("should update with correct action", function () {
@@ -38,29 +38,29 @@ describe("Binding.if", function () {
     it("should compile and add element to document", function () {
         binding.addToDocument();
         
-        expect(binding.inDocument).toBe(true);
-        expect(binding.bindingExecutor).toBeDefined();
-        expect(binding.unbindExecutor).toBeDefined();
-        expect(binding.tmpElement.parentNode).toBe(container);
+        expect(binding._inDocument).toBe(true);
+        expect(binding._bind).toBeDefined();
+        expect(binding._unbind).toBeDefined();
+        expect(binding._tmpElement.parentNode).toBe(container);
     });
     
     it("should call unbind and remove the unused element from document", function () {
         binding.addToDocument();
         binding.removeFromDocument();
 
-        expect(binding.inDocument).toBe(false);
-        expect(binding.unbindExecutor).toBeNull();
-        expect(binding.startNode.parentNode).toBe(container);
+        expect(binding._inDocument).toBe(false);
+        expect(binding._unbind).toBeNull();
+        expect(binding._headNode.parentNode).toBe(container);
     });
     
     it("should release the binding and remove all the references", function () {
         binding.addToDocument();
         binding.release();
 
-        expect(binding.inDocument).toBe(false);
-        expect(binding.bindingExecutor).toBeNull();
-        expect(binding.unbindExecutor).toBeNull();
-        expect(binding.startNode).toBeNull();
-        expect(binding.endedNode).toBeNull();
+        expect(binding._inDocument).toBe(false);
+        expect(binding._bind).toBeNull();
+        expect(binding._unbind).toBeNull();
+        expect(binding._headNode).toBeNull();
+        expect(binding._tailNode).toBeNull();
     });
 });

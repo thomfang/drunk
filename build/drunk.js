@@ -1751,7 +1751,7 @@ var drunk;
         var interpolateGetterCache = new Cache(500);
         var reIdentifier = /("|').*?\1|[a-zA-Z$_][a-z0-9A-Z$_]*/g;
         var reFilter = /("|').*?\1|\|\||\|\s*([a-zA-Z$_][a-z0-9A-Z$_]*)(:[^|]*)?/g;
-        var reInterpolate = /\{\{([^{]+)\}\}/g;
+        var reInterpolate = /\{\{(.+?)\}\}/g;
         var reBrackets = /^\([^)]*\)/;
         var reObjectKey = /[{,]\s*$/;
         var reColon = /^\s*:/;
@@ -4528,22 +4528,21 @@ var drunk;
                         }
                         if (Date.now() >= endTime && index < length) {
                             // 如果创建节点达到了一定时间，让出线程给ui线程
-                            return jobInfo.setWork(renderItems);
+                            job = Scheduler.schedule(renderItems, Scheduler.Priority.idle);
+                            return; // jobInfo.setWork(renderItems);
                         }
                     }
                     else {
                         next(placeholder);
                     }
                 }
-                job = null;
-                _this._cancelRenderJob = null;
+                _this._cancelRenderJob = job = null;
             };
             next(this._headNode);
             job = Scheduler.schedule(renderItems, Scheduler.Priority.aboveNormal);
             this._cancelRenderJob = function () {
                 job.cancel();
-                _this._cancelRenderJob = null;
-                job = null;
+                _this._cancelRenderJob = job = null;
             };
         };
         /**
@@ -4963,7 +4962,7 @@ drunk.Binding.register("include", {
         this._url = url;
         this._removeBind();
         if (url) {
-            drunk.Template.renderFragment(url, null, true).then(function (fragment) { return _this._createBinding(fragment); });
+            return drunk.Template.renderFragment(url, null, true).then(function (fragment) { return _this._createBinding(fragment); });
         }
     },
     _createBinding: function (fragment) {
@@ -5039,8 +5038,8 @@ var drunk;
         },
         initSelect: function () {
             this._changedEvent = "change";
-            this._updateView = setCommonValue;
-            this._getValue = getCommonValue;
+            this._updateView = setSelectValue;
+            this._getValue = getSelectValue;
         },
         initTextarea: function () {
             this._changedEvent = "input";
@@ -5052,10 +5051,11 @@ var drunk;
             this._updateView = setCommonValue;
             this._getValue = getCommonValue;
         },
-        update: function (value) {
-            this._updateView(value);
+        update: function (newValue, oldValue) {
+            this._updateView(newValue);
         },
         release: function () {
+            this._changedHandler = null;
             drunk.dom.off(this.element, this._changedEvent, this._changedHandler);
         },
         _changedHandler: function () {
@@ -5070,6 +5070,34 @@ var drunk;
     }
     function setRadioValue(newValue) {
         this.element.checked = this.element.value == newValue;
+    }
+    function getSelectValue() {
+        if (this.element.options) {
+            for (var i = 0, option = void 0; option = this.element.options[i]; i++) {
+                if (option.selected) {
+                    return option.value;
+                }
+            }
+        }
+        return this.element.value;
+    }
+    function setSelectValue(newValue) {
+        if (newValue == null) {
+            this.element.value = '';
+            drunk.util.toArray(this.element.options).forEach(function (option) { return option.selected = false; });
+        }
+        else {
+            for (var i = 0, option_1; option_1 = this.element.options[i]; i++) {
+                if (option_1.value == newValue) {
+                    option_1.selected = true;
+                    return;
+                }
+            }
+            var option = document.createElement('option');
+            option.textContent = option.value = newValue;
+            this.element.add(option);
+            option.selected = true;
+        }
     }
     function setCommonValue(newValue) {
         newValue = newValue == null ? '' : newValue;

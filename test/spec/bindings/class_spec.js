@@ -2,13 +2,13 @@
 /// <reference path="../../../build/drunk.d.ts" />
 
 describe("Binding.class", function () {
-    var update = drunk.Binding.getDefinintionByName('class').update;
+    var update = drunk.Binding.getByName('class').update;
     var binding;
     
     beforeEach(function () {
         binding = {
             update:  update,
-            element: drunk.elementUtil.create("<div></div>")
+            element: drunk.dom.create("<div></div>")
         };
     });
     

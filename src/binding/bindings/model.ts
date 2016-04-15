@@ -58,8 +58,8 @@ namespace drunk {
 
         initSelect() {
             this._changedEvent = "change";
-            this._updateView = setCommonValue;
-            this._getValue = getCommonValue;
+            this._updateView = setSelectValue;
+            this._getValue = getSelectValue;
         },
 
         initTextarea() {
@@ -74,11 +74,12 @@ namespace drunk {
             this._getValue = getCommonValue;
         },
 
-        update(value) {
-            this._updateView(value);
+        update(newValue, oldValue) {
+            this._updateView(newValue);
         },
 
         release() {
+            this._changedHandler = null;
             dom.off(this.element, this._changedEvent, this._changedHandler);
         },
 
@@ -98,6 +99,37 @@ namespace drunk {
 
     function setRadioValue(newValue) {
         this.element.checked = this.element.value == newValue;
+    }
+
+    function getSelectValue() {
+        if (this.element.options) {
+            for (let i = 0, option; option = this.element.options[i]; i++) {
+                if (option.selected) {
+                    return option.value;
+                }
+            }
+        }
+        return this.element.value;
+    }
+
+    function setSelectValue(newValue) {
+        if (newValue == null) {
+            this.element.value = '';
+            drunk.util.toArray(this.element.options).forEach(option => option.selected = false);
+        }
+        else {
+            for (let i = 0, option; option = this.element.options[i]; i++) {
+                if (option.value == newValue) {
+                    option.selected = true;
+                    return;
+                }
+            }
+
+            let option = document.createElement('option');
+            option.textContent = option.value = newValue;
+            this.element.add(option);
+            option.selected = true;
+        }
     }
 
     function setCommonValue(newValue) {

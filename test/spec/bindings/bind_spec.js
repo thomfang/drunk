@@ -2,7 +2,7 @@
 /// <reference path="../../../build/drunk.d.ts" />
 
 describe("Binding.bind", function () {
-    var definition = drunk.Binding.getDefinintionByName('bind');
+    var definition = drunk.Binding.getByName('bind');
     var binding;
     
     beforeEach(function () {
@@ -10,7 +10,7 @@ describe("Binding.bind", function () {
     });
     
     it("bind element", function () {
-        binding.element = drunk.elementUtil.create("<div></div>");
+        binding.element = drunk.dom.create("<div></div>");
         
         binding.update("123");
         
@@ -18,7 +18,7 @@ describe("Binding.bind", function () {
     });
     
     it("bind input element", function () {
-        binding.element = drunk.elementUtil.create("<input type=text>");
+        binding.element = drunk.dom.create("<input type=text>");
 
         binding.update("123");
 

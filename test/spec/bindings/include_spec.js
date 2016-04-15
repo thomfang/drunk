@@ -3,7 +3,7 @@
 
 describe("Binding.include", function () {
 
-    var includeBinding = drunk.Binding.getDefinintionByName('include');
+    var includeBinding = drunk.Binding.getByName('include');
 
     var binding;
 
@@ -24,17 +24,18 @@ describe("Binding.include", function () {
 
     beforeEach(function () {
         binding = Object.create(includeBinding);
+        binding._isActived = true;
         binding.viewModel = new drunk.ViewModel();
-        binding.element = drunk.elementUtil.create("<div></div>");
+        binding.element = drunk.dom.create("<div></div>");
     });
 
     it("should toggle template when url variable changed", function (done) {
         drunk.Promise.resolve(binding.update("a.html")).then(function () {
-            expect(binding.element.firstElementChild.id).toBe("a.html");
-            expect(binding._unbindExecutor).toBeDefined();
+            expect(binding._elements[0].id).toBe("a.html");
+            expect(binding._unbind).toBeDefined();
 
             drunk.Promise.resolve(binding.update("b.html")).then(function () {
-                expect(binding.element.firstElementChild.id).toBe("b.html");
+                expect(binding._elements[0].id).toBe("b.html");
                 done();
             });
         }).catch(function (e) {
@@ -45,8 +46,7 @@ describe("Binding.include", function () {
     it("should remove important references", function () {
         binding.update("a.html");
         binding.release();
-        expect(binding.isActived).toBe(false);
-        expect(binding._unbindExecutor).toBeNull();
+        expect(binding._unbind).toBeNull();
         expect(binding.element.innerHTML).toBe("");
     });
 

@@ -6,7 +6,7 @@ describe("Template", function () {
     describe("Compiler", function () {
 
         var compile = drunk.Template.compile;
-        var elementUtil = drunk.elementUtil;
+        var dom = drunk.dom;
 
         var vm;
 
@@ -15,7 +15,7 @@ describe("Template", function () {
         });
 
         it("compile blank node", function () {
-            var element = elementUtil.create("<div></div>");
+            var element = dom.create("<div></div>");
 
             var bindExecutor = compile(element);
 
@@ -27,7 +27,7 @@ describe("Template", function () {
         });
 
         it("compile a node with one binding", function () {
-            var element = elementUtil.create("<div drunk-repeat='item in list'></div>");
+            var element = dom.create("<div drunk-repeat='item in list'></div>");
 
             var bindExecutor = compile(element);
 
@@ -40,7 +40,7 @@ describe("Template", function () {
         });
 
         it("compile a node contains interpolate binding", function (done) {
-            var element = elementUtil.create("<div class='item {{color}}'></div>");
+            var element = dom.create("<div class='item {{color}}'></div>");
 
             var bindExecutor = compile(element);
 
@@ -54,7 +54,7 @@ describe("Template", function () {
 
             vm.color = "black";
 
-            drunk.util.nextTick(function () {
+            drunk.util.execAsyncWork(function () {
                 expect(element.className).toBe("item black");
                 done();
             });
@@ -64,7 +64,7 @@ describe("Template", function () {
             var nodeList = document.createDocumentFragment();
 
             for (var i = 0; i < 5; i++) {
-                nodeList.appendChild(elementUtil.create("<div id='" + i + "' drunk-class='a'></div>"));
+                nodeList.appendChild(dom.create("<div id='" + i + "' drunk-class='a'></div>"));
             }
 
             var bindExecutor = compile(nodeList);
@@ -75,7 +75,7 @@ describe("Template", function () {
         });
 
         it("compile a textNode with interpolate", function () {
-            var element = elementUtil.create("this is a string with {{a}}");
+            var element = dom.create("this is a string with {{a}}");
 
             var bindExecutor = compile(element);
 
@@ -89,7 +89,7 @@ describe("Template", function () {
         
         it("compile a custom component", function () {
             drunk.Component.define('todo-app', {});
-            var element = elementUtil.create("<todo-app template='<div></div>'></todo-app>");
+            var element = dom.create("<todo-app template='<div></div>'></todo-app>");
 
             var bindExecutor = compile(element);
 
@@ -102,7 +102,7 @@ describe("Template", function () {
         });
         
         it("should only compile one terminal binding when two terminal bindings exist", function () {
-            var element = elementUtil.create("<todo-app drunk-repeat='i in 5' template='<div></div>'></todo-app>");
+            var element = dom.create("<todo-app drunk-repeat='i in 5' template='<div></div>'></todo-app>");
 
             var bindExecutor = compile(element);
 
@@ -115,7 +115,7 @@ describe("Template", function () {
         });
 
         it("should return unbind bindings function", function () {
-            var element = elementUtil.create("<div drunk-class='item' style='color:{{color}};' drunk-on='click:a++'></div>");
+            var element = dom.create("<div drunk-class='item' style='color:{{color}};' drunk-on='click:a++'></div>");
 
             var bindExecutor = compile(element);
             var releaseFnc = bindExecutor(vm, element);
@@ -131,7 +131,7 @@ describe("Template", function () {
         });
 
         it("release multiple if binings", function (done) {
-            var element = elementUtil.create([
+            var element = dom.create([
                 "<div><div drunk-if='a' drunk-class='a'>{{a}}</div>",
                 "<div drunk-if='b' drunk-class='b'>{{b}}</div>",
                 "<div drunk-if='c' drunk-class='c'>{{c}}</div></div>"
@@ -150,16 +150,16 @@ describe("Template", function () {
             vm.b = 'b';
             vm.c = 'c';
 
-            drunk.util.nextTick(function () {
+            drunk.util.execAsyncWork(function () {
                 expect(vm._bindings.length).toBe(9);
 
                 vm.a = null;
 
-                drunk.util.nextTick(function () {
+                drunk.util.execAsyncWork(function () {
                     expect(vm._bindings.length).toBe(7);
                     vm.b = null;
 
-                    drunk.util.nextTick(function () {
+                    drunk.util.execAsyncWork(function () {
                         expect(vm._bindings.length).toBe(5);
                         //expect(vm._bindings[3].expression).toBe('c');
 

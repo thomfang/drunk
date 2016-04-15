@@ -35,14 +35,14 @@ describe("Component", function () {
             filters: filters,
         });
         view = new Class();
-        elem = drunk.elementUtil.create("<div>{{a|add:2}}</div>");
+        elem = drunk.dom.create("<div>{{a|add:2}}</div>");
     });
 
     it("common", function () {
-        view.mount(elem);
+        view.$mount(elem);
 
         expect(view._watchers.a).toBeDefined();
-        expect(view.filter.add).toBeDefined();
+        expect(view.$filter.add).toBeDefined();
         expect(view.fn).toBeDefined();
         expect(spy).toHaveBeenCalled();
         expect(view.element.nodeType).toBe(1);
@@ -53,11 +53,11 @@ describe("Component", function () {
         });
 
         expect(MyView.prototype.name).toBe('my-view');
-        expect(drunk.Component.getComponentByName('my-view')).toBe(MyView);
+        expect(drunk.Component.getConstructorByName('my-view')).toBe(MyView);
     });
 
     it("mount element", function (done) {
-        view.mount(elem);
+        view.$mount(elem);
 
         expect(view.element).toBe(elem);
         expect(view._isMounted).toBe(true);
@@ -66,12 +66,12 @@ describe("Component", function () {
 
         var spy = jasmine.createSpy();
 
-        view.watch("a", function (n, o) {
+        view.$watch("a", function (n, o) {
             spy(n, o);
         });
 
         view.a = 4;
-        drunk.util.nextTick(function () {
+        drunk.util.execAsyncWork(function () {
             expect(elem.innerHTML).toBe("6");
             expect(spy).toHaveBeenCalledWith(4, 2);
             done();
@@ -91,25 +91,25 @@ describe("Component", function () {
         });
         view = new MyComponent();
 
-        view.processTemplate().then(view.mount.bind(view)).then(function () {
+        view.$processTemplate().then(view.$mount.bind(view)).then(function () {
             expect(view.element.nodeType).toBe(1);
             expect(view.element.innerHTML).toBe("4");
 
             view.a = 4;
-            drunk.util.nextTick(function () {
+            drunk.util.execAsyncWork(function () {
                 expect(view.element.innerHTML).toBe("6");
                 done();
             });
         });
     });
 
-    it("dispose", function () {
+    it("release", function () {
 
-        view.mount(elem);
+        view.$mount(elem);
 
         expect(elem).toBe(view.element);
 
-        view.dispose();
+        view.$release();
 
 
         expect(view.element).toBeNull();
