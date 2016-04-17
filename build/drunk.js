@@ -615,38 +615,35 @@ var drunk;
          * 获取指定key的uuid
          */
         Map.prototype._uuidOf = function (key) {
+            if (key === null) {
+                return UUID_OF_NULL;
+            }
+            if (key === null) {
+                return UUID_OF_NULL;
+            }
+            if (key === undefined) {
+                return UUID_OF_UNDEFINED;
+            }
+            if (key === true) {
+                return UUID_OF_TRUE;
+            }
+            if (key === false) {
+                return UUID_OF_FALSE;
+            }
+            if (isNaN(key)) {
+                return UUID_OF_NAN;
+            }
             var type = typeof key;
-            var uuid;
-            if (type !== 'object') {
-                if (isNaN(key)) {
-                    uuid = UUID_OF_NAN;
-                }
-                else if (key === null) {
-                    uuid = UUID_OF_NULL;
-                }
-                else if (key === undefined) {
-                    uuid = UUID_OF_UNDEFINED;
-                }
-                else if (key === true) {
-                    uuid = UUID_OF_TRUE;
-                }
-                else if (key === false) {
-                    uuid = UUID_OF_FALSE;
-                }
-                else if (type === 'string') {
-                    uuid = '"' + key + '"';
-                }
-                else if (type === 'number') {
-                    uuid = '-' + key + '-';
-                }
-                else {
-                    throw new Error('不支持的数据类型:' + type);
-                }
+            if (type === 'object') {
+                return util.uuid(key);
             }
-            else {
-                uuid = util.uuid(key);
+            if (type === 'string') {
+                return ('"' + key + '"');
             }
-            return uuid;
+            if (type === 'number') {
+                return ('-' + key + '-');
+            }
+            throw new Error('不支持的数据类型:' + type);
         };
         /**
          * 设值
