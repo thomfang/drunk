@@ -34,10 +34,6 @@ namespace drunk {
          * 获取指定key的uuid
          */
         private _uuidOf(key: any): number {
-
-            if (key === null) {
-                return UUID_OF_NULL;
-            }
             if (key === null) {
                 return UUID_OF_NULL;
             }
@@ -50,9 +46,6 @@ namespace drunk {
             if (key === false) {
                 return UUID_OF_FALSE;
             }
-            if (isNaN(key)) {
-                return UUID_OF_NAN;
-            }
 
             let type = typeof key;
             
@@ -61,6 +54,9 @@ namespace drunk {
             }
             if (type === 'string') {
                 return <any>('"' + key + '"');
+            }
+            if (isNaN(key)) {
+                return UUID_OF_NAN;
             }
             if (type === 'number') {
                 return <any>('-' + key + '-');

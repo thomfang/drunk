@@ -618,9 +618,6 @@ var drunk;
             if (key === null) {
                 return UUID_OF_NULL;
             }
-            if (key === null) {
-                return UUID_OF_NULL;
-            }
             if (key === undefined) {
                 return UUID_OF_UNDEFINED;
             }
@@ -630,15 +627,15 @@ var drunk;
             if (key === false) {
                 return UUID_OF_FALSE;
             }
-            if (isNaN(key)) {
-                return UUID_OF_NAN;
-            }
             var type = typeof key;
             if (type === 'object') {
                 return util.uuid(key);
             }
             if (type === 'string') {
                 return ('"' + key + '"');
+            }
+            if (isNaN(key)) {
+                return UUID_OF_NAN;
             }
             if (type === 'number') {
                 return ('-' + key + '-');
