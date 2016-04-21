@@ -55,6 +55,7 @@ namespace drunk.parser {
     let reObjectKey = /[{,]\s*$/;
     let reColon = /^\s*:/;
     let reAnychar = /\S+/;
+    let reThisProperties = /\bthis\.([_$[A-Za-z0-9]+)|\bthis\[\s*("|')(.+?)\2\s*\]/g;
 
     /**
      *  解析filter定义
@@ -370,5 +371,20 @@ namespace drunk.parser {
             interpolateGetterCache.set(expression, getter);
         }
         return getter;
+    }
+    
+    export function getProxyProperties(expression: any) {
+        let properties: string[] = [];
+        expression.toString().replace(reThisProperties, ($0, $1, $2, $3) => {
+            if ($1) {
+                properties.push($1);
+            }
+            else if ($3) {
+                properties.push($3);
+            }
+            return $0;
+        });
+        
+        return properties;
     }
 }
