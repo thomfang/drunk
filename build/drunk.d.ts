@@ -598,6 +598,7 @@ declare namespace drunk.parser {
      * @param   str  字符串
      */
     function hasInterpolation(str: string): boolean;
+    function getProxyProperties(expression: any): string[];
 }
 /**
  * 数据过滤器模块
@@ -957,10 +958,11 @@ declare namespace drunk {
          * @return              返回一个取消监听的函数
          */
         $watch(expression: string, action: IBindingUpdateAction, isDeepWatch?: boolean, isImmediate?: boolean): () => void;
+        $computed(property: string, descriptor: () => any): any;
         $computed(property: string, descriptor: {
             set?: (value: any) => void;
             get?: () => any;
-        }): void;
+        }): any;
         /**
          * 释放ViewModel实例的所有元素与数据的绑定,解除所有的代理属性,解除所有的视图于数据绑定,移除事件缓存,销毁所有的watcher
          */

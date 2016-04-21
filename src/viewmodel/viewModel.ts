@@ -165,9 +165,26 @@ namespace drunk {
             };
         }
 
-        $computed(property: string, descriptor: { set?: (value: any) => void, get?: () => any; }) {
-            let getter = descriptor.get;
-            let setter = descriptor.set;
+        $computed(property: string, descriptor: () => any);
+        $computed(property: string, descriptor: { set?: (value: any) => void, get?: () => any; });
+        $computed(property: string, descriptor: any) {
+            let getter: Function;
+            let setter: Function;
+
+            if (typeof descriptor === 'function') {
+                getter = descriptor;
+                parser.getProxyProperties(descriptor).forEach(p => this.$proxy(p));
+            }
+            else {
+                if (descriptor.get) {
+                    getter = descriptor.get;
+                    parser.getProxyProperties(descriptor.get).forEach(p => this.$proxy(p));
+                }
+                if (descriptor.set) {
+                    setter = descriptor.set;
+                    parser.getProxyProperties(descriptor.set).forEach(p => this.$proxy(p));
+                }
+            }
 
             function computedGetterAndSetter() {
                 if (!arguments.length) {

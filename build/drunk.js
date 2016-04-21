@@ -1750,6 +1750,7 @@ var drunk;
         var reObjectKey = /[{,]\s*$/;
         var reColon = /^\s*:/;
         var reAnychar = /\S+/;
+        var reThisProperties = /\bthis\.([_$[A-Za-z0-9]+)|\bthis\[\s*("|')(.+?)\2\s*\]/g;
         /**
          *  解析filter定义
          */
@@ -2007,6 +2008,20 @@ var drunk;
             }
             return getter;
         }
+        function getProxyProperties(expression) {
+            var properties = [];
+            expression.toString().replace(reThisProperties, function ($0, $1, $2, $3) {
+                if ($1) {
+                    properties.push($1);
+                }
+                else if ($3) {
+                    properties.push($3);
+                }
+                return $0;
+            });
+            return properties;
+        }
+        parser.getProxyProperties = getProxyProperties;
     })(parser = drunk.parser || (drunk.parser = {}));
 })(drunk || (drunk = {}));
 /// <reference path="../parser/parser.ts" />
@@ -2808,8 +2823,23 @@ var drunk;
             };
         };
         ViewModel.prototype.$computed = function (property, descriptor) {
-            var getter = descriptor.get;
-            var setter = descriptor.set;
+            var _this = this;
+            var getter;
+            var setter;
+            if (typeof descriptor === 'function') {
+                getter = descriptor;
+                parser.getProxyProperties(descriptor).forEach(function (p) { return _this.$proxy(p); });
+            }
+            else {
+                if (descriptor.get) {
+                    getter = descriptor.get;
+                    parser.getProxyProperties(descriptor.get).forEach(function (p) { return _this.$proxy(p); });
+                }
+                if (descriptor.set) {
+                    setter = descriptor.set;
+                    parser.getProxyProperties(descriptor.set).forEach(function (p) { return _this.$proxy(p); });
+                }
+            }
             function computedGetterAndSetter() {
                 if (!arguments.length) {
                     if (getter) {
