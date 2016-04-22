@@ -36,6 +36,18 @@
             });
             app.$mount(document.body);
             
+            app.$watch('user.name', function (value) {
+                console.log(value);
+            });
+            app.$computed('user', function () {
+                return this.model.user;
+            });
+            app.model = {
+                user: {
+                    name: 'Todd'
+                }
+            };
+            
         </script>
     </body>
 

@@ -2840,21 +2840,27 @@ var drunk;
                     parser.getProxyProperties(descriptor.set).forEach(function (p) { return _this.$proxy(p); });
                 }
             }
-            function computedGetterAndSetter() {
+            function computedGetterSetter() {
                 if (!arguments.length) {
                     if (getter) {
-                        return getter.call(this);
+                        try {
+                            return getter.call(this);
+                        }
+                        catch (e) { }
                     }
                 }
                 else if (setter) {
-                    setter.call(this, arguments[0]);
+                    try {
+                        setter.call(this, arguments[0]);
+                    }
+                    catch (e) { }
                 }
             }
             Object.defineProperty(this, property, {
                 configurable: true,
                 enumerable: true,
-                set: computedGetterAndSetter,
-                get: computedGetterAndSetter
+                set: computedGetterSetter,
+                get: computedGetterSetter
             });
         };
         /**
