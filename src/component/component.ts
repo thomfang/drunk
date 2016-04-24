@@ -121,7 +121,7 @@ namespace drunk {
          * @param  model 数据
          */
         protected __init(model?: IModel) {
-            super.__init.call(this, model);
+            super.__init(model);
 
             util.defineProperty(this, '_isMounted', false);
 
@@ -147,13 +147,7 @@ namespace drunk {
                     this.$proxy(name);
 
                     // 不论返回的是什么值,使用promise进行处理
-                    Promise.resolve(data).then(
-                        result => {
-                            this[name] = result;
-                        },
-                        reason => {
-                            console.warn("数据准备失败:", reason);
-                        });
+                    Promise.resolve(data).then(result => this[name] = result, reason => console.warn("数据准备失败:", reason));
                 });
             }
 
@@ -330,7 +324,7 @@ namespace drunk {
             var superClass = this;
             var prototype = Object.create(superClass.prototype);
 
-            var component: IComponentContructor<T> = function(...args: any[]) {
+            var component: IComponentContructor<T> = function (...args: any[]) {
                 superClass.apply(this, args);
             };
 

@@ -170,6 +170,8 @@ namespace drunk {
         $computed(property: string, descriptor: any) {
             let getter: Function;
             let setter: Function;
+            let watcher: Watcher;
+            let watcherKey = Watcher.getNameOfKey(property);
 
             if (typeof descriptor === 'function') {
                 getter = descriptor;
@@ -209,6 +211,13 @@ namespace drunk {
                 set: computedGetterSetter,
                 get: computedGetterSetter
             });
+            
+            watcher = this._watchers[watcherKey];
+            if (!watcher) {
+                watcher = this._watchers[watcherKey] = new Watcher(this, property);
+            }
+            
+            console.log(property);
         }
 
         /**

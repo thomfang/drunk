@@ -2,7 +2,7 @@
 /// <reference path="../viewmodel/viewmodel.ts" />
 
 namespace drunk {
-    
+
     import util = drunk.util;
 
     /**
@@ -295,11 +295,7 @@ namespace drunk {
             Binding.removeWeakRef(this.element, this);
             delete Binding.instancesById[util.uuid(this)];
 
-            this._unwatch =
-                this._update =
-                this.element =
-                this.expression =
-                this.viewModel = null;
+            this._unwatch = this._update = this.element = this.expression = this.viewModel = null;
 
             this._isActived = false;
         }

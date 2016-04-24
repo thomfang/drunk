@@ -162,8 +162,7 @@ namespace drunk {
 
             if (this._getter.filters) {
                 // 派发到各个filter中处理
-                newValue = filter.pipeFor(
-                    newValue, this._getter.filters, this.viewModel.$filter, this._isInterpolate, this.viewModel);
+                newValue = filter.pipeFor(newValue, this._getter.filters, this.viewModel.$filter, this._isInterpolate, this.viewModel);
             }
 
             this.__afterGetValue();

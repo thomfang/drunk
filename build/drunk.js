@@ -2671,11 +2671,7 @@ var drunk;
             }
             Binding.removeWeakRef(this.element, this);
             delete Binding.instancesById[util.uuid(this)];
-            this._unwatch =
-                this._update =
-                    this.element =
-                        this.expression =
-                            this.viewModel = null;
+            this._unwatch = this._update = this.element = this.expression = this.viewModel = null;
             this._isActived = false;
         };
         /**
@@ -2826,6 +2822,8 @@ var drunk;
             var _this = this;
             var getter;
             var setter;
+            var watcher;
+            var watcherKey = Watcher.getNameOfKey(property);
             if (typeof descriptor === 'function') {
                 getter = descriptor;
                 parser.getProxyProperties(descriptor).forEach(function (p) { return _this.$proxy(p); });
@@ -2862,6 +2860,14 @@ var drunk;
                 set: computedGetterSetter,
                 get: computedGetterSetter
             });
+            watcher = this._watchers[watcherKey];
+            if (!watcher) {
+                watcher = this._watchers[watcherKey] = new Watcher(this, property);
+            }
+            else {
+                watcher.__flush();
+            }
+            console.log(property);
         };
         /**
          * 释放ViewModel实例的所有元素与数据的绑定,解除所有的代理属性,解除所有的视图于数据绑定,移除事件缓存,销毁所有的watcher
