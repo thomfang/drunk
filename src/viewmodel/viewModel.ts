@@ -124,7 +124,7 @@ namespace drunk {
          */
         $setValue(expression: string, value: any): void {
             var setter = parser.parseSetter(expression);
-            setter.call(undefined, this, value);
+            setter.call(this, value);
         }
 
         /**
@@ -170,8 +170,6 @@ namespace drunk {
         $computed(property: string, descriptor: any) {
             let getter: Function;
             let setter: Function;
-            let watcher: Watcher;
-            let watcherKey = Watcher.getNameOfKey(property);
 
             if (typeof descriptor === 'function') {
                 getter = descriptor;
@@ -184,7 +182,6 @@ namespace drunk {
                 }
                 if (descriptor.set) {
                     setter = descriptor.set;
-                    parser.getProxyProperties(descriptor.set).forEach(p => this.$proxy(p));
                 }
             }
 
@@ -211,13 +208,6 @@ namespace drunk {
                 set: computedGetterSetter,
                 get: computedGetterSetter
             });
-            
-            watcher = this._watchers[watcherKey];
-            if (!watcher) {
-                watcher = this._watchers[watcherKey] = new Watcher(this, property);
-            }
-            
-            console.log(property);
         }
 
         /**
@@ -280,9 +270,8 @@ namespace drunk {
          * @param   el             元素对象
          */
         __getValueByGetter(getter, isInterpolate) {
-            var args = [this].concat(util.toArray(arguments).slice(1));
-            var value = getter.apply(null, args);
-            return filter.pipeFor.apply(null, [value, getter.filters, this.$filter, isInterpolate].concat(args));
+            var value = getter.call(this);
+            return filter.pipeFor.apply(null, [value, getter.filters, this.$filter, isInterpolate, this]);
         }
     }
 }

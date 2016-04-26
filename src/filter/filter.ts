@@ -49,6 +49,8 @@ namespace drunk.filter {
         let name;
         let param;
         let method;
+        let viewModel = args[0];
+        args = args.slice(1);
     
         // 应用于所有的filter
         filterDefs.forEach(def => {
@@ -59,7 +61,7 @@ namespace drunk.filter {
                 throw new Error('Filter "' + name + '" not found');
             }
 
-            param = def.param ? def.param(...args) : [];
+            param = def.param ? def.param.apply(viewModel, args) : [];
             value = method(...[value].concat(param));
         });
 

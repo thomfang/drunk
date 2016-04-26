@@ -64,7 +64,7 @@ describe("parser", function () {
                 result1 = parser.parseGetter(test.expression);
                 expect(result1.dynamic).toBe(true);
                 expect(result1.filters).toBeNull();
-                expect(result1(viewModel)).toBe(test.expected);
+                expect(result1.call(viewModel)).toBe(test.expected);
             });
         });
 
@@ -112,7 +112,7 @@ describe("parser", function () {
 
             testCases.forEach(function (test) {
                 result2 = parser.parseGetter(test.expression);
-                var value = result2(viewModel);
+                var value = result2.call(viewModel);
 
                 expect(value).toBe(test.value);
                 
@@ -126,7 +126,7 @@ describe("parser", function () {
             result3 = parser.parseSetter(str2);
             expect(result3).toBeDefined();
 
-            result3(viewModel, 5);
+            result3.call(viewModel, 5);
             expect(viewModel.b.c).toBe(5);
         });
     });
@@ -158,7 +158,7 @@ describe("parser", function () {
             var vm = new drunk.ViewModel();
             vm.$proxy("interpolate");
             vm.interpolate = "123";
-            expect(result4(vm)).toEqual(['this has a ', '123']);
+            expect(result4.call(vm)).toEqual(['this has a ', '123']);
         });
 
         it("resuse getter", function () {
@@ -184,7 +184,7 @@ describe("parser", function () {
             var $event = {};
             var $el    = {};
 
-            handler(viewModel, $event, $el);
+            handler.call(viewModel, $event, $el);
 
             expect(viewModel.test).toHaveBeenCalledWith($el, $event);
         });
@@ -193,7 +193,7 @@ describe("parser", function () {
             var str     = "a = a + 1";
             var handler = parser.parse(str);
 
-            handler(viewModel);
+            handler.call(viewModel);
 
             expect(viewModel.a).toBe(2);
         });
@@ -202,7 +202,7 @@ describe("parser", function () {
             var str     = "a++";
             var handler = parser.parse(str);
 
-            handler(viewModel);
+            handler.call(viewModel);
 
             expect(viewModel.a).toBe(2);
         });
@@ -211,7 +211,7 @@ describe("parser", function () {
             var str     = "a += 2, ++a";;
             var handler = parser.parse(str);
 
-            handler(viewModel);
+            handler.call(viewModel);
 
             expect(viewModel.a).toBe(4);
         });

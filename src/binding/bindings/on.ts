@@ -36,7 +36,7 @@ namespace drunk {
                 if (config.debug) {
                     console.log(type + ': ' + expr);
                 }
-                func.call(null, this.viewModel, e, this.element);
+                func.call(this.viewModel, e, this.element);
             }
 
             dom.on(this.element, type, handler);

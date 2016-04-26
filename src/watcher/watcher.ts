@@ -27,9 +27,9 @@ namespace drunk {
         private _tmpObservers: { [id: string]: observable.Observer };
         private _tmpProperties: { [number: string]: { [property: string]: boolean } };
         private _isActived: boolean = true;
-        private _runActionJob: util.IAsyncJob;
+        private _throttle: util.IAsyncJob;
         private _getter: parser.IGetter;
-
+        
         /**
          * 表达式求值的结果
          */
@@ -41,12 +41,12 @@ namespace drunk {
          * @param   expression  监听的表达式
          * @param   isDeepWatch 是否深度监听,当对象或数组里的任意一个数据改变都会发送更新消息
          */
-        constructor(private viewModel: ViewModel, private expression: string, private isDeepWatch?: boolean) {
+        constructor(public viewModel: ViewModel, public expression: string, public isDeepWatch?: boolean) {
             this._isInterpolate = parser.hasInterpolation(expression);
             this._getter = this._isInterpolate ? parser.parseInterpolate(expression) : parser.parseGetter(expression);
 
             if (!this._getter.dynamic) {
-                throw new Error('不能监控一个静态表达式:"' + expression + '"');
+                throw new Error('不能监控不包含任何变量的表达式: "' + expression + '"');
             }
 
             this.__propertyChanged = this.__propertyChanged.bind(this);
@@ -84,8 +84,8 @@ namespace drunk {
          * 数据更新派发，会先做缓冲，防止在同一时刻对此出发更新操作，等下一次系统轮训时再真正执行更新操作
          */
         __propertyChanged(): void {
-            if (!this._runActionJob) {
-                this._runActionJob = util.execAsyncWork(this.__flush, this);
+            if (!this._throttle) {
+                this._throttle = util.execAsyncWork(this.__flush, this);
             }
         }
 
@@ -97,14 +97,14 @@ namespace drunk {
                 return;
             }
 
-            this._runActionJob = null;
+            this._throttle = null;
 
             let oldValue: any = this.value;
             let newValue: any = this.__getValue();
 
             if ((typeof newValue === 'object' && newValue != null) || newValue !== oldValue) {
                 this.value = newValue;
-                this._actions.slice().forEach((action) => {
+                this._actions.slice().forEach(action => {
                     if (this._isActived) {
                         action(newValue, oldValue);
                     }
@@ -113,7 +113,7 @@ namespace drunk {
         }
 
         /**
-         * 释放引用和内存
+         * 销毁实例和移除所有应用
          */
         dispose() {
             if (!this._isActived) {
@@ -126,18 +126,18 @@ namespace drunk {
                 });
             });
 
-            if (this._runActionJob) {
-                this._runActionJob.cancel();
-                this._runActionJob = null;
+            if (this._throttle) {
+                this._throttle.cancel();
+                this._throttle = null;
             }
 
             let key: string = Watcher.getNameOfKey(this.expression, this.isDeepWatch);
 
             this.viewModel._watchers[key] =
+                this.__propertyChanged =
                 this.value =
                 this.viewModel =
                 this.expression =
-                this.__propertyChanged =
                 this._getter =
                 this._actions =
                 this._observers =
@@ -154,7 +154,7 @@ namespace drunk {
         private __getValue(): any {
             this.__beforeGetValue();
 
-            let newValue: any = this._getter(this.viewModel);
+            let newValue = this._getter.call(this.viewModel);
 
             if (this.isDeepWatch) {
                 visit(newValue);

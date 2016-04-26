@@ -27,7 +27,7 @@ namespace drunk.parser {
     let eventName = "$event";
     let elementName = "$el";
     let valueName = "__value";
-    let contextName = "__context";
+    let contextName = "this";
     let proxyOperation = contextName + ".$proxy";
     let getHandlerOperation = contextName + ".__getHandler";
     
@@ -214,7 +214,7 @@ namespace drunk.parser {
             let detail = parseIdentifier(expression);
             let fnBody = detail.proxies + "return (" + detail.formated + ");";
             
-            fn = createFunction(expression, contextName, eventName, elementName, fnBody);
+            fn = createFunction(expression, eventName, elementName, fnBody);
             expressionCache.set(expression, fn);
         }
         
@@ -247,7 +247,7 @@ namespace drunk.parser {
             let detail = parseIdentifier(input);
             let fnBody = detail.proxies + "try{return (" + detail.formated + ");}catch(e){}";
     
-            getter = createFunction(expression, contextName, eventName, elementName, fnBody);
+            getter = createFunction(expression, eventName, elementName, fnBody);
             getter.dynamic = !!detail.identifiers.length;
             getter.filters = filter ? filter.filters : null;
             
@@ -270,7 +270,7 @@ namespace drunk.parser {
             let detail = parseIdentifier(expression);
             let fnBody = detail.proxies + "return (" + detail.formated + " = " + valueName + ");";
             
-            setter = createFunction(expression, contextName, valueName, fnBody);
+            setter = createFunction(expression, valueName, fnBody);
             setterCache.set(expression, setter);
         }
         
@@ -355,12 +355,12 @@ namespace drunk.parser {
                 console.error("非法的token:\n", item);
             });
 
-            getter = (ctx) => {
-                return tokens.map(function (item) {
+            getter = function () {
+                return tokens.map(item => {
                     if (typeof item === 'string') {
                         return item;
                     }
-                    return item.call(null, ctx);
+                    return item.call(this);
                 });
             };
 

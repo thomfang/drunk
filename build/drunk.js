@@ -1725,7 +1725,7 @@ var drunk;
         var eventName = "$event";
         var elementName = "$el";
         var valueName = "__value";
-        var contextName = "__context";
+        var contextName = "this";
         var proxyOperation = contextName + ".$proxy";
         var getHandlerOperation = contextName + ".__getHandler";
         // 保留关键字
@@ -1885,7 +1885,7 @@ var drunk;
             if (!fn) {
                 var detail = parseIdentifier(expression);
                 var fnBody = detail.proxies + "return (" + detail.formated + ");";
-                fn = createFunction(expression, contextName, eventName, elementName, fnBody);
+                fn = createFunction(expression, eventName, elementName, fnBody);
                 expressionCache.set(expression, fn);
             }
             return fn;
@@ -1911,7 +1911,7 @@ var drunk;
                 }
                 var detail = parseIdentifier(input);
                 var fnBody = detail.proxies + "try{return (" + detail.formated + ");}catch(e){}";
-                getter = createFunction(expression, contextName, eventName, elementName, fnBody);
+                getter = createFunction(expression, eventName, elementName, fnBody);
                 getter.dynamic = !!detail.identifiers.length;
                 getter.filters = filter_1 ? filter_1.filters : null;
                 getterCache.set(expression, getter);
@@ -1929,7 +1929,7 @@ var drunk;
             if (!setter) {
                 var detail = parseIdentifier(expression);
                 var fnBody = detail.proxies + "return (" + detail.formated + " = " + valueName + ");";
-                setter = createFunction(expression, contextName, valueName, fnBody);
+                setter = createFunction(expression, valueName, fnBody);
                 setterCache.set(expression, setter);
             }
             return setter;
@@ -1993,12 +1993,13 @@ var drunk;
                     }
                     console.error("非法的token:\n", item);
                 });
-                getter = function (ctx) {
+                getter = function () {
+                    var _this = this;
                     return tokens.map(function (item) {
                         if (typeof item === 'string') {
                             return item;
                         }
-                        return item.call(null, ctx);
+                        return item.call(_this);
                     });
                 };
                 getter.dynamic = dynamic_1;
@@ -2063,6 +2064,8 @@ var drunk;
             var name;
             var param;
             var method;
+            var viewModel = args[0];
+            args = args.slice(1);
             // 应用于所有的filter
             filterDefs.forEach(function (def) {
                 name = def.name;
@@ -2070,7 +2073,7 @@ var drunk;
                 if (typeof method !== 'function') {
                     throw new Error('Filter "' + name + '" not found');
                 }
-                param = def.param ? def.param.apply(def, args) : [];
+                param = def.param ? def.param.apply(viewModel, args) : [];
                 value = method.apply(void 0, [value].concat(param));
             });
             return value;
@@ -2295,7 +2298,7 @@ var drunk;
             this._isInterpolate = drunk.parser.hasInterpolation(expression);
             this._getter = this._isInterpolate ? drunk.parser.parseInterpolate(expression) : drunk.parser.parseGetter(expression);
             if (!this._getter.dynamic) {
-                throw new Error('不能监控一个静态表达式:"' + expression + '"');
+                throw new Error('不能监控不包含任何变量的表达式: "' + expression + '"');
             }
             this.__propertyChanged = this.__propertyChanged.bind(this);
             this.value = this.__getValue();
@@ -2335,8 +2338,8 @@ var drunk;
          * 数据更新派发，会先做缓冲，防止在同一时刻对此出发更新操作，等下一次系统轮训时再真正执行更新操作
          */
         Watcher.prototype.__propertyChanged = function () {
-            if (!this._runActionJob) {
-                this._runActionJob = util.execAsyncWork(this.__flush, this);
+            if (!this._throttle) {
+                this._throttle = util.execAsyncWork(this.__flush, this);
             }
         };
         /**
@@ -2347,7 +2350,7 @@ var drunk;
             if (!this._isActived) {
                 return;
             }
-            this._runActionJob = null;
+            this._throttle = null;
             var oldValue = this.value;
             var newValue = this.__getValue();
             if ((typeof newValue === 'object' && newValue != null) || newValue !== oldValue) {
@@ -2360,7 +2363,7 @@ var drunk;
             }
         };
         /**
-         * 释放引用和内存
+         * 销毁实例和移除所有应用
          */
         Watcher.prototype.dispose = function () {
             var _this = this;
@@ -2372,16 +2375,16 @@ var drunk;
                     _this._observers[id].$removeListener(property, _this.__propertyChanged);
                 });
             });
-            if (this._runActionJob) {
-                this._runActionJob.cancel();
-                this._runActionJob = null;
+            if (this._throttle) {
+                this._throttle.cancel();
+                this._throttle = null;
             }
             var key = Watcher.getNameOfKey(this.expression, this.isDeepWatch);
             this.viewModel._watchers[key] =
-                this.value =
-                    this.viewModel =
-                        this.expression =
-                            this.__propertyChanged =
+                this.__propertyChanged =
+                    this.value =
+                        this.viewModel =
+                            this.expression =
                                 this._getter =
                                     this._actions =
                                         this._observers =
@@ -2395,7 +2398,7 @@ var drunk;
          */
         Watcher.prototype.__getValue = function () {
             this.__beforeGetValue();
-            var newValue = this._getter(this.viewModel);
+            var newValue = this._getter.call(this.viewModel);
             if (this.isDeepWatch) {
                 visit(newValue);
             }
@@ -2785,7 +2788,7 @@ var drunk;
          */
         ViewModel.prototype.$setValue = function (expression, value) {
             var setter = parser.parseSetter(expression);
-            setter.call(undefined, this, value);
+            setter.call(this, value);
         };
         /**
          * 把model数据转成json并返回
@@ -2822,8 +2825,6 @@ var drunk;
             var _this = this;
             var getter;
             var setter;
-            var watcher;
-            var watcherKey = Watcher.getNameOfKey(property);
             if (typeof descriptor === 'function') {
                 getter = descriptor;
                 parser.getProxyProperties(descriptor).forEach(function (p) { return _this.$proxy(p); });
@@ -2835,7 +2836,6 @@ var drunk;
                 }
                 if (descriptor.set) {
                     setter = descriptor.set;
-                    parser.getProxyProperties(descriptor.set).forEach(function (p) { return _this.$proxy(p); });
                 }
             }
             function computedGetterSetter() {
@@ -2860,14 +2860,6 @@ var drunk;
                 set: computedGetterSetter,
                 get: computedGetterSetter
             });
-            watcher = this._watchers[watcherKey];
-            if (!watcher) {
-                watcher = this._watchers[watcherKey] = new Watcher(this, property);
-            }
-            else {
-                watcher.__flush();
-            }
-            console.log(property);
         };
         /**
          * 释放ViewModel实例的所有元素与数据的绑定,解除所有的代理属性,解除所有的视图于数据绑定,移除事件缓存,销毁所有的watcher
@@ -2925,9 +2917,8 @@ var drunk;
          * @param   el             元素对象
          */
         ViewModel.prototype.__getValueByGetter = function (getter, isInterpolate) {
-            var args = [this].concat(util.toArray(arguments).slice(1));
-            var value = getter.apply(null, args);
-            return drunk.filter.pipeFor.apply(null, [value, getter.filters, this.$filter, isInterpolate].concat(args));
+            var value = getter.call(this);
+            return drunk.filter.pipeFor.apply(null, [value, getter.filters, this.$filter, isInterpolate, this]);
         };
         return ViewModel;
     }(EventEmitter));
@@ -3959,11 +3950,7 @@ var drunk;
                     // 代理该数据字段
                     _this.$proxy(name);
                     // 不论返回的是什么值,使用promise进行处理
-                    drunk.Promise.resolve(data).then(function (result) {
-                        _this[name] = result;
-                    }, function (reason) {
-                        console.warn("数据准备失败:", reason);
-                    });
+                    drunk.Promise.resolve(data).then(function (result) { return _this[name] = result; }, function (reason) { return console.warn("数据准备失败:", reason); });
                 });
             }
             this.init();
@@ -4179,7 +4166,7 @@ var drunk;
                 if (drunk.config.debug) {
                     console.log(type + ': ' + expr);
                 }
-                func.call(null, _this.viewModel, e, _this.element);
+                func.call(_this.viewModel, e, _this.element);
             };
             drunk.dom.on(this.element, type, handler);
             return { type: type, handler: handler };
@@ -4857,7 +4844,7 @@ var drunk;
                 // 事件的处理函数,会生成一个$event对象,在表达式中可以访问该对象.
                 // $event对象有type和args两个字段,args字段是组件派发这个事件所传递的参数的列表
                 // $el字段为该组件实例
-                func.call(undefined, viewModel, {
+                func.call(viewModel, {
                     type: eventName,
                     args: args,
                     target: _this.component
@@ -4931,14 +4918,11 @@ drunk.Binding.register("if", {
     isTerminal: true,
     priority: drunk.Binding.Priority.aboveNormal + 2,
     init: function () {
-        this._headNode = document.createComment("<if>: " + this.expression);
-        this._tailNode = document.createComment("</if>: " + this.expression);
+        this._flagNode = document.createComment("<if: " + this.expression + ' />');
         this._bind = drunk.Template.compile(this.element);
         this._inDocument = false;
-        drunk.dom.replace(this._headNode, this.element);
-        drunk.dom.after(this._tailNode, this._headNode);
-        drunk.Binding.setWeakRef(this._headNode, this);
-        drunk.Binding.setWeakRef(this._tailNode, this);
+        drunk.dom.replace(this._flagNode, this.element);
+        drunk.Binding.setWeakRef(this._flagNode, this);
     },
     update: function (value) {
         if (!!value) {
@@ -4952,10 +4936,10 @@ drunk.Binding.register("if", {
         if (this._inDocument) {
             return;
         }
-        this._tmpElement = this.element.cloneNode(true);
-        drunk.dom.after(this._tmpElement, this._headNode);
-        drunk.Binding.setWeakRef(this._tmpElement, this);
-        this._unbind = this._bind(this.viewModel, this._tmpElement);
+        this._clonedElement = this.element.cloneNode(true);
+        drunk.dom.replace(this._clonedElement, this._flagNode);
+        drunk.Binding.setWeakRef(this._clonedElement, this);
+        this._unbind = this._bind(this.viewModel, this._clonedElement);
         this._inDocument = true;
     },
     removeFromDocument: function () {
@@ -4963,21 +4947,18 @@ drunk.Binding.register("if", {
             return;
         }
         this._unbind();
-        drunk.dom.remove(this._tmpElement);
-        drunk.Binding.removeWeakRef(this._tmpElement, this);
+        drunk.dom.after(this._flagNode, this._clonedElement);
+        drunk.dom.remove(this._clonedElement);
+        drunk.Binding.removeWeakRef(this._clonedElement, this);
         this._unbind = null;
-        this._tmpElement = null;
+        this._clonedElement = null;
         this._inDocument = false;
     },
     release: function () {
         this.removeFromDocument();
-        this._headNode.parentNode.removeChild(this._headNode);
-        this._tailNode.parentNode.removeChild(this._tailNode);
-        drunk.Binding.removeWeakRef(this._headNode, this);
-        drunk.Binding.removeWeakRef(this._tailNode, this);
-        this._headNode = null;
-        this._tailNode = null;
-        this._bind = null;
+        drunk.dom.remove(this._flagNode);
+        drunk.Binding.removeWeakRef(this._flagNode, this);
+        this._flagNode = this._bind = null;
     }
 });
 /// <reference path="../binding.ts" />

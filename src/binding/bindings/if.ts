@@ -8,16 +8,12 @@ drunk.Binding.register("if", {
     priority: drunk.Binding.Priority.aboveNormal + 2,
 
     init() {
-        this._headNode = document.createComment("<if>: " + this.expression);
-        this._tailNode = document.createComment("</if>: " + this.expression);
+        this._flagNode = document.createComment("<if: " + this.expression + ' />');
         this._bind = drunk.Template.compile(this.element);
         this._inDocument = false;
 
-        drunk.dom.replace(this._headNode, this.element);
-        drunk.dom.after(this._tailNode, this._headNode);
-
-        drunk.Binding.setWeakRef(this._headNode, this);
-        drunk.Binding.setWeakRef(this._tailNode, this);
+        drunk.dom.replace(this._flagNode, this.element);
+        drunk.Binding.setWeakRef(this._flagNode, this);
     },
 
     update(value) {
@@ -34,11 +30,11 @@ drunk.Binding.register("if", {
             return;
         }
 
-        this._tmpElement = this.element.cloneNode(true);
-        drunk.dom.after(this._tmpElement, this._headNode);
-        drunk.Binding.setWeakRef(this._tmpElement, this);
+        this._clonedElement = this.element.cloneNode(true);
+        drunk.dom.replace(this._clonedElement, this._flagNode);
+        drunk.Binding.setWeakRef(this._clonedElement, this);
 
-        this._unbind = this._bind(this.viewModel, this._tmpElement);
+        this._unbind = this._bind(this.viewModel, this._clonedElement);
         this._inDocument = true;
     },
 
@@ -49,26 +45,20 @@ drunk.Binding.register("if", {
 
         this._unbind();
 
-        drunk.dom.remove(this._tmpElement);
-        drunk.Binding.removeWeakRef(this._tmpElement, this);
+        drunk.dom.after(this._flagNode, this._clonedElement);
+        drunk.dom.remove(this._clonedElement);
+        drunk.Binding.removeWeakRef(this._clonedElement, this);
 
         this._unbind = null;
-        this._tmpElement = null;
+        this._clonedElement = null;
         this._inDocument = false;
 
     },
 
     release() {
         this.removeFromDocument();
-
-        this._headNode.parentNode.removeChild(this._headNode);
-        this._tailNode.parentNode.removeChild(this._tailNode);
-        
-        drunk.Binding.removeWeakRef(this._headNode, this);
-        drunk.Binding.removeWeakRef(this._tailNode, this);
-
-        this._headNode = null;
-        this._tailNode = null;
-        this._bind = null;
+        drunk.dom.remove(this._flagNode);
+        drunk.Binding.removeWeakRef(this._flagNode, this);
+        this._flagNode = this._bind = null;
     }
 });

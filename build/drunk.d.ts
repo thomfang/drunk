@@ -636,9 +636,9 @@ declare namespace drunk.filter {
 }
 declare namespace drunk {
     class Watcher {
-        private viewModel;
-        private expression;
-        private isDeepWatch;
+        viewModel: ViewModel;
+        expression: string;
+        isDeepWatch: boolean;
         /**
          * 根据表达式和是否深度监听生成唯一的key,用于储存在关联的viewModel实例的watcher表中
          * @param   expression  表达式
@@ -652,7 +652,7 @@ declare namespace drunk {
         private _tmpObservers;
         private _tmpProperties;
         private _isActived;
-        private _runActionJob;
+        private _throttle;
         private _getter;
         /**
          * 表达式求值的结果
@@ -684,7 +684,7 @@ declare namespace drunk {
          */
         __flush(): void;
         /**
-         * 释放引用和内存
+         * 销毁实例和移除所有应用
          */
         dispose(): void;
         /**

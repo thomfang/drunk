@@ -55,6 +55,7 @@ describe("Template", function () {
             vm.color = "black";
 
             drunk.util.execAsyncWork(function () {
+                console.log(element, vm);
                 expect(element.className).toBe("item black");
                 done();
             });

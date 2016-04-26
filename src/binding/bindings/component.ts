@@ -205,7 +205,7 @@ namespace drunk {
                 // 事件的处理函数,会生成一个$event对象,在表达式中可以访问该对象.
                 // $event对象有type和args两个字段,args字段是组件派发这个事件所传递的参数的列表
                 // $el字段为该组件实例
-                func.call(undefined, viewModel, {
+                func.call(viewModel, {
                     type: eventName,
                     args: args,
                     target: this.component
