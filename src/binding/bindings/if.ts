@@ -31,7 +31,7 @@ drunk.Binding.register("if", {
         }
 
         this._clonedElement = this.element.cloneNode(true);
-        drunk.dom.replace(this._clonedElement, this._flagNode);
+        drunk.dom.after(this._clonedElement, this._flagNode);
         drunk.Binding.setWeakRef(this._clonedElement, this);
 
         this._unbind = this._bind(this.viewModel, this._clonedElement);
@@ -45,7 +45,6 @@ drunk.Binding.register("if", {
 
         this._unbind();
 
-        drunk.dom.after(this._flagNode, this._clonedElement);
         drunk.dom.remove(this._clonedElement);
         drunk.Binding.removeWeakRef(this._clonedElement, this);
 
