@@ -2300,7 +2300,7 @@ var drunk;
             if (!this._getter.dynamic) {
                 throw new Error('不能监控不包含任何变量的表达式: "' + expression + '"');
             }
-            this.__propertyChanged = this.__propertyChanged.bind(this);
+            this._propertyChanged = this._propertyChanged.bind(this);
             this.value = this.__getValue();
         }
         /**
@@ -2335,17 +2335,48 @@ var drunk;
             }
         };
         /**
+         * 销毁实例和移除所有应用
+         */
+        Watcher.prototype.dispose = function () {
+            var _this = this;
+            if (!this._isActived) {
+                return;
+            }
+            Object.keys(this._observers).forEach(function (id) {
+                Object.keys(_this._properties[id]).forEach(function (property) {
+                    _this._observers[id].$removeListener(property, _this._propertyChanged);
+                });
+            });
+            if (this._throttle) {
+                this._throttle.cancel();
+                this._throttle = null;
+            }
+            var key = Watcher.getNameOfKey(this.expression, this.isDeepWatch);
+            this.viewModel._watchers[key] =
+                this._propertyChanged =
+                    this.value =
+                        this.viewModel =
+                            this.expression =
+                                this._getter =
+                                    this._actions =
+                                        this._observers =
+                                            this._properties =
+                                                this._tmpProperties =
+                                                    this._tmpObservers = null;
+            this._isActived = false;
+        };
+        /**
          * 数据更新派发，会先做缓冲，防止在同一时刻对此出发更新操作，等下一次系统轮训时再真正执行更新操作
          */
-        Watcher.prototype.__propertyChanged = function () {
+        Watcher.prototype._propertyChanged = function () {
             if (!this._throttle) {
-                this._throttle = util.execAsyncWork(this.__flush, this);
+                this._throttle = util.execAsyncWork(this._flush, this);
             }
         };
         /**
          * 立即获取最新的数据判断并判断是否已经更新，如果已经更新，执行所有的回调
          */
-        Watcher.prototype.__flush = function () {
+        Watcher.prototype._flush = function () {
             var _this = this;
             if (!this._isActived) {
                 return;
@@ -2361,37 +2392,6 @@ var drunk;
                     }
                 });
             }
-        };
-        /**
-         * 销毁实例和移除所有应用
-         */
-        Watcher.prototype.dispose = function () {
-            var _this = this;
-            if (!this._isActived) {
-                return;
-            }
-            Object.keys(this._observers).forEach(function (id) {
-                Object.keys(_this._properties[id]).forEach(function (property) {
-                    _this._observers[id].$removeListener(property, _this.__propertyChanged);
-                });
-            });
-            if (this._throttle) {
-                this._throttle.cancel();
-                this._throttle = null;
-            }
-            var key = Watcher.getNameOfKey(this.expression, this.isDeepWatch);
-            this.viewModel._watchers[key] =
-                this.__propertyChanged =
-                    this.value =
-                        this.viewModel =
-                            this.expression =
-                                this._getter =
-                                    this._actions =
-                                        this._observers =
-                                            this._properties =
-                                                this._tmpProperties =
-                                                    this._tmpObservers = null;
-            this._isActived = false;
         };
         /**
          * 执行表达式函数获取最新的数据
@@ -2427,7 +2427,7 @@ var drunk;
             var properties = this._properties;
             var tmpObservers = this._tmpObservers;
             var tmpProperties = this._tmpProperties;
-            var propertyChanged = this.__propertyChanged;
+            var propertyChanged = this._propertyChanged;
             Object.keys(observers).forEach(function (id) {
                 var observer = observers[id];
                 if (!tmpObservers[id]) {
@@ -2456,7 +2456,7 @@ var drunk;
          */
         Watcher.prototype._subscribePropertyChanged = function (observer, property) {
             var id = util.uuid(observer);
-            var propertyChanged = this.__propertyChanged;
+            var propertyChanged = this._propertyChanged;
             var observers = this._observers;
             var properties = this._properties;
             var tmpObservers = this._tmpObservers;
@@ -2823,6 +2823,7 @@ var drunk;
         };
         ViewModel.prototype.$computed = function (property, descriptor) {
             var _this = this;
+            var observer = observable.create(this._model);
             var getter;
             var setter;
             if (typeof descriptor === 'function') {
@@ -2860,9 +2861,11 @@ var drunk;
                 set: computedGetterSetter,
                 get: computedGetterSetter
             });
+            observer.$emit(property);
+            delete this._model[property];
         };
         /**
-         * 释放ViewModel实例的所有元素与数据的绑定,解除所有的代理属性,解除所有的视图于数据绑定,移除事件缓存,销毁所有的watcher
+         * 释放ViewModel实例的所有元素与数据的绑定,解除所有的代理属性,解除所有的视图与数据绑定,移除事件缓存,销毁所有的watcher
          */
         ViewModel.prototype.$release = function () {
             var _this = this;
@@ -4665,12 +4668,7 @@ var drunk;
             drunk.dom.remove(this._headNode);
             drunk.dom.remove(this._tailNode);
             this._map.clear();
-            this._map =
-                this._items =
-                    this._itemVms =
-                        this._bind =
-                            this._headNode =
-                                this._tailNode = null;
+            this._map = this._items = this._itemVms = this._bind = this._headNode = this._tailNode = null;
         };
         return RepeatBinding;
     }());

@@ -676,17 +676,17 @@ declare namespace drunk {
          */
         removeAction(action: IBindingUpdateAction): void;
         /**
-         * 数据更新派发，会先做缓冲，防止在同一时刻对此出发更新操作，等下一次系统轮训时再真正执行更新操作
-         */
-        __propertyChanged(): void;
-        /**
-         * 立即获取最新的数据判断并判断是否已经更新，如果已经更新，执行所有的回调
-         */
-        __flush(): void;
-        /**
          * 销毁实例和移除所有应用
          */
         dispose(): void;
+        /**
+         * 数据更新派发，会先做缓冲，防止在同一时刻对此出发更新操作，等下一次系统轮训时再真正执行更新操作
+         */
+        private _propertyChanged();
+        /**
+         * 立即获取最新的数据判断并判断是否已经更新，如果已经更新，执行所有的回调
+         */
+        private _flush();
         /**
          * 执行表达式函数获取最新的数据
          */
@@ -964,7 +964,7 @@ declare namespace drunk {
             get?: () => any;
         }): any;
         /**
-         * 释放ViewModel实例的所有元素与数据的绑定,解除所有的代理属性,解除所有的视图于数据绑定,移除事件缓存,销毁所有的watcher
+         * 释放ViewModel实例的所有元素与数据的绑定,解除所有的代理属性,解除所有的视图与数据绑定,移除事件缓存,销毁所有的watcher
          */
         $release(): void;
         /**

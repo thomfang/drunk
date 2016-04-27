@@ -17,11 +17,10 @@ describe("Binding.if", function () {
     });
     
     it("should create the properties", function () {
-        expect(binding._headNode).toBeDefined();
-        expect(binding._tailNode).toBeDefined();
+        expect(binding._flagNode).toBeDefined();
         expect(binding._inDocument).toBe(false);
         expect(binding.element.parentNode).toBeNull();
-        expect(binding._headNode.parentNode).toBe(container);
+        expect(binding._flagNode.parentNode).toBe(container);
     });
     
     it("should update with correct action", function () {
@@ -41,7 +40,7 @@ describe("Binding.if", function () {
         expect(binding._inDocument).toBe(true);
         expect(binding._bind).toBeDefined();
         expect(binding._unbind).toBeDefined();
-        expect(binding._tmpElement.parentNode).toBe(container);
+        expect(binding._clonedElement.parentNode).toBe(container);
     });
     
     it("should call unbind and remove the unused element from document", function () {
@@ -50,7 +49,7 @@ describe("Binding.if", function () {
 
         expect(binding._inDocument).toBe(false);
         expect(binding._unbind).toBeNull();
-        expect(binding._headNode.parentNode).toBe(container);
+        expect(binding._flagNode.parentNode).toBe(container);
     });
     
     it("should release the binding and remove all the references", function () {
@@ -60,7 +59,6 @@ describe("Binding.if", function () {
         expect(binding._inDocument).toBe(false);
         expect(binding._bind).toBeNull();
         expect(binding._unbind).toBeNull();
-        expect(binding._headNode).toBeNull();
-        expect(binding._tailNode).toBeNull();
+        expect(binding._flagNode).toBeNull();
     });
 });

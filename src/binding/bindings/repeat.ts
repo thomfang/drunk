@@ -488,13 +488,7 @@ namespace drunk {
             dom.remove(this._tailNode);
 
             this._map.clear();
-
-            this._map =
-                this._items =
-                this._itemVms =
-                this._bind =
-                this._headNode =
-                this._tailNode = null;
+            this._map = this._items = this._itemVms = this._bind = this._headNode = this._tailNode = null;
         }
     };
 

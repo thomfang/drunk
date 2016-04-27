@@ -168,8 +168,9 @@ namespace drunk {
         $computed(property: string, descriptor: () => any);
         $computed(property: string, descriptor: { set?: (value: any) => void, get?: () => any; });
         $computed(property: string, descriptor: any) {
-            let getter: Function;
-            let setter: Function;
+            let observer = observable.create(this._model);
+            let getter: any;
+            let setter: any;
 
             if (typeof descriptor === 'function') {
                 getter = descriptor;
@@ -190,8 +191,7 @@ namespace drunk {
                     if (getter) {
                         try {
                             return getter.call(this);
-                        }
-                        catch (e) { }
+                        } catch (e) { }
                     }
                 }
                 else if (setter) {
@@ -208,10 +208,13 @@ namespace drunk {
                 set: computedGetterSetter,
                 get: computedGetterSetter
             });
+
+            observer.$emit(property);
+            delete this._model[property];
         }
 
         /**
-         * 释放ViewModel实例的所有元素与数据的绑定,解除所有的代理属性,解除所有的视图于数据绑定,移除事件缓存,销毁所有的watcher
+         * 释放ViewModel实例的所有元素与数据的绑定,解除所有的代理属性,解除所有的视图与数据绑定,移除事件缓存,销毁所有的watcher
          */
         $release() {
             if (!this._isActived) {

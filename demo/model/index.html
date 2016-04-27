@@ -35,18 +35,32 @@
                 }
             });
             app.$mount(document.body);
+            
+            app.$watch('user.name', function (value) {
+                console.log('user.name changed to: ', value);
+            });
             app.$computed('user', function () {
                 return this.model.user;
             });
-            
-            app.$watch('user.name', function (value) {
-                console.log(value);
-            });
+            app.$watch('user', function (value) {
+                console.log('user changed:', value);
+            })
             app.model = {
                 user: {
                     name: 'Todd'
                 }
             };
+            
+            app.$computed('fullname', {
+                get: function () {
+                    return this.firstname + ' ' + this.lastname;
+                },
+                set: function (value) {
+                    value = value.split(/\s+/);
+                    this.firstname = value[0];
+                    this.lastname = value[1];
+                }
+            });
             
         </script>
     </body>

@@ -49,7 +49,7 @@ namespace drunk {
                 throw new Error('不能监控不包含任何变量的表达式: "' + expression + '"');
             }
 
-            this.__propertyChanged = this.__propertyChanged.bind(this);
+            this._propertyChanged = this._propertyChanged.bind(this);
             this.value = this.__getValue();
         }
 
@@ -81,18 +81,54 @@ namespace drunk {
         }
 
         /**
+         * 销毁实例和移除所有应用
+         */
+        dispose() {
+            if (!this._isActived) {
+                return;
+            }
+
+            Object.keys(this._observers).forEach((id) => {
+                Object.keys(this._properties[id]).forEach(property => {
+                    this._observers[id].$removeListener(property, this._propertyChanged);
+                });
+            });
+
+            if (this._throttle) {
+                this._throttle.cancel();
+                this._throttle = null;
+            }
+
+            let key: string = Watcher.getNameOfKey(this.expression, this.isDeepWatch);
+
+            this.viewModel._watchers[key] =
+                this._propertyChanged =
+                this.value =
+                this.viewModel =
+                this.expression =
+                this._getter =
+                this._actions =
+                this._observers =
+                this._properties =
+                this._tmpProperties =
+                this._tmpObservers = null;
+
+            this._isActived = false;
+        }
+
+        /**
          * 数据更新派发，会先做缓冲，防止在同一时刻对此出发更新操作，等下一次系统轮训时再真正执行更新操作
          */
-        __propertyChanged(): void {
+        private _propertyChanged(): void {
             if (!this._throttle) {
-                this._throttle = util.execAsyncWork(this.__flush, this);
+                this._throttle = util.execAsyncWork(this._flush, this);
             }
         }
 
         /**
          * 立即获取最新的数据判断并判断是否已经更新，如果已经更新，执行所有的回调
          */
-        __flush(): void {
+        private _flush(): void {
             if (!this._isActived) {
                 return;
             }
@@ -110,42 +146,6 @@ namespace drunk {
                     }
                 });
             }
-        }
-
-        /**
-         * 销毁实例和移除所有应用
-         */
-        dispose() {
-            if (!this._isActived) {
-                return;
-            }
-
-            Object.keys(this._observers).forEach((id) => {
-                Object.keys(this._properties[id]).forEach(property => {
-                    this._observers[id].$removeListener(property, this.__propertyChanged);
-                });
-            });
-
-            if (this._throttle) {
-                this._throttle.cancel();
-                this._throttle = null;
-            }
-
-            let key: string = Watcher.getNameOfKey(this.expression, this.isDeepWatch);
-
-            this.viewModel._watchers[key] =
-                this.__propertyChanged =
-                this.value =
-                this.viewModel =
-                this.expression =
-                this._getter =
-                this._actions =
-                this._observers =
-                this._properties =
-                this._tmpProperties =
-                this._tmpObservers = null;
-
-            this._isActived = false;
         }
 
         /**
@@ -190,7 +190,7 @@ namespace drunk {
             let properties = this._properties;
             let tmpObservers = this._tmpObservers;
             let tmpProperties = this._tmpProperties;
-            let propertyChanged = this.__propertyChanged;
+            let propertyChanged = this._propertyChanged;
 
             Object.keys(observers).forEach(id => {
                 let observer = observers[id];
@@ -223,7 +223,7 @@ namespace drunk {
          */
         private _subscribePropertyChanged(observer: observable.Observer, property: string) {
             let id = util.uuid(observer);
-            let propertyChanged = this.__propertyChanged;
+            let propertyChanged = this._propertyChanged;
             let observers = this._observers;
             let properties = this._properties;
             let tmpObservers = this._tmpObservers;
