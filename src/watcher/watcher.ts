@@ -4,7 +4,7 @@
 /// <reference path="../observable/observable.ts" />
 
 namespace drunk {
-    
+
     import util = drunk.util;
     import Promise = drunk.Promise;
     import observable = drunk.observable;
@@ -29,7 +29,7 @@ namespace drunk {
         private _isActived: boolean = true;
         private _throttle: util.IAsyncJob;
         private _getter: parser.IGetter;
-        
+
         /**
          * 表达式求值的结果
          */
@@ -186,34 +186,30 @@ namespace drunk {
             // 清楚属性访问回调
             observable.onPropertyAccessing = null;
 
-            let observers = this._observers;
-            let properties = this._properties;
-            let tmpObservers = this._tmpObservers;
-            let tmpProperties = this._tmpProperties;
-            let propertyChanged = this._propertyChanged;
+            let { _observers, _properties, _tmpObservers, _tmpProperties, _propertyChanged } = this;
 
-            Object.keys(observers).forEach(id => {
-                let observer = observers[id];
+            Object.keys(_observers).forEach(id => {
+                let observer = _observers[id];
 
-                if (!tmpObservers[id]) {
+                if (!_tmpObservers[id]) {
                     // 如果没有再订阅该observer,取消订阅所有的属性
-                    Object.keys(properties[id]).forEach(property => {
-                        observer.$removeListener(property, propertyChanged);
+                    Object.keys(_properties[id]).forEach(property => {
+                        observer.$removeListener(property, _propertyChanged);
                     });
                 }
                 else {
-                    Object.keys(properties[id]).forEach(property => {
-                        if (!tmpProperties[id][property]) {
+                    Object.keys(_properties[id]).forEach(property => {
+                        if (!_tmpProperties[id][property]) {
                             // 如果没有再订阅该属性,取消订阅该属性
-                            observer.$removeListener(property, propertyChanged);
+                            observer.$removeListener(property, _propertyChanged);
                         }
                     });
                 }
             });
 
             // 换成最新的
-            this._observers = tmpObservers;
-            this._properties = tmpProperties;
+            this._observers = _tmpObservers;
+            this._properties = _tmpProperties;
         }
 
         /**
@@ -222,39 +218,35 @@ namespace drunk {
          * @param  property 属性名
          */
         private _subscribePropertyChanged(observer: observable.Observer, property: string) {
+            let { _observers, _properties, _tmpObservers, _tmpProperties, _propertyChanged } = this;
             let id = util.uuid(observer);
-            let propertyChanged = this._propertyChanged;
-            let observers = this._observers;
-            let properties = this._properties;
-            let tmpObservers = this._tmpObservers;
-            let tmpProperties = this._tmpProperties;
 
-            if (!tmpObservers[id]) {
+            if (!_tmpObservers[id]) {
                 // 添加到临时订阅observer表
                 // 添加到临时订阅属性列表
-                tmpObservers[id] = observer;
-                tmpProperties[id] = { [property]: true };
+                _tmpObservers[id] = observer;
+                _tmpProperties[id] = { [property]: true };
 
 
-                if (!observers[id]) {
+                if (!_observers[id]) {
                     // 如果旧的订阅表也没有,则添加到旧表,并在判断
-                    observers[id] = observer;
-                    properties[id] = { [property]: true };
+                    _observers[id] = observer;
+                    _properties[id] = { [property]: true };
 
-                    observer.$addListener(property, propertyChanged);
+                    observer.$addListener(property, _propertyChanged);
                 }
-                else if (!properties[id][property]) {
+                else if (!_properties[id][property]) {
                     // 如果没有订阅过该属性
-                    properties[id][property] = true;
-                    observer.$addListener(property, propertyChanged);
+                    _properties[id][property] = true;
+                    observer.$addListener(property, _propertyChanged);
                 }
             }
-            else if (!tmpProperties[id][property]) {
-                tmpProperties[id][property] = true;
+            else if (!_tmpProperties[id][property]) {
+                _tmpProperties[id][property] = true;
 
-                if (!properties[id][property]) {
-                    observer.$addListener(property, propertyChanged);
-                    properties[id][property] = true;
+                if (!_properties[id][property]) {
+                    observer.$addListener(property, _propertyChanged);
+                    _properties[id][property] = true;
                 }
             }
         }

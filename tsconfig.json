@@ -6,7 +6,8 @@
         "preserveConstEnums": true,
         "out": "build/drunk.js",
         "declaration": true,
-        "sourceMap": true
+        "sourceMap": true,
+        "experimentalDecorators": true
     },
     "files": [
         "src/promise/promise.ts",

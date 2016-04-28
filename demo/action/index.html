@@ -1,192 +1,224 @@
 <!doctype html>
 <html>
-    
-    <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="initial-scale=1,user-scalable=no" />
-        <title>drunk.Action - demo</title>
-        <script src="../../build/drunk.js"></script>
-        <style>
-            .msg {
-                -webkit-transition: all .3s ease;
-              transition: all .3s ease;
-              height: 0px;
-              background-color: #eee;
-              overflow: hidden;
-              opacity: 0;
-            }
-            .msg.expand-created {
-                height: 30px;
-                opacity: 1;
-            }
-            .msg.expand-removed {
-                height: 0;
-                opacity: 0;
-            }
-            .animated {
-                -webkit-transition: all .3s ease;
-                transition: all .3s ease;
-                height: 0px;
-                background-color: #eee;
-                overflow: hidden;
-                opacity: 0;
-            }
-            .animated.drunk-created {
-                height: 30px;
-                opacity: 1;
-            }
-            .animated.drunk-removed {
-                height: 0;
-                opacity: 0;
-            }
-            .blackbox {
-                background-color: #333;
-                width: 300px;
-                height: 100px;
-                transition: all 0.4s cubic-bezier(0, 0, 0, 1);
-                opacity: 0;
-                -webkit-transform: translateX(100px);
-                transform: translateX(100px);
-                margin: 5px 0;
-            }
-            .blackbox.box-created {
-                opacity: 1;
-                -webkit-transform: translateX(0px);
-                transform: translateX(0px);
-            }
-            .blackbox.box-removed {
-                opacity: 0;
-                -webkit-transform: translateX(100px);
-                transform: translateX(100px);
-            }
-            
-            .redbox {
-                background: red;
-                width: 100px;
-                height: 100px;
-            }
-            .bounce-created {
-              -webkit-animation: bounce-in .5s;
-              animation: bounce-in .5s;
-            }
-            .bounce-removed {
-              -webkit-animation: bounce-out .5s ;
-              animation: bounce-out .5s;
-            }
-            
-            .greenbox {
-                background-color: green;
-                width: 100px;
-                height: 100px;
-            }
-            @-webkit-keyframes bounce-in {
-              0% {
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="initial-scale=1,user-scalable=no" />
+    <title>drunk.Action - demo</title>
+    <script src="../../build/drunk.js"></script>
+    <style>
+        .msg {
+            -webkit-transition: all .3s ease;
+            transition: all .3s ease;
+            height: 0px;
+            background-color: #eee;
+            overflow: hidden;
+            opacity: 0;
+        }
+        
+        .msg.expand-created {
+            height: 30px;
+            opacity: 1;
+        }
+        
+        .msg.expand-removed {
+            height: 0;
+            opacity: 0;
+        }
+        
+        .animated {
+            -webkit-transition: all .3s ease;
+            transition: all .3s ease;
+            height: 0px;
+            background-color: #eee;
+            overflow: hidden;
+            opacity: 0;
+        }
+        
+        .animated.drunk-created {
+            height: 30px;
+            opacity: 1;
+        }
+        
+        .animated.drunk-removed {
+            height: 0;
+            opacity: 0;
+        }
+        
+        .color {
+            -webkit-transition: all .3s ease;
+            transition: all .3s ease;
+            background-color: #eee;
+            color: #eee;
+            padding: 10px;
+        }
+        
+        .color.drunk-created {
+            background: red;
+        }
+        
+        .color.drunk-removed {
+            background: chartreuse;
+        }
+        
+        .blackbox {
+            background-color: #333;
+            width: 300px;
+            height: 100px;
+            transition: all 0.4s cubic-bezier(0, 0, 0, 1);
+            opacity: 0;
+            -webkit-transform: translateX(100px);
+            transform: translateX(100px);
+            margin: 5px 0;
+        }
+        
+        .blackbox.box-created {
+            opacity: 1;
+            -webkit-transform: translateX(0px);
+            transform: translateX(0px);
+        }
+        
+        .blackbox.box-removed {
+            opacity: 0;
+            -webkit-transform: translateX(100px);
+            transform: translateX(100px);
+        }
+        
+        .redbox {
+            background: red;
+            width: 100px;
+            height: 100px;
+        }
+        
+        .bounce-created {
+            -webkit-animation: bounce-in .5s;
+            animation: bounce-in .5s;
+        }
+        
+        .bounce-removed {
+            -webkit-animation: bounce-out .5s;
+            animation: bounce-out .5s;
+        }
+        
+        .greenbox {
+            background-color: green;
+            width: 100px;
+            height: 100px;
+        }
+        
+        @-webkit-keyframes bounce-in {
+            0% {
                 -webkit-transform: scale(0);
-              }
-              50% {
-                -webkit-transform: scale(1.5);
-              }
-              100% {
-                -webkit-transform: scale(1);
-              }
             }
-            @-webkit-keyframes bounce-out {
-              0% {
-                -webkit-transform: scale(1);
-              }
-              50% {
+            50% {
                 -webkit-transform: scale(1.5);
-              }
-              100% {
+            }
+            100% {
+                -webkit-transform: scale(1);
+            }
+        }
+        
+        @-webkit-keyframes bounce-out {
+            0% {
+                -webkit-transform: scale(1);
+            }
+            50% {
+                -webkit-transform: scale(1.5);
+            }
+            100% {
                 -webkit-transform: scale(0);
-              }
             }
-            
-            .slogan {
-                transition: all 0.5s ease-out;
-                -webkit-transform: translateY(50px);
-            }
-            .slide-created {
-                -webkit-transform: translateY(0px);
-            }
-            .slide-removed {
-                -webkit-transform: translateY(-50px);
-            }
-        </style>
-    </head>
+        }
+        
+        .slogan {
+            transition: all 0.5s ease-out;
+            -webkit-transform: translateY(50px);
+        }
+        
+        .slide-created {
+            -webkit-transform: translateY(0px);
+        }
+        
+        .slide-removed {
+            -webkit-transform: translateY(-50px);
+        }
+    </style>
+</head>
+
+<body>
+    <button drunk-on="click:show = !show">点击切换文本展示</button>
+    <button drunk-on="click:expanded = !expanded">点击切换文本展示</button>
+    <button drunk-on="click:list.unshift({})">从列表头部添加一个</button>
+    <button drunk-on="click:list.push({}), count += 1">从列表尾部添加一个</button>
+    <button drunk-on="click:list.pop(),count -= 1">从列表中移除一个</button>
+    <button drunk-on="click:redBoxVisible = !redBoxVisible">点击切换动画</button>
+    <button drunk-on="click:greenBoxVisible = !greenBoxVisible">点击切换动画</button>
     
-    <body>
-        <button drunk-on="click:show = !show">点击切换文本展示</button>
-        <button drunk-on="click:expanded = !expanded">点击切换文本展示</button>
-        <button drunk-on="click:list.unshift({})">从列表头部添加一个</button>
-        <button drunk-on="click:list.push({}), count += 1">从列表尾部添加一个</button>
-        <button drunk-on="click:list.pop(),count -= 1">从列表中移除一个</button>
-        <button drunk-on="click:redBoxVisible = !redBoxVisible">点击切换动画</button>
-        <button drunk-on="click:greenBoxVisible = !greenBoxVisible">点击切换动画</button>
-        <!--<div class="msg" drunk-if="show" drunk-action="expand">Hello!</div>-->
-        <div class="msg" drunk-class="{'expand-created': show, 'expand-removed': !show}">Hello,drunk.js!</div>
-        <div class="animated" drunk-action drunk-if='expanded'>这里用的是默认的className(drunk-created,drunk-removed)</div>
-        <div>
-            <p class="slogan" drunk-repeat="content in slogan" drunk-action="slide">{{content}}</p>
-        </div>
-        <div class="blackbox" drunk-repeat="e,i in list" drunk-action="{{i * 0.1}} box bounce"></div>
-        <div class="redbox" drunk-if="redBoxVisible" drunk-action="bounce"></div>
-        <div class="greenbox" drunk-if="greenBoxVisible" drunk-action="fade"></div>
-        <script>
-            
-            drunk.Action.register('fade', {
-                created: function (element, done) {
-                    element.style.opacity = 0;
+    <div class="msg" drunk-class="{'expand-created': show, 'expand-removed': !show}">Hello,drunk.js!</div>
+    <div class="color" drunk-action drunk-show='expanded'>drunk-show控制的动画</div>
+    <div class="animated" drunk-action drunk-if='expanded'>drunk-if控制的动画</div>
+    <div>
+        <p class="slogan" drunk-repeat="content in slogan" drunk-action="slide">{{content}}</p>
+    </div>
+    <div class="blackbox" drunk-repeat="e,i in list" drunk-action="{{i * 0.1}} box bounce"></div>
+    <div class="redbox" drunk-if="redBoxVisible" drunk-action="bounce"></div>
+    <div class="greenbox" drunk-if="greenBoxVisible" drunk-action="fade"></div>
+    
+    <script>
+        drunk.Action.register('fade', {
+            created: function (element, done) {
+                element.style.opacity = 0;
+                
+                var timerid = setInterval(function () {
+                    var opacity = Number(getComputedStyle(element, null).opacity);
                     
-                    var timerid = setInterval(function () {
-                        var opacity = Number(getComputedStyle(element, null).opacity);
-                        
-                        if (opacity >= 1) {
-                            cancel();
-                            done();
-                            return;
-                        }
-                        
-                        element.style.opacity = opacity + 0.3;
-                    }, 50);
-                    
-                    function cancel() {
-                        clearInterval(timerid);
+                    if (opacity >= 1) {
+                        cancel();
+                        done();
+                        return;
                     }
                     
-                    return cancel;
-                },
-                removed: function (element, done) {
-                    element.style.opacity = 1;
-                    
-                    var timerid = setInterval(function () {
-                        var opacity = Number(getComputedStyle(element, null).opacity);
-                        
-                        if (opacity <= 0) {
-                            cancel();
-                            done();
-                            return;
-                        }
-                        
-                        element.style.opacity = opacity - 0.3;
-                    }, 50);
-                    
-                    function cancel() {
-                        clearInterval(timerid);
-                    }
-                    
-                    return cancel;
+                    element.style.opacity = opacity + 0.3;
+                }, 50);
+                
+                function cancel() {
+                    clearInterval(timerid);
                 }
-            });
-            
-            var app = new drunk.Component({
-                list: [{}, {}, {}],
-                sloganList: ['123', '234', '345'],
-                slogan: [],
-                count: 1000
-            });
-            app.$mount(document.body);
-        </script>
-    </body>
+                
+                return cancel;
+            },
+            removed: function (element, done) {
+                element.style.opacity = 1;
+                
+                var timerid = setInterval(function () {
+                    var opacity = Number(getComputedStyle(element, null).opacity);
+                    
+                    if (opacity <= 0) {
+                        cancel();
+                        done();
+                        return;
+                    }
+                    
+                    element.style.opacity = opacity - 0.3;
+                }, 50);
+                
+                function cancel() {
+                    clearInterval(timerid);
+                }
+                
+                return cancel;
+            }
+        });
+        
+        var app = new drunk.Component({
+            expanded: true,
+            list: [{}, {}, {}],
+            sloganList: ['123', '234', '345'],
+            slogan: [],
+            count: 1000
+        });
+        app.$mount(document.body);
+    </script>
+</body>
 
 </html>

@@ -4,12 +4,25 @@ drunk.Binding.register("show", {
 
     update(isVisible: boolean) {
         var style = this.element.style;
+        let action = this.element[drunk.Action.weakRefKey];
 
-        if (!isVisible && style.display !== 'none') {
-            style.display = 'none';
+        if (!isVisible) {
+            console.log(action);
+            if (action) {
+                action.runActionByType(drunk.Action.Type.removed);
+                drunk.Action.process(this.element).then(() => {
+                    style.display = 'none';
+                });
+            }
+            else {
+                style.display = 'none';
+            }
         }
-        else if (isVisible && style.display === 'none') {
+        else if (isVisible) {
             style.display = '';
+            if (action) {
+                action.runActionByType(drunk.Action.Type.created);
+            }
         }
     }
 });

@@ -1004,6 +1004,7 @@ declare namespace drunk {
      * 动画模块
      */
     namespace Action {
+        const weakRefKey: string;
         /**
          * action的类型
          */
@@ -1183,6 +1184,7 @@ declare namespace drunk {
         release: string;
         mounted: string;
     }
+    function component(name: string): (constructor: any) => void;
     class Component extends ViewModel {
         /**
          * 组件是否已经挂在到元素上

@@ -39,8 +39,16 @@ namespace drunk {
         created: string;
         release: string;
         mounted: string;
+        templateLoadFailed: string;
     }
 
+    export function component(name: string) {
+        return function (constructor: any) {
+            Component.register(name, constructor);
+        };
+    }
+
+    @component(config.prefix + 'view')
     export class Component extends ViewModel {
 
         /**
@@ -165,7 +173,8 @@ namespace drunk {
          * 处理模板，并返回模板元素
          */
         $processTemplate(templateUrl?: string): Promise<any> {
-            function onFailed(reason) {
+            let onFailed = (reason) => {
+                this.$emit(Component.Event.templateLoadFailed, this);
                 console.warn("模板加载失败: " + templateUrl, reason);
             }
 
@@ -246,7 +255,8 @@ namespace drunk {
         static Event: IComponentEvent = {
             created: 'created',
             release: 'release',
-            mounted: 'mounted'
+            mounted: 'mounted',
+            templateLoadFailed: 'templateLoadFailed',
         }
 
         /**
@@ -378,7 +388,4 @@ namespace drunk {
 
         styleSheet.insertRule(name + '{display:none}', styleSheet.cssRules.length);
     }
-
-    // 注册内置的组件标签
-    Component.register(config.prefix + 'view', Component);
 }

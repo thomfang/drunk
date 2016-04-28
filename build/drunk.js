@@ -3,6 +3,12 @@ var __extends = (this && this.__extends) || function (d, b) {
     function __() { this.constructor = d; }
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
 var drunk;
 (function (drunk) {
     (function (PromiseState) {
@@ -2423,31 +2429,27 @@ var drunk;
         Watcher.prototype.__afterGetValue = function () {
             // 清楚属性访问回调
             observable.onPropertyAccessing = null;
-            var observers = this._observers;
-            var properties = this._properties;
-            var tmpObservers = this._tmpObservers;
-            var tmpProperties = this._tmpProperties;
-            var propertyChanged = this._propertyChanged;
-            Object.keys(observers).forEach(function (id) {
-                var observer = observers[id];
-                if (!tmpObservers[id]) {
+            var _a = this, _observers = _a._observers, _properties = _a._properties, _tmpObservers = _a._tmpObservers, _tmpProperties = _a._tmpProperties, _propertyChanged = _a._propertyChanged;
+            Object.keys(_observers).forEach(function (id) {
+                var observer = _observers[id];
+                if (!_tmpObservers[id]) {
                     // 如果没有再订阅该observer,取消订阅所有的属性
-                    Object.keys(properties[id]).forEach(function (property) {
-                        observer.$removeListener(property, propertyChanged);
+                    Object.keys(_properties[id]).forEach(function (property) {
+                        observer.$removeListener(property, _propertyChanged);
                     });
                 }
                 else {
-                    Object.keys(properties[id]).forEach(function (property) {
-                        if (!tmpProperties[id][property]) {
+                    Object.keys(_properties[id]).forEach(function (property) {
+                        if (!_tmpProperties[id][property]) {
                             // 如果没有再订阅该属性,取消订阅该属性
-                            observer.$removeListener(property, propertyChanged);
+                            observer.$removeListener(property, _propertyChanged);
                         }
                     });
                 }
             });
             // 换成最新的
-            this._observers = tmpObservers;
-            this._properties = tmpProperties;
+            this._observers = _tmpObservers;
+            this._properties = _tmpProperties;
         };
         /**
          * 订阅属性的更新消息
@@ -2455,37 +2457,33 @@ var drunk;
          * @param  property 属性名
          */
         Watcher.prototype._subscribePropertyChanged = function (observer, property) {
+            var _a = this, _observers = _a._observers, _properties = _a._properties, _tmpObservers = _a._tmpObservers, _tmpProperties = _a._tmpProperties, _propertyChanged = _a._propertyChanged;
             var id = util.uuid(observer);
-            var propertyChanged = this._propertyChanged;
-            var observers = this._observers;
-            var properties = this._properties;
-            var tmpObservers = this._tmpObservers;
-            var tmpProperties = this._tmpProperties;
-            if (!tmpObservers[id]) {
+            if (!_tmpObservers[id]) {
                 // 添加到临时订阅observer表
                 // 添加到临时订阅属性列表
-                tmpObservers[id] = observer;
-                tmpProperties[id] = (_a = {}, _a[property] = true, _a);
-                if (!observers[id]) {
+                _tmpObservers[id] = observer;
+                _tmpProperties[id] = (_b = {}, _b[property] = true, _b);
+                if (!_observers[id]) {
                     // 如果旧的订阅表也没有,则添加到旧表,并在判断
-                    observers[id] = observer;
-                    properties[id] = (_b = {}, _b[property] = true, _b);
-                    observer.$addListener(property, propertyChanged);
+                    _observers[id] = observer;
+                    _properties[id] = (_c = {}, _c[property] = true, _c);
+                    observer.$addListener(property, _propertyChanged);
                 }
-                else if (!properties[id][property]) {
+                else if (!_properties[id][property]) {
                     // 如果没有订阅过该属性
-                    properties[id][property] = true;
-                    observer.$addListener(property, propertyChanged);
+                    _properties[id][property] = true;
+                    observer.$addListener(property, _propertyChanged);
                 }
             }
-            else if (!tmpProperties[id][property]) {
-                tmpProperties[id][property] = true;
-                if (!properties[id][property]) {
-                    observer.$addListener(property, propertyChanged);
-                    properties[id][property] = true;
+            else if (!_tmpProperties[id][property]) {
+                _tmpProperties[id][property] = true;
+                if (!_properties[id][property]) {
+                    observer.$addListener(property, _propertyChanged);
+                    _properties[id][property] = true;
                 }
             }
-            var _a, _b;
+            var _b, _c;
         };
         return Watcher;
     }());
@@ -2942,6 +2940,7 @@ var drunk;
      */
     var Action;
     (function (Action) {
+        Action.weakRefKey = 'drunk:action:binding';
         /**
          * action的类型
          */
@@ -3156,11 +3155,13 @@ var drunk;
      */
     var ActionBinding = (function () {
         function ActionBinding() {
+            this.priority = drunk.Binding.Priority.aboveNormal;
         }
         ActionBinding.prototype.init = function () {
             var _this = this;
+            this.element[Action.weakRefKey] = this;
             this._actionJob = Scheduler.schedule(function () {
-                _this._runActionByType(Action.Type.created);
+                _this.runActionByType(Action.Type.created);
                 _this._actionJob = null;
             }, Scheduler.Priority.normal);
         };
@@ -3222,7 +3223,11 @@ var drunk;
         /**
          * 先取消还在运行的action，再运行指定的action
          */
-        ActionBinding.prototype._runActionByType = function (type) {
+        ActionBinding.prototype.runActionByType = function (type) {
+            if (this._actionJob) {
+                this._actionJob.cancel();
+                this._actionJob = null;
+            }
             var currentAction = Action.getCurrentAction(this.element);
             if (currentAction && currentAction.cancel) {
                 currentAction.cancel();
@@ -3234,7 +3239,8 @@ var drunk;
             if (this._actionJob) {
                 this._actionJob.cancel();
             }
-            this._runActionByType(Action.Type.removed);
+            this.runActionByType(Action.Type.removed);
+            this.element[Action.weakRefKey] = null;
             this._actionNames = null;
             this._actionJob = null;
         };
@@ -3899,6 +3905,12 @@ var drunk;
     var refKey = 'DRUNK-COMPONENT-ID';
     var record = {};
     var styleSheet;
+    function component(name) {
+        return function (constructor) {
+            Component.register(name, constructor);
+        };
+    }
+    drunk.component = component;
     var Component = (function (_super) {
         __extends(Component, _super);
         /**
@@ -4121,6 +4133,9 @@ var drunk;
             release: 'release',
             mounted: 'mounted'
         };
+        Component = __decorate([
+            component(config.prefix + 'view')
+        ], Component);
         return Component;
     }(ViewModel));
     drunk.Component = Component;
@@ -4138,8 +4153,6 @@ var drunk;
         }
         styleSheet.insertRule(name + '{display:none}', styleSheet.cssRules.length);
     }
-    // 注册内置的组件标签
-    Component.register(config.prefix + 'view', Component);
 })(drunk || (drunk = {}));
 /// <reference path="../binding.ts" />
 /// <reference path="../../template/compiler.ts" />
@@ -5125,11 +5138,24 @@ var drunk;
 drunk.Binding.register("show", {
     update: function (isVisible) {
         var style = this.element.style;
-        if (!isVisible && style.display !== 'none') {
-            style.display = 'none';
+        var action = this.element[drunk.Action.weakRefKey];
+        if (!isVisible) {
+            console.log(action);
+            if (action) {
+                action.runActionByType(drunk.Action.Type.removed);
+                drunk.Action.process(this.element).then(function () {
+                    style.display = 'none';
+                });
+            }
+            else {
+                style.display = 'none';
+            }
         }
-        else if (isVisible && style.display === 'none') {
+        else if (isVisible) {
             style.display = '';
+            if (action) {
+                action.runActionByType(drunk.Action.Type.created);
+            }
         }
     }
 });
