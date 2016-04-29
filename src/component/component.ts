@@ -14,7 +14,7 @@ namespace drunk {
     import Template = drunk.Template;
     import ViewModel = drunk.ViewModel;
 
-    let refKey = 'DRUNK-COMPONENT-ID';
+    let weakRefKey = 'DRUNK-COMPONENT-ID';
     let record: { [name: string]: boolean } = {};
     let styleSheet: any;
 
@@ -42,19 +42,21 @@ namespace drunk {
         templateLoadFailed: string;
     }
 
+    /**
+     * Decorator for Component.register
+     */
     export function component(name: string) {
         return function (constructor: any) {
             Component.register(name, constructor);
         };
     }
 
-    @component(config.prefix + 'view')
     export class Component extends ViewModel {
 
         /**
          * 组件是否已经挂在到元素上
          */
-        private _isMounted: boolean;
+        protected _isMounted: boolean;
 
         /**
          * 组件被定义的名字
@@ -111,7 +113,7 @@ namespace drunk {
         /**
          * 该组件作用域下的数据过滤器表
          */
-        private __filters: { [name: string]: filter.IFilter };
+        protected __filters: { [name: string]: filter.IFilter };
 
         set filters(newValue: { [name: string]: filter.IFilter }) {
             if (this.$filter) {
@@ -265,7 +267,7 @@ namespace drunk {
          * @return  Component实例
          */
         static getByElement(element: any) {
-            return element && Component.instancesById[element[refKey]];
+            return element && Component.instancesById[element[weakRefKey]];
         }
 
         /**
@@ -274,7 +276,7 @@ namespace drunk {
          * @param   component  组件实例
          */
         static setWeakRef<T extends Component>(element: any, component: T) {
-            element[refKey] = util.uuid(component);
+            element[weakRefKey] = util.uuid(component);
         }
 
         /**
@@ -282,7 +284,7 @@ namespace drunk {
          * @param  element  元素
          */
         static removeWeakRef(element: any) {
-            delete element[refKey];
+            delete element[weakRefKey];
         }
 
         /**
@@ -388,4 +390,6 @@ namespace drunk {
 
         styleSheet.insertRule(name + '{display:none}', styleSheet.cssRules.length);
     }
+    
+    Component.register(config.prefix + 'view', Component);
 }

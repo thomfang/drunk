@@ -42,12 +42,12 @@ describe("ViewModel", function () {
 
     it("get model value by getter", function () {
         var getter1 = drunk.parser.parseGetter("a");
-        var result1 = vm.__getValueByGetter(getter1);
+        var result1 = vm.__execGetter(getter1);
 
         expect(result1).toBe(123);
 
         var getter2 = drunk.parser.parseGetter("a|add:27");
-        var result2 = vm.__getValueByGetter(getter2);
+        var result2 = vm.__execGetter(getter2);
 
         expect(result2).toBe(150);
     });

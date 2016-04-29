@@ -18,6 +18,50 @@ namespace drunk {
     }
 
     /**
+     * Decorator for ViewModel#$computed
+     */
+    export function computed(target: ViewModel, property: string, descriptor: PropertyDescriptor) {
+        let getter: any;
+        let setter: any;
+        let proxies: string[];
+
+        if (descriptor.get) {
+            getter = descriptor.get;
+            proxies = parser.getProxyProperties(descriptor.get);
+        }
+        if (descriptor.set) {
+            setter = descriptor.set;
+        }
+
+        function computedGetterSetter() {
+            if (!arguments.length) {
+                if (getter) {
+                    if (proxies) {
+                        proxies.forEach(prop => this.$proxy(prop));
+                        proxies = null;
+                    }
+                    try {
+                        return getter.call(this);
+                    } catch (e) { }
+                }
+            }
+            else if (setter) {
+                try {
+                    setter.call(this, arguments[0]);
+                }
+                catch (e) { }
+            }
+        }
+
+        descriptor.get = computedGetterSetter;
+        descriptor.set = computedGetterSetter;
+        descriptor.enumerable = true;
+        descriptor.configurable = true;
+
+        return descriptor;
+    }
+
+    /**
      * ViewModel类， 实现数据与模板元素的绑定
      */
     export class ViewModel extends EventEmitter {
@@ -53,7 +97,7 @@ namespace drunk {
         handlers: { [name: string]: (...args: any[]) => any };
 
         /**
-         * @param   model  初始化数据
+         * @param  model  初始化数据
          */
         constructor(model?: IModel) {
             super();
@@ -114,7 +158,7 @@ namespace drunk {
                 getter = parser.parseGetter(expression);
             }
 
-            return this.__getValueByGetter(getter, isInterpolate);
+            return this.__execGetter(getter, isInterpolate);
         }
 
         /**
@@ -169,48 +213,14 @@ namespace drunk {
         $computed(property: string, descriptor: { set?: (value: any) => void, get?: () => any; });
         $computed(property: string, descriptor: any) {
             let observer = observable.create(this._model);
-            let getter: any;
-            let setter: any;
-
             if (typeof descriptor === 'function') {
-                getter = descriptor;
-                parser.getProxyProperties(descriptor).forEach(p => this.$proxy(p));
+                descriptor = {
+                    get: descriptor
+                };
             }
-            else {
-                if (descriptor.get) {
-                    getter = descriptor.get;
-                    parser.getProxyProperties(descriptor.get).forEach(p => this.$proxy(p));
-                }
-                if (descriptor.set) {
-                    setter = descriptor.set;
-                }
-            }
-
-            function computedGetterSetter() {
-                if (!arguments.length) {
-                    if (getter) {
-                        try {
-                            return getter.call(this);
-                        } catch (e) { }
-                    }
-                }
-                else if (setter) {
-                    try {
-                        setter.call(this, arguments[0]);
-                    }
-                    catch (e) { }
-                }
-            }
-
-            Object.defineProperty(this, property, {
-                configurable: true,
-                enumerable: true,
-                set: computedGetterSetter,
-                get: computedGetterSetter
-            });
-
+            descriptor = computed(this, property, descriptor);
+            Object.defineProperty(this, property, descriptor);
             observer.$emit(property);
-            delete this._model[property];
         }
 
         /**
@@ -272,7 +282,7 @@ namespace drunk {
          * @param   event          事件对象
          * @param   el             元素对象
          */
-        __getValueByGetter(getter, isInterpolate) {
+        __execGetter(getter, isInterpolate) {
             var value = getter.call(this);
             return filter.pipeFor.apply(null, [value, getter.filters, this.$filter, isInterpolate, this]);
         }

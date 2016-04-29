@@ -888,6 +888,10 @@ declare namespace drunk {
         [key: string]: any;
     }
     /**
+     * Decorator for ViewModel#$computed
+     */
+    function computed(target: ViewModel, property: string, descriptor: PropertyDescriptor): PropertyDescriptor;
+    /**
      * ViewModel类， 实现数据与模板元素的绑定
      */
     class ViewModel extends EventEmitter {
@@ -922,7 +926,7 @@ declare namespace drunk {
             [name: string]: (...args: any[]) => any;
         };
         /**
-         * @param   model  初始化数据
+         * @param  model  初始化数据
          */
         constructor(model?: IModel);
         /**
@@ -980,7 +984,7 @@ declare namespace drunk {
          * @param   event          事件对象
          * @param   el             元素对象
          */
-        __getValueByGetter(getter: any, isInterpolate: any): any;
+        __execGetter(getter: any, isInterpolate: any): any;
     }
 }
 declare namespace drunk {
@@ -1183,13 +1187,17 @@ declare namespace drunk {
         created: string;
         release: string;
         mounted: string;
+        templateLoadFailed: string;
     }
+    /**
+     * Decorator for Component.register
+     */
     function component(name: string): (constructor: any) => void;
     class Component extends ViewModel {
         /**
          * 组件是否已经挂在到元素上
          */
-        private _isMounted;
+        protected _isMounted: boolean;
         /**
          * 组件被定义的名字
          */
@@ -1237,7 +1245,9 @@ declare namespace drunk {
         /**
          * 该组件作用域下的数据过滤器表
          */
-        private __filters;
+        protected __filters: {
+            [name: string]: filter.IFilter;
+        };
         filters: {
             [name: string]: filter.IFilter;
         };

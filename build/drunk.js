@@ -3,12 +3,6 @@ var __extends = (this && this.__extends) || function (d, b) {
     function __() { this.constructor = d; }
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
-    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-    return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
 var drunk;
 (function (drunk) {
     (function (PromiseState) {
@@ -2720,12 +2714,54 @@ var drunk;
     var observable = drunk.observable;
     var EventEmitter = drunk.EventEmitter;
     /**
+     * Decorator for ViewModel#$computed
+     */
+    function computed(target, property, descriptor) {
+        var getter;
+        var setter;
+        var proxies;
+        if (descriptor.get) {
+            getter = descriptor.get;
+            proxies = parser.getProxyProperties(descriptor.get);
+        }
+        if (descriptor.set) {
+            setter = descriptor.set;
+        }
+        function computedGetterSetter() {
+            var _this = this;
+            if (!arguments.length) {
+                if (getter) {
+                    if (proxies) {
+                        proxies.forEach(function (prop) { return _this.$proxy(prop); });
+                        proxies = null;
+                    }
+                    try {
+                        return getter.call(this);
+                    }
+                    catch (e) { }
+                }
+            }
+            else if (setter) {
+                try {
+                    setter.call(this, arguments[0]);
+                }
+                catch (e) { }
+            }
+        }
+        descriptor.get = computedGetterSetter;
+        descriptor.set = computedGetterSetter;
+        descriptor.enumerable = true;
+        descriptor.configurable = true;
+        return descriptor;
+    }
+    drunk.computed = computed;
+    /**
      * ViewModel类， 实现数据与模板元素的绑定
      */
     var ViewModel = (function (_super) {
         __extends(ViewModel, _super);
         /**
-         * @param   model  初始化数据
+         * @param  model  初始化数据
          */
         function ViewModel(model) {
             _super.call(this);
@@ -2777,7 +2813,7 @@ var drunk;
             else {
                 getter = parser.parseGetter(expression);
             }
-            return this.__getValueByGetter(getter, isInterpolate);
+            return this.__execGetter(getter, isInterpolate);
         };
         /**
          * 根据表达式设置值
@@ -2820,47 +2856,15 @@ var drunk;
             };
         };
         ViewModel.prototype.$computed = function (property, descriptor) {
-            var _this = this;
             var observer = observable.create(this._model);
-            var getter;
-            var setter;
             if (typeof descriptor === 'function') {
-                getter = descriptor;
-                parser.getProxyProperties(descriptor).forEach(function (p) { return _this.$proxy(p); });
+                descriptor = {
+                    get: descriptor
+                };
             }
-            else {
-                if (descriptor.get) {
-                    getter = descriptor.get;
-                    parser.getProxyProperties(descriptor.get).forEach(function (p) { return _this.$proxy(p); });
-                }
-                if (descriptor.set) {
-                    setter = descriptor.set;
-                }
-            }
-            function computedGetterSetter() {
-                if (!arguments.length) {
-                    if (getter) {
-                        try {
-                            return getter.call(this);
-                        }
-                        catch (e) { }
-                    }
-                }
-                else if (setter) {
-                    try {
-                        setter.call(this, arguments[0]);
-                    }
-                    catch (e) { }
-                }
-            }
-            Object.defineProperty(this, property, {
-                configurable: true,
-                enumerable: true,
-                set: computedGetterSetter,
-                get: computedGetterSetter
-            });
+            descriptor = computed(this, property, descriptor);
+            Object.defineProperty(this, property, descriptor);
             observer.$emit(property);
-            delete this._model[property];
         };
         /**
          * 释放ViewModel实例的所有元素与数据的绑定,解除所有的代理属性,解除所有的视图与数据绑定,移除事件缓存,销毁所有的watcher
@@ -2917,7 +2921,7 @@ var drunk;
          * @param   event          事件对象
          * @param   el             元素对象
          */
-        ViewModel.prototype.__getValueByGetter = function (getter, isInterpolate) {
+        ViewModel.prototype.__execGetter = function (getter, isInterpolate) {
             var value = getter.call(this);
             return drunk.filter.pipeFor.apply(null, [value, getter.filters, this.$filter, isInterpolate, this]);
         };
@@ -3902,9 +3906,12 @@ var drunk;
     var config = drunk.config;
     var Template = drunk.Template;
     var ViewModel = drunk.ViewModel;
-    var refKey = 'DRUNK-COMPONENT-ID';
+    var weakRefKey = 'DRUNK-COMPONENT-ID';
     var record = {};
     var styleSheet;
+    /**
+     * Decorator for Component.register
+     */
     function component(name) {
         return function (constructor) {
             Component.register(name, constructor);
@@ -3980,9 +3987,11 @@ var drunk;
          * 处理模板，并返回模板元素
          */
         Component.prototype.$processTemplate = function (templateUrl) {
-            function onFailed(reason) {
+            var _this = this;
+            var onFailed = function (reason) {
+                _this.$emit(Component.Event.templateLoadFailed, _this);
                 console.warn("模板加载失败: " + templateUrl, reason);
-            }
+            };
             if (typeof templateUrl === 'string') {
                 return Template.renderFragment(templateUrl, null, true).then(function (fragment) { return util.toArray(fragment.childNodes); }).catch(onFailed);
             }
@@ -4037,7 +4046,7 @@ var drunk;
          * @return  Component实例
          */
         Component.getByElement = function (element) {
-            return element && Component.instancesById[element[refKey]];
+            return element && Component.instancesById[element[weakRefKey]];
         };
         /**
          * 设置element与viewModel的引用
@@ -4045,14 +4054,14 @@ var drunk;
          * @param   component  组件实例
          */
         Component.setWeakRef = function (element, component) {
-            element[refKey] = util.uuid(component);
+            element[weakRefKey] = util.uuid(component);
         };
         /**
          * 移除挂载引用
          * @param  element  元素
          */
         Component.removeWeakRef = function (element) {
-            delete element[refKey];
+            delete element[weakRefKey];
         };
         /**
          * 根据组件名字获取组件构造函数
@@ -4131,11 +4140,9 @@ var drunk;
         Component.Event = {
             created: 'created',
             release: 'release',
-            mounted: 'mounted'
+            mounted: 'mounted',
+            templateLoadFailed: 'templateLoadFailed',
         };
-        Component = __decorate([
-            component(config.prefix + 'view')
-        ], Component);
         return Component;
     }(ViewModel));
     drunk.Component = Component;
@@ -4153,6 +4160,7 @@ var drunk;
         }
         styleSheet.insertRule(name + '{display:none}', styleSheet.cssRules.length);
     }
+    Component.register(config.prefix + 'view', Component);
 })(drunk || (drunk = {}));
 /// <reference path="../binding.ts" />
 /// <reference path="../../template/compiler.ts" />
