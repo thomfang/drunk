@@ -222,6 +222,8 @@ namespace drunk {
 
             let nodeList: Node[] = Array.isArray(element) ? <Node[]>element : [element];
             nodeList.forEach(node => Component.setWeakRef(node, this));
+            
+            this.$emit(Component.Event.mounted);
         }
 
         /**
