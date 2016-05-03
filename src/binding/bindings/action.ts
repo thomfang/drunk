@@ -119,7 +119,7 @@ namespace drunk {
          * @param   action  action描述
          */
         export function setCurrentAction(element: HTMLElement, action: IAction) {
-            let id = util.uuid(element);
+            let id = util.uniqueId(element);
             actionMap[id] = action;
         }
         
@@ -128,7 +128,7 @@ namespace drunk {
          * @param   element  元素节点
          */
         export function getCurrentAction(element: HTMLElement) {
-            let id = util.uuid(element);
+            let id = util.uniqueId(element);
             return actionMap[id];
         }
         
@@ -137,7 +137,7 @@ namespace drunk {
          * @param  element
          */
         export function removeRef(element: HTMLElement) {
-            let id = util.uuid(element);
+            let id = util.uniqueId(element);
             actionMap[id] = null;
         }
         

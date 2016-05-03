@@ -102,7 +102,7 @@ declare namespace drunk.util {
      * 获取对象的唯一id
      * @param  target  设置的对象
      */
-    function uuid(target: any): number;
+    function uniqueId(target: any): number;
     /**
      * 判断是否是对象
      * @param   target 判断目标
@@ -187,11 +187,11 @@ declare namespace drunk {
         /**
          * 所有的key生成的uuid的列表
          */
-        private _uuids;
+        private _uids;
         /**
          * 获取指定key的uuid
          */
-        private _uuidOf(key);
+        private _uidOf(key);
         /**
          * 设值
          * @param   key  键,可为任意类型

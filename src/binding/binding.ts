@@ -88,7 +88,7 @@ namespace drunk {
                 element[refKey] = [];
             }
 
-            util.addArrayItem(element[refKey], util.uuid(binding));
+            util.addArrayItem(element[refKey], util.uniqueId(binding));
         }
 
         /**
@@ -98,7 +98,7 @@ namespace drunk {
          */
         static removeWeakRef(element: Node, binding: Binding) {
             if (element[refKey]) {
-                util.removeArrayItem(element[refKey], util.uuid(binding));
+                util.removeArrayItem(element[refKey], util.uniqueId(binding));
             }
         }
 
@@ -238,7 +238,7 @@ namespace drunk {
          * @param  definition      绑定定义
          */
         constructor(public viewModel: ViewModel, public element: any, descriptor: IBindingDefinition) {
-            Binding.instancesById[util.uuid(this)] = this;
+            Binding.instancesById[util.uniqueId(this)] = this;
             util.extend(this, descriptor);
         }
 
@@ -293,7 +293,7 @@ namespace drunk {
             }
 
             Binding.removeWeakRef(this.element, this);
-            delete Binding.instancesById[util.uuid(this)];
+            delete Binding.instancesById[util.uniqueId(this)];
 
             this._unwatch = this._update = this.element = this.expression = this.viewModel = null;
 

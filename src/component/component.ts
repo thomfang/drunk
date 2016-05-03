@@ -100,7 +100,7 @@ namespace drunk {
          */
         constructor(model?: IModel) {
             super(model);
-            Component.instancesById[util.uuid(this)] = this;
+            Component.instancesById[util.uniqueId(this)] = this;
         }
 
         /**
@@ -242,7 +242,7 @@ namespace drunk {
                 dom.remove(this.element);
             }
 
-            Component.instancesById[util.uuid(this)] = this.element = null;
+            Component.instancesById[util.uniqueId(this)] = this.element = null;
         }
 
         /**
@@ -278,7 +278,7 @@ namespace drunk {
          * @param   component  组件实例
          */
         static setWeakRef<T extends Component>(element: any, component: T) {
-            element[weakRefKey] = util.uuid(component);
+            element[weakRefKey] = util.uniqueId(component);
         }
 
         /**

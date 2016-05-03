@@ -13,7 +13,7 @@ namespace drunk {
     let prefixKey = 'DRUNK-ONCE-EVENT-';
     
     function getCache(emitter: EventEmitter) {
-        let id = util.uuid(emitter);
+        let id = util.uniqueId(emitter);
         
         if (!eventCache[id]) {
             eventCache[id] = {};
@@ -58,7 +58,7 @@ namespace drunk {
          * @param   listener  事件回调
          */
         $once(type: string, listener: IEventListener) {
-            listener[prefixKey + util.uuid(this)] = true;
+            listener[prefixKey + util.uniqueId(this)] = true;
             this.$addListener(type, listener);
             return this;
         }
@@ -102,7 +102,7 @@ namespace drunk {
         $emit(type: string, ...args: any[]) {
             let cache = getCache(this);
             let listeners = cache[type];
-            let onceKey = prefixKey + util.uuid(this);
+            let onceKey = prefixKey + util.uniqueId(this);
             
             if (!listeners || !listeners.length) {
                 return;
@@ -149,7 +149,7 @@ namespace drunk {
          * @param  emitter  事件发射器实例
          */
         static cleanup(emitter: EventEmitter) {
-            let id = util.uuid(emitter);
+            let id = util.uniqueId(emitter);
             eventCache[id] = null;
         }
     }

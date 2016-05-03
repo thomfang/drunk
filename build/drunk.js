@@ -408,19 +408,19 @@ var drunk;
 (function (drunk) {
     var util;
     (function (util) {
-        var nameOfUid = '__DRUNK_UUID__';
+        var nameOfUid = '__DRUNK_UID__';
         var counter = 0;
         /**
          * 获取对象的唯一id
          * @param  target  设置的对象
          */
-        function uuid(target) {
+        function uniqueId(target) {
             if (typeof target[nameOfUid] === 'undefined') {
                 defineProperty(target, nameOfUid, counter++);
             }
             return target[nameOfUid];
         }
-        util.uuid = uuid;
+        util.uniqueId = uniqueId;
         /**
          * 判断是否是对象
          * @param   target 判断目标
@@ -538,6 +538,11 @@ var drunk;
          * @return            如果已经代理过,则不再代理该属性
          */
         function proxy(a, property, b) {
+            var proto = Object.getPrototypeOf(a);
+            var desOfProto = Object.getOwnPropertyDescriptor(proto, property);
+            if (desOfProto && (typeof desOfProto.get === 'function' && desOfProto.get === desOfProto.set)) {
+                return false;
+            }
             var des = Object.getOwnPropertyDescriptor(a, property);
             if (des && ((typeof des.get === 'function' && des.get === des.set) || !des.configurable)) {
                 return false;
@@ -588,11 +593,11 @@ var drunk;
 var drunk;
 (function (drunk) {
     var util = drunk.util;
-    var UUID_OF_NAN = util.uuid({});
-    var UUID_OF_NULL = util.uuid({});
-    var UUID_OF_TRUE = util.uuid({});
-    var UUID_OF_FALSE = util.uuid({});
-    var UUID_OF_UNDEFINED = util.uuid({});
+    var UID_OF_NAN = util.uniqueId({});
+    var UID_OF_NULL = util.uniqueId({});
+    var UID_OF_TRUE = util.uniqueId({});
+    var UID_OF_FALSE = util.uniqueId({});
+    var UID_OF_UNDEFINED = util.uniqueId({});
     /**
      * Map类，可把任务类型的对象作为key
      */
@@ -609,33 +614,33 @@ var drunk;
             /**
              * 所有的key生成的uuid的列表
              */
-            this._uuids = [];
+            this._uids = [];
         }
         /**
          * 获取指定key的uuid
          */
-        Map.prototype._uuidOf = function (key) {
+        Map.prototype._uidOf = function (key) {
             if (key === null) {
-                return UUID_OF_NULL;
+                return UID_OF_NULL;
             }
             if (key === undefined) {
-                return UUID_OF_UNDEFINED;
+                return UID_OF_UNDEFINED;
             }
             if (key === true) {
-                return UUID_OF_TRUE;
+                return UID_OF_TRUE;
             }
             if (key === false) {
-                return UUID_OF_FALSE;
+                return UID_OF_FALSE;
             }
             var type = typeof key;
             if (type === 'object') {
-                return util.uuid(key);
+                return util.uniqueId(key);
             }
             if (type === 'string') {
                 return ('"' + key + '"');
             }
             if (isNaN(key)) {
-                return UUID_OF_NAN;
+                return UID_OF_NAN;
             }
             if (type === 'number') {
                 return ('-' + key + '-');
@@ -648,9 +653,9 @@ var drunk;
          * @param  value 值
          */
         Map.prototype.set = function (key, value) {
-            var uuid = this._uuidOf(key);
-            if (this._uuids.indexOf(uuid) < 0) {
-                this._uuids.push(uuid);
+            var uuid = this._uidOf(key);
+            if (this._uids.indexOf(uuid) < 0) {
+                this._uids.push(uuid);
                 this._keys.push(key);
             }
             this._store[uuid] = value;
@@ -661,7 +666,7 @@ var drunk;
          * @param key  键名
          */
         Map.prototype.get = function (key) {
-            var uuid = this._uuidOf(key);
+            var uuid = this._uidOf(key);
             return this._store[uuid];
         };
         /**
@@ -669,18 +674,18 @@ var drunk;
          * @param  key 键名
          */
         Map.prototype.has = function (key) {
-            var uuid = this._uuidOf(key);
-            return this._uuids.indexOf(uuid) > -1;
+            var uuid = this._uidOf(key);
+            return this._uids.indexOf(uuid) > -1;
         };
         /**
          * 删除指定键的记录
          * @param   key 键名
          */
         Map.prototype.delete = function (key) {
-            var uuid = this._uuidOf(key);
-            var index = this._uuids.indexOf(uuid);
+            var uuid = this._uidOf(key);
+            var index = this._uids.indexOf(uuid);
             if (index > -1) {
-                this._uuids.splice(index, 1);
+                this._uids.splice(index, 1);
                 this._keys.splice(index, 1);
                 delete this._store[uuid];
                 return true;
@@ -692,7 +697,7 @@ var drunk;
          */
         Map.prototype.clear = function () {
             this._keys = [];
-            this._uuids = [];
+            this._uids = [];
             this._store = {};
         };
         /**
@@ -702,10 +707,10 @@ var drunk;
          */
         Map.prototype.forEach = function (callback, context) {
             var _this = this;
-            var uuids = this._uuids.slice();
+            var uids = this._uids.slice();
             this.keys().forEach(function (key, index) {
-                var uuid = uuids[index];
-                callback.call(context, _this._store[uuid], key, _this);
+                var uid = uids[index];
+                callback.call(context, _this._store[uid], key, _this);
             });
         };
         /**
@@ -719,7 +724,7 @@ var drunk;
          */
         Map.prototype.values = function () {
             var _this = this;
-            return this._uuids.map(function (uuid) { return _this._store[uuid]; });
+            return this._uids.map(function (uuid) { return _this._store[uuid]; });
         };
         Object.defineProperty(Map.prototype, "size", {
             /**
@@ -742,7 +747,7 @@ var drunk;
     var eventCache = {};
     var prefixKey = 'DRUNK-ONCE-EVENT-';
     function getCache(emitter) {
-        var id = util.uuid(emitter);
+        var id = util.uniqueId(emitter);
         if (!eventCache[id]) {
             eventCache[id] = {};
         }
@@ -781,7 +786,7 @@ var drunk;
          * @param   listener  事件回调
          */
         EventEmitter.prototype.$once = function (type, listener) {
-            listener[prefixKey + util.uuid(this)] = true;
+            listener[prefixKey + util.uniqueId(this)] = true;
             this.$addListener(type, listener);
             return this;
         };
@@ -825,7 +830,7 @@ var drunk;
             }
             var cache = getCache(this);
             var listeners = cache[type];
-            var onceKey = prefixKey + util.uuid(this);
+            var onceKey = prefixKey + util.uniqueId(this);
             if (!listeners || !listeners.length) {
                 return;
             }
@@ -863,7 +868,7 @@ var drunk;
          * @param  emitter  事件发射器实例
          */
         EventEmitter.cleanup = function (emitter) {
-            var id = util.uuid(emitter);
+            var id = util.uniqueId(emitter);
             eventCache[id] = null;
         };
         return EventEmitter;
@@ -2452,7 +2457,7 @@ var drunk;
          */
         Watcher.prototype._subscribePropertyChanged = function (observer, property) {
             var _a = this, _observers = _a._observers, _properties = _a._properties, _tmpObservers = _a._tmpObservers, _tmpProperties = _a._tmpProperties, _propertyChanged = _a._propertyChanged;
-            var id = util.uuid(observer);
+            var id = util.uniqueId(observer);
             if (!_tmpObservers[id]) {
                 // 添加到临时订阅observer表
                 // 添加到临时订阅属性列表
@@ -2523,7 +2528,7 @@ var drunk;
              * 是否已经不可用
              */
             this._isActived = true;
-            Binding.instancesById[util.uuid(this)] = this;
+            Binding.instancesById[util.uniqueId(this)] = this;
             util.extend(this, descriptor);
         }
         /**
@@ -2545,7 +2550,7 @@ var drunk;
             if (!element[refKey]) {
                 element[refKey] = [];
             }
-            util.addArrayItem(element[refKey], util.uuid(binding));
+            util.addArrayItem(element[refKey], util.uniqueId(binding));
         };
         /**
          * 移除引用
@@ -2554,7 +2559,7 @@ var drunk;
          */
         Binding.removeWeakRef = function (element, binding) {
             if (element[refKey]) {
-                util.removeArrayItem(element[refKey], util.uuid(binding));
+                util.removeArrayItem(element[refKey], util.uniqueId(binding));
             }
         };
         /**
@@ -2665,7 +2670,7 @@ var drunk;
                 this._unwatch();
             }
             Binding.removeWeakRef(this.element, this);
-            delete Binding.instancesById[util.uuid(this)];
+            delete Binding.instancesById[util.uniqueId(this)];
             this._unwatch = this._update = this.element = this.expression = this.viewModel = null;
             this._isActived = false;
         };
@@ -3018,7 +3023,7 @@ var drunk;
          * @param   action  action描述
          */
         function setCurrentAction(element, action) {
-            var id = util.uuid(element);
+            var id = util.uniqueId(element);
             actionMap[id] = action;
         }
         Action.setCurrentAction = setCurrentAction;
@@ -3027,7 +3032,7 @@ var drunk;
          * @param   element  元素节点
          */
         function getCurrentAction(element) {
-            var id = util.uuid(element);
+            var id = util.uniqueId(element);
             return actionMap[id];
         }
         Action.getCurrentAction = getCurrentAction;
@@ -3036,7 +3041,7 @@ var drunk;
          * @param  element
          */
         function removeRef(element) {
-            var id = util.uuid(element);
+            var id = util.uniqueId(element);
             actionMap[id] = null;
         }
         Action.removeRef = removeRef;
@@ -3926,7 +3931,7 @@ var drunk;
          */
         function Component(model) {
             _super.call(this, model);
-            Component.instancesById[util.uuid(this)] = this;
+            Component.instancesById[util.uniqueId(this)] = this;
         }
         /**
          * 实例创建时会调用的初始化方法,派生类可覆盖该方法
@@ -4025,6 +4030,7 @@ var drunk;
             this._isMounted = true;
             var nodeList = Array.isArray(element) ? element : [element];
             nodeList.forEach(function (node) { return Component.setWeakRef(node, _this); });
+            this.$emit(Component.Event.mounted);
         };
         /**
          * 释放组件
@@ -4038,7 +4044,7 @@ var drunk;
                 nodeList.forEach(function (node) { return Component.removeWeakRef(node); });
                 dom.remove(this.element);
             }
-            Component.instancesById[util.uuid(this)] = this.element = null;
+            Component.instancesById[util.uniqueId(this)] = this.element = null;
         };
         /**
          * 获取挂在在元素上的viewModel实例
@@ -4054,7 +4060,7 @@ var drunk;
          * @param   component  组件实例
          */
         Component.setWeakRef = function (element, component) {
-            element[weakRefKey] = util.uuid(component);
+            element[weakRefKey] = util.uniqueId(component);
         };
         /**
          * 移除挂载引用

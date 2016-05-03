@@ -4,11 +4,11 @@ namespace drunk {
 
     import util = drunk.util;
 
-    const UUID_OF_NAN = util.uuid({});
-    const UUID_OF_NULL = util.uuid({});
-    const UUID_OF_TRUE = util.uuid({});
-    const UUID_OF_FALSE = util.uuid({});
-    const UUID_OF_UNDEFINED = util.uuid({});
+    const UID_OF_NAN = util.uniqueId({});
+    const UID_OF_NULL = util.uniqueId({});
+    const UID_OF_TRUE = util.uniqueId({});
+    const UID_OF_FALSE = util.uniqueId({});
+    const UID_OF_UNDEFINED = util.uniqueId({});
 
     /**
      * Map类，可把任务类型的对象作为key
@@ -26,37 +26,37 @@ namespace drunk {
         private _keys: any[] = [];
 
         /**
-         * 所有的key生成的uuid的列表
+         * 所有的key生成的uid的列表
          */
-        private _uuids: any[] = [];
+        private _uids: any[] = [];
 
         /**
-         * 获取指定key的uuid
+         * 获取指定key的uid
          */
-        private _uuidOf(key: any): number {
+        private _uidOf(key: any): number {
             if (key === null) {
-                return UUID_OF_NULL;
+                return UID_OF_NULL;
             }
             if (key === undefined) {
-                return UUID_OF_UNDEFINED;
+                return UID_OF_UNDEFINED;
             }
             if (key === true) {
-                return UUID_OF_TRUE;
+                return UID_OF_TRUE;
             }
             if (key === false) {
-                return UUID_OF_FALSE;
+                return UID_OF_FALSE;
             }
 
             let type = typeof key;
             
             if (type === 'object') {
-                return util.uuid(key);
+                return util.uniqueId(key);
             }
             if (type === 'string') {
                 return <any>('"' + key + '"');
             }
             if (isNaN(key)) {
-                return UUID_OF_NAN;
+                return UID_OF_NAN;
             }
             if (type === 'number') {
                 return <any>('-' + key + '-');
@@ -70,14 +70,14 @@ namespace drunk {
          * @param  value 值 
          */
         set(key: any, value: T): Map<T> {
-            let uuid = this._uuidOf(key);
+            let uid = this._uidOf(key);
 
-            if (this._uuids.indexOf(uuid) < 0) {
-                this._uuids.push(uuid);
+            if (this._uids.indexOf(uid) < 0) {
+                this._uids.push(uid);
                 this._keys.push(key);
             }
 
-            this._store[uuid] = value;
+            this._store[uid] = value;
             return this;
         }
 
@@ -86,8 +86,8 @@ namespace drunk {
          * @param key  键名
          */
         get(key: any) {
-            let uuid = this._uuidOf(key);
-            return this._store[uuid];
+            let uid = this._uidOf(key);
+            return this._store[uid];
         }
 
         /**
@@ -95,8 +95,8 @@ namespace drunk {
          * @param  key 键名
          */
         has(key: any): boolean {
-            let uuid = this._uuidOf(key);
-            return this._uuids.indexOf(uuid) > -1;
+            let uid = this._uidOf(key);
+            return this._uids.indexOf(uid) > -1;
         }
 
         /**
@@ -104,12 +104,12 @@ namespace drunk {
          * @param   key 键名
          */
         delete(key: any): boolean {
-            let uuid = this._uuidOf(key);
-            let index = this._uuids.indexOf(uuid);
+            let uid = this._uidOf(key);
+            let index = this._uids.indexOf(uid);
             if (index > -1) {
-                this._uuids.splice(index, 1);
+                this._uids.splice(index, 1);
                 this._keys.splice(index, 1);
-                delete this._store[uuid];
+                delete this._store[uid];
                 return true;
             }
             return false;
@@ -120,7 +120,7 @@ namespace drunk {
          */
         clear() {
             this._keys = [];
-            this._uuids = [];
+            this._uids = [];
             this._store = {};
         }
 
@@ -130,11 +130,11 @@ namespace drunk {
          * @param   context   上下文,回调里的this参数
          */
         forEach(callback: (value: T, key: any, map: Map<T>) => any, context?: any) {
-            let uuids = this._uuids.slice();
+            let uids = this._uids.slice();
 
             this.keys().forEach((key, index) => {
-                let uuid = uuids[index];
-                callback.call(context, this._store[uuid], key, this);
+                let uid = uids[index];
+                callback.call(context, this._store[uid], key, this);
             });
         }
 
@@ -149,7 +149,7 @@ namespace drunk {
          * 获取所有的值
          */
         values() {
-            return this._uuids.map(uuid => this._store[uuid]);
+            return this._uids.map(uid => this._store[uid]);
         }
 
         /**

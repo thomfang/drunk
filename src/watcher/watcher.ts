@@ -219,7 +219,7 @@ namespace drunk {
          */
         private _subscribePropertyChanged(observer: observable.Observer, property: string) {
             let { _observers, _properties, _tmpObservers, _tmpProperties, _propertyChanged } = this;
-            let id = util.uuid(observer);
+            let id = util.uniqueId(observer);
 
             if (!_tmpObservers[id]) {
                 // 添加到临时订阅observer表

@@ -3,14 +3,14 @@
  */
 namespace drunk.util {
 
-    var nameOfUid: string = '__DRUNK_UUID__';
+    var nameOfUid: string = '__DRUNK_UID__';
     var counter: number = 0;
 
     /**
      * 获取对象的唯一id
      * @param  target  设置的对象
      */
-    export function uuid(target: any): number {
+    export function uniqueId(target: any): number {
         if (typeof target[nameOfUid] === 'undefined') {
             defineProperty(target, nameOfUid, counter++);
         }
@@ -130,6 +130,13 @@ namespace drunk.util {
      * @return            如果已经代理过,则不再代理该属性
      */
     export function proxy(a: Object, property: string, b: Object) {
+        var proto = Object.getPrototypeOf(a);
+        var desOfProto = Object.getOwnPropertyDescriptor(proto, property);
+        
+        if (desOfProto && (typeof desOfProto.get === 'function' && desOfProto.get === desOfProto.set)) {
+            return false;
+        }
+        
         var des = Object.getOwnPropertyDescriptor(a, property);
 
         if (des && ((typeof des.get === 'function' && des.get === des.set) || !des.configurable)) {

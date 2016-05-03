@@ -5,10 +5,10 @@ describe("util", function () {
 
     var util = drunk.util;
     
-    it("uuid", function () {
+    it("uid", function () {
         var obj = {};
         
-        expect(typeof drunk.util.uuid(obj)).toBe('number');
+        expect(typeof drunk.util.uniqueId(obj)).toBe('number');
     });
 
     it("camelCase", function () {

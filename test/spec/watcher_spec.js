@@ -316,8 +316,8 @@ describe("Watcher", function () {
 
         expect(watcher.value).toEqual({ c: 2, d: 3 });
 
-        expect(watcher._properties[drunk.util.uuid(viewModel._model.__observer__)]).toEqual({'b': true});
-        expect(watcher._properties[drunk.util.uuid(watcher.value.__observer__)]).toEqual({'c': true, 'd': true});
+        expect(watcher._properties[drunk.util.uniqueId(viewModel._model.__observer__)]).toEqual({'b': true});
+        expect(watcher._properties[drunk.util.uniqueId(watcher.value.__observer__)]).toEqual({'c': true, 'd': true});
 
         viewModel.b.d = 4;
 
@@ -350,10 +350,10 @@ describe("Watcher", function () {
         expect(watcher.value).toBe(viewModel.b);
 
         var tmp = {};
-        tmp[drunk.util.uuid(viewModel._model.__observer__)] = {b: true};
+        tmp[drunk.util.uniqueId(viewModel._model.__observer__)] = {b: true};
 
-        expect(watcher._properties[drunk.util.uuid(viewModel._model.__observer__)]).toEqual({b: true});
-        expect(watcher._properties[drunk.util.uuid(viewModel.b.__observer__)]).toEqual({c: true, d:true});
+        expect(watcher._properties[drunk.util.uniqueId(viewModel._model.__observer__)]).toEqual({b: true});
+        expect(watcher._properties[drunk.util.uniqueId(viewModel.b.__observer__)]).toEqual({c: true, d:true});
 
         viewModel.b = 3;
 
