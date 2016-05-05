@@ -50,7 +50,7 @@ namespace drunk.parser {
     
     let reIdentifier = /("|').*?\1|[a-zA-Z$_][a-z0-9A-Z$_]*/g;
     let reFilter = /("|').*?\1|\|\||\|\s*([a-zA-Z$_][a-z0-9A-Z$_]*)(:[^|]*)?/g;
-    let reInterpolate = /\{\{(.+?)\}\}/g;
+    let reInterpolate = /\{\{((.|\n)+?)\}\}/g;
     let reBrackets = /^\([^)]*\)/;
     let reObjectKey = /[{,]\s*$/;
     let reColon = /^\s*:/;
@@ -295,7 +295,7 @@ namespace drunk.parser {
             
             let index = 0;
             let length = expression.length;
-            expression.replace(reInterpolate, ($0, exp, i) => {
+            expression.replace(reInterpolate, ($0, exp, $2, i) => {
                 if (i > index) {
                     tokens.push(expression.slice(index, i));
                 }

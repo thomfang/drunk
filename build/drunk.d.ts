@@ -185,11 +185,11 @@ declare namespace drunk {
          */
         private _keys;
         /**
-         * 所有的key生成的uuid的列表
+         * 所有的key生成的uid的列表
          */
         private _uids;
         /**
-         * 获取指定key的uuid
+         * 获取指定key的uid
          */
         private _uidOf(key);
         /**

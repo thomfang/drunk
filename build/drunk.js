@@ -612,12 +612,12 @@ var drunk;
              */
             this._keys = [];
             /**
-             * 所有的key生成的uuid的列表
+             * 所有的key生成的uid的列表
              */
             this._uids = [];
         }
         /**
-         * 获取指定key的uuid
+         * 获取指定key的uid
          */
         Map.prototype._uidOf = function (key) {
             if (key === null) {
@@ -653,12 +653,12 @@ var drunk;
          * @param  value 值
          */
         Map.prototype.set = function (key, value) {
-            var uuid = this._uidOf(key);
-            if (this._uids.indexOf(uuid) < 0) {
-                this._uids.push(uuid);
+            var uid = this._uidOf(key);
+            if (this._uids.indexOf(uid) < 0) {
+                this._uids.push(uid);
                 this._keys.push(key);
             }
-            this._store[uuid] = value;
+            this._store[uid] = value;
             return this;
         };
         /**
@@ -666,28 +666,28 @@ var drunk;
          * @param key  键名
          */
         Map.prototype.get = function (key) {
-            var uuid = this._uidOf(key);
-            return this._store[uuid];
+            var uid = this._uidOf(key);
+            return this._store[uid];
         };
         /**
          * 是否有对应键的值
          * @param  key 键名
          */
         Map.prototype.has = function (key) {
-            var uuid = this._uidOf(key);
-            return this._uids.indexOf(uuid) > -1;
+            var uid = this._uidOf(key);
+            return this._uids.indexOf(uid) > -1;
         };
         /**
          * 删除指定键的记录
          * @param   key 键名
          */
         Map.prototype.delete = function (key) {
-            var uuid = this._uidOf(key);
-            var index = this._uids.indexOf(uuid);
+            var uid = this._uidOf(key);
+            var index = this._uids.indexOf(uid);
             if (index > -1) {
                 this._uids.splice(index, 1);
                 this._keys.splice(index, 1);
-                delete this._store[uuid];
+                delete this._store[uid];
                 return true;
             }
             return false;
@@ -724,7 +724,7 @@ var drunk;
          */
         Map.prototype.values = function () {
             var _this = this;
-            return this._uids.map(function (uuid) { return _this._store[uuid]; });
+            return this._uids.map(function (uid) { return _this._store[uid]; });
         };
         Object.defineProperty(Map.prototype, "size", {
             /**
@@ -1750,7 +1750,7 @@ var drunk;
         var interpolateGetterCache = new Cache(500);
         var reIdentifier = /("|').*?\1|[a-zA-Z$_][a-z0-9A-Z$_]*/g;
         var reFilter = /("|').*?\1|\|\||\|\s*([a-zA-Z$_][a-z0-9A-Z$_]*)(:[^|]*)?/g;
-        var reInterpolate = /\{\{(.+?)\}\}/g;
+        var reInterpolate = /\{\{((.|\n)+?)\}\}/g;
         var reBrackets = /^\([^)]*\)/;
         var reObjectKey = /[{,]\s*$/;
         var reColon = /^\s*:/;
@@ -1947,7 +1947,7 @@ var drunk;
                 tokens = [];
                 var index_2 = 0;
                 var length_1 = expression.length;
-                expression.replace(reInterpolate, function ($0, exp, i) {
+                expression.replace(reInterpolate, function ($0, exp, $2, i) {
                     if (i > index_2) {
                         tokens.push(expression.slice(index_2, i));
                     }
