@@ -12,48 +12,48 @@ namespace drunk.util {
          * 请求的url
          */
         url: string;
-        
+
         /**
          * 请求的类型(GET|POST|PUT|DELETE等)
          */
         type?: string;
-        
+
         /**
          * 要发送的数据
          */
         data?: string | {};
-        
+
         /**
          * 请求头配置
          */
         headers?: { [index: string]: string };
-        
+
         /**
          * withCredentials配置
          */
         xhrFields?: { withCredentials: boolean };
-        
+
         /**
          * withCredentials快捷配置
          */
         withCredentials?: boolean;
-        
+
         /**
          * 请求的content-type
          */
         contentType?: string;
-        
+
         /**
          * 接受的数据类型(目前只支持json)
          */
         dataType?: string;
-        
+
         /**
          * 请求超时时间
          */
         timeout?: number;
     }
-    
+
     const FORM_DATA_CONTENT_TYPE = 'application/x-www-form-urlencoded; charset=UTF-8';
 
     /**
@@ -74,7 +74,7 @@ namespace drunk.util {
             var data: any = options.data;
             var contentType: string = options.contentType || FORM_DATA_CONTENT_TYPE;
             var timerID: number;
-            
+
             var rejectAndClearTimer = () => {
                 clearTimeout(timerID);
                 if (reject) {
@@ -84,7 +84,7 @@ namespace drunk.util {
             };
 
             if (util.isObject(data)) {
-                if (options.contentType && options.contentType.match(/json/i)) {
+                if (contentType && contentType.match(/json/i)) {
                     data = JSON.stringify(data);
                 }
                 else {
@@ -97,25 +97,18 @@ namespace drunk.util {
                 }
             }
 
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === 4) {
-                    if (xhr.status >= 200 && xhr.status < 300 || xhr.status === 304) {
-                        var res: any = xhr.responseText;
-                        xhr = null;
-                        resolve(options.dataType === 'json' ? JSON.parse(res) : res);
-                        clearTimeout(timerID);
-                    }
-                    else {
-                        rejectAndClearTimer();
-                    }
-                }
+            xhr.onload = () => {
+                var res: any = xhr.responseText;
+                xhr = null;
+                resolve(options.dataType === 'json' ? JSON.parse(res) : res);
+                clearTimeout(timerID);
             };
 
             xhr.onerror = () => {
                 rejectAndClearTimer();
             };
 
-            xhr.open((type).toUpperCase(), url, true);
+            xhr.open(type, url, true);
 
             if (options.withCredentials || (options.xhrFields && options.xhrFields.withCredentials)) {
                 xhr.withCredentials = true;
@@ -123,7 +116,7 @@ namespace drunk.util {
 
             xhr.setRequestHeader("Content-Type", contentType);
 
-            Object.keys(headers).forEach(function(name) {
+            Object.keys(headers).forEach(function (name) {
                 xhr.setRequestHeader(name, headers[name]);
             });
 
