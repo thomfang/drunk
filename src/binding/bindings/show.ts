@@ -7,7 +7,6 @@ drunk.Binding.register("show", {
         let action = this.element[drunk.Action.weakRefKey];
 
         if (!isVisible) {
-            console.log(action);
             if (action) {
                 action.runActionByType(drunk.Action.Type.removed);
                 drunk.Action.process(this.element).then(() => {
