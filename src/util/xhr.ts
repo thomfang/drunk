@@ -97,11 +97,19 @@ namespace drunk.util {
                 }
             }
 
-            xhr.onload = () => {
-                var res: any = xhr.responseText;
-                xhr = null;
-                resolve(options.dataType === 'json' ? JSON.parse(res) : res);
-                clearTimeout(timerID);
+            xhr.onreadystatechange = () => {
+                if (xhr.readyState === 4) {
+                    // status === 0 的情况在iOS平台使用cordova的页面中加载本地的文件得到的状态都是0，无解
+                    if (xhr.status >= 200 && xhr.status < 300 || xhr.status === 304 || (xhr.status === 0 && xhr.responseText.length > 0)) {
+                        var res: any = xhr.responseText;
+                        xhr = null;
+                        resolve(options.dataType === 'json' ? JSON.parse(res) : res);
+                        clearTimeout(timerID);
+                    }
+                    else {
+                        rejectAndClearTimer();
+                    }
+                }
             };
 
             xhr.onerror = () => {

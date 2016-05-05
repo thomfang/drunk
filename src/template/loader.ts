@@ -30,6 +30,9 @@ namespace drunk.Template {
         }
         
         let promise: Promise<string> = util.ajax<string>({url: urlOrId});
+        promise.then(result => {
+            cacheStore.set(urlOrId, result);
+        });
         cacheStore.set(urlOrId, promise);
         
         return promise;

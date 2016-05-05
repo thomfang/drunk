@@ -950,11 +950,19 @@ var drunk;
                         }
                     }
                 }
-                xhr.onload = function () {
-                    var res = xhr.responseText;
-                    xhr = null;
-                    resolve(options.dataType === 'json' ? JSON.parse(res) : res);
-                    clearTimeout(timerID);
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState === 4) {
+                        // status === 0 的情况在iOS平台使用cordova的页面中加载本地的文件得到的状态都是0，无解
+                        if (xhr.status >= 200 && xhr.status < 300 || xhr.status === 304 || (xhr.status === 0 && xhr.responseText.length > 0)) {
+                            var res = xhr.responseText;
+                            xhr = null;
+                            resolve(options.dataType === 'json' ? JSON.parse(res) : res);
+                            clearTimeout(timerID);
+                        }
+                        else {
+                            rejectAndClearTimer();
+                        }
+                    }
                 };
                 xhr.onerror = function () {
                     rejectAndClearTimer();
@@ -3699,6 +3707,9 @@ var drunk;
                 return Promise.resolve(template);
             }
             var promise = drunk.util.ajax({ url: urlOrId });
+            promise.then(function (result) {
+                cacheStore.set(urlOrId, result);
+            });
             cacheStore.set(urlOrId, promise);
             return promise;
         }
@@ -5147,7 +5158,6 @@ drunk.Binding.register("show", {
         var style = this.element.style;
         var action = this.element[drunk.Action.weakRefKey];
         if (!isVisible) {
-            console.log(action);
             if (action) {
                 action.runActionByType(drunk.Action.Type.removed);
                 drunk.Action.process(this.element).then(function () {
