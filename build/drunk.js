@@ -939,7 +939,7 @@ var drunk;
                     }
                 };
                 if (util.isObject(data)) {
-                    if (options.contentType && options.contentType.match(/json/i)) {
+                    if (contentType && contentType.match(/json/i)) {
                         data = JSON.stringify(data);
                     }
                     else {
@@ -950,23 +950,16 @@ var drunk;
                         }
                     }
                 }
-                xhr.onreadystatechange = function () {
-                    if (xhr.readyState === 4) {
-                        if (xhr.status >= 200 && xhr.status < 300 || xhr.status === 304) {
-                            var res = xhr.responseText;
-                            xhr = null;
-                            resolve(options.dataType === 'json' ? JSON.parse(res) : res);
-                            clearTimeout(timerID);
-                        }
-                        else {
-                            rejectAndClearTimer();
-                        }
-                    }
+                xhr.onload = function () {
+                    var res = xhr.responseText;
+                    xhr = null;
+                    resolve(options.dataType === 'json' ? JSON.parse(res) : res);
+                    clearTimeout(timerID);
                 };
                 xhr.onerror = function () {
                     rejectAndClearTimer();
                 };
-                xhr.open((type).toUpperCase(), url, true);
+                xhr.open(type, url, true);
                 if (options.withCredentials || (options.xhrFields && options.xhrFields.withCredentials)) {
                     xhr.withCredentials = true;
                 }
