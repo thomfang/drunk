@@ -36,7 +36,8 @@ describe("Binding", function () {
             release: jasmine.createSpy("release")
         });
         
-        binding.initialize();
+        binding.$initialize();
+        binding.$execute();
 
         expect(binding.viewModel).toBe(viewModel);
         expect(binding.element).toBe(element);
@@ -53,7 +54,7 @@ describe("Binding", function () {
         drunk.util.execAsyncWork(function () {
             expect(binding.update).toHaveBeenCalledWith(234, 1);
 
-            binding.dispose();
+            binding.$dispose();
 
             expect(binding.release).toHaveBeenCalled();
             expect(binding.viewModel).toBe(null);
@@ -71,7 +72,8 @@ describe("Binding", function () {
             update: jasmine.createSpy("update")
         });
         
-        binding.initialize();
+        binding.$initialize();
+        binding.$execute();
 
         expect(binding.update).toHaveBeenCalledWith("a", undefined);
         expect(binding._update).toBeUndefined();
@@ -84,7 +86,8 @@ describe("Binding", function () {
             update: jasmine.createSpy("update")
         });
         
-        binding.initialize();
+        binding.$initialize();
+        binding.$execute();
 
         expect(binding.update.calls.count()).toBe(1);
         
@@ -92,7 +95,7 @@ describe("Binding", function () {
 
         spyOn(viewModel, "$setValue").and.callThrough();
         
-        binding.setValue(2, true);
+        binding.$setValue(2, true);
 
         expect(viewModel.$setValue.calls.any()).toEqual(true);
         expect(viewModel.a).toBe(2);
@@ -113,7 +116,8 @@ describe("Binding", function () {
             update: jasmine.createSpy("update")
         });
         
-        binding.initialize();
+        binding.$initialize();
+        binding.$execute();
 
         expect(binding.update.calls.count()).toBe(1);
 
@@ -136,14 +140,16 @@ describe("Binding", function () {
             update: jasmine.createSpy()
         });
         
-        binding1.initialize();
-        binding2.initialize();
+        binding1.$initialize();
+        binding1.$execute();
+        binding2.$initialize();
+        binding2.$execute();
         
         var watcher = viewModel._watchers.a;
 
         expect(watcher._actions.length).toBe(2);
 
-        binding2.dispose();
+        binding2.$dispose();
         viewModel.a = 2;
 
         expect(watcher._actions.length).toBe(1);
@@ -151,7 +157,7 @@ describe("Binding", function () {
         drunk.util.execAsyncWork(function () {
             expect(binding1.update).toHaveBeenCalledWith(2, 1);
 
-            binding1.dispose();
+            binding1.$dispose();
 
             expect(watcher._actions).toBeNull();
             expect(viewModel._watchers.a).toBeNull();

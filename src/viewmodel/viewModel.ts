@@ -242,7 +242,7 @@ namespace drunk {
             });
 
             this._bindings.slice().forEach(binding => {
-                binding.dispose();
+                binding.$dispose();
             });
 
             EventEmitter.cleanup(this);

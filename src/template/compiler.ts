@@ -42,10 +42,11 @@ namespace drunk.Template {
             }
 
             bindingList = viewModel._bindings.slice(startIndex);
+            bindingList.forEach(binding => binding.$execute());
 
             return () => {
                 bindingList.forEach((binding) => {
-                    binding.dispose();
+                    binding.$dispose();
                 });
 
                 startIndex = allBindings.indexOf(bindingList[0]);
@@ -92,7 +93,7 @@ namespace drunk.Template {
         if (executors.length > 1) {
             return (viewModel: ViewModel, nodes: any, ownerViewModel?: Component, placeholder?: HTMLElement) => {
                 if (nodes.length * 2 !== executors.length) {
-                    throw new Error("创建绑定之前,节点已经被动态修改");
+                    return console.error(`创建绑定之前,节点已经被动态修改`, viewModel, nodes);
                 }
 
                 let i = 0;

@@ -30,16 +30,17 @@ describe("Binding.include", function () {
     });
 
     it("should toggle template when url variable changed", function (done) {
-        drunk.Promise.resolve(binding.update("a.html")).then(function () {
+        binding.update("a.html")
+        
+        drunk.util.execAsyncWork(function () {
             expect(binding._elements[0].id).toBe("a.html");
             expect(binding._unbind).toBeDefined();
 
-            drunk.Promise.resolve(binding.update("b.html")).then(function () {
+            binding.update("b.html");
+            drunk.util.execAsyncWork(function () {
                 expect(binding._elements[0].id).toBe("b.html");
                 done();
             });
-        }).catch(function (e) {
-            console.log(e);
         });
     });
 

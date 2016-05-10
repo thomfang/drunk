@@ -2,7 +2,6 @@
 /// <reference path="../../util/dom.ts" />
 /// <reference path="../../component/component.ts" />
 /// <reference path="../../template/compiler.ts" />
-/// <reference path="../../scheduler/scheduler.ts" />
 /// <reference path="../../map/map.ts" />
 /// <reference path="../../promise/promise.ts" />
 
@@ -12,7 +11,6 @@ namespace drunk {
     import Promise = drunk.Promise;
     import Binding = drunk.Binding;
     import Template = drunk.Template;
-    import Scheduler = drunk.Scheduler;
 
     export interface IItemDataDescriptor {
         key: string | number;
@@ -112,7 +110,7 @@ namespace drunk {
 
             if (!handler) {
                 if (typeof window[handlerName] !== 'function') {
-                    throw new Error("Handler not found: " + handlerName);
+                    throw new Error(`未找到该事件处理方法${handlerName}`);
                 }
 
                 handler = window[handlerName];
@@ -179,7 +177,7 @@ namespace drunk {
     let regComma = /\s*,\s*/;
 
     function invalidExpression(expression: string) {
-        throw new TypeError('错误的' + config.prefix + 'repeat表达式: ' + expression);
+        throw new TypeError(`错误的${config.prefix}repeat表达式: ${expression}`);
     }
 
     /**
@@ -306,7 +304,7 @@ namespace drunk {
             let index = 0;
             let length = this._items.length;
             let placeholder;
-            let job: Scheduler.IJob;
+            let job: util.IAsyncJob;
 
             let next = (node: Node) => {
                 placeholder = node.nextSibling;
@@ -316,7 +314,7 @@ namespace drunk {
                 }
             };
 
-            let renderItems = (jobInfo: Scheduler.IJobInfo) => {
+            let renderItems = () => {
                 if (!this._isActived) {
                     // return console.log('该repeat绑定已被销毁');
                     return;
@@ -348,8 +346,8 @@ namespace drunk {
 
                         if (Date.now() >= endTime && index < length) {
                             // 如果创建节点达到了一定时间，让出线程给ui线程
-                            job = Scheduler.schedule(renderItems, Scheduler.Priority.idle);
-                            return;// jobInfo.setWork(renderItems);
+                            // job = Scheduler.schedule(renderItems, Scheduler.Priority.idle);
+                            return job = util.execAsyncWork(renderItems);
                         }
                     }
                     else {
@@ -361,10 +359,11 @@ namespace drunk {
             };
 
             next(this._headNode);
-            job = Scheduler.schedule(renderItems, Scheduler.Priority.aboveNormal);
+            // job = Scheduler.schedule(renderItems, Scheduler.Priority.aboveNormal);
+            renderItems();
 
             this._cancelRenderJob = () => {
-                job.cancel();
+                job && job.cancel();
                 this._cancelRenderJob = job = null;
             };
         }

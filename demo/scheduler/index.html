@@ -28,15 +28,15 @@
                 console.log('should yield:', jobInfo.shouldYield, Date.now() - start);
                 
                 drunk.util.execAsyncWork(function () {
-                    console.log('async work at Normal')
+                    console.log('async work at Normal would execute before 1st normal priority job')
                 });
                 jobInfo.setWork(function () {
-                    console.log('Normal 1')
+                    console.log('The 1st Normal priority job')
                 });
             });
             
             drunk.Scheduler.schedule(function () {
-                console.log("Normal 2");
+                console.log('The 2nd Normal priority job');
                 drunk.util.execAsyncWork(function() {
                     idleJob.cancel();
                 })

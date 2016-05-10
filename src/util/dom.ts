@@ -16,13 +16,13 @@ namespace drunk.dom {
         var div = document.createElement("div");
         var str = htmlString.trim();
 
-        console.assert(str.length > 0, "HTML是空的");
+        console.assert(str.length > 0, `HTML不能为空`);
 
         html(div, str);
 
         return div.childNodes.length === 1 ? div.firstChild : util.toArray(div.childNodes);
     }
-    
+
     /**
      * 设置元素的innerHTML
      * @param   container  元素
@@ -45,17 +45,17 @@ namespace drunk.dom {
      * @param  oldNode  旧的节点
      */
     export function before(newNode: any, oldNode: Node): void {
-        if (!oldNode.parentNode) {
+        let parent = oldNode.parentNode;
+        if (!parent) {
             return;
         }
-        
-        if (!Array.isArray(newNode)) {
-            newNode = [newNode];
+
+        if (Array.isArray(newNode)) {
+            newNode.forEach((node) => parent.insertBefore(node, oldNode));
         }
-        let parent = oldNode.parentNode;
-        newNode.forEach((node) => {
-            parent.insertBefore(node, oldNode);
-        });
+        else {
+            parent.insertBefore(newNode, oldNode);
+        }
     }
 
     /**
@@ -67,7 +67,7 @@ namespace drunk.dom {
         if (!oldNode.parentNode) {
             return;
         }
-        
+
         if (!Array.isArray(newNode)) {
             newNode = [newNode];
         }
@@ -87,14 +87,12 @@ namespace drunk.dom {
      * @param  target  节点
      */
     export function remove(target: any): Promise<any> {
-        if (!Array.isArray(target)) {
-            target = [target];
+        if (Array.isArray(target)) {
+            return Promise.all(target.map(node => removeAfterActionEnd(node)));
         }
-        return Promise.all(target.map(node => {
-            return removeAfterActionEnd(node);
-        }));
+        return Promise.resolve(removeAfterActionEnd(target));
     }
-    
+
     function removeAfterActionEnd(node: any) {
         if (node.parentNode) {
             let currentAction = Action.getCurrentAction(node);
@@ -118,18 +116,18 @@ namespace drunk.dom {
         if (!oldNode.parentNode) {
             return;
         }
-        
+
         if (!Array.isArray(newNode)) {
             newNode = [newNode];
         }
-        
+
         let parent = oldNode.parentNode;
         newNode.forEach((node) => {
             parent.insertBefore(node, oldNode);
         });
         parent.removeChild(oldNode);
     }
-    
+
     /**
      * 为节点注册事件监听
      * @param  element  元素
@@ -139,7 +137,7 @@ namespace drunk.dom {
     export function on(element: HTMLElement, type: string, listener: (ev: Event) => void): void {
         element.addEventListener(type, listener, false);
     }
-    
+
     /**
      * 移除节点的事件监听
      * @param  element  元素
@@ -149,7 +147,7 @@ namespace drunk.dom {
     export function off(element: HTMLElement, type: string, listener: (ev: Event) => void): void {
         element.removeEventListener(type, listener, false);
     }
-    
+
     /**
      * 添加样式
      * @param   element    元素
@@ -159,7 +157,7 @@ namespace drunk.dom {
         var list = token.trim().split(/\s+/);
         element.classList.add.apply(element.classList, list);
     }
-    
+
     /**
      * 移除样式
      * @param  element    元素

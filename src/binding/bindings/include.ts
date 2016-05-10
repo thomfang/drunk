@@ -7,6 +7,8 @@
 
 drunk.Binding.register("include", {
 
+    priority: drunk.Binding.Priority.low + 1,
+
     _unbind: null,
     _url: null,
     _elements: null,
@@ -27,7 +29,6 @@ drunk.Binding.register("include", {
     _createBinding(fragment: Node) {
         this._elements = drunk.util.toArray(fragment.childNodes);
         this._elements.forEach(el => this.element.appendChild(el));
-
         this._unbind = drunk.Template.compile(this._elements)(this.viewModel, this._elements);
     },
 

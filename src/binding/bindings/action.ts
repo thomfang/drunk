@@ -1,14 +1,12 @@
 /// <reference path="../binding.ts" />
 /// <reference path="../../config/config.ts" />
 /// <reference path="../../promise/promise.ts" />
-/// <reference path="../../scheduler/scheduler.ts" />
 
 namespace drunk {
     
     import util = drunk.util;
     import config = drunk.config;
     import Promise = drunk.Promise;
-    import Scheduler = drunk.Scheduler;
 
     export interface IActionExecutor {
         (element: HTMLElement, ondone: Function): () => void;
@@ -153,10 +151,9 @@ namespace drunk {
                 return wait(<any>detail * 1000);
             }
 
-            let definition = definitionMap[detail];
-            if (definition) {
+            if (definitionMap[detail]) {
                 // 如果有通过js注册的action,优先执行
-                return runJavascriptAction(element, definition, type);
+                return runJavascriptAction(element, detail, type);
             }
 
             return runMaybeCSSAnimation(element, detail, type);
@@ -199,7 +196,8 @@ namespace drunk {
             return action;
         }
 
-        function runJavascriptAction(element: HTMLElement, definition: IActionDefinition, type) {
+        function runJavascriptAction(element: HTMLElement, detail: string, type) {
+            let definition: IActionDefinition = definitionMap[detail];
             let action: IAction = {};
             let executor: IActionExecutor = definition[type];
 
@@ -207,6 +205,8 @@ namespace drunk {
                 let cancel = executor(element, () => {
                     resolve();
                 });
+                
+                console.assert(typeof cancel === 'function', `drunk.Action: ${detail}的${type}状态未提供cancel回调函数`);
                 
                 action.cancel = () => {
                     action.cancel = null;
@@ -295,14 +295,14 @@ namespace drunk {
         viewModel: ViewModel;
 
         private _actionNames: string[];
-        private _actionJob: Scheduler.IJob;
+        private _actionJob: util.IAsyncJob;
 
         init() {
             this.element[Action.weakRefKey] = this;
-            this._actionJob = Scheduler.schedule(() => {
+            this._actionJob = util.execAsyncWork(() => {
                 this.runActionByType(Action.Type.created);
                 this._actionJob = null;
-            }, Scheduler.Priority.normal);
+            });
         }
 
         /**

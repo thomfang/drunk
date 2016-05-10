@@ -10,9 +10,6 @@ declare namespace drunk {
         RESOLVED = 1,
         REJECTED = 2,
     }
-    /**
-     * ES6 Promise实现
-     */
     class Promise<R> implements IThenable<R> {
         static all<R>(iterable: any[]): Promise<R[]>;
         static race<R>(iterable: any[]): Promise<R>;
@@ -846,6 +843,7 @@ declare namespace drunk {
          * 内置的update包装方法
          */
         private _update;
+        private _isDynamic;
         /**
          * 根据绑定的定义创建一个绑定实例，根据定义进行viewModel与DOM元素绑定的初始化、视图渲染和释放
          * @param  viewModel       ViewModel实例
@@ -856,16 +854,17 @@ declare namespace drunk {
         /**
          * 初始化绑定
          */
-        initialize(ownerViewModel: any, placeholder?: HTMLElement): any;
+        $initialize(ownerViewModel: any, placeholder?: HTMLElement): any;
         /**
          * 移除绑定并销毁
          */
-        dispose(): void;
+        $dispose(): void;
         /**
          * 设置表达式的值到viewModel上
          * @param  value    要设置的值
          */
-        setValue(value: any): void;
+        $setValue(value: any): void;
+        $execute(): void;
     }
     module Binding {
         /**

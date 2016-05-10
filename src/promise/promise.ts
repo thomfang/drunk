@@ -110,8 +110,9 @@ namespace drunk {
         });
     }
 
-    function nextTick<R>(callback: (state: PromiseState, promise: Promise<R>, callback: () => void, value: any) => void) {
-        setTimeout(callback, 0);
+    function nextTick<R>(callback: () => any) {
+        // setTimeout(callback, 0);
+        callback();
     }
 
     function invokeCallback<R>(state: PromiseState, promise: Promise<R>, callback: () => void, value: any) {
@@ -164,10 +165,7 @@ namespace drunk {
         arr[len + PromiseState.RESOLVED] = onFulfillment;
         arr[len + PromiseState.REJECTED] = onRejection;
     }
-
-    /**
-     * ES6 Promise实现
-     */
+    
     export class Promise<R> implements IThenable<R> {
 
         static all<R>(iterable: any[]): Promise<R[]> {

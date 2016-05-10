@@ -151,7 +151,7 @@ namespace drunk {
             Binding.setWeakRef(element, binding);
             Component.setWeakRef(element, viewModel);
 
-            binding.initialize(parentViewModel, placeholder);
+            binding.$initialize(parentViewModel, placeholder);
         }
 
         /**
@@ -230,6 +230,8 @@ namespace drunk {
          * 内置的update包装方法
          */
         private _update: (newValue: any, oldValue: any) => void;
+        
+        private _isDynamic: boolean;
 
         /**
          * 根据绑定的定义创建一个绑定实例，根据定义进行viewModel与DOM元素绑定的初始化、视图渲染和释放
@@ -245,7 +247,7 @@ namespace drunk {
         /**
          * 初始化绑定
          */
-        initialize(ownerViewModel, placeholder?: HTMLElement) {
+        $initialize(ownerViewModel, placeholder?: HTMLElement) {
             if (this.init) {
                 this.init(ownerViewModel, placeholder);
             }
@@ -274,13 +276,14 @@ namespace drunk {
                 this.update(newValue, oldValue);
             }
 
-            this._unwatch = viewModel.$watch(expression, this._update, this.isDeepWatch, true);
+            this._unwatch = viewModel.$watch(expression, this._update, this.isDeepWatch, false);
+            this._isDynamic = true;
         }
 
         /**
          * 移除绑定并销毁
          */
-        dispose(): void {
+        $dispose(): void {
             if (!this._isActived) {
                 return;
             }
@@ -304,8 +307,19 @@ namespace drunk {
          * 设置表达式的值到viewModel上
          * @param  value    要设置的值
          */
-        setValue(value: any): void {
+        $setValue(value: any): void {
             this.viewModel.$setValue(this.expression, value);
+        }
+        
+        $execute() {
+            if (!this._isDynamic) {
+                return;
+            }
+            let key = Watcher.getNameOfKey(this.expression, this.isDeepWatch);
+            let watcher = this.viewModel._watchers[key];
+            if (watcher) {
+                this._update(watcher.value, undefined);
+            }
         }
     }
 

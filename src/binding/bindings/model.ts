@@ -84,7 +84,7 @@ namespace drunk {
         },
 
         _changedHandler() {
-            this.setValue(this._getValue(), true);
+            this.$setValue(this._getValue(), true);
         }
 
     });
