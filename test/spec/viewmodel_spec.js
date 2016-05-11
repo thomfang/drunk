@@ -150,7 +150,7 @@ describe("ViewModel", function () {
                 return this.firstname + ' ' + this.lastname;
             }
         });
-        drunk.util.execAsyncWork(function () {
+        drunk.util.requestAnimationFrame(function () {
             expect(spy).toHaveBeenCalled();
             done();
         })
@@ -171,7 +171,7 @@ describe("ViewModel", function () {
         vm.$watch('fullname', spy);
         vm.firstname = 'Jim';
         vm.lastname = 'Green';
-        drunk.util.execAsyncWork(function () {
+        drunk.util.requestAnimationFrame(function () {
             expect(spy).toHaveBeenCalledWith('Jim Green', undefined + ' ' + undefined);
             done();
         })

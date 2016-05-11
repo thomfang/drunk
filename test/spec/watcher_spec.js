@@ -4,7 +4,7 @@
 describe("Watcher", function () {
 
     var util = drunk.util;
-    var execAsyncWork = util.execAsyncWork;
+    var requestAnimFrame = util.requestAnimationFrame;
     var viewModel, spy;
 
     beforeEach(function () {
@@ -48,7 +48,7 @@ describe("Watcher", function () {
 
         viewModel.a = 23;
 
-        execAsyncWork(function () {
+        requestAnimFrame(function () {
             expect(spy).toHaveBeenCalledWith(23, 1);
             expect(spy2).toHaveBeenCalledWith(23, 1);
 
@@ -78,7 +78,7 @@ describe("Watcher", function () {
 
         viewModel.a = 1234;
 
-        execAsyncWork(function () {
+        requestAnimFrame(function () {
             expect(spy).not.toHaveBeenCalled();
             expect(spy2).toHaveBeenCalledWith(1234, 1);
 
@@ -97,13 +97,13 @@ describe("Watcher", function () {
 
         // Because watcher update has a buffer time,
         // so the new value would active in the next tick.
-        execAsyncWork(function () {
+        requestAnimFrame(function () {
             expect(watcher.value).toBe(3);
             expect(spy).toHaveBeenCalledWith(3, 2);
 
             viewModel.b = { c: 4 };
 
-            execAsyncWork(function () {
+            requestAnimFrame(function () {
                 expect(watcher.value).toBe(4);
                 expect(spy).toHaveBeenCalledWith(4, 3);
 
@@ -120,13 +120,13 @@ describe("Watcher", function () {
 
         viewModel.b.c = 3;
 
-        execAsyncWork(function () {
+        requestAnimFrame(function () {
             expect(watcher.value).toBe(3);
             expect(spy).toHaveBeenCalledWith(3, 2);
 
             viewModel.b = { c: 4 };
 
-            execAsyncWork(function () {
+            requestAnimFrame(function () {
                 expect(watcher.value).toBe(4);
                 expect(spy).toHaveBeenCalledWith(4, 3);
 
@@ -143,13 +143,13 @@ describe("Watcher", function () {
 
         viewModel.b.c = 3;
 
-        execAsyncWork(function () {
+        requestAnimFrame(function () {
             expect(watcher.value).toBe(3);
             expect(spy).toHaveBeenCalledWith(3, 2);
 
             viewModel.b = { c: 4 };
 
-            execAsyncWork(function () {
+            requestAnimFrame(function () {
                 expect(watcher.value).toBe(4);
                 expect(spy).toHaveBeenCalledWith(4, 3);
 
@@ -167,7 +167,7 @@ describe("Watcher", function () {
 
         viewModel.b.c = 3;
 
-        execAsyncWork(function () {
+        requestAnimFrame(function () {
             expect(watcher.value).toBe(4);
             expect(spy.calls.count()).toBe(1);
             expect(spy).toHaveBeenCalledWith(4, 3);
@@ -175,7 +175,7 @@ describe("Watcher", function () {
             viewModel.a = 2;
             viewModel.b.c = 4;
 
-            execAsyncWork(function () {
+            requestAnimFrame(function () {
                 expect(watcher.value).toBe(6);
                 // should called only once, because of the buffer time
                 expect(spy.calls.count()).toBe(2);
@@ -195,13 +195,13 @@ describe("Watcher", function () {
 
         viewModel.a = 2;
 
-        execAsyncWork(function () {
+        requestAnimFrame(function () {
             expect(watcher.value).toBe(2);
             expect(spy).toHaveBeenCalledWith(2, 3);
 
             viewModel.b.c = 4;
 
-            execAsyncWork(function () {
+            requestAnimFrame(function () {
                 expect(watcher.value).toBe(4);
                 expect(spy).toHaveBeenCalledWith(4, 2);
                 expect(spy.calls.count()).toBe(2);
@@ -209,7 +209,7 @@ describe("Watcher", function () {
                 viewModel.a = 1;
                 viewModel.b.d = 4;
 
-                execAsyncWork(function () {
+                requestAnimFrame(function () {
                     expect(watcher.value).toBe(4);
                     // value not changed, so had not been called
                     expect(spy.calls.count()).toBe(2);
@@ -233,7 +233,7 @@ describe("Watcher", function () {
         viewModel.d = { e: 123 };
         viewModel.b.$set('e', 3);
 
-        execAsyncWork(function () {
+        requestAnimFrame(function () {
             expect(sub1.value).toBe(123);
             expect(spy).toHaveBeenCalledWith(123, undefined);
 
@@ -253,7 +253,7 @@ describe("Watcher", function () {
 
         viewModel.b.$remove('c');
 
-        execAsyncWork(function () {
+        requestAnimFrame(function () {
             expect(sub1.value).toBeUndefined();
             expect(spy).toHaveBeenCalledWith(undefined, 2);
 
@@ -270,7 +270,7 @@ describe("Watcher", function () {
 
         viewModel.b.c = 5;
 
-        execAsyncWork(function () {
+        requestAnimFrame(function () {
             expect(watcher.value).toBe((5 * 2 * 3 * 4) + (1 + 2 + 3));
 
             done();
@@ -285,7 +285,7 @@ describe("Watcher", function () {
 
         viewModel.a = 23;
 
-        execAsyncWork(function () {
+        requestAnimFrame(function () {
             expect(watcher.value).toBe(23);
             expect(spy).toHaveBeenCalledWith(23, 1);
 
@@ -301,7 +301,7 @@ describe("Watcher", function () {
 
         viewModel.b.c = 5;
 
-        execAsyncWork(function () {
+        requestAnimFrame(function () {
             expect(watcher.value).toBe('result:' + ((5 * 2 * 3 * 4) + (1 + 2 + 3)));
 
             done();
@@ -321,19 +321,19 @@ describe("Watcher", function () {
 
         viewModel.b.d = 4;
 
-        execAsyncWork(function () {
+        requestAnimFrame(function () {
             expect(spy).toHaveBeenCalledWith(viewModel.b, viewModel.b);
 
             var oldB = viewModel.b;
 
             viewModel.b = { c: [{ e: 23 }] };
 
-            execAsyncWork(function () {
+            requestAnimFrame(function () {
                 expect(spy).toHaveBeenCalledWith(viewModel.b, oldB);
 
                 viewModel.b.c[0].e = 343;
 
-                execAsyncWork(function () {
+                requestAnimFrame(function () {
                     expect(spy).toHaveBeenCalledWith(viewModel.b, viewModel.b);
                     expect(spy.calls.count()).toBe(3);
 
@@ -357,22 +357,22 @@ describe("Watcher", function () {
 
         viewModel.b = 3;
 
-        execAsyncWork(function () {
+        requestAnimFrame(function () {
             expect(spy.calls.count()).toBe(1);
             expect(watcher._properties).toEqual(tmp);
 
             viewModel.b = { c: 4, e: 3 };
-            execAsyncWork(function () {
+            requestAnimFrame(function () {
                 expect(spy).toHaveBeenCalledWith(watcher.value, 3);
 
                 viewModel.b = { c: [{ e: 23 }] };
 
-                execAsyncWork(function () {
+                requestAnimFrame(function () {
                     expect(spy.calls.count()).toBe(3);
 
                     viewModel.b.c[0].e = 343;
 
-                    execAsyncWork(function () {
+                    requestAnimFrame(function () {
                         expect(spy.calls.count()).toBe(4);
 
                         done();
@@ -394,7 +394,7 @@ describe("Watcher", function () {
 
         viewModel.b.c = 23;
 
-        execAsyncWork(function () {
+        requestAnimFrame(function () {
             expect(watcher._actions.length).toBe(1);
             expect(spy).toHaveBeenCalled();
 
@@ -410,7 +410,7 @@ describe("Watcher", function () {
 
         viewModel.b.d = 23;
 
-        execAsyncWork(function () {
+        requestAnimFrame(function () {
             expect(watcher._isActived).toBe(false);
             expect(watcher.viewModel).toBe(null);
             expect(watcher._actions).toBe(null);

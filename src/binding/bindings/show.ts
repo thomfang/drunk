@@ -11,7 +11,7 @@ namespace drunk {
 
             if (!isVisible) {
                 if (action) {
-                    action.$runActionByType(drunk.Action.Type.removed);
+                    action.runActionByType(drunk.Action.Type.removed);
                     drunk.Action.process(this.element).then(() => {
                         style.display = 'none';
                     });
@@ -23,7 +23,7 @@ namespace drunk {
             else if (isVisible) {
                 style.display = '';
                 if (action) {
-                    action.$runActionByType(drunk.Action.Type.created);
+                    action.runActionByType(drunk.Action.Type.created);
                 }
             }
         }

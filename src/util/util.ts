@@ -132,11 +132,11 @@ namespace drunk.util {
     export function proxy(a: Object, property: string, b: Object) {
         var proto = Object.getPrototypeOf(a);
         var desOfProto = Object.getOwnPropertyDescriptor(proto, property);
-        
+
         if (desOfProto && (typeof desOfProto.get === 'function' && desOfProto.get === desOfProto.set)) {
             return false;
         }
-        
+
         var des = Object.getOwnPropertyDescriptor(a, property);
 
         if (des && ((typeof des.get === 'function' && des.get === des.set) || !des.configurable)) {
@@ -190,5 +190,29 @@ namespace drunk.util {
         }, 0);
 
         return job;
+    }
+
+    var global: any = typeof window !== 'undefined' ? window : typeof self !== 'undefined' ? self : {};
+    var counter = 0;
+    var requestAnimationCallbackMap = {};
+    var requestAnimationWorker: number;
+
+    export var requestAnimationFrame: (callback: FrameRequestCallback) => number = global.requestAnimationFrame && global.requestAnimationFrame.bind(global) || function (callback: FrameRequestCallback) {
+        let id = counter++;
+
+        requestAnimationCallbackMap[id] = callback;
+        requestAnimationWorker = requestAnimationWorker || setTimeout(function () {
+            let handlers = requestAnimationCallbackMap;
+            let now = Date.now();
+            requestAnimationCallbackMap = {};
+            requestAnimationWorker = null;
+            Object.keys(handlers).forEach(id => handlers[id](now));
+        }, 16);
+
+        return id;
+    }
+
+    export var cancelAnimationFrame = global.cancelAnimationFrame && global.cancelAnimationFrame.bind(global) || function (id: number) {
+        delete requestAnimationCallbackMap[id];
     }
 }

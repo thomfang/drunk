@@ -150,16 +150,16 @@ describe("Template", function () {
             vm.b = 'b';
             vm.c = 'c';
 
-            drunk.util.execAsyncWork(function () {
+            drunk.util.requestAnimationFrame(function () {
                 expect(vm._bindings.length).toBe(9);
 
                 vm.a = null;
 
-                drunk.util.execAsyncWork(function () {
+                drunk.util.requestAnimationFrame(function () {
                     expect(vm._bindings.length).toBe(7);
                     vm.b = null;
 
-                    drunk.util.execAsyncWork(function () {
+                    drunk.util.requestAnimationFrame(function () {
                         expect(vm._bindings.length).toBe(5);
                         //expect(vm._bindings[3].expression).toBe('c');
 

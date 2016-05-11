@@ -28,7 +28,6 @@ namespace drunk {
         _isUsed: boolean;
         _isBinded: boolean;
         _flagNode: Comment;
-        _placeholder: any;
         _element: any;
 
         protected _models: IModel[];
@@ -300,7 +299,7 @@ namespace drunk {
             let index = 0;
             let length = this._items.length;
             let placeholder;
-            let job: util.IAsyncJob;
+            let renderJob: number;
 
             let next = (node: Node) => {
                 placeholder = node.nextSibling;
@@ -344,11 +343,11 @@ namespace drunk {
                             // 如果创建节点达到了一定时间，让出线程给ui线程
                             if (!this._cancelRenderJob) {
                                 this._cancelRenderJob = () => {
-                                    job && job.cancel();
-                                    this._cancelRenderJob = job = null;
+                                    renderJob && util.cancelAnimationFrame(renderJob);
+                                    this._cancelRenderJob = renderJob = null;
                                 };
                             }
-                            return job = util.execAsyncWork(renderItems);
+                            return renderJob = util.requestAnimationFrame(renderItems);
                         }
                     }
                     else {
@@ -356,7 +355,7 @@ namespace drunk {
                     }
                 }
 
-                this._cancelRenderJob = job = null;
+                this._cancelRenderJob = renderJob = null;
             };
 
             next(this._headNode);
@@ -402,7 +401,7 @@ namespace drunk {
             let viewModelList = this._map.get(value);
 
             viewModel._flagNode = document.createComment(this._flagNodeContent);
-            // viewModel._placeholder = this._placeholderNode.cloneNode(true);
+            Component.setWeakRef(viewModel._flagNode, viewModel);
 
             if (!viewModelList) {
                 viewModelList = [];
@@ -450,13 +449,14 @@ namespace drunk {
                 }
 
                 let element = viewModel._element;
-                let placeholder: any = viewModel._flagNode;
+                let flagNode: any = viewModel._flagNode;
 
-                placeholder.textContent = 'Unused repeat item';
+                flagNode.textContent = 'Unused repeat item';
+                Component.removeWeakRef(flagNode);
                 viewModel.$release();
 
-                if (placeholder.parentNode) {
-                    placeholder.parentNode.removeChild(placeholder);
+                if (flagNode.parentNode) {
+                    flagNode.parentNode.removeChild(flagNode);
                 }
                 if (element) {
                     dom.remove(element);

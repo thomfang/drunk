@@ -1,14 +1,3 @@
-var __extends = (this && this.__extends) || function (d, b) {
-    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
-    function __() { this.constructor = d; }
-    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-};
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
-    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-    return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
 var drunk;
 (function (drunk) {
     (function (PromiseState) {
@@ -258,9 +247,9 @@ var drunk;
             }
             var promise = new Promise(noop);
             if (state) {
-                var callback_1 = arguments[state - 1];
+                var callback = arguments[state - 1];
                 nextTick(function () {
-                    invokeCallback(state, promise, callback_1, value);
+                    invokeCallback(state, promise, callback, value);
                 });
             }
             else {
@@ -272,7 +261,7 @@ var drunk;
             return this.then(null, onRejection);
         };
         return Promise;
-    }());
+    })();
     drunk.Promise = Promise;
 })(drunk || (drunk = {}));
 /**
@@ -406,7 +395,7 @@ var drunk;
             delete this._cacheMap[tail.key];
         };
         return Cache;
-    }());
+    })();
     drunk.Cache = Cache;
 })(drunk || (drunk = {}));
 /**
@@ -595,6 +584,25 @@ var drunk;
             return job;
         }
         util.execAsyncWork = execAsyncWork;
+        var global = typeof window !== 'undefined' ? window : typeof self !== 'undefined' ? self : {};
+        var counter = 0;
+        var requestAnimationCallbackMap = {};
+        var requestAnimationWorker;
+        util.requestAnimationFrame = global.requestAnimationFrame && global.requestAnimationFrame.bind(global) || function (callback) {
+            var id = counter++;
+            requestAnimationCallbackMap[id] = callback;
+            requestAnimationWorker = requestAnimationWorker || setTimeout(function () {
+                var handlers = requestAnimationCallbackMap;
+                var now = Date.now();
+                requestAnimationCallbackMap = {};
+                requestAnimationWorker = null;
+                Object.keys(handlers).forEach(function (id) { return handlers[id](now); });
+            }, 16);
+            return id;
+        };
+        util.cancelAnimationFrame = global.cancelAnimationFrame && global.cancelAnimationFrame.bind(global) || function (id) {
+            delete requestAnimationCallbackMap[id];
+        };
     })(util = drunk.util || (drunk.util = {}));
 })(drunk || (drunk = {}));
 /// <reference path="../util/util.ts" />
@@ -745,7 +753,7 @@ var drunk;
             configurable: true
         });
         return Map;
-    }());
+    })();
     drunk.Map = Map;
 })(drunk || (drunk = {}));
 /// <reference path="../util/util.ts" />
@@ -880,7 +888,7 @@ var drunk;
             eventCache[id] = null;
         };
         return EventEmitter;
-    }());
+    })();
     drunk.EventEmitter = EventEmitter;
 })(drunk || (drunk = {}));
 /// <reference path="./util.ts" />
@@ -1168,7 +1176,7 @@ var drunk;
                 this._priority = null;
             };
             return Job;
-        }());
+        })();
         var JobInfo = (function () {
             function JobInfo(_shouldYield) {
                 this._shouldYield = _shouldYield;
@@ -1215,7 +1223,7 @@ var drunk;
                 }
             };
             return JobInfo;
-        }());
+        })();
         for (var i = Priority.min; i <= Priority.max; i++) {
             jobStore[i] = [];
         }
@@ -1383,6 +1391,11 @@ var drunk;
 /// <reference path="./observableArray.ts" />
 /// <reference path="./observableObject.ts" />
 /// <reference path="../events/eventemitter.ts" />
+var __extends = (this && this.__extends) || function (d, b) {
+    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+    function __() { this.constructor = d; }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+};
 var drunk;
 (function (drunk) {
     var observable;
@@ -1428,7 +1441,7 @@ var drunk;
                 this._propertyChangedCallbackList.forEach(function (callback) { return callback(); });
             };
             return Observer;
-        }(EventEmitter));
+        })(EventEmitter);
         observable.Observer = Observer;
     })(observable = drunk.observable || (drunk.observable = {}));
 })(drunk || (drunk = {}));
@@ -1771,28 +1784,28 @@ var drunk;
         function parseFilterDef(str, skipSetter) {
             if (skipSetter === void 0) { skipSetter = false; }
             if (!filterCache.get(str)) {
-                var def_1 = [];
-                var idx_1;
+                var def = [];
+                var idx;
                 str.replace(reFilter, function ($0, quote, name, args, i) {
                     if (!name) {
                         return $0;
                     }
-                    if (idx_1 == null) {
+                    if (idx == null) {
                         // 记录filter开始的位置， 因为filter只能是连续的出现一直到表达式结尾
-                        idx_1 = i;
+                        idx = i;
                     }
                     var param;
                     if (args) {
                         param = parseGetter('[' + args.slice(1) + ']', false, true);
                     }
-                    def_1.push({ name: name, param: param });
+                    def.push({ name: name, param: param });
                 });
-                if (!def_1.length) {
+                if (!def.length) {
                     return;
                 }
                 filterCache.set(str, {
-                    input: str.slice(0, idx_1).trim(),
-                    filters: def_1
+                    input: str.slice(0, idx).trim(),
+                    filters: def
                 });
             }
             return filterCache.get(str);
@@ -1829,19 +1842,19 @@ var drunk;
         function parseIdentifier(str) {
             var cache = identifierCache.get(str);
             if (!cache) {
-                var index_1 = 0;
-                var proxies_1 = [];
-                var identifiers_1 = [];
+                var index = 0;
+                var proxies = [];
+                var identifiers = [];
                 var formated = str.replace(reIdentifier, function (x, p, i) {
                     if (p === '"' || p === "'" || str[i - 1] === '.') {
                         // 如果是字符串: "aaa"
                         // 或对象的属性: .aaa
-                        index_1 = i + x.length;
+                        index = i + x.length;
                         return x;
                     }
-                    var prefix = str.slice(index_1, i); // 前一个字符
+                    var prefix = str.slice(index, i); // 前一个字符
                     var suffix = str.slice(i + x.length); // 后一个字符
-                    index_1 = i + x.length;
+                    index = i + x.length;
                     if (isColon(suffix) && isObjectKey(prefix)) {
                         // 如果前一个字符是冒号，再判断是否是对象的Key
                         return x;
@@ -1855,19 +1868,19 @@ var drunk;
                         // method(a) 会转成 __context.getHandler("method")(a)
                         return getHandlerOperation + ' && ' + getHandlerOperation + '("' + x + '")';
                     }
-                    if (identifiers_1.indexOf(x) < 0) {
+                    if (identifiers.indexOf(x) < 0) {
                         // 标记未添加到列表中是
-                        proxies_1.push('  ' + proxyOperation + '("' + x + '")');
-                        identifiers_1.push(x);
+                        proxies.push('  ' + proxyOperation + '("' + x + '")');
+                        identifiers.push(x);
                     }
                     // 否则为属性访问， 直接加上下文
                     // a 转成  __context.a
                     return contextName + '.' + x;
                 });
                 cache = {
-                    proxies: identifiers_1.length ? ('if (' + proxyOperation + ') {\n' + proxies_1.join(';\n') + ';\n}\n') : '',
+                    proxies: identifiers.length ? ('if (' + proxyOperation + ') {\n' + proxies.join(';\n') + ';\n}\n') : '',
                     formated: formated,
-                    identifiers: identifiers_1
+                    identifiers: identifiers
                 };
                 identifierCache.set(str, cache);
             }
@@ -1954,20 +1967,20 @@ var drunk;
             var tokens = tokenCache.get(expression);
             if (!tokens) {
                 tokens = [];
-                var index_2 = 0;
+                var index = 0;
                 var length_1 = expression.length;
                 expression.replace(reInterpolate, function ($0, exp, $2, i) {
-                    if (i > index_2) {
-                        tokens.push(expression.slice(index_2, i));
+                    if (i > index) {
+                        tokens.push(expression.slice(index, i));
                     }
                     tokens.push({
                         expression: exp.trim()
                     });
-                    index_2 = i + $0.length;
+                    index = i + $0.length;
                     return $0;
                 });
-                if (index_2 < length_1 && index_2 !== 0) {
-                    tokens.push(expression.slice(index_2));
+                if (index < length_1 && index !== 0) {
+                    tokens.push(expression.slice(index));
                 }
                 tokenCache.set(expression, tokens);
             }
@@ -1989,20 +2002,20 @@ var drunk;
         function tokensToGetter(tokens, expression) {
             var getter = interpolateGetterCache.get(expression);
             if (!getter) {
-                var dynamic_1 = false;
-                var filters_1 = [];
+                var dynamic = false;
+                var filters = [];
                 tokens = tokens.map(function (item, i) {
                     if (typeof item === 'string') {
-                        filters_1[i] = null;
+                        filters[i] = null;
                         return item;
                     }
                     if (item && item.expression != null) {
                         getter = parseGetter(item.expression);
-                        filters_1[i] = getter.filters;
+                        filters[i] = getter.filters;
                         if (!getter.dynamic) {
                             return getter((null));
                         }
-                        dynamic_1 = true;
+                        dynamic = true;
                         return getter;
                     }
                     console.error("非法的token:\n", item);
@@ -2016,8 +2029,8 @@ var drunk;
                         return item.call(_this);
                     });
                 };
-                getter.dynamic = dynamic_1;
-                getter.filters = filters_1;
+                getter.dynamic = dynamic;
+                getter.filters = filters;
                 getter.isInterpolate = true;
                 interpolateGetterCache.set(expression, getter);
             }
@@ -2314,7 +2327,7 @@ var drunk;
                 throw new Error('不能监控不包含任何变量的表达式: "' + expression + '"');
             }
             this._propertyChanged = this._propertyChanged.bind(this);
-            this.value = this.__getValue();
+            this.value = this._getValue();
         }
         /**
          * 根据表达式和是否深度监听生成唯一的key,用于储存在关联的viewModel实例的watcher表中
@@ -2361,8 +2374,7 @@ var drunk;
                 });
             });
             if (this._throttle) {
-                this._throttle.cancel();
-                this._throttle = null;
+                util.cancelAnimationFrame(this._throttle);
             }
             var key = Watcher.getNameOfKey(this.expression, this.isDeepWatch);
             this.viewModel._watchers[key] =
@@ -2382,8 +2394,9 @@ var drunk;
          * 数据更新派发，会先做缓冲，防止在同一时刻对此出发更新操作，等下一次系统轮训时再真正执行更新操作
          */
         Watcher.prototype._propertyChanged = function () {
+            var _this = this;
             if (!this._throttle) {
-                this._throttle = util.execAsyncWork(this._flush, this);
+                this._throttle = util.requestAnimationFrame(function () { return _this._flush(); });
             }
         };
         /**
@@ -2396,7 +2409,7 @@ var drunk;
             }
             this._throttle = null;
             var oldValue = this.value;
-            var newValue = this.__getValue();
+            var newValue = this._getValue();
             if ((typeof newValue === 'object' && newValue != null) || newValue !== oldValue) {
                 this.value = newValue;
                 this._actions.slice().forEach(function (action) {
@@ -2409,8 +2422,8 @@ var drunk;
         /**
          * 执行表达式函数获取最新的数据
          */
-        Watcher.prototype.__getValue = function () {
-            this.__beforeGetValue();
+        Watcher.prototype._getValue = function () {
+            this._beforeAccess();
             var newValue = this._getter.call(this.viewModel);
             if (this.isDeepWatch) {
                 visit(newValue);
@@ -2419,13 +2432,13 @@ var drunk;
                 // 派发到各个filter中处理
                 newValue = drunk.filter.pipeFor(newValue, this._getter.filters, this.viewModel.$filter, this._isInterpolate, this.viewModel);
             }
-            this.__afterGetValue();
+            this._accessed();
             return newValue;
         };
         /**
          * 设置observable的属性访问回调为当前watcher实例的订阅方法,当访问某个属性是就会对该属性进行订阅
          */
-        Watcher.prototype.__beforeGetValue = function () {
+        Watcher.prototype._beforeAccess = function () {
             this._tmpObservers = {};
             this._tmpProperties = {};
             observable.onPropertyAccessing = this._subscribePropertyChanged.bind(this);
@@ -2433,7 +2446,7 @@ var drunk;
         /**
          * 表达式求解完后的收尾工作,取消注册onPropertyAccessed回调,并对比旧的observer表和新的表看有哪些实例已经不需要订阅
          */
-        Watcher.prototype.__afterGetValue = function () {
+        Watcher.prototype._accessed = function () {
             // 清楚属性访问回调
             observable.onPropertyAccessing = null;
             var _a = this, _observers = _a._observers, _properties = _a._properties, _tmpObservers = _a._tmpObservers, _tmpProperties = _a._tmpProperties, _propertyChanged = _a._propertyChanged;
@@ -2493,7 +2506,7 @@ var drunk;
             var _b, _c;
         };
         return Watcher;
-    }());
+    })();
     drunk.Watcher = Watcher;
     // 遍历访问所有的属性以订阅所有的数据
     function visit(target) {
@@ -2729,7 +2742,7 @@ var drunk;
          */
         Binding.definitions = {};
         return Binding;
-    }());
+    })();
     drunk.Binding = Binding;
     var Binding;
     (function (Binding) {
@@ -2972,12 +2985,18 @@ var drunk;
             return drunk.filter.pipeFor.apply(null, [value, getter.filters, this.$filter, isInterpolate, this]);
         };
         return ViewModel;
-    }(EventEmitter));
+    })(EventEmitter);
     drunk.ViewModel = ViewModel;
 })(drunk || (drunk = {}));
 /// <reference path="../binding.ts" />
 /// <reference path="../../config/config.ts" />
 /// <reference path="../../promise/promise.ts" />
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
 var drunk;
 (function (drunk) {
     var util = drunk.util;
@@ -3211,7 +3230,7 @@ var drunk;
             var _this = this;
             this.element[Action.weakRefKey] = this;
             this._actionJob = util.execAsyncWork(function () {
-                _this.$runActionByType(Action.Type.created);
+                _this.runActionByType(Action.Type.created);
                 _this._actionJob = null;
             });
         };
@@ -3273,7 +3292,7 @@ var drunk;
         /**
          * 先取消还在运行的action，再运行指定的action
          */
-        ActionBinding.prototype.$runActionByType = function (type) {
+        ActionBinding.prototype.runActionByType = function (type) {
             if (this._actionJob) {
                 this._actionJob.cancel();
                 this._actionJob = null;
@@ -3289,7 +3308,7 @@ var drunk;
             if (this._actionJob) {
                 this._actionJob.cancel();
             }
-            this.$runActionByType(Action.Type.removed);
+            this.runActionByType(Action.Type.removed);
             this.element[Action.weakRefKey] = null;
             this._actionNames = null;
             this._actionJob = null;
@@ -3299,7 +3318,7 @@ var drunk;
             drunk.binding("action")
         ], ActionBinding);
         return ActionBinding;
-    }(drunk.Binding));
+    })(drunk.Binding);
     drunk.ActionBinding = ActionBinding;
     function isNumber(value) {
         return !isNaN(parseFloat(value));
@@ -3594,11 +3613,11 @@ var drunk;
             if (element.tagName === 'TEXTAREA') {
                 // 如果是textarea， 它的值有可能存在插值表达式， 比如 "the textarea value with {{some_let}}"
                 // 第一次进行绑定先换成插值表达式
-                var originExecutor_1 = executor;
+                var originExecutor = executor;
                 executor = function (viewModel, textarea) {
                     textarea.value = viewModel.$eval(textarea.value, true);
-                    if (originExecutor_1) {
-                        return originExecutor_1(viewModel, textarea);
+                    if (originExecutor) {
+                        return originExecutor(viewModel, textarea);
                     }
                 };
             }
@@ -3895,32 +3914,32 @@ var drunk;
             tagUid = tagUid.toLowerCase();
             tag.parentNode.removeChild(tag);
             if (!scriptRecord[tagUid]) {
-                var newScript_1 = document.createElement('script');
-                var promise = void 0;
+                var newScript = document.createElement('script');
+                var promise;
                 scriptRecord[tagUid] = true;
-                newScript_1.setAttribute('type', tag.type || 'text/javascript');
-                newScript_1.setAttribute('async', 'false');
+                newScript.setAttribute('type', tag.type || 'text/javascript');
+                newScript.setAttribute('async', 'false');
                 if (tag.id) {
-                    newScript_1.setAttribute('id', tag.id);
+                    newScript.setAttribute('id', tag.id);
                 }
                 if (inline) {
-                    var text_1 = tag.text;
+                    var text = tag.text;
                     promise = lastNonInlineScriptPromise.then(function () {
-                        newScript_1.text = text_1;
+                        newScript.text = text;
                     }).catch(function (e) {
                         // console.warn('脚本加载错误:', e);
                     });
-                    newScript_1.setAttribute('__', tagUid);
+                    newScript.setAttribute('__', tagUid);
                 }
                 else {
                     promise = new Promise(function (resolve) {
-                        newScript_1.onload = newScript_1.onerror = function () {
+                        newScript.onload = newScript.onerror = function () {
                             resolve();
                         };
-                        newScript_1.setAttribute('src', tag.src);
+                        newScript.setAttribute('src', tag.src);
                     });
                 }
-                document.head.appendChild(newScript_1);
+                document.head.appendChild(newScript);
                 return {
                     promise: promise,
                     inline: inline
@@ -4197,7 +4216,7 @@ var drunk;
             templateLoadFailed: 'templateLoadFailed',
         };
         return Component;
-    }(ViewModel));
+    })(ViewModel);
     drunk.Component = Component;
     /**
      * 设置样式
@@ -4263,7 +4282,7 @@ var drunk;
             drunk.binding("on")
         ], EventBinding);
         return EventBinding;
-    }(drunk.Binding));
+    })(drunk.Binding);
 })(drunk || (drunk = {}));
 /// <reference path="../binding.ts" />
 /// <reference path="../../util/util.ts" />
@@ -4297,7 +4316,7 @@ var drunk;
             drunk.binding('attr')
         ], AttributeBinding);
         return AttributeBinding;
-    }(Binding));
+    })(Binding);
 })(drunk || (drunk = {}));
 /// <reference path="../binding.ts" />
 /// <reference path="../../util/dom.ts" />
@@ -4332,7 +4351,7 @@ var drunk;
             drunk.binding("bind")
         ], DataBind);
         return DataBind;
-    }(Binding));
+    })(Binding);
 })(drunk || (drunk = {}));
 /// <reference path="../binding.ts" />
 /// <reference path="../../util/dom.ts" />
@@ -4405,7 +4424,7 @@ var drunk;
             drunk.binding("class")
         ], ClassBinding);
         return ClassBinding;
-    }(Binding));
+    })(Binding);
 })(drunk || (drunk = {}));
 /// <reference path="../binding.ts" />
 /// <reference path="../../util/dom.ts" />
@@ -4530,7 +4549,7 @@ var drunk;
             }
             else if (drunk.util.isObject(target)) {
                 var idx = 0;
-                var key = void 0;
+                var key;
                 for (key in target) {
                     ret.push({
                         key: key,
@@ -4551,7 +4570,7 @@ var drunk;
             return ret;
         };
         return RepeatItem;
-    }(drunk.Component));
+    })(drunk.Component);
     drunk.RepeatItem = RepeatItem;
     var regParam = /\s+in\s+/;
     var regComma = /\s*,\s*/;
@@ -4650,7 +4669,7 @@ var drunk;
             var index = 0;
             var length = this._items.length;
             var placeholder;
-            var job;
+            var renderJob;
             var next = function (node) {
                 placeholder = node.nextSibling;
                 while (placeholder && placeholder !== _this._tailNode &&
@@ -4685,18 +4704,18 @@ var drunk;
                             // 如果创建节点达到了一定时间，让出线程给ui线程
                             if (!_this._cancelRenderJob) {
                                 _this._cancelRenderJob = function () {
-                                    job && job.cancel();
-                                    _this._cancelRenderJob = job = null;
+                                    renderJob && drunk.util.cancelAnimationFrame(renderJob);
+                                    _this._cancelRenderJob = renderJob = null;
                                 };
                             }
-                            return job = drunk.util.execAsyncWork(renderItems);
+                            return renderJob = drunk.util.requestAnimationFrame(renderItems);
                         }
                     }
                     else {
                         next(placeholder);
                     }
                 }
-                _this._cancelRenderJob = job = null;
+                _this._cancelRenderJob = renderJob = null;
             };
             next(this._headNode);
             renderItems();
@@ -4733,7 +4752,7 @@ var drunk;
             var viewModel = new RepeatItem(this.viewModel, options);
             var viewModelList = this._map.get(value);
             viewModel._flagNode = document.createComment(this._flagNodeContent);
-            // viewModel._placeholder = this._placeholderNode.cloneNode(true);
+            drunk.Component.setWeakRef(viewModel._flagNode, viewModel);
             if (!viewModelList) {
                 viewModelList = [];
                 this._map.set(value, viewModelList);
@@ -4772,11 +4791,12 @@ var drunk;
                     _this._map.delete(value);
                 }
                 var element = viewModel._element;
-                var placeholder = viewModel._flagNode;
-                placeholder.textContent = 'Unused repeat item';
+                var flagNode = viewModel._flagNode;
+                flagNode.textContent = 'Unused repeat item';
+                drunk.Component.removeWeakRef(flagNode);
                 viewModel.$release();
-                if (placeholder.parentNode) {
-                    placeholder.parentNode.removeChild(placeholder);
+                if (flagNode.parentNode) {
+                    flagNode.parentNode.removeChild(flagNode);
                 }
                 if (element) {
                     drunk.dom.remove(element);
@@ -4806,7 +4826,7 @@ var drunk;
             drunk.binding("repeat")
         ], RepeatBinding);
         return RepeatBinding;
-    }(Binding));
+    })(Binding);
 })(drunk || (drunk = {}));
 /// <reference path="./repeat.ts" />
 /// <reference path="../binding.ts" />
@@ -4907,7 +4927,7 @@ var drunk;
                     if (!drunk.parser.hasInterpolation(expression)) {
                         // 没有插值表达式
                         // title="someConstantValue"
-                        var value = void 0;
+                        var value;
                         if (attrValue === 'true') {
                             value = true;
                         }
@@ -4994,13 +5014,13 @@ var drunk;
                 if (!result) {
                     throw new Error(expression + ": \u8BE5\u8868\u8FBE\u5F0F\u4E0D\u80FD\u8FDB\u884C\u53CC\u5411\u7ED1\u5B9A");
                 }
-                var ownerProperty_1 = result[1].trim();
+                var ownerProperty = result[1].trim();
                 unwatch = component.$watch(property, function (newValue, oldValue) {
                     var currValue = viewModel.$eval(expression, true);
                     if (newValue === currValue) {
                         return;
                     }
-                    viewModel.$setValue(ownerProperty_1, newValue);
+                    viewModel.$setValue(ownerProperty, newValue);
                 });
                 this.unwatches.push(unwatch);
             }
@@ -5042,7 +5062,7 @@ var drunk;
             drunk.binding("component")
         ], ComponentBinding);
         return ComponentBinding;
-    }(Binding));
+    })(Binding);
 })(drunk || (drunk = {}));
 /// <reference path="../binding.ts" />
 /// <reference path="../../util/dom.ts" />
@@ -5105,7 +5125,7 @@ var drunk;
             drunk.binding("if")
         ], IfBinding);
         return IfBinding;
-    }(Binding));
+    })(Binding);
 })(drunk || (drunk = {}));
 /// <reference path="../binding.ts" />
 /// <reference path="../../template/loader.ts" />
@@ -5147,9 +5167,9 @@ var drunk;
         };
         IncludeBinding.prototype._removeBind = function () {
             if (this._elements) {
-                var unbind_1 = this._unbind;
+                var unbind = this._unbind;
                 dom.remove(this._elements).then(function () {
-                    unbind_1();
+                    unbind();
                 });
                 this._elements = null;
             }
@@ -5159,7 +5179,7 @@ var drunk;
             drunk.binding("include")
         ], IncludeBinding);
         return IncludeBinding;
-    }(Binding));
+    })(Binding);
 })(drunk || (drunk = {}));
 /// <reference path="../binding.ts" />
 /// <reference path="../../util/dom.ts" />
@@ -5245,7 +5265,7 @@ var drunk;
             drunk.binding("model")
         ], ModelBinding);
         return ModelBinding;
-    }(drunk.Binding));
+    })(drunk.Binding);
     function setCheckboxValue(newValue) {
         this.element.checked = !!newValue;
     }
@@ -5271,7 +5291,7 @@ var drunk;
             drunk.util.toArray(this.element.options).forEach(function (option) { return option.selected = false; });
         }
         else {
-            for (var i = 0, option_1; option_1 = this.element.options[i]; i++) {
+            for (var i = 0, option_1 = void 0; option_1 = this.element.options[i]; i++) {
                 if (option_1.value == newValue) {
                     option_1.selected = true;
                     return;
@@ -5304,7 +5324,7 @@ var drunk;
             var action = this.element[drunk.Action.weakRefKey];
             if (!isVisible) {
                 if (action) {
-                    action.$runActionByType(drunk.Action.Type.removed);
+                    action.runActionByType(drunk.Action.Type.removed);
                     drunk.Action.process(this.element).then(function () {
                         style.display = 'none';
                     });
@@ -5316,7 +5336,7 @@ var drunk;
             else if (isVisible) {
                 style.display = '';
                 if (action) {
-                    action.$runActionByType(drunk.Action.Type.created);
+                    action.runActionByType(drunk.Action.Type.created);
                 }
             }
         };
@@ -5324,7 +5344,7 @@ var drunk;
             drunk.binding('show')
         ], ShowBinding);
         return ShowBinding;
-    }(drunk.Binding));
+    })(drunk.Binding);
 })(drunk || (drunk = {}));
 /// <reference path="../binding.ts" />
 /// <reference path="../../component/component.ts" />
@@ -5380,6 +5400,6 @@ var drunk;
             drunk.binding("transclude")
         ], TranscludeBinding);
         return TranscludeBinding;
-    }(drunk.Binding));
+    })(drunk.Binding);
 })(drunk || (drunk = {}));
 //# sourceMappingURL=drunk.js.map

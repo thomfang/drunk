@@ -27,7 +27,7 @@ namespace drunk {
         private _tmpObservers: { [id: string]: observable.Observer };
         private _tmpProperties: { [number: string]: { [property: string]: boolean } };
         private _isActived: boolean = true;
-        private _throttle: util.IAsyncJob;
+        private _throttle: number;
         private _getter: parser.IGetter;
 
         /**
@@ -49,7 +49,7 @@ namespace drunk {
             }
 
             this._propertyChanged = this._propertyChanged.bind(this);
-            this.value = this.__getValue();
+            this.value = this._getValue();
         }
 
         /**
@@ -94,8 +94,7 @@ namespace drunk {
             });
 
             if (this._throttle) {
-                this._throttle.cancel();
-                this._throttle = null;
+                util.cancelAnimationFrame(this._throttle);
             }
 
             let key: string = Watcher.getNameOfKey(this.expression, this.isDeepWatch);
@@ -120,7 +119,7 @@ namespace drunk {
          */
         private _propertyChanged(): void {
             if (!this._throttle) {
-                this._throttle = util.execAsyncWork(this._flush, this);
+                this._throttle = util.requestAnimationFrame(() => this._flush());
             }
         }
 
@@ -135,7 +134,7 @@ namespace drunk {
             this._throttle = null;
 
             let oldValue: any = this.value;
-            let newValue: any = this.__getValue();
+            let newValue: any = this._getValue();
 
             if ((typeof newValue === 'object' && newValue != null) || newValue !== oldValue) {
                 this.value = newValue;
@@ -150,8 +149,8 @@ namespace drunk {
         /**
          * 执行表达式函数获取最新的数据
          */
-        private __getValue(): any {
-            this.__beforeGetValue();
+        private _getValue(): any {
+            this._beforeAccess();
 
             let newValue = this._getter.call(this.viewModel);
 
@@ -164,7 +163,7 @@ namespace drunk {
                 newValue = filter.pipeFor(newValue, this._getter.filters, this.viewModel.$filter, this._isInterpolate, this.viewModel);
             }
 
-            this.__afterGetValue();
+            this._accessed();
 
             return newValue;
         }
@@ -172,7 +171,7 @@ namespace drunk {
         /**
          * 设置observable的属性访问回调为当前watcher实例的订阅方法,当访问某个属性是就会对该属性进行订阅
          */
-        private __beforeGetValue(): void {
+        private _beforeAccess(): void {
             this._tmpObservers = {};
             this._tmpProperties = {};
             observable.onPropertyAccessing = this._subscribePropertyChanged.bind(this);
@@ -181,7 +180,7 @@ namespace drunk {
         /**
          * 表达式求解完后的收尾工作,取消注册onPropertyAccessed回调,并对比旧的observer表和新的表看有哪些实例已经不需要订阅
          */
-        private __afterGetValue(): void {
+        private _accessed(): void {
             // 清楚属性访问回调
             observable.onPropertyAccessing = null;
 

@@ -171,6 +171,8 @@ declare namespace drunk.util {
      * @return             返回一个带有cancel方法的job对象
      */
     function execAsyncWork(work: () => any, context?: any): IAsyncJob;
+    var requestAnimationFrame: (callback: FrameRequestCallback) => number;
+    var cancelAnimationFrame: any;
 }
 declare namespace drunk {
     /**
@@ -690,15 +692,15 @@ declare namespace drunk {
         /**
          * 执行表达式函数获取最新的数据
          */
-        private __getValue();
+        private _getValue();
         /**
          * 设置observable的属性访问回调为当前watcher实例的订阅方法,当访问某个属性是就会对该属性进行订阅
          */
-        private __beforeGetValue();
+        private _beforeAccess();
         /**
          * 表达式求解完后的收尾工作,取消注册onPropertyAccessed回调,并对比旧的observer表和新的表看有哪些实例已经不需要订阅
          */
-        private __afterGetValue();
+        private _accessed();
         /**
          * 订阅属性的更新消息
          * @param  observer 属性的所属观察者
@@ -1074,7 +1076,7 @@ declare namespace drunk {
         /**
          * 先取消还在运行的action，再运行指定的action
          */
-        $runActionByType(type: string): void;
+        runActionByType(type: string): void;
         release(): void;
     }
 }
@@ -1376,7 +1378,6 @@ declare namespace drunk {
         _isUsed: boolean;
         _isBinded: boolean;
         _flagNode: Comment;
-        _placeholder: any;
         _element: any;
         protected _models: IModel[];
         constructor(_parent: Component | RepeatItem, ownModel: any);

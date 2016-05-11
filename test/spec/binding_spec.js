@@ -51,7 +51,7 @@ describe("Binding", function () {
 
         viewModel.a = 234;
 
-        drunk.util.execAsyncWork(function () {
+        drunk.util.requestAnimationFrame(function () {
             expect(binding.update).toHaveBeenCalledWith(234, 1);
 
             binding.$dispose();
@@ -101,7 +101,7 @@ describe("Binding", function () {
         expect(viewModel.a).toBe(2);
         expect(watcher.value).toBe(1);
 
-        drunk.util.execAsyncWork(function () {
+        drunk.util.requestAnimationFrame(function () {
             expect(binding.update.calls.count()).toBe(2);
             expect(watcher.value).toBe(2);
 
@@ -123,7 +123,7 @@ describe("Binding", function () {
 
         viewModel.b.c.d = 23;
 
-        drunk.util.execAsyncWork(function () {
+        drunk.util.requestAnimationFrame(function () {
             expect(binding.update.calls.count()).toBe(2);
 
             done();
@@ -154,7 +154,7 @@ describe("Binding", function () {
 
         expect(watcher._actions.length).toBe(1);
 
-        drunk.util.execAsyncWork(function () {
+        drunk.util.requestAnimationFrame(function () {
             expect(binding1.update).toHaveBeenCalledWith(2, 1);
 
             binding1.$dispose();

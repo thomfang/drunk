@@ -297,7 +297,7 @@ namespace drunk {
         init() {
             this.element[Action.weakRefKey] = this;
             this._actionJob = util.execAsyncWork(() => {
-                this.$runActionByType(Action.Type.created);
+                this.runActionByType(Action.Type.created);
                 this._actionJob = null;
             });
         }
@@ -371,7 +371,7 @@ namespace drunk {
         /**
          * 先取消还在运行的action，再运行指定的action
          */
-        $runActionByType(type: string) {
+        runActionByType(type: string) {
             if (this._actionJob) {
                 this._actionJob.cancel();
                 this._actionJob = null;
@@ -391,7 +391,7 @@ namespace drunk {
                 this._actionJob.cancel();
             }
             
-            this.$runActionByType(Action.Type.removed);
+            this.runActionByType(Action.Type.removed);
             this.element[Action.weakRefKey] = null;
             this._actionNames = null;
             this._actionJob = null;

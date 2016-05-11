@@ -71,7 +71,7 @@ describe("Component", function () {
         });
 
         view.a = 4;
-        drunk.util.execAsyncWork(function () {
+        drunk.util.requestAnimationFrame(function () {
             expect(elem.innerHTML).toBe("6");
             expect(spy).toHaveBeenCalledWith(4, 2);
             done();
@@ -96,7 +96,7 @@ describe("Component", function () {
             expect(view.element.innerHTML).toBe("4");
 
             view.a = 4;
-            drunk.util.execAsyncWork(function () {
+            drunk.util.requestAnimationFrame(function () {
                 expect(view.element.innerHTML).toBe("6");
                 done();
             });
