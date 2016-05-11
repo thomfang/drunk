@@ -38,6 +38,10 @@ declare namespace drunk.config {
      * debug模式配置变量
      */
     var debug: boolean;
+    /**
+     * 开启渲染优化
+     */
+    var renderOptimization: boolean;
 }
 declare namespace drunk {
     /**
@@ -627,7 +631,7 @@ declare namespace drunk.filter {
     /**
      * filter方法表
      */
-    let filters: {
+    var filters: {
         [name: string]: IFilter;
     };
 }
@@ -656,7 +660,6 @@ declare namespace drunk {
          */
         value: any;
         /**
-         * 每个watcher对应一个表达式,watcher管理着对应这个表达式更新的回调函数.watcher在对表达式进行求值是,访问每个数据的getter,并得到该数据的observer引用,然后订阅该observer.当某个数据更新时该数据的observer实例会发送通知给所有的watcher,watcher接收到消息后会调用所有的表达式更新的回调.
          * @param   viewModel   ViewModel实例，用于访问数据
          * @param   expression  监听的表达式
          * @param   isDeepWatch 是否深度监听,当对象或数组里的任意一个数据改变都会发送更新消息
@@ -721,6 +724,13 @@ declare namespace drunk {
         update?(newValue: any, oldValue: any): void;
         release?(): void;
     }
+    interface BindingConstructor {
+        new (...args: any[]): Binding;
+        isDeepWatch?: boolean;
+        isTerminal?: boolean;
+        priority?: number;
+        retainAttribute?: boolean;
+    }
     /**
      * 绑定实例构建函数接口
      */
@@ -741,11 +751,12 @@ declare namespace drunk {
     interface IBindingUpdateAction {
         (newValue: any, oldValue: any): any;
     }
+    function binding(name: string): (constructor: BindingConstructor) => void;
     /**
      * 绑定类
      */
     class Binding {
-        viewModel: ViewModel;
+        viewModel: Component;
         element: any;
         /** 实例 */
         static instancesById: {
@@ -755,7 +766,7 @@ declare namespace drunk {
          * 缓存的所有绑定声明的表
          */
         static definitions: {
-            [name: string]: IBindingDefinition;
+            [name: string]: BindingConstructor;
         };
         /**
          * 获取元素的所有绑定实例
@@ -779,13 +790,13 @@ declare namespace drunk {
          * @param   name  指令名
          * @param   def   binding实现的定义对象或绑定的更新函数
          */
-        static register<T extends IBindingDefinition>(name: string, definition: T): void;
+        static register<T extends IBindingDefinition>(name: string, definition: T | BindingConstructor): void;
         /**
          * 根据绑定名获取绑定的定义
          * @param   name      绑定的名称
          * @return            具有绑定定义信息的对象
          */
-        static getByName(name: string): IBindingDefinition;
+        static getByName(name: string): BindingConstructor;
         /**
          * 获取已经根据优先级排序的终止型绑定的名称列表
          * @return 返回绑定名称列表
@@ -820,37 +831,25 @@ declare namespace drunk {
          */
         expression: string;
         /**
-         * 绑定初始化方法
-         */
-        init: (parentViewModel?: ViewModel, placeholder?: HTMLElement) => void;
-        /**
-         * 绑定更新方法
-         */
-        update: IBindingUpdateAction;
-        /**
-         * 绑定释放方法
-         */
-        release: () => void;
-        /**
          * 是否已经不可用
          */
-        private _isActived;
+        protected _isActived: boolean;
         /**
          * 移除watcher方法
          */
-        private _unwatch;
+        protected _unwatch: () => void;
         /**
          * 内置的update包装方法
          */
-        private _update;
-        private _isDynamic;
+        protected _update: (newValue: any, oldValue: any) => void;
+        protected _isDynamic: boolean;
         /**
          * 根据绑定的定义创建一个绑定实例，根据定义进行viewModel与DOM元素绑定的初始化、视图渲染和释放
          * @param  viewModel       ViewModel实例
          * @param  element         绑定元素
          * @param  definition      绑定定义
          */
-        constructor(viewModel: ViewModel, element: any, descriptor: IBindingDefinition);
+        constructor(viewModel: Component, element: any, descriptor: IBindingDefinition);
         /**
          * 初始化绑定
          */
@@ -1055,6 +1054,28 @@ declare namespace drunk {
          */
         function process(target: HTMLElement): Promise<any>;
         function process(target: HTMLElement[]): Promise<any>;
+    }
+    /**
+     * action绑定的实现
+     */
+    class ActionBinding extends Binding implements IBindingDefinition {
+        static priority: Binding.Priority;
+        private _actionNames;
+        private _actionJob;
+        init(): void;
+        /**
+         * 解析action的定义表达式
+         */
+        private _parseDefinition(actionType);
+        /**
+         * 根据类型运行数据的action队列
+         */
+        private _runActions(type);
+        /**
+         * 先取消还在运行的action，再运行指定的action
+         */
+        $runActionByType(type: string): void;
+        release(): void;
     }
 }
 /**
@@ -1334,6 +1355,12 @@ declare namespace drunk {
 declare namespace drunk {
 }
 declare namespace drunk {
+}
+declare namespace drunk {
+}
+declare namespace drunk {
+}
+declare namespace drunk {
     interface IItemDataDescriptor {
         key: string | number;
         idx: number;
@@ -1384,6 +1411,14 @@ declare namespace drunk {
          */
         static toList(target: any): IItemDataDescriptor[];
     }
+}
+declare namespace drunk {
+}
+declare namespace drunk {
+}
+declare namespace drunk {
+}
+declare namespace drunk {
 }
 declare namespace drunk {
 }

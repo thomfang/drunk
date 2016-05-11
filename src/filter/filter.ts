@@ -58,7 +58,7 @@ namespace drunk.filter {
             method = filterMap[name];
 
             if (typeof method !== 'function') {
-                throw new Error('Filter "' + name + '" not found');
+                throw new Error(`未找到filter的定义: ${name}`);
             }
 
             param = def.param ? def.param.apply(viewModel, args) : [];
@@ -112,7 +112,7 @@ namespace drunk.filter {
     /**
      * filter方法表
      */
-    export let filters: { [name: string]: IFilter } = {
+    export var filters: { [name: string]: IFilter } = {
         
         /**
          * 对输入的字符串进行编码

@@ -11,21 +11,18 @@ namespace drunk {
 
     let reOneInterpolate = /^\{\{([^{]+)\}\}$/;
 
-    class ComponentBinding implements IBindingDefinition {
+    @binding("component")
+    class ComponentBinding extends Binding implements IBindingDefinition {
+        
+        static isTerminal = true;
+        static priority = Binding.Priority.aboveNormal;
 
-        expression: string;
-        viewModel: RepeatItem;
-        element: HTMLElement;
+        private _headNode: any;
+        private _tailNode: any;
 
         component: Component;
         unwatches: Function[];
         isDisposed: boolean;
-
-        isTerminal: boolean;
-        priority: number;
-
-        private _headNode: any;
-        private _tailNode: any;
 
         /**
          * 初始化组件,找到组件类并生成实例,创建组件的绑定
@@ -225,7 +222,7 @@ namespace drunk {
                 let result = expression.match(reOneInterpolate);
 
                 if (!result) {
-                    throw new Error(expression + ': 该表达式不能进行双向绑定');
+                    throw new Error(`${expression}: 该表达式不能进行双向绑定`);
                 }
 
                 let ownerProperty = result[1].trim();
@@ -279,9 +276,4 @@ namespace drunk {
             this.isDisposed = true;
         }
     }
-
-    ComponentBinding.prototype.isTerminal = true;
-    ComponentBinding.prototype.priority = Binding.Priority.aboveNormal;
-
-    Binding.register('component', ComponentBinding.prototype);
 }

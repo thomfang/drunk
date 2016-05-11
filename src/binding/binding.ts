@@ -23,6 +23,14 @@ namespace drunk {
         release?(): void;
     }
 
+    export interface BindingConstructor {
+        new (...args: any[]): Binding;
+        isDeepWatch?: boolean;
+        isTerminal?: boolean;
+        priority?: number;
+        retainAttribute?: boolean;
+    }
+
     /**
      * 绑定实例构建函数接口
      */
@@ -54,6 +62,12 @@ namespace drunk {
     /** 终止型绑定的名称 */
     let terminalBindings: string[] = [];
 
+    export function binding(name: string) {
+        return function (constructor: BindingConstructor) {
+            Binding.register(name, constructor);
+        };
+    }
+
     /**
      * 绑定类
      */
@@ -65,7 +79,7 @@ namespace drunk {
         /**
          * 缓存的所有绑定声明的表
          */
-        static definitions: { [name: string]: IBindingDefinition } = {};
+        static definitions: { [name: string]: BindingConstructor } = {};
 
         /**
          * 获取元素的所有绑定实例
@@ -107,19 +121,31 @@ namespace drunk {
          * @param   name  指令名
          * @param   def   binding实现的定义对象或绑定的更新函数
          */
-        static register<T extends IBindingDefinition>(name: string, definition: T): void {
+        static register<T extends IBindingDefinition>(name: string, definition: T | BindingConstructor): void {
             definition.priority = definition.priority || Binding.Priority.normal;
 
             if (definition.isTerminal) {
                 Binding._setTernimalBinding(name, definition.priority);
             }
 
-            if (Binding.definitions[name]) {
-                console.warn(name, "绑定原已定义为：", Binding.definitions[name]);
-                console.warn("替换为", definition);
+            if (util.isObject(definition)) {
+                let ctor: BindingConstructor = <any>function (...args: any[]) {
+                    Binding.apply(this, args);
+                };
+                ctor.isTerminal = definition.isTerminal;
+                ctor.priority = definition.priority;
+                ctor.retainAttribute = definition.retainAttribute;
+                ctor.isDeepWatch = definition.isDeepWatch;
+                util.extend(ctor.prototype, Binding.prototype, definition);
+                definition = ctor;
             }
 
-            Binding.definitions[name] = definition;
+            if (Binding.definitions[name]) {
+                console.warn(name, `绑定原已定义为：`, Binding.definitions[name]);
+                console.warn(`替换为`, definition);
+            }
+
+            Binding.definitions[name] = <BindingConstructor>definition;
         }
 
         /**
@@ -127,7 +153,7 @@ namespace drunk {
          * @param   name      绑定的名称
          * @return            具有绑定定义信息的对象
          */
-        static getByName(name: string): IBindingDefinition {
+        static getByName(name: string) {
             return Binding.definitions[name];
         }
 
@@ -145,7 +171,8 @@ namespace drunk {
          * @param   element    元素
          */
         static create(viewModel, element: any, descriptor: IBindingDefinition, parentViewModel?, placeholder?: HTMLElement) {
-            let binding: Binding = new Binding(viewModel, element, descriptor);
+            let Ctor = Binding.definitions[descriptor.name];
+            let binding: Binding = new Ctor(viewModel, element, descriptor);
 
             util.addArrayItem(viewModel._bindings, binding);
             Binding.setWeakRef(element, binding);
@@ -202,36 +229,21 @@ namespace drunk {
         expression: string;
 
         /**
-         * 绑定初始化方法
-         */
-        init: (parentViewModel?: ViewModel, placeholder?: HTMLElement) => void;
-
-        /**
-         * 绑定更新方法
-         */
-        update: IBindingUpdateAction;
-
-        /**
-         * 绑定释放方法
-         */
-        release: () => void;
-
-        /**
          * 是否已经不可用
          */
-        private _isActived: boolean = true;
+        protected _isActived: boolean = true;
 
         /**
          * 移除watcher方法
          */
-        private _unwatch: () => void;
+        protected _unwatch: () => void;
 
         /**
          * 内置的update包装方法
          */
-        private _update: (newValue: any, oldValue: any) => void;
-        
-        private _isDynamic: boolean;
+        protected _update: (newValue: any, oldValue: any) => void;
+
+        protected _isDynamic: boolean;
 
         /**
          * 根据绑定的定义创建一个绑定实例，根据定义进行viewModel与DOM元素绑定的初始化、视图渲染和释放
@@ -239,7 +251,7 @@ namespace drunk {
          * @param  element         绑定元素
          * @param  definition      绑定定义
          */
-        constructor(public viewModel: ViewModel, public element: any, descriptor: IBindingDefinition) {
+        constructor(public viewModel: Component, public element: any, descriptor: IBindingDefinition) {
             Binding.instancesById[util.uniqueId(this)] = this;
             util.extend(this, descriptor);
         }
@@ -248,13 +260,13 @@ namespace drunk {
          * 初始化绑定
          */
         $initialize(ownerViewModel, placeholder?: HTMLElement) {
-            if (this.init) {
-                this.init(ownerViewModel, placeholder);
+            if (typeof this["init"] === 'function') {
+                this["init"](ownerViewModel, placeholder);
             }
 
             this._isActived = true;
 
-            if (!this.update) {
+            if (typeof this["update"] !== 'function') {
                 return;
             }
 
@@ -265,7 +277,7 @@ namespace drunk {
 
             if (!getter.dynamic) {
                 // 如果只是一个静态表达式直接取值更新
-                return this.update(viewModel.$eval(expression, isInterpolate), undefined);
+                return this["update"](viewModel.$eval(expression, isInterpolate), undefined);
             }
 
             this._update = (newValue, oldValue) => {
@@ -273,7 +285,7 @@ namespace drunk {
                     return;
                 }
 
-                this.update(newValue, oldValue);
+                this["update"](newValue, oldValue);
             }
 
             this._unwatch = viewModel.$watch(expression, this._update, this.isDeepWatch, false);
@@ -287,8 +299,8 @@ namespace drunk {
             if (!this._isActived) {
                 return;
             }
-            if (this.release) {
-                this.release();
+            if (typeof this["release"] === "function") {
+                this["release"]();
             }
 
             if (this._unwatch) {
@@ -310,7 +322,7 @@ namespace drunk {
         $setValue(value: any): void {
             this.viewModel.$setValue(this.expression, value);
         }
-        
+
         $execute() {
             if (!this._isDynamic) {
                 return;

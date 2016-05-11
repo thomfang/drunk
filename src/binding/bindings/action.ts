@@ -286,13 +286,10 @@ namespace drunk {
     /**
      * action绑定的实现
      */
-    class ActionBinding implements IBindingDefinition {
+    @binding("action")
+    export class ActionBinding extends Binding implements IBindingDefinition {
         
-        priority = Binding.Priority.aboveNormal;
-
-        element: HTMLElement;
-        expression: string;
-        viewModel: ViewModel;
+        static priority = Binding.Priority.aboveNormal;
 
         private _actionNames: string[];
         private _actionJob: util.IAsyncJob;
@@ -300,7 +297,7 @@ namespace drunk {
         init() {
             this.element[Action.weakRefKey] = this;
             this._actionJob = util.execAsyncWork(() => {
-                this.runActionByType(Action.Type.created);
+                this.$runActionByType(Action.Type.created);
                 this._actionJob = null;
             });
         }
@@ -308,7 +305,7 @@ namespace drunk {
         /**
          * 解析action的定义表达式
          */
-        _parseDefinition(actionType: string) {
+        private _parseDefinition(actionType: string) {
             if (!this.expression) {
                 this._actionNames = [];
             }
@@ -330,7 +327,7 @@ namespace drunk {
         /**
          * 根据类型运行数据的action队列
          */
-        _runActions(type: string) {
+        private _runActions(type: string) {
             let element = this.element;
 
             if (this._actionNames.length < 2) {
@@ -374,7 +371,7 @@ namespace drunk {
         /**
          * 先取消还在运行的action，再运行指定的action
          */
-        runActionByType(type: string) {
+        $runActionByType(type: string) {
             if (this._actionJob) {
                 this._actionJob.cancel();
                 this._actionJob = null;
@@ -394,7 +391,7 @@ namespace drunk {
                 this._actionJob.cancel();
             }
             
-            this.runActionByType(Action.Type.removed);
+            this.$runActionByType(Action.Type.removed);
             this.element[Action.weakRefKey] = null;
             this._actionNames = null;
             this._actionJob = null;
@@ -404,6 +401,4 @@ namespace drunk {
     function isNumber(value: any) {
         return !isNaN(parseFloat(value));
     }
-
-    Binding.register('action', ActionBinding.prototype);
 }

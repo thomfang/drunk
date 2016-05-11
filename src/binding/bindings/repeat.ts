@@ -183,14 +183,11 @@ namespace drunk {
     /**
      * drunk-repeat的绑定实现类
      */
-    class RepeatBinding implements IBindingDefinition {
+    @binding("repeat")
+    class RepeatBinding extends Binding implements IBindingDefinition {
 
-        isTerminal: boolean;
-        priority: Binding.Priority;
-
-        element: any;
-        viewModel: Component;
-        expression: string;
+        static isTerminal: boolean = true;
+        static priority: Binding.Priority = Binding.Priority.aboveNormal + 1;
 
         private _headNode: Node;
         private _tailNode: Node;
@@ -200,7 +197,6 @@ namespace drunk {
         private _cancelRenderJob: Function;
         private _map: Map<RepeatItem[]>;
         private _items: IItemDataDescriptor[];
-        private _isActived: boolean;
         private _flagNodeContent: string;
 
         /**
@@ -344,9 +340,14 @@ namespace drunk {
                             dom.after(viewModel._element, viewModel._flagNode);
                         }
 
-                        if (Date.now() >= endTime && index < length) {
+                        if (config.renderOptimization && Date.now() >= endTime && index < length) {
                             // 如果创建节点达到了一定时间，让出线程给ui线程
-                            // job = Scheduler.schedule(renderItems, Scheduler.Priority.idle);
+                            if (!this._cancelRenderJob) {
+                                this._cancelRenderJob = () => {
+                                    job && job.cancel();
+                                    this._cancelRenderJob = job = null;
+                                };
+                            }
                             return job = util.execAsyncWork(renderItems);
                         }
                     }
@@ -359,13 +360,7 @@ namespace drunk {
             };
 
             next(this._headNode);
-            // job = Scheduler.schedule(renderItems, Scheduler.Priority.aboveNormal);
             renderItems();
-
-            this._cancelRenderJob = () => {
-                job && job.cancel();
-                this._cancelRenderJob = job = null;
-            };
         }
 
         /**
@@ -489,10 +484,5 @@ namespace drunk {
             this._map.clear();
             this._map = this._items = this._itemVms = this._bind = this._headNode = this._tailNode = null;
         }
-    };
-
-    RepeatBinding.prototype.isTerminal = true;
-    RepeatBinding.prototype.priority = Binding.Priority.aboveNormal + 1;
-
-    Binding.register("repeat", RepeatBinding.prototype);
+    }
 }

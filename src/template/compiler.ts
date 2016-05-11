@@ -281,7 +281,7 @@ namespace drunk.Template {
             element.removeAttribute(config.prefix + descriptor.name);
         }
 
-        util.extend(descriptor, definition);
+        // util.extend(descriptor, definition);
 
         executor = (viewModel, element, ownerViewModel?: ViewModel, placeholder?: HTMLElement) => {
             Binding.create(viewModel, element, descriptor, ownerViewModel, placeholder);

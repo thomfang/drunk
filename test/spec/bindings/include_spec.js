@@ -3,7 +3,7 @@
 
 describe("Binding.include", function () {
 
-    var includeBinding = drunk.Binding.getByName('include');
+    var Ctor = drunk.Binding.getByName('include');
 
     var binding;
 
@@ -23,10 +23,7 @@ describe("Binding.include", function () {
     add("b.html");
 
     beforeEach(function () {
-        binding = Object.create(includeBinding);
-        binding._isActived = true;
-        binding.viewModel = new drunk.ViewModel();
-        binding.element = drunk.dom.create("<div></div>");
+        binding = new Ctor(new drunk.Component(), drunk.dom.create("<div></div>"), {})
     });
 
     it("should toggle template when url variable changed", function (done) {

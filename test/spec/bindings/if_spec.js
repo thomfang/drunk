@@ -2,15 +2,13 @@
 /// <reference path="../../jasmine.d.ts" />
 
 describe("Binding.if", function () {
-    var ifBinding = drunk.Binding.getByName('if');
+    var Ctor = drunk.Binding.getByName('if');
     
     var binding, container;
     
     beforeEach(function () {
         container = drunk.dom.create("<div></div>");
-        binding = Object.create(ifBinding);
-        binding.element = drunk.dom.create("<div drunk-class='a'></div>");
-        binding.viewModel = new drunk.ViewModel();
+        binding = new Ctor(new drunk.Component(), drunk.dom.create("<div drunk-class='a'></div>"), {})
         
         container.appendChild(binding.element);
         binding.init();

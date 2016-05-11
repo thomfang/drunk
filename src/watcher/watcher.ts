@@ -36,7 +36,6 @@ namespace drunk {
         value: any;
 
         /**
-         * 每个watcher对应一个表达式,watcher管理着对应这个表达式更新的回调函数.watcher在对表达式进行求值是,访问每个数据的getter,并得到该数据的observer引用,然后订阅该observer.当某个数据更新时该数据的observer实例会发送通知给所有的watcher,watcher接收到消息后会调用所有的表达式更新的回调.
          * @param   viewModel   ViewModel实例，用于访问数据
          * @param   expression  监听的表达式
          * @param   isDeepWatch 是否深度监听,当对象或数组里的任意一个数据改变都会发送更新消息

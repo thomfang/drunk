@@ -1,21 +1,42 @@
 /// <reference path="../binding.ts" />
 /// <reference path="../../util/dom.ts" />
 
-drunk.Binding.register("class", {
+namespace drunk {
 
-    _oldValue: null,
+    import dom = drunk.dom;
+    import Binding = drunk.Binding;
 
-    update(data: any) {
-        let elem = this.element;
+    @binding("class")
+    class ClassBinding extends Binding implements IBindingDefinition {
 
-        if (Array.isArray(data)) {
+        private _oldClass: any;
+
+        update(data: any) {
+            let elem = this.element;
+
+            if (Array.isArray(data)) {
+                this._toggleClassList(data);
+            }
+            else if (data && typeof data === 'object') {
+                this._setClassByMap(data);
+            }
+            else if (typeof data === 'string' && (data = data.trim()) !== this._oldClass) {
+                this._toggleClassString(data);
+            }
+        }
+
+        release() {
+            this._oldClass = null;
+        }
+
+        private _toggleClassList(classList: string[]) {
             let classMap = {};
-            let oldValue = this._oldValue;
+            let oldClass = this._oldClass;
 
-            if (oldValue) {
-                oldValue.forEach(name => {
-                    if (data.indexOf(name) === -1) {
-                        drunk.dom.removeClass(elem, name);
+            if (oldClass) {
+                oldClass.forEach(name => {
+                    if (classList.indexOf(name) === -1) {
+                        dom.removeClass(this.element, name);
                     }
                     else {
                         classMap[name] = true;
@@ -23,38 +44,36 @@ drunk.Binding.register("class", {
                 });
             }
 
-            data.forEach(name => {
+            classList.forEach(name => {
                 if (!classMap[name]) {
-                    drunk.dom.addClass(elem, name);
+                    dom.addClass(this.element, name);
                 }
             });
 
-            this._oldValue = data;
+            this._oldClass = classList;
         }
-        else if (data && typeof data === 'object') {
-            Object.keys(data).forEach(name => {
-                if (data[name]) {
-                    drunk.dom.addClass(elem, name);
+
+        private _setClassByMap(classMap: { [name: string]: boolean }) {
+            Object.keys(classMap).forEach(name => {
+                if (classMap[name]) {
+                    dom.addClass(this.element, name);
                 }
                 else {
-                    drunk.dom.removeClass(elem, name);
+                    dom.removeClass(this.element, name);
                 }
             });
         }
-        else if (typeof data === 'string' && (data = data.trim()) !== this._oldValue) {
-            if (this._oldValue) {
-                drunk.dom.removeClass(elem, this._oldValue);
+
+        private _toggleClassString(str: string) {
+            if (this._oldClass) {
+                dom.removeClass(this.element, this._oldClass);
             }
 
-            this._oldValue = data;
+            this._oldClass = str;
 
-            if (data) {
-                drunk.dom.addClass(elem, data);
+            if (str) {
+                dom.addClass(this.element, str);
             }
         }
-    },
-
-    release() {
-        this._oldValue = null;
     }
-});
+}

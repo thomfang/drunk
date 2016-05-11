@@ -24,7 +24,7 @@ describe("Binding", function () {
         var handler = {};
         Binding.register("test", handler);
 
-        expect(Binding.getByName('test')).toBe(handler);
+        expect(typeof Binding.getByName('test')).toBe("function");
     });
 
     it("normal binding", function (done) {

@@ -5,45 +5,54 @@
 /// <reference path="../../promise/promise.ts" />
 /// <reference path="../../util/dom.ts" />
 
-drunk.Binding.register("include", {
+namespace drunk {
+    
+    import dom = drunk.dom;
+    import util = drunk.util;
+    import Template = drunk.Template;
+    import Binding = drunk.Binding;
 
-    priority: drunk.Binding.Priority.low + 1,
+    @binding("include")
+    class IncludeBinding extends Binding implements IBindingDefinition {
 
-    _unbind: null,
-    _url: null,
-    _elements: null,
+        static priority = Binding.Priority.low + 1;
 
-    update(url: string) {
-        if (!this._isActived || (url && url === this._url)) {
-            return;
+        _url: string;
+        _unbind: Function;
+        _elements: HTMLElement[];
+
+        update(url: string) {
+            if (!this._isActived || (url && url === this._url)) {
+                return;
+            }
+
+            this._url = url;
+            this._removeBind();
+
+            if (url) {
+                return Template.renderFragment(url, null, true).then((fragment) => this._createBinding(fragment));
+            }
         }
 
-        this._url = url;
-        this._removeBind();
-
-        if (url) {
-            return drunk.Template.renderFragment(url, null, true).then((fragment) => this._createBinding(fragment));
+        release() {
+            this._removeBind();
+            this._url = this._unbind = null;
         }
-    },
 
-    _createBinding(fragment: Node) {
-        this._elements = drunk.util.toArray(fragment.childNodes);
-        this._elements.forEach(el => this.element.appendChild(el));
-        this._unbind = drunk.Template.compile(this._elements)(this.viewModel, this._elements);
-    },
-
-    _removeBind() {
-        if (this._elements) {
-            let unbind = this._unbind;
-            drunk.dom.remove(this._elements).then(() => {
-                unbind();
-            });
-            this._elements = null;
+        private _createBinding(fragment: Node) {
+            this._elements = util.toArray(fragment.childNodes);
+            this._elements.forEach(el => this.element.appendChild(el));
+            this._unbind = Template.compile(this._elements)(this.viewModel, this._elements);
         }
-    },
 
-    release() {
-        this._removeBind();
-        this._url = this._unbind = null;
+        private _removeBind() {
+            if (this._elements) {
+                let unbind = this._unbind;
+                dom.remove(this._elements).then(() => {
+                    unbind();
+                });
+                this._elements = null;
+            }
+        }
     }
-});
+}

@@ -1,27 +1,32 @@
 /// <reference path="../binding.ts" />
 
-drunk.Binding.register("show", {
+namespace drunk {
 
-    update(isVisible: boolean) {
-        var style = this.element.style;
-        let action = this.element[drunk.Action.weakRefKey];
+    @binding('show')
+    class ShowBinding extends Binding {
 
-        if (!isVisible) {
-            if (action) {
-                action.runActionByType(drunk.Action.Type.removed);
-                drunk.Action.process(this.element).then(() => {
+        update(isVisible: boolean) {
+            var style = this.element.style;
+            let action: drunk.ActionBinding = this.element[drunk.Action.weakRefKey];
+
+            if (!isVisible) {
+                if (action) {
+                    action.$runActionByType(drunk.Action.Type.removed);
+                    drunk.Action.process(this.element).then(() => {
+                        style.display = 'none';
+                    });
+                }
+                else {
                     style.display = 'none';
-                });
+                }
             }
-            else {
-                style.display = 'none';
-            }
-        }
-        else if (isVisible) {
-            style.display = '';
-            if (action) {
-                action.runActionByType(drunk.Action.Type.created);
+            else if (isVisible) {
+                style.display = '';
+                if (action) {
+                    action.$runActionByType(drunk.Action.Type.created);
+                }
             }
         }
     }
-});
+}
+

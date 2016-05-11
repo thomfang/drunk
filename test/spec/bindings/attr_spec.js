@@ -3,13 +3,11 @@
 
 describe("Binding.attr", function () {
     
-    var definition = drunk.Binding.getByName('attr');
+    var Ctor = drunk.Binding.getByName('attr');
     var binding;
     
     beforeEach(function () {
-        binding = drunk.util.extend({
-            element: drunk.dom.create("<div></div>")
-        }, definition);
+        binding = new Ctor(new drunk.Component(), drunk.dom.create("<div></div>"), {});
     });
     
     it("simple variable literal", function () {

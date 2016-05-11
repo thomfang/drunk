@@ -3,12 +3,11 @@
 
 describe("Binding.repeat", function () {
 
+    var Ctor = drunk.Binding.getByName('repeat');
     var binding;
 
     beforeEach(function () {
-        binding = Object.create(drunk.Binding.getByName('repeat'));
-        binding.element = drunk.dom.create("<div></div>");
-        binding.viewModel = new drunk.ViewModel();
+        binding = new Ctor(new drunk.Component(), drunk.dom.create("<div></div>"), {});
     });
 
     it("should create the common properties", function () {

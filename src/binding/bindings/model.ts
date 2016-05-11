@@ -3,7 +3,12 @@
 
 namespace drunk {
 
-    Binding.register("model", {
+    @binding("model")
+    class ModelBinding extends Binding implements IBindingDefinition {
+        
+        private _changedEvent: string;
+        private _updateView: Function;
+        private _getValue: Function;
 
         init() {
             let tag = this.element.tagName.toLowerCase();
@@ -21,7 +26,7 @@ namespace drunk {
 
             this._changedHandler = this._changedHandler.bind(this);
             dom.on(this.element, this._changedEvent, this._changedHandler);
-        },
+        }
 
         initInput() {
             let type = this.element.type;
@@ -42,52 +47,52 @@ namespace drunk {
                 default:
                     this.initCommon();
             }
-        },
+        }
 
         initCheckbox() {
             this._changedEvent = "change";
             this._updateView = setCheckboxValue;
             this._getValue = getCheckboxValue;
-        },
+        }
 
         initRadio() {
             this._changedEvent = "change";
             this._updateView = setRadioValue;
             this._getValue = getCommonValue;
-        },
+        }
 
         initSelect() {
             this._changedEvent = "change";
             this._updateView = setSelectValue;
             this._getValue = getSelectValue;
-        },
+        }
 
         initTextarea() {
             this._changedEvent = "input";
             this._updateView = setCommonValue;
             this._getValue = getCommonValue;
-        },
+        }
 
         initCommon() {
             this._changedEvent = "change";
             this._updateView = setCommonValue;
             this._getValue = getCommonValue;
-        },
+        }
 
         update(newValue, oldValue) {
             this._updateView(newValue);
-        },
+        }
 
         release() {
             this._changedHandler = null;
             dom.off(this.element, this._changedEvent, this._changedHandler);
-        },
-
-        _changedHandler() {
-            this.$setValue(this._getValue(), true);
         }
 
-    });
+        _changedHandler() {
+            this.$setValue(this._getValue());
+        }
+
+    }
 
     function setCheckboxValue(newValue) {
         this.element.checked = !!newValue;
@@ -140,5 +145,4 @@ namespace drunk {
     function getCommonValue() {
         return this.element.value;
     }
-
 }

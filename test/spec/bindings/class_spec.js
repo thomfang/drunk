@@ -2,14 +2,11 @@
 /// <reference path="../../../build/drunk.d.ts" />
 
 describe("Binding.class", function () {
-    var update = drunk.Binding.getByName('class').update;
+    var Ctor = drunk.Binding.getByName('class');
     var binding;
     
     beforeEach(function () {
-        binding = {
-            update:  update,
-            element: drunk.dom.create("<div></div>")
-        };
+        binding = new Ctor(new drunk.Component(), drunk.dom.create("<div></div>"), {});
     });
     
     it("simple varaible literal", function () {
