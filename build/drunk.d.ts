@@ -372,58 +372,6 @@ declare namespace drunk.util {
     function ajax<T>(options: IAjaxOptions): Promise<T>;
 }
 /**
- * 调度器模块
- */
-declare namespace drunk.Scheduler {
-    import Promise = drunk.Promise;
-    /**
-     * 调度器优先级
-     */
-    enum Priority {
-        max = 15,
-        high = 13,
-        aboveNormal = 9,
-        normal = 0,
-        belowNormal = -9,
-        idle = -13,
-        min = -15,
-    }
-    /**
-     * 调度方法
-     * @param  work      调度的执行函数
-     * @param  priority  优先级
-     * @param  context   上下文
-     */
-    function schedule(work: IWork, priority?: Priority, context?: any): IJob;
-    /**
-     * 当指定优化级的任何都执行完成后触发的回调
-     * @param  priority  优先级
-     * @param  callback  回调
-     */
-    function requestDrain(priority: Priority, callback: () => any): any;
-    /**
-     * 当指定优化级的任何都执行完成后触发的回调
-     * @param  priority  优先级
-     * @param  callback  回调
-     */
-    function requestDrainPromise(priority: Priority): Promise<{}>;
-    interface IJob {
-        priority: Priority;
-        completed: boolean;
-        cancel(): void;
-        pause(): void;
-        resume(): void;
-    }
-    interface IJobInfo {
-        shouldYield: boolean;
-        setWork(work: (jobInfo: IJobInfo) => any): void;
-        setPromise(promise: Promise<IWork>): void;
-    }
-    interface IWork {
-        (jobInfo: IJobInfo): any;
-    }
-}
-/**
  * 转换后的可以监控对象
  * 添加了设置和移除字段的两个能发送数据更新的方法。
  */
@@ -1056,6 +1004,7 @@ declare namespace drunk {
          */
         function process(target: HTMLElement): Promise<any>;
         function process(target: HTMLElement[]): Promise<any>;
+        function triggerAction(target: HTMLElement, type: string): Promise<any>;
     }
     /**
      * action绑定的实现
@@ -1064,6 +1013,7 @@ declare namespace drunk {
         static priority: Binding.Priority;
         private _actionNames;
         private _actionJob;
+        private _currType;
         init(): void;
         /**
          * 解析action的定义表达式

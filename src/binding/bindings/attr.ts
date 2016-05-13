@@ -16,7 +16,7 @@ namespace drunk {
                 // 如果有提供指定的属性名
                 this._setAttribute(this.attrName, newValue);
             }
-            else if (drunk.util.isObject(newValue)) {
+            else if (util.isObject(newValue)) {
                 Object.keys(newValue).forEach(name => {
                     this._setAttribute(name, newValue[name]);
                 });

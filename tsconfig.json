@@ -18,7 +18,6 @@
         "src/util/util.ts",
         "src/util/querystring.ts",
         "src/util/xhr.ts",
-        "src/scheduler/scheduler.ts",
         "src/observable/observableArray.ts",
         "src/observable/observableObject.ts",
         "src/observable/observer.ts",

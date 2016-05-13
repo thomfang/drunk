@@ -1,0 +1,11 @@
+{
+    "compilerOptions": {
+        "noImplicitAny": false,
+        "removeComments": true,
+        "target": "es5",
+        "preserveConstEnums": true,
+        "declaration": true,
+        "sourceMap": true,
+        "experimentalDecorators": true
+    }
+}

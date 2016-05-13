@@ -1,3 +1,14 @@
+var __extends = (this && this.__extends) || function (d, b) {
+    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+    function __() { this.constructor = d; }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+};
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
 var drunk;
 (function (drunk) {
     (function (PromiseState) {
@@ -75,7 +86,7 @@ var drunk;
     function publish(promise, value, state) {
         promise._state = state;
         promise._value = value;
-        nextTick(function () {
+        asap(function () {
             var listeners = promise._listeners;
             var total = listeners.length;
             if (!total) {
@@ -87,7 +98,7 @@ var drunk;
             listeners.length = 0;
         });
     }
-    function nextTick(callback) {
+    function asap(callback) {
         // setTimeout(callback, 0);
         callback();
     }
@@ -247,9 +258,9 @@ var drunk;
             }
             var promise = new Promise(noop);
             if (state) {
-                var callback = arguments[state - 1];
-                nextTick(function () {
-                    invokeCallback(state, promise, callback, value);
+                var callback_1 = arguments[state - 1];
+                asap(function () {
+                    invokeCallback(state, promise, callback_1, value);
                 });
             }
             else {
@@ -261,7 +272,7 @@ var drunk;
             return this.then(null, onRejection);
         };
         return Promise;
-    })();
+    }());
     drunk.Promise = Promise;
 })(drunk || (drunk = {}));
 /**
@@ -395,7 +406,7 @@ var drunk;
             delete this._cacheMap[tail.key];
         };
         return Cache;
-    })();
+    }());
     drunk.Cache = Cache;
 })(drunk || (drunk = {}));
 /**
@@ -753,7 +764,7 @@ var drunk;
             configurable: true
         });
         return Map;
-    })();
+    }());
     drunk.Map = Map;
 })(drunk || (drunk = {}));
 /// <reference path="../util/util.ts" />
@@ -888,7 +899,7 @@ var drunk;
             eventCache[id] = null;
         };
         return EventEmitter;
-    })();
+    }());
     drunk.EventEmitter = EventEmitter;
 })(drunk || (drunk = {}));
 /// <reference path="./util.ts" />
@@ -1003,326 +1014,6 @@ var drunk;
         util.ajax = ajax;
     })(util = drunk.util || (drunk.util = {}));
 })(drunk || (drunk = {}));
-/// <reference path="../promise/promise.ts" />
-/// <reference path="../util/util.ts" />
-/**
- * 调度器模块
- */
-var drunk;
-(function (drunk) {
-    var Scheduler;
-    (function (Scheduler) {
-        var util = drunk.util;
-        var Promise = drunk.Promise;
-        /**
-         * 调度器优先级
-         */
-        (function (Priority) {
-            Priority[Priority["max"] = 15] = "max";
-            Priority[Priority["high"] = 13] = "high";
-            Priority[Priority["aboveNormal"] = 9] = "aboveNormal";
-            Priority[Priority["normal"] = 0] = "normal";
-            Priority[Priority["belowNormal"] = -9] = "belowNormal";
-            Priority[Priority["idle"] = -13] = "idle";
-            Priority[Priority["min"] = -15] = "min";
-        })(Scheduler.Priority || (Scheduler.Priority = {}));
-        var Priority = Scheduler.Priority;
-        ;
-        var TIME_SLICE = 30;
-        var PRIORITY_TAIL = Priority.min - 1;
-        var isRunning = false;
-        var immediateYield = false;
-        var highWaterMark = PRIORITY_TAIL;
-        var jobStore = {};
-        var drainPriorityQueue = [];
-        var drainListeners = {};
-        /**
-         * 调度方法
-         * @param  work      调度的执行函数
-         * @param  priority  优先级
-         * @param  context   上下文
-         */
-        function schedule(work, priority, context) {
-            if (priority === void 0) { priority = Priority.normal; }
-            var job = new Job(work, clampPriority(priority), context);
-            addJobAtTailOfPriority(job);
-            return job;
-        }
-        Scheduler.schedule = schedule;
-        /**
-         * 当指定优化级的任何都执行完成后触发的回调
-         * @param  priority  优先级
-         * @param  callback  回调
-         */
-        function requestDrain(priority, callback) {
-            if (highWaterMark === PRIORITY_TAIL) {
-                return callback();
-            }
-            if (!drainListeners[priority]) {
-                drainListeners[priority] = [];
-            }
-            util.addArrayItem(drainPriorityQueue, priority);
-            util.addArrayItem(drainListeners[priority], callback);
-            drainPriorityQueue.sort();
-        }
-        Scheduler.requestDrain = requestDrain;
-        /**
-         * 当指定优化级的任何都执行完成后触发的回调
-         * @param  priority  优先级
-         * @param  callback  回调
-         */
-        function requestDrainPromise(priority) {
-            return new Promise(function (resolve) { return requestDrain(priority, resolve); });
-        }
-        Scheduler.requestDrainPromise = requestDrainPromise;
-        /**
-         * 调度器生成的工作对象类
-         */
-        var Job = (function () {
-            /**
-             * @param  _work    调度的回调
-             * @param  priority 工作的优先级
-             * @param  _context 回调的this参数
-             */
-            function Job(_work, _priority, _context) {
-                this._work = _work;
-                this._priority = _priority;
-                this._context = _context;
-            }
-            Object.defineProperty(Job.prototype, "priority", {
-                /**
-                 * 优先级
-                 */
-                get: function () {
-                    return this._priority;
-                },
-                set: function (value) {
-                    this._priority = clampPriority(value);
-                },
-                enumerable: true,
-                configurable: true
-            });
-            /**
-             * 取消该否工作，会释放引用
-             */
-            Job.prototype.cancel = function () {
-                if (this.completed || this._cancelled) {
-                    return;
-                }
-                this._remove();
-                this._release();
-            };
-            /**
-             * 暂停该工作，不会释放引用
-             */
-            Job.prototype.pause = function () {
-                if (this.completed || this._cancelled) {
-                    return;
-                }
-                this._remove();
-                this._isPaused = true;
-            };
-            /**
-             * 恢复工作
-             */
-            Job.prototype.resume = function () {
-                if (!this.completed && !this._cancelled && this._isPaused) {
-                    addJobAtTailOfPriority(this);
-                    this._isPaused = false;
-                }
-            };
-            /**
-             * 内部方法，执行回调
-             */
-            Job.prototype._execute = function (shouldYield) {
-                var _this = this;
-                var jobInfo = new JobInfo(shouldYield);
-                this._work.call(this._context, jobInfo);
-                var result = jobInfo._result;
-                jobInfo._release();
-                if (result) {
-                    if (typeof result === 'function') {
-                        this._work = result;
-                        addJobAtHeadOfPriority(this);
-                    }
-                    else {
-                        result.then(function (newWork) {
-                            if (_this._cancelled) {
-                                return;
-                            }
-                            _this._work = newWork;
-                            addJobAtTailOfPriority(_this);
-                        });
-                    }
-                }
-                else {
-                    this._release();
-                    this.completed = true;
-                }
-            };
-            /**
-             * 从调度任务队列中移除
-             */
-            Job.prototype._remove = function () {
-                util.removeArrayItem(jobStore[this.priority], this);
-                updateHighWaterMark();
-            };
-            /**
-             * 释放引用
-             */
-            Job.prototype._release = function () {
-                this._work = null;
-                this._context = null;
-                this._priority = null;
-            };
-            return Job;
-        })();
-        var JobInfo = (function () {
-            function JobInfo(_shouldYield) {
-                this._shouldYield = _shouldYield;
-            }
-            Object.defineProperty(JobInfo.prototype, "shouldYield", {
-                /**
-                 * 是否应该让出线程
-                 */
-                get: function () {
-                    this._throwIfDisabled();
-                    return this._shouldYield();
-                },
-                enumerable: true,
-                configurable: true
-            });
-            /**
-             * 设置当前优先级的新一个调度工作，会立即添加到该优先级的任务队列尾部
-             */
-            JobInfo.prototype.setWork = function (work) {
-                this._throwIfDisabled();
-                this._result = work;
-            };
-            /**
-             * 当promise任务完成后设置当前优先级的新一个调度工作，会添加到该优先级的任务队列尾部
-             */
-            JobInfo.prototype.setPromise = function (promise) {
-                this._throwIfDisabled();
-                this._result = promise;
-            };
-            /**
-             * 释放引用并设置API不再可用
-             */
-            JobInfo.prototype._release = function () {
-                this._publicApiDisabled = true;
-                this._result = null;
-                this._shouldYield = null;
-            };
-            /**
-             * 如果API不再可用，用户尝试调用会抛出错误
-             */
-            JobInfo.prototype._throwIfDisabled = function () {
-                if (this._publicApiDisabled) {
-                    throw new Error('The APIs of this JobInfo object are disabled');
-                }
-            };
-            return JobInfo;
-        })();
-        for (var i = Priority.min; i <= Priority.max; i++) {
-            jobStore[i] = [];
-        }
-        function addJobAtTailOfPriority(job) {
-            var jobList = jobStore[job.priority];
-            jobList.push(job);
-            if (job.priority > highWaterMark) {
-                highWaterMark = job.priority;
-                if (isRunning) {
-                    immediateYield = true;
-                }
-            }
-            startRunning();
-        }
-        function addJobAtHeadOfPriority(job) {
-            var jobList = jobStore[job.priority];
-            jobList.unshift(job);
-            if (job.priority > highWaterMark) {
-                highWaterMark = job.priority;
-                if (isRunning) {
-                    immediateYield = true;
-                }
-            }
-            startRunning();
-        }
-        function clampPriority(priority) {
-            priority = priority | 0;
-            return Math.min(Priority.max, Math.max(Priority.min, priority));
-        }
-        function run() {
-            if (drainPriorityQueue.length && highWaterMark === PRIORITY_TAIL) {
-                isRunning = false;
-                return drainPriorityQueue.forEach(function (priority) { return notifyAtPriorityDrainListener(priority); });
-            }
-            immediateYield = false;
-            var endTime = Date.now() + TIME_SLICE;
-            var yieldForPriorityBoundary;
-            var ranJobSuccessfully;
-            var currJob;
-            try {
-                function shouldYield() {
-                    if (immediateYield) {
-                        return true;
-                    }
-                    if (drainPriorityQueue.length) {
-                        return false;
-                    }
-                    return Date.now() > endTime;
-                }
-                while (highWaterMark >= Priority.min && !shouldYield() && !yieldForPriorityBoundary) {
-                    var currPriority = highWaterMark;
-                    var jobList = jobStore[currPriority];
-                    do {
-                        currJob = jobList.shift();
-                        ranJobSuccessfully = false;
-                        currJob._execute(shouldYield);
-                        ranJobSuccessfully = true;
-                    } while (jobList.length && !shouldYield());
-                    if (ranJobSuccessfully && !jobList.length) {
-                        notifyAtPriorityDrainListener(currPriority);
-                        yieldForPriorityBoundary = true;
-                    }
-                }
-            }
-            finally {
-                if (!ranJobSuccessfully && currJob) {
-                    currJob.cancel();
-                }
-                updateHighWaterMark();
-            }
-            immediateYield = false;
-            isRunning = false;
-            if (highWaterMark >= Priority.min) {
-                startRunning();
-            }
-        }
-        function updateHighWaterMark() {
-            var priority = Priority.max;
-            while (priority > PRIORITY_TAIL && !jobStore[priority].length) {
-                priority -= 1;
-            }
-            highWaterMark = priority;
-        }
-        function notifyAtPriorityDrainListener(priority) {
-            if (!drainListeners[priority] || !drainListeners[priority].length) {
-                return;
-            }
-            drainListeners[priority].forEach(function (listener) { return listener(); });
-            drainListeners[priority].length = 0;
-            util.removeArrayItem(drainPriorityQueue, priority);
-        }
-        function startRunning() {
-            if (!isRunning) {
-                isRunning = true;
-                util.execAsyncWork(run);
-            }
-        }
-    })(Scheduler = drunk.Scheduler || (drunk.Scheduler = {}));
-})(drunk || (drunk = {}));
 /// <reference path="../util/util.ts" />
 /// <reference path="./observable.ts" />
 /**
@@ -1391,11 +1082,6 @@ var drunk;
 /// <reference path="./observableArray.ts" />
 /// <reference path="./observableObject.ts" />
 /// <reference path="../events/eventemitter.ts" />
-var __extends = (this && this.__extends) || function (d, b) {
-    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
-    function __() { this.constructor = d; }
-    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-};
 var drunk;
 (function (drunk) {
     var observable;
@@ -1441,7 +1127,7 @@ var drunk;
                 this._propertyChangedCallbackList.forEach(function (callback) { return callback(); });
             };
             return Observer;
-        })(EventEmitter);
+        }(EventEmitter));
         observable.Observer = Observer;
     })(observable = drunk.observable || (drunk.observable = {}));
 })(drunk || (drunk = {}));
@@ -1784,28 +1470,28 @@ var drunk;
         function parseFilterDef(str, skipSetter) {
             if (skipSetter === void 0) { skipSetter = false; }
             if (!filterCache.get(str)) {
-                var def = [];
-                var idx;
+                var def_1 = [];
+                var idx_1;
                 str.replace(reFilter, function ($0, quote, name, args, i) {
                     if (!name) {
                         return $0;
                     }
-                    if (idx == null) {
+                    if (idx_1 == null) {
                         // 记录filter开始的位置， 因为filter只能是连续的出现一直到表达式结尾
-                        idx = i;
+                        idx_1 = i;
                     }
                     var param;
                     if (args) {
                         param = parseGetter('[' + args.slice(1) + ']', false, true);
                     }
-                    def.push({ name: name, param: param });
+                    def_1.push({ name: name, param: param });
                 });
-                if (!def.length) {
+                if (!def_1.length) {
                     return;
                 }
                 filterCache.set(str, {
-                    input: str.slice(0, idx).trim(),
-                    filters: def
+                    input: str.slice(0, idx_1).trim(),
+                    filters: def_1
                 });
             }
             return filterCache.get(str);
@@ -1842,19 +1528,19 @@ var drunk;
         function parseIdentifier(str) {
             var cache = identifierCache.get(str);
             if (!cache) {
-                var index = 0;
-                var proxies = [];
-                var identifiers = [];
+                var index_1 = 0;
+                var proxies_1 = [];
+                var identifiers_1 = [];
                 var formated = str.replace(reIdentifier, function (x, p, i) {
                     if (p === '"' || p === "'" || str[i - 1] === '.') {
                         // 如果是字符串: "aaa"
                         // 或对象的属性: .aaa
-                        index = i + x.length;
+                        index_1 = i + x.length;
                         return x;
                     }
-                    var prefix = str.slice(index, i); // 前一个字符
+                    var prefix = str.slice(index_1, i); // 前一个字符
                     var suffix = str.slice(i + x.length); // 后一个字符
-                    index = i + x.length;
+                    index_1 = i + x.length;
                     if (isColon(suffix) && isObjectKey(prefix)) {
                         // 如果前一个字符是冒号，再判断是否是对象的Key
                         return x;
@@ -1868,19 +1554,19 @@ var drunk;
                         // method(a) 会转成 __context.getHandler("method")(a)
                         return getHandlerOperation + ' && ' + getHandlerOperation + '("' + x + '")';
                     }
-                    if (identifiers.indexOf(x) < 0) {
+                    if (identifiers_1.indexOf(x) < 0) {
                         // 标记未添加到列表中是
-                        proxies.push('  ' + proxyOperation + '("' + x + '")');
-                        identifiers.push(x);
+                        proxies_1.push('  ' + proxyOperation + '("' + x + '")');
+                        identifiers_1.push(x);
                     }
                     // 否则为属性访问， 直接加上下文
                     // a 转成  __context.a
                     return contextName + '.' + x;
                 });
                 cache = {
-                    proxies: identifiers.length ? ('if (' + proxyOperation + ') {\n' + proxies.join(';\n') + ';\n}\n') : '',
+                    proxies: identifiers_1.length ? ('if (' + proxyOperation + ') {\n' + proxies_1.join(';\n') + ';\n}\n') : '',
                     formated: formated,
-                    identifiers: identifiers
+                    identifiers: identifiers_1
                 };
                 identifierCache.set(str, cache);
             }
@@ -1967,20 +1653,20 @@ var drunk;
             var tokens = tokenCache.get(expression);
             if (!tokens) {
                 tokens = [];
-                var index = 0;
+                var index_2 = 0;
                 var length_1 = expression.length;
                 expression.replace(reInterpolate, function ($0, exp, $2, i) {
-                    if (i > index) {
-                        tokens.push(expression.slice(index, i));
+                    if (i > index_2) {
+                        tokens.push(expression.slice(index_2, i));
                     }
                     tokens.push({
                         expression: exp.trim()
                     });
-                    index = i + $0.length;
+                    index_2 = i + $0.length;
                     return $0;
                 });
-                if (index < length_1 && index !== 0) {
-                    tokens.push(expression.slice(index));
+                if (index_2 < length_1 && index_2 !== 0) {
+                    tokens.push(expression.slice(index_2));
                 }
                 tokenCache.set(expression, tokens);
             }
@@ -2002,20 +1688,20 @@ var drunk;
         function tokensToGetter(tokens, expression) {
             var getter = interpolateGetterCache.get(expression);
             if (!getter) {
-                var dynamic = false;
-                var filters = [];
+                var dynamic_1 = false;
+                var filters_1 = [];
                 tokens = tokens.map(function (item, i) {
                     if (typeof item === 'string') {
-                        filters[i] = null;
+                        filters_1[i] = null;
                         return item;
                     }
                     if (item && item.expression != null) {
                         getter = parseGetter(item.expression);
-                        filters[i] = getter.filters;
+                        filters_1[i] = getter.filters;
                         if (!getter.dynamic) {
                             return getter((null));
                         }
-                        dynamic = true;
+                        dynamic_1 = true;
                         return getter;
                     }
                     console.error("非法的token:\n", item);
@@ -2029,8 +1715,8 @@ var drunk;
                         return item.call(_this);
                     });
                 };
-                getter.dynamic = dynamic;
-                getter.filters = filters;
+                getter.dynamic = dynamic_1;
+                getter.filters = filters_1;
                 getter.isInterpolate = true;
                 interpolateGetterCache.set(expression, getter);
             }
@@ -2506,7 +2192,7 @@ var drunk;
             var _b, _c;
         };
         return Watcher;
-    })();
+    }());
     drunk.Watcher = Watcher;
     // 遍历访问所有的属性以订阅所有的数据
     function visit(target) {
@@ -2742,7 +2428,7 @@ var drunk;
          */
         Binding.definitions = {};
         return Binding;
-    })();
+    }());
     drunk.Binding = Binding;
     var Binding;
     (function (Binding) {
@@ -2985,18 +2671,12 @@ var drunk;
             return drunk.filter.pipeFor.apply(null, [value, getter.filters, this.$filter, isInterpolate, this]);
         };
         return ViewModel;
-    })(EventEmitter);
+    }(EventEmitter));
     drunk.ViewModel = ViewModel;
 })(drunk || (drunk = {}));
 /// <reference path="../binding.ts" />
 /// <reference path="../../config/config.ts" />
 /// <reference path="../../promise/promise.ts" />
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
-    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-    return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
 var drunk;
 (function (drunk) {
     var util = drunk.util;
@@ -3023,10 +2703,14 @@ var drunk;
          * 动画状态
          */
         var actionMap = {};
+        var propertiesMap = {};
         var propertyPrefix = null;
         var transitionEndEvent = null;
         var animationEndEvent = null;
         function getPropertyName(property) {
+            if (propertiesMap[property]) {
+                return propertiesMap[property];
+            }
             if (propertyPrefix === null) {
                 var style = document.body.style;
                 if ('webkitAnimationDuration' in style) {
@@ -3049,10 +2733,12 @@ var drunk;
                     animationEndEvent = 'animationend';
                 }
             }
-            if (!propertyPrefix) {
-                return property;
+            var value = property;
+            if (propertyPrefix) {
+                value = propertyPrefix + (property.charAt(0).toUpperCase() + property.slice(1));
             }
-            return propertyPrefix + (property.charAt(0).toUpperCase() + property.slice(1));
+            propertiesMap[property] = value;
+            return value;
         }
         /**
          * 注册一个js action
@@ -3135,6 +2821,15 @@ var drunk;
             }));
         }
         Action.process = process;
+        function triggerAction(target, type) {
+            var action = target[Action.weakRefKey];
+            if (action) {
+                action.runActionByType(type);
+                return process(target);
+            }
+            return Promise.resolve();
+        }
+        Action.triggerAction = triggerAction;
         function wait(time) {
             var action = {};
             action.promise = new Promise(function (resolve) {
@@ -3229,10 +2924,12 @@ var drunk;
         ActionBinding.prototype.init = function () {
             var _this = this;
             this.element[Action.weakRefKey] = this;
-            this._actionJob = util.execAsyncWork(function () {
-                _this.runActionByType(Action.Type.created);
-                _this._actionJob = null;
-            });
+            if (document.body && document.body.contains(this.element)) {
+                this._actionJob = util.execAsyncWork(function () {
+                    _this.runActionByType(Action.Type.created);
+                    _this._actionJob = null;
+                });
+            }
         };
         /**
          * 解析action的定义表达式
@@ -3293,6 +2990,9 @@ var drunk;
          * 先取消还在运行的action，再运行指定的action
          */
         ActionBinding.prototype.runActionByType = function (type) {
+            if (type === this._currType) {
+                return;
+            }
             if (this._actionJob) {
                 this._actionJob.cancel();
                 this._actionJob = null;
@@ -3318,7 +3018,7 @@ var drunk;
             drunk.binding("action")
         ], ActionBinding);
         return ActionBinding;
-    })(drunk.Binding);
+    }(drunk.Binding));
     drunk.ActionBinding = ActionBinding;
     function isNumber(value) {
         return !isNaN(parseFloat(value));
@@ -3613,11 +3313,11 @@ var drunk;
             if (element.tagName === 'TEXTAREA') {
                 // 如果是textarea， 它的值有可能存在插值表达式， 比如 "the textarea value with {{some_let}}"
                 // 第一次进行绑定先换成插值表达式
-                var originExecutor = executor;
+                var originExecutor_1 = executor;
                 executor = function (viewModel, textarea) {
                     textarea.value = viewModel.$eval(textarea.value, true);
-                    if (originExecutor) {
-                        return originExecutor(viewModel, textarea);
+                    if (originExecutor_1) {
+                        return originExecutor_1(viewModel, textarea);
                     }
                 };
             }
@@ -3914,32 +3614,32 @@ var drunk;
             tagUid = tagUid.toLowerCase();
             tag.parentNode.removeChild(tag);
             if (!scriptRecord[tagUid]) {
-                var newScript = document.createElement('script');
-                var promise;
+                var newScript_1 = document.createElement('script');
+                var promise = void 0;
                 scriptRecord[tagUid] = true;
-                newScript.setAttribute('type', tag.type || 'text/javascript');
-                newScript.setAttribute('async', 'false');
+                newScript_1.setAttribute('type', tag.type || 'text/javascript');
+                newScript_1.setAttribute('async', 'false');
                 if (tag.id) {
-                    newScript.setAttribute('id', tag.id);
+                    newScript_1.setAttribute('id', tag.id);
                 }
                 if (inline) {
-                    var text = tag.text;
+                    var text_1 = tag.text;
                     promise = lastNonInlineScriptPromise.then(function () {
-                        newScript.text = text;
+                        newScript_1.text = text_1;
                     }).catch(function (e) {
                         // console.warn('脚本加载错误:', e);
                     });
-                    newScript.setAttribute('__', tagUid);
+                    newScript_1.setAttribute('__', tagUid);
                 }
                 else {
                     promise = new Promise(function (resolve) {
-                        newScript.onload = newScript.onerror = function () {
+                        newScript_1.onload = newScript_1.onerror = function () {
                             resolve();
                         };
-                        newScript.setAttribute('src', tag.src);
+                        newScript_1.setAttribute('src', tag.src);
                     });
                 }
-                document.head.appendChild(newScript);
+                document.head.appendChild(newScript_1);
                 return {
                     promise: promise,
                     inline: inline
@@ -4216,7 +3916,7 @@ var drunk;
             templateLoadFailed: 'templateLoadFailed',
         };
         return Component;
-    })(ViewModel);
+    }(ViewModel));
     drunk.Component = Component;
     /**
      * 设置样式
@@ -4282,12 +3982,13 @@ var drunk;
             drunk.binding("on")
         ], EventBinding);
         return EventBinding;
-    })(drunk.Binding);
+    }(drunk.Binding));
 })(drunk || (drunk = {}));
 /// <reference path="../binding.ts" />
 /// <reference path="../../util/util.ts" />
 var drunk;
 (function (drunk) {
+    var util = drunk.util;
     var Binding = drunk.Binding;
     var AttributeBinding = (function (_super) {
         __extends(AttributeBinding, _super);
@@ -4300,7 +4001,7 @@ var drunk;
                 // 如果有提供指定的属性名
                 this._setAttribute(this.attrName, newValue);
             }
-            else if (drunk.util.isObject(newValue)) {
+            else if (util.isObject(newValue)) {
                 Object.keys(newValue).forEach(function (name) {
                     _this._setAttribute(name, newValue[name]);
                 });
@@ -4316,7 +4017,7 @@ var drunk;
             drunk.binding('attr')
         ], AttributeBinding);
         return AttributeBinding;
-    })(Binding);
+    }(Binding));
 })(drunk || (drunk = {}));
 /// <reference path="../binding.ts" />
 /// <reference path="../../util/dom.ts" />
@@ -4351,7 +4052,7 @@ var drunk;
             drunk.binding("bind")
         ], DataBind);
         return DataBind;
-    })(Binding);
+    }(Binding));
 })(drunk || (drunk = {}));
 /// <reference path="../binding.ts" />
 /// <reference path="../../util/dom.ts" />
@@ -4424,7 +4125,7 @@ var drunk;
             drunk.binding("class")
         ], ClassBinding);
         return ClassBinding;
-    })(Binding);
+    }(Binding));
 })(drunk || (drunk = {}));
 /// <reference path="../binding.ts" />
 /// <reference path="../../util/dom.ts" />
@@ -4549,7 +4250,7 @@ var drunk;
             }
             else if (drunk.util.isObject(target)) {
                 var idx = 0;
-                var key;
+                var key = void 0;
                 for (key in target) {
                     ret.push({
                         key: key,
@@ -4570,7 +4271,7 @@ var drunk;
             return ret;
         };
         return RepeatItem;
-    })(drunk.Component);
+    }(drunk.Component));
     drunk.RepeatItem = RepeatItem;
     var regParam = /\s+in\s+/;
     var regComma = /\s*,\s*/;
@@ -4826,7 +4527,7 @@ var drunk;
             drunk.binding("repeat")
         ], RepeatBinding);
         return RepeatBinding;
-    })(Binding);
+    }(Binding));
 })(drunk || (drunk = {}));
 /// <reference path="./repeat.ts" />
 /// <reference path="../binding.ts" />
@@ -4927,7 +4628,7 @@ var drunk;
                     if (!drunk.parser.hasInterpolation(expression)) {
                         // 没有插值表达式
                         // title="someConstantValue"
-                        var value;
+                        var value = void 0;
                         if (attrValue === 'true') {
                             value = true;
                         }
@@ -5014,13 +4715,13 @@ var drunk;
                 if (!result) {
                     throw new Error(expression + ": \u8BE5\u8868\u8FBE\u5F0F\u4E0D\u80FD\u8FDB\u884C\u53CC\u5411\u7ED1\u5B9A");
                 }
-                var ownerProperty = result[1].trim();
+                var ownerProperty_1 = result[1].trim();
                 unwatch = component.$watch(property, function (newValue, oldValue) {
                     var currValue = viewModel.$eval(expression, true);
                     if (newValue === currValue) {
                         return;
                     }
-                    viewModel.$setValue(ownerProperty, newValue);
+                    viewModel.$setValue(ownerProperty_1, newValue);
                 });
                 this.unwatches.push(unwatch);
             }
@@ -5062,7 +4763,7 @@ var drunk;
             drunk.binding("component")
         ], ComponentBinding);
         return ComponentBinding;
-    })(Binding);
+    }(Binding));
 })(drunk || (drunk = {}));
 /// <reference path="../binding.ts" />
 /// <reference path="../../util/dom.ts" />
@@ -5125,7 +4826,7 @@ var drunk;
             drunk.binding("if")
         ], IfBinding);
         return IfBinding;
-    })(Binding);
+    }(Binding));
 })(drunk || (drunk = {}));
 /// <reference path="../binding.ts" />
 /// <reference path="../../template/loader.ts" />
@@ -5167,9 +4868,9 @@ var drunk;
         };
         IncludeBinding.prototype._removeBind = function () {
             if (this._elements) {
-                var unbind = this._unbind;
+                var unbind_1 = this._unbind;
                 dom.remove(this._elements).then(function () {
-                    unbind();
+                    unbind_1();
                 });
                 this._elements = null;
             }
@@ -5179,7 +4880,7 @@ var drunk;
             drunk.binding("include")
         ], IncludeBinding);
         return IncludeBinding;
-    })(Binding);
+    }(Binding));
 })(drunk || (drunk = {}));
 /// <reference path="../binding.ts" />
 /// <reference path="../../util/dom.ts" />
@@ -5265,7 +4966,7 @@ var drunk;
             drunk.binding("model")
         ], ModelBinding);
         return ModelBinding;
-    })(drunk.Binding);
+    }(drunk.Binding));
     function setCheckboxValue(newValue) {
         this.element.checked = !!newValue;
     }
@@ -5291,7 +4992,7 @@ var drunk;
             drunk.util.toArray(this.element.options).forEach(function (option) { return option.selected = false; });
         }
         else {
-            for (var i = 0, option_1 = void 0; option_1 = this.element.options[i]; i++) {
+            for (var i = 0, option_1; option_1 = this.element.options[i]; i++) {
                 if (option_1.value == newValue) {
                     option_1.selected = true;
                     return;
@@ -5314,6 +5015,7 @@ var drunk;
 /// <reference path="../binding.ts" />
 var drunk;
 (function (drunk) {
+    var Action = drunk.Action;
     var ShowBinding = (function (_super) {
         __extends(ShowBinding, _super);
         function ShowBinding() {
@@ -5321,30 +5023,21 @@ var drunk;
         }
         ShowBinding.prototype.update = function (isVisible) {
             var style = this.element.style;
-            var action = this.element[drunk.Action.weakRefKey];
             if (!isVisible) {
-                if (action) {
-                    action.runActionByType(drunk.Action.Type.removed);
-                    drunk.Action.process(this.element).then(function () {
-                        style.display = 'none';
-                    });
-                }
-                else {
+                Action.triggerAction(this.element, Action.Type.removed).then(function () {
                     style.display = 'none';
-                }
+                });
             }
             else if (isVisible) {
                 style.display = '';
-                if (action) {
-                    action.runActionByType(drunk.Action.Type.created);
-                }
+                Action.triggerAction(this.element, Action.Type.created);
             }
         };
         ShowBinding = __decorate([
             drunk.binding('show')
         ], ShowBinding);
         return ShowBinding;
-    })(drunk.Binding);
+    }(drunk.Binding));
 })(drunk || (drunk = {}));
 /// <reference path="../binding.ts" />
 /// <reference path="../../component/component.ts" />
@@ -5400,6 +5093,6 @@ var drunk;
             drunk.binding("transclude")
         ], TranscludeBinding);
         return TranscludeBinding;
-    })(drunk.Binding);
+    }(drunk.Binding));
 })(drunk || (drunk = {}));
 //# sourceMappingURL=drunk.js.map

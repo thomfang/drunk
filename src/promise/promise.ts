@@ -94,7 +94,7 @@ namespace drunk {
         promise._state = state;
         promise._value = value;
 
-        nextTick(() => {
+        asap(() => {
             let listeners = promise._listeners;
             let total = listeners.length;
 
@@ -110,7 +110,7 @@ namespace drunk {
         });
     }
 
-    function nextTick<R>(callback: () => any) {
+    function asap<R>(callback: () => any) {
         // setTimeout(callback, 0);
         callback();
     }
@@ -305,7 +305,7 @@ namespace drunk {
             if (state) {
                 let callback = arguments[state - 1];
 
-                nextTick(() => {
+                asap(() => {
                     invokeCallback(state, promise, callback, value);
                 });
             }

@@ -2,29 +2,22 @@
 
 namespace drunk {
 
+    import Action = drunk.Action;
+
     @binding('show')
     class ShowBinding extends Binding {
 
         update(isVisible: boolean) {
             var style = this.element.style;
-            let action: drunk.ActionBinding = this.element[drunk.Action.weakRefKey];
 
             if (!isVisible) {
-                if (action) {
-                    action.runActionByType(drunk.Action.Type.removed);
-                    drunk.Action.process(this.element).then(() => {
-                        style.display = 'none';
-                    });
-                }
-                else {
+                Action.triggerAction(this.element, Action.Type.removed).then(() => {
                     style.display = 'none';
-                }
+                });
             }
             else if (isVisible) {
                 style.display = '';
-                if (action) {
-                    action.runActionByType(drunk.Action.Type.created);
-                }
+                Action.triggerAction(this.element, Action.Type.created);
             }
         }
     }

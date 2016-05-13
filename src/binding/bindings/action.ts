@@ -3,7 +3,7 @@
 /// <reference path="../../promise/promise.ts" />
 
 namespace drunk {
-    
+
     import util = drunk.util;
     import config = drunk.config;
     import Promise = drunk.Promise;
@@ -31,9 +31,9 @@ namespace drunk {
      * 动画模块
      */
     export namespace Action {
-        
+
         export const weakRefKey = 'drunk:action:binding';
-        
+
         /**
          * action的类型
          */
@@ -41,22 +41,27 @@ namespace drunk {
             created: 'created',
             removed: 'removed'
         };
-        
+
         /**
          * js动画定义
          */
         let definitionMap: { [name: string]: IActionDefinition } = {};
-        
+
         /**
          * 动画状态
          */
         let actionMap: { [id: number]: IAction } = {};
+        let propertiesMap: { [name: string]: string } = {};
 
         let propertyPrefix: string = null;
         let transitionEndEvent: string = null;
         let animationEndEvent: string = null;
 
         function getPropertyName(property: string) {
+            if (propertiesMap[property]) {
+                return propertiesMap[property];
+            }
+
             if (propertyPrefix === null) {
                 let style = document.body.style;
 
@@ -82,11 +87,13 @@ namespace drunk {
                 }
             }
 
-            if (!propertyPrefix) {
-                return property;
+            let value = property;
+            if (propertyPrefix) {
+                value = propertyPrefix + (property.charAt(0).toUpperCase() + property.slice(1));
             }
+            propertiesMap[property] = value;
 
-            return propertyPrefix + (property.charAt(0).toUpperCase() + property.slice(1));
+            return value;
         }
 
         /**
@@ -102,7 +109,7 @@ namespace drunk {
 
             definitionMap[name] = definition;
         }
-        
+
         /**
          * 根据名称获取注册的action实现
          * @param   name  action名称
@@ -120,7 +127,7 @@ namespace drunk {
             let id = util.uniqueId(element);
             actionMap[id] = action;
         }
-        
+
         /**
          * 获取元素当前的action对象
          * @param   element  元素节点
@@ -129,7 +136,7 @@ namespace drunk {
             let id = util.uniqueId(element);
             return actionMap[id];
         }
-        
+
         /**
          * 移除当前元素的action引用
          * @param  element
@@ -138,7 +145,7 @@ namespace drunk {
             let id = util.uniqueId(element);
             actionMap[id] = null;
         }
-        
+
         /**
          * 执行单个action,优先判断是否存在js定义的action,再判断是否是css动画
          * @param   element    元素对象
@@ -158,7 +165,7 @@ namespace drunk {
 
             return runMaybeCSSAnimation(element, detail, type);
         }
-        
+
         /**
          * 确认执行元素的所有action
          */
@@ -166,23 +173,32 @@ namespace drunk {
         export function process(target: HTMLElement[]): Promise<any>;
         export function process(target: any) {
             let elements: HTMLElement[];
-            
+
             if (!Array.isArray(target)) {
                 elements = [target];
             }
             else {
                 elements = target;
             }
-            
+
             return Promise.all(elements.map(el => {
                 let action = getCurrentAction(el);
                 return action && action.promise;
             }));
         }
 
+        export function triggerAction(target: HTMLElement, type: string) {
+            let action: ActionBinding = target[weakRefKey];
+            if (action) {
+                action.runActionByType(type);
+                return process(target);
+            }
+            return Promise.resolve();
+        }
+
         function wait(time: number) {
             let action: IAction = {};
-            
+
             action.promise = new Promise((resolve) => {
                 let timerid;
                 action.cancel = () => {
@@ -205,9 +221,9 @@ namespace drunk {
                 let cancel = executor(element, () => {
                     resolve();
                 });
-                
+
                 console.assert(typeof cancel === 'function', `drunk.Action: ${detail}的${type}状态未提供cancel回调函数`);
-                
+
                 action.cancel = () => {
                     action.cancel = null;
                     action.promise = null;
@@ -223,7 +239,7 @@ namespace drunk {
 
             let action: IAction = {};
             let className = detail + type;
-            
+
             // 如果transitionDuration或animationDuration都不为0s的话说明已经设置了该属性
             // 必须先在这里取一次transitionDuration的值,动画才会生效
             let style = getComputedStyle(element, null);
@@ -240,7 +256,7 @@ namespace drunk {
                     // 如果为设置动画直接返回resolve状态
                     return resolve();
                 }
-                
+
                 element.style[getPropertyName('animationFillMode')] = 'both';
 
                 function onTransitionEnd() {
@@ -262,7 +278,7 @@ namespace drunk {
 
                 element.addEventListener(animationEndEvent, onAnimationEnd, false);
                 element.addEventListener(transitionEndEvent, onTransitionEnd, false);
-                
+
                 if (transitionExist) {
                     // 加一个定时器,避免当前属性与transitionend状态下属性的值没有变化时不会触发transitionend事件,
                     // 这里要设置一个定时器保证该事件的触发
@@ -288,18 +304,21 @@ namespace drunk {
      */
     @binding("action")
     export class ActionBinding extends Binding implements IBindingDefinition {
-        
+
         static priority = Binding.Priority.aboveNormal;
 
         private _actionNames: string[];
         private _actionJob: util.IAsyncJob;
+        private _currType: string;
 
         init() {
             this.element[Action.weakRefKey] = this;
-            this._actionJob = util.execAsyncWork(() => {
-                this.runActionByType(Action.Type.created);
-                this._actionJob = null;
-            });
+            if (document.body && document.body.contains(this.element)) {
+                this._actionJob = util.execAsyncWork(() => {
+                    this.runActionByType(Action.Type.created);
+                    this._actionJob = null;
+                });
+            }
         }
 
         /**
@@ -317,7 +336,7 @@ namespace drunk {
                     this._actionNames.reverse();
                 }
             }
-            
+
             let actions = this._actionNames;
             while (isNumber(actions[actions.length - 1])) {
                 actions.pop();
@@ -372,16 +391,19 @@ namespace drunk {
          * 先取消还在运行的action，再运行指定的action
          */
         runActionByType(type: string) {
+            if (type === this._currType) {
+                return;
+            }
             if (this._actionJob) {
                 this._actionJob.cancel();
                 this._actionJob = null;
             }
-            
+
             let currentAction = Action.getCurrentAction(this.element);
             if (currentAction && currentAction.cancel) {
                 currentAction.cancel();
             }
-            
+
             this._parseDefinition(type);
             this._runActions(type);
         }
@@ -390,14 +412,14 @@ namespace drunk {
             if (this._actionJob) {
                 this._actionJob.cancel();
             }
-            
+
             this.runActionByType(Action.Type.removed);
             this.element[Action.weakRefKey] = null;
             this._actionNames = null;
             this._actionJob = null;
         }
     }
-    
+
     function isNumber(value: any) {
         return !isNaN(parseFloat(value));
     }

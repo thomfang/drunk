@@ -3,22 +3,113 @@
 * 最简单的用法，生成一个component实例并与dom元素建立绑定
 
     ```javascript
-    // 绑定到body
+    // 创建一个组件实例,并挂载到body
     
-    var bindingView = new drunk.Component();
-    bindingView.$mount(document.body);
+    var view = new drunk.Component({
+        greeting: 'world'
+    });
+    view.$mount(document.body);
     ```
-    
     
 * 数据绑定
     ```html
     <body>
-        Hello! {{greeting}}
+        Hello {{greeting}}!
+    </body>
+    ```
+    
+* 双向绑定
+    ```html
+    <!--在输入框修改数据后，会更新p标签的内容-->
+    <body>
+        <p>Hello {{greeting}}!</p>
+        <input type="text" drunk-model="greeting" />
+    </body>
+    ```
+    
+* 注册事件
+    ```html
+    <body>
+        <p>Hello {{greeting}}!</p>
+        <input type="text" drunk-model="greeting" />
+        <button drunk-on="click: greeting = ''">清空输入框</button>
+        <button drunk-on="click: clear()">清空输入框</button>
     </body>
     ```
     
     ```javascript
-    bindingView.greeting = 'world';
+    // javascript写法
+    var TestView = drunk.Component.define({
+        greeting: 'world',
+        clear: function() {
+            this.greeting = '';
+        }
+    });
+    new TestView().$mount(document.body)
+    ```
+    
+    ```typescript
+    // typescript写法
+    class TestView extends drunk.Component {
+        greeting = 'world';
+        clear() {
+            this.greeting = '';
+        }
+    }
+    new TestView().$mount(document.body);
+    ```
+    
+* 渲染列表
+    ```html
+    <body>
+        <ul>
+            <li drunk-repeat="user,index in list">
+                NO.{{index}}  -- {{user}}
+            </li>
+        </ul>
+    </body>
+    ```
+    
+    ```javascript
+    var TestView = drunk.Component.define({
+        // list: [ ... ], 这么写会吧list数组拓展到原型，每个实例都会引用同一个list，不推荐
+        init: function () {
+            this.list = [
+                'Todd',
+                'Fon',
+            ]
+        }
+    });
+    new TestView().$mount(document.body)
+    ```
+    
+    ```typescript
+    class TestView extends drunk.Component {
+        // list在typescript中不会拓展到原型
+        list = [
+                'Todd',
+                'Fon',
+        ];
+    }
+    new TestView().$mount(document.body);
+    ```
+    
+* 条件判断
+    ```html
+    <body>
+        <p>当前年龄: {{age}}</p>
+        <p drunk-if="age < 18">18岁禁止观看！</p>
+        <p drunk-if="age >= 18">文明观球！</p>
+        <button drunk-on="click: age += 1">增加一岁</button>
+        <button drunk-on="click: age -= 1">减少一岁</button>
+    </body>
+    ```
+    
+    ```javascript
+    var TestView = drunk.Component.define({
+        age: 16
+    });
+    new TestView().$mount(document.body)
     ```
 
 * 自定义组件
