@@ -1,5 +1,5 @@
 describe("filter", function () {
-    var filter = drunk.filter.filters;
+    var filter = drunk.Filter.filters;
 
     it("escape", function () {
         expect(filter.escape(" & \"'<>")).toEqual("&nbsp;&amp;&nbsp;&quot;&#x27;&lt;&gt;");

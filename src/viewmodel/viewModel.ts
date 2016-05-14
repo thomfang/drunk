@@ -8,7 +8,7 @@
 namespace drunk {
 
     import util = drunk.util;
-    import parser = drunk.parser;
+    import parser = drunk.Parser;
     import Watcher = drunk.Watcher;
     import observable = drunk.observable;
     import EventEmitter = drunk.EventEmitter;
@@ -86,10 +86,13 @@ namespace drunk {
          */
         _watchers: { [expression: string]: Watcher };
 
+        /** 代理的属性 */
+        _proxyProps: { [property: string]: boolean };
+
         /**
          * 过滤器方法,包含内置的
          */
-        $filter: { [name: string]: filter.IFilter };
+        $filter: { [name: string]: Filter.IFilter };
 
         /**
          * 事件处理方法集合
@@ -113,10 +116,11 @@ namespace drunk {
             model = model || {};
             observable.create(model);
 
-            util.defineProperty(this, "$filter", Object.create(filter.filters));
+            util.defineProperty(this, "$filter", Object.create(Filter.filters));
             util.defineProperty(this, "_model", model);
             util.defineProperty(this, "_bindings", []);
             util.defineProperty(this, "_watchers", {});
+            util.defineProperty(this, "_proxyProps", {});
             util.defineProperty(this, "_isActived", true);
 
             Object.keys(model).forEach((property) => {
@@ -129,6 +133,9 @@ namespace drunk {
          * @param   property  需要代理的属性名
          */
         $proxy(property: string): void {
+            if (this._proxyProps[property]) {
+                return;
+            }
             var value = this[property];
 
             if (value === undefined) {
@@ -138,6 +145,7 @@ namespace drunk {
             if (util.proxy(this, property, this._model)) {
                 this._model.$set(property, value);
             }
+            this._proxyProps[property] = true;
         }
 
         /**
@@ -220,6 +228,7 @@ namespace drunk {
             }
             descriptor = computed(this, property, descriptor);
             Object.defineProperty(this, property, descriptor);
+            this._proxyProps[property] = true;
             observer.$emit(property);
         }
 
@@ -231,7 +240,7 @@ namespace drunk {
                 return;
             }
 
-            Object.keys(this._model).forEach(property => {
+            Object.keys(this._proxyProps).forEach(property => {
                 delete this[property];
             });
 
@@ -248,7 +257,7 @@ namespace drunk {
             EventEmitter.cleanup(this);
 
             this._isActived = false;
-            this._model = this._bindings = this._watchers = this.$filter = null;
+            this._model = this._bindings = this._watchers = this._proxyProps = this.$filter = null;
         }
 
         /**
@@ -284,7 +293,7 @@ namespace drunk {
          */
         __execGetter(getter, isInterpolate) {
             var value = getter.call(this);
-            return filter.pipeFor.apply(null, [value, getter.filters, this.$filter, isInterpolate, this]);
+            return Filter.pipeFor.apply(null, [value, getter.filters, this.$filter, isInterpolate, this]);
         }
     }
 }

@@ -1,9 +1,16 @@
+/// <reference path="../../build/drunk.d.ts" />
+/**
+ * 调度器模块
+ */
 var drunk;
 (function (drunk) {
     var Scheduler;
     (function (Scheduler) {
         var util = drunk.util;
         var Promise = drunk.Promise;
+        /**
+         * 调度器优先级
+         */
         (function (Priority) {
             Priority[Priority["max"] = 15] = "max";
             Priority[Priority["high"] = 13] = "high";
@@ -23,6 +30,12 @@ var drunk;
         var jobStore = {};
         var drainPriorityQueue = [];
         var drainListeners = {};
+        /**
+         * 调度方法
+         * @param  work      调度的执行函数
+         * @param  priority  优先级
+         * @param  context   上下文
+         */
         function schedule(work, priority, context) {
             if (priority === void 0) { priority = Priority.normal; }
             var job = new Job(work, clampPriority(priority), context);
@@ -30,6 +43,11 @@ var drunk;
             return job;
         }
         Scheduler.schedule = schedule;
+        /**
+         * 当指定优化级的任何都执行完成后触发的回调
+         * @param  priority  优先级
+         * @param  callback  回调
+         */
         function requestDrain(priority, callback) {
             if (highWaterMark === PRIORITY_TAIL) {
                 return callback();
@@ -42,17 +60,33 @@ var drunk;
             drainPriorityQueue.sort();
         }
         Scheduler.requestDrain = requestDrain;
+        /**
+         * 当指定优化级的任何都执行完成后触发的回调
+         * @param  priority  优先级
+         * @param  callback  回调
+         */
         function requestDrainPromise(priority) {
             return new Promise(function (resolve) { return requestDrain(priority, resolve); });
         }
         Scheduler.requestDrainPromise = requestDrainPromise;
+        /**
+         * 调度器生成的工作对象类
+         */
         var Job = (function () {
+            /**
+             * @param  _work    调度的回调
+             * @param  priority 工作的优先级
+             * @param  _context 回调的this参数
+             */
             function Job(_work, _priority, _context) {
                 this._work = _work;
                 this._priority = _priority;
                 this._context = _context;
             }
             Object.defineProperty(Job.prototype, "priority", {
+                /**
+                 * 优先级
+                 */
                 get: function () {
                     return this._priority;
                 },
@@ -62,6 +96,9 @@ var drunk;
                 enumerable: true,
                 configurable: true
             });
+            /**
+             * 取消该否工作，会释放引用
+             */
             Job.prototype.cancel = function () {
                 if (this.completed || this._cancelled) {
                     return;
@@ -69,6 +106,9 @@ var drunk;
                 this._remove();
                 this._release();
             };
+            /**
+             * 暂停该工作，不会释放引用
+             */
             Job.prototype.pause = function () {
                 if (this.completed || this._cancelled) {
                     return;
@@ -76,12 +116,18 @@ var drunk;
                 this._remove();
                 this._isPaused = true;
             };
+            /**
+             * 恢复工作
+             */
             Job.prototype.resume = function () {
                 if (!this.completed && !this._cancelled && this._isPaused) {
                     addJobAtTailOfPriority(this);
                     this._isPaused = false;
                 }
             };
+            /**
+             * 内部方法，执行回调
+             */
             Job.prototype._execute = function (shouldYield) {
                 var _this = this;
                 var jobInfo = new JobInfo(shouldYield);
@@ -108,10 +154,16 @@ var drunk;
                     this.completed = true;
                 }
             };
+            /**
+             * 从调度任务队列中移除
+             */
             Job.prototype._remove = function () {
                 util.removeArrayItem(jobStore[this.priority], this);
                 updateHighWaterMark();
             };
+            /**
+             * 释放引用
+             */
             Job.prototype._release = function () {
                 this._work = null;
                 this._context = null;
@@ -124,6 +176,9 @@ var drunk;
                 this._shouldYield = _shouldYield;
             }
             Object.defineProperty(JobInfo.prototype, "shouldYield", {
+                /**
+                 * 是否应该让出线程
+                 */
                 get: function () {
                     this._throwIfDisabled();
                     return this._shouldYield();
@@ -131,19 +186,31 @@ var drunk;
                 enumerable: true,
                 configurable: true
             });
+            /**
+             * 设置当前优先级的新一个调度工作，会立即添加到该优先级的任务队列尾部
+             */
             JobInfo.prototype.setWork = function (work) {
                 this._throwIfDisabled();
                 this._result = work;
             };
+            /**
+             * 当promise任务完成后设置当前优先级的新一个调度工作，会添加到该优先级的任务队列尾部
+             */
             JobInfo.prototype.setPromise = function (promise) {
                 this._throwIfDisabled();
                 this._result = promise;
             };
+            /**
+             * 释放引用并设置API不再可用
+             */
             JobInfo.prototype._release = function () {
                 this._publicApiDisabled = true;
                 this._result = null;
                 this._shouldYield = null;
             };
+            /**
+             * 如果API不再可用，用户尝试调用会抛出错误
+             */
             JobInfo.prototype._throwIfDisabled = function () {
                 if (this._publicApiDisabled) {
                     throw new Error('The APIs of this JobInfo object are disabled');
@@ -250,4 +317,4 @@ var drunk;
         }
     })(Scheduler = drunk.Scheduler || (drunk.Scheduler = {}));
 })(drunk || (drunk = {}));
-//# sourceMappingURL=scheduler.js.map
+//# sourceMappingURL=Scheduler.js.map

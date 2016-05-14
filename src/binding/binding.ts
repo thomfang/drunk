@@ -273,7 +273,7 @@ namespace drunk {
             let expression = this.expression;
             let isInterpolate = this.isInterpolate;
             let viewModel = this.viewModel;
-            let getter = parser.parseGetter(expression, isInterpolate);
+            let getter = Parser.parseGetter(expression, isInterpolate);
 
             if (!getter.dynamic) {
                 // 如果只是一个静态表达式直接取值更新

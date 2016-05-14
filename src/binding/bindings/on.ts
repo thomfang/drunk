@@ -33,7 +33,7 @@ namespace drunk {
 
             let type = matches[1];
             let expr = matches[2];
-            let func = parser.parse(expr.trim());
+            let func = Parser.parse(expr.trim());
 
             let handler = (e: Event) => {
                 if (config.debug) {

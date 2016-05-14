@@ -9,7 +9,7 @@ namespace drunk {
     }
 
 
-    export enum PromiseState { PENDING, RESOLVED, REJECTED }
+    enum PromiseState { PENDING, RESOLVED, REJECTED }
 
     function noop() { }
 
@@ -115,10 +115,27 @@ namespace drunk {
         callback();
     }
 
-    function invokeCallback<R>(state: PromiseState, promise: Promise<R>, callback: () => void, value: any) {
+    function invokeCallback<R>(state: PromiseState, promise: Promise<R>, callback: (res: any) => void, value: any) {
         let hasCallback = typeof callback === 'function';
         let done = false;
         let fail = false;
+
+        if (!promise) {
+            if (hasCallback) {
+                try {
+                    callback.call(undefined, value);
+                }
+                catch (e) {
+                    setTimeout(() => { throw e }, 0);
+                }
+            }
+            return;
+        }
+
+        // 已经被处理过的就不管了
+        if (promise._state !== PromiseState.PENDING) {
+            return;
+        }
 
         if (hasCallback) {
             try {
@@ -129,11 +146,6 @@ namespace drunk {
                 value = e;
                 fail = true;
             }
-        }
-
-        // 已经被处理过的就不管了
-        if (promise._state !== PromiseState.PENDING) {
-            return;
         }
 
         // 处理成功
@@ -165,7 +177,7 @@ namespace drunk {
         arr[len + PromiseState.RESOLVED] = onFulfillment;
         arr[len + PromiseState.REJECTED] = onRejection;
     }
-    
+
     export class Promise<R> implements IThenable<R> {
 
         static all<R>(iterable: any[]): Promise<R[]> {
@@ -270,8 +282,14 @@ namespace drunk {
             }
             return promise;
         }
+        
+        static timeout(delay: number = 0) {
+            return new Promise(resolve => {
+                setTimeout(resolve, delay);
+            });
+        }
 
-        _state: PromiseState = PromiseState.PENDING;
+        _state: number = PromiseState.PENDING;
         _value: any;
         _listeners: any[] = [];
 
@@ -315,9 +333,32 @@ namespace drunk {
 
             return promise;
         }
+        
+        done<U>(onFulfillment?: (value: R) => U | IThenable<U>, onRejection?: (reason: any) => U | IThenable<U>): void {
+            let state = this._state;
+            let value = this._value;
+            
+            if (state) {
+                let callback = arguments[state - 1];
+
+                asap(() => {
+                    invokeCallback(state, null, callback, value);
+                });
+            }
+            else {
+                subscribe(this, null, onFulfillment, onRejection);
+            }
+        }
 
         catch<U>(onRejection?: (reason: any) => U | IThenable<U>): Promise<U> {
             return this.then(null, onRejection);
+        }
+        
+        cancel() {
+            if (this._state) {
+                return;
+            }
+            rejectPromise(this, new Error('Canceled'));
         }
     }
 }

@@ -27,12 +27,12 @@ namespace drunk {
         promise?: Promise<any>;
     }
 
+    const weakRefKey = 'drunk:action:binding';
+
     /**
      * 动画模块
      */
     export namespace Action {
-
-        export const weakRefKey = 'drunk:action:binding';
 
         /**
          * action的类型
@@ -199,12 +199,13 @@ namespace drunk {
         function wait(time: number) {
             let action: IAction = {};
 
-            action.promise = new Promise((resolve) => {
+            action.promise = new Promise((resolve, reject) => {
                 let timerid;
                 action.cancel = () => {
                     clearTimeout(timerid);
                     action.cancel = null;
                     action.promise = null;
+                    reject();
                 };
                 timerid = setTimeout(resolve, time);
             });
@@ -217,7 +218,7 @@ namespace drunk {
             let action: IAction = {};
             let executor: IActionExecutor = definition[type];
 
-            action.promise = new Promise((resolve) => {
+            action.promise = new Promise((resolve, reject) => {
                 let cancel = executor(element, () => {
                     resolve();
                 });
@@ -228,6 +229,7 @@ namespace drunk {
                     action.cancel = null;
                     action.promise = null;
                     cancel();
+                    reject();
                 };
             });
 
@@ -247,13 +249,13 @@ namespace drunk {
             let transitionExist = transitionDuration !== '0s';
             let transitionTimerid;
 
-            action.promise = new Promise((resolve) => {
+            action.promise = new Promise((resolve, reject) => {
                 // 给样式赋值后,取animationDuration的值,判断有没有设置animation动画
                 element.classList.add(className);
                 let animationExist = style[getPropertyName('animationDuration')] !== '0s';
 
                 if (!transitionExist && !animationExist) {
-                    // 如果为设置动画直接返回resolve状态
+                    // 如果没有设置动画直接返回resolve状态
                     return resolve();
                 }
 
@@ -292,6 +294,7 @@ namespace drunk {
                     element.classList.remove(className);
                     action.cancel = null;
                     action.promise = null;
+                    reject();
                 };
             });
 
@@ -312,7 +315,7 @@ namespace drunk {
         private _currType: string;
 
         init() {
-            this.element[Action.weakRefKey] = this;
+            this.element[weakRefKey] = this;
             if (document.body && document.body.contains(this.element)) {
                 this._actionJob = util.execAsyncWork(() => {
                     this.runActionByType(Action.Type.created);
@@ -360,7 +363,7 @@ namespace drunk {
             let actionQueue: IAction = {};
             let actions = this._actionNames;
 
-            actionQueue.promise = new Promise((resolve) => {
+            actionQueue.promise = new Promise((resolve, reject) => {
                 let index = 0;
                 let runAction = () => {
                     let detail = actions[index++];
@@ -378,6 +381,7 @@ namespace drunk {
                         currentAction.cancel();
                         actionQueue.cancel = null;
                         actionQueue.promise = null;
+                        reject();
                     };
                 };
 
@@ -414,7 +418,7 @@ namespace drunk {
             }
 
             this.runActionByType(Action.Type.removed);
-            this.element[Action.weakRefKey] = null;
+            this.element[weakRefKey] = null;
             this._actionNames = null;
             this._actionJob = null;
         }

@@ -11,12 +11,12 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 };
 var drunk;
 (function (drunk) {
+    var PromiseState;
     (function (PromiseState) {
         PromiseState[PromiseState["PENDING"] = 0] = "PENDING";
         PromiseState[PromiseState["RESOLVED"] = 1] = "RESOLVED";
         PromiseState[PromiseState["REJECTED"] = 2] = "REJECTED";
-    })(drunk.PromiseState || (drunk.PromiseState = {}));
-    var PromiseState = drunk.PromiseState;
+    })(PromiseState || (PromiseState = {}));
     function noop() { }
     function init(promise, executor) {
         function resolve(value) {
@@ -106,6 +106,21 @@ var drunk;
         var hasCallback = typeof callback === 'function';
         var done = false;
         var fail = false;
+        if (!promise) {
+            if (hasCallback) {
+                try {
+                    callback.call(undefined, value);
+                }
+                catch (e) {
+                    setTimeout(function () { throw e; }, 0);
+                }
+            }
+            return;
+        }
+        // 已经被处理过的就不管了
+        if (promise._state !== PromiseState.PENDING) {
+            return;
+        }
         if (hasCallback) {
             try {
                 value = callback.call(undefined, value);
@@ -115,10 +130,6 @@ var drunk;
                 value = e;
                 fail = true;
             }
-        }
-        // 已经被处理过的就不管了
-        if (promise._state !== PromiseState.PENDING) {
-            return;
         }
         // 处理成功
         if (hasCallback && done) {
@@ -247,6 +258,12 @@ var drunk;
             }
             return promise;
         };
+        Promise.timeout = function (delay) {
+            if (delay === void 0) { delay = 0; }
+            return new Promise(function (resolve) {
+                setTimeout(resolve, delay);
+            });
+        };
         Promise.prototype.then = function (onFulfillment, onRejection) {
             var state = this._state;
             var value = this._value;
@@ -268,8 +285,27 @@ var drunk;
             }
             return promise;
         };
+        Promise.prototype.done = function (onFulfillment, onRejection) {
+            var state = this._state;
+            var value = this._value;
+            if (state) {
+                var callback_2 = arguments[state - 1];
+                asap(function () {
+                    invokeCallback(state, null, callback_2, value);
+                });
+            }
+            else {
+                subscribe(this, null, onFulfillment, onRejection);
+            }
+        };
         Promise.prototype.catch = function (onRejection) {
             return this.then(null, onRejection);
+        };
+        Promise.prototype.cancel = function () {
+            if (this._state) {
+                return;
+            }
+            rejectPromise(this, new Error('Canceled'));
         };
         return Promise;
     }());
@@ -416,17 +452,18 @@ var drunk;
 (function (drunk) {
     var util;
     (function (util) {
-        var nameOfUid = '__DRUNK_UID__';
-        var counter = 0;
+        var global = typeof window !== 'undefined' ? window : typeof self !== 'undefined' ? self : {};
+        var uniqueSymbol = typeof global.Symbol !== 'undefined' ? global.Symbol('__DRUNK_UID__') : '__DRUNK_UID__';
+        var uidCounter = 0;
         /**
          * 获取对象的唯一id
          * @param  target  设置的对象
          */
         function uniqueId(target) {
-            if (typeof target[nameOfUid] === 'undefined') {
-                defineProperty(target, nameOfUid, counter++);
+            if (typeof target[uniqueSymbol] === 'undefined') {
+                defineProperty(target, uniqueSymbol, uidCounter++);
             }
-            return target[nameOfUid];
+            return target[uniqueSymbol];
         }
         util.uniqueId = uniqueId;
         /**
@@ -595,24 +632,23 @@ var drunk;
             return job;
         }
         util.execAsyncWork = execAsyncWork;
-        var global = typeof window !== 'undefined' ? window : typeof self !== 'undefined' ? self : {};
-        var counter = 0;
+        var handleCounter = 1;
         var requestAnimationCallbackMap = {};
         var requestAnimationWorker;
         util.requestAnimationFrame = global.requestAnimationFrame && global.requestAnimationFrame.bind(global) || function (callback) {
-            var id = counter++;
-            requestAnimationCallbackMap[id] = callback;
-            requestAnimationWorker = requestAnimationWorker || setTimeout(function () {
+            var handle = handleCounter++;
+            requestAnimationCallbackMap[handle] = callback;
+            requestAnimationWorker = requestAnimationWorker || global.setTimeout(function () {
                 var handlers = requestAnimationCallbackMap;
                 var now = Date.now();
                 requestAnimationCallbackMap = {};
                 requestAnimationWorker = null;
                 Object.keys(handlers).forEach(function (id) { return handlers[id](now); });
             }, 16);
-            return id;
+            return handle;
         };
-        util.cancelAnimationFrame = global.cancelAnimationFrame && global.cancelAnimationFrame.bind(global) || function (id) {
-            delete requestAnimationCallbackMap[id];
+        util.cancelAnimationFrame = global.cancelAnimationFrame && global.cancelAnimationFrame.bind(global) || function (handle) {
+            delete requestAnimationCallbackMap[handle];
         };
     })(util = drunk.util || (drunk.util = {}));
 })(drunk || (drunk = {}));
@@ -1432,8 +1468,8 @@ var drunk;
  */
 var drunk;
 (function (drunk) {
-    var parser;
-    (function (parser) {
+    var Parser;
+    (function (Parser) {
         var Cache = drunk.Cache;
         var eventName = "$event";
         var elementName = "$el";
@@ -1501,7 +1537,7 @@ var drunk;
          */
         function assertNotEmptyString(target, message) {
             if (!(typeof target === 'string' && reAnychar.test(target))) {
-                throw new Error(message + ": 表达式为空");
+                throw new Error(message + " : \u8868\u8FBE\u5F0F\u4E3A\u7A7A");
             }
         }
         /**
@@ -1584,7 +1620,7 @@ var drunk;
                 return Function.apply(Function, args);
             }
             catch (err) {
-                console.error("\"" + expression + "\"\u8868\u8FBE\u5F0F\u89E3\u6790\u5931\u8D25,\u5C1D\u8BD5\u89E3\u6790\u540E\u7684\u7ED3\u679C\u4E3A", args[args.length - 1]);
+                console.error("\"" + expression + "\"\u89E3\u6790\u5931\u8D25,\u5C1D\u8BD5\u89E3\u6790\u540E\u7684\u7ED3\u679C\u4E3A\n", args[args.length - 1]);
                 throw err;
             }
         }
@@ -1593,7 +1629,7 @@ var drunk;
          * @param  expression  表达式
          */
         function parse(expression) {
-            assertNotEmptyString(expression, "解析表达式失败");
+            assertNotEmptyString(expression, "[Parser.parse]\u89E3\u6790\u8868\u8FBE\u5F0F\u5931\u8D25");
             var fn = expressionCache.get(expression);
             if (!fn) {
                 var detail = parseIdentifier(expression);
@@ -1603,7 +1639,7 @@ var drunk;
             }
             return fn;
         }
-        parser.parse = parse;
+        Parser.parse = parse;
         /**
          * 解析表达式生成getter函数
          * @param   expression      表达式字符串
@@ -1611,33 +1647,33 @@ var drunk;
          * @param   skipFilter      跳过解析filter
          */
         function parseGetter(expression, isInterpolate, skipFilter) {
-            assertNotEmptyString(expression, "创建getter失败");
+            assertNotEmptyString(expression, "[Parser.parseGetter]\u521B\u5EFAgetter\u5931\u8D25");
             if (isInterpolate) {
                 return parseInterpolate(expression);
             }
             var getter = getterCache.get(expression);
             if (!getter) {
                 var input = expression;
-                var filter_1;
-                if (!skipFilter && (filter_1 = parseFilterDef(expression))) {
-                    input = filter_1.input;
+                var filter = void 0;
+                if (!skipFilter && (filter = parseFilterDef(expression))) {
+                    input = filter.input;
                 }
                 var detail = parseIdentifier(input);
                 var fnBody = detail.proxies + "try{return (" + detail.formated + ");}catch(e){}";
                 getter = createFunction(expression, eventName, elementName, fnBody);
                 getter.dynamic = !!detail.identifiers.length;
-                getter.filters = filter_1 ? filter_1.filters : null;
+                getter.filters = filter ? filter.filters : null;
                 getterCache.set(expression, getter);
             }
             return getter;
         }
-        parser.parseGetter = parseGetter;
+        Parser.parseGetter = parseGetter;
         /**
          * 解析表达式生成setter函数
          * @param   expression 表达式字符串
          */
         function parseSetter(expression) {
-            assertNotEmptyString(expression, "创建setter失败");
+            assertNotEmptyString(expression, "[Parser.parseSetter]\u521B\u5EFAsetter\u5931\u8D25");
             var setter = setterCache.get(expression);
             if (!setter) {
                 var detail = parseIdentifier(expression);
@@ -1647,9 +1683,9 @@ var drunk;
             }
             return setter;
         }
-        parser.parseSetter = parseSetter;
+        Parser.parseSetter = parseSetter;
         function parseInterpolate(expression, justTokens) {
-            console.assert(hasInterpolation(expression), "parseInterpolate: 非法表达式", expression);
+            console.assert(hasInterpolation(expression), "[Parser.parseInterpolate]\u975E\u6CD5\u8868\u8FBE\u5F0F", expression);
             var tokens = tokenCache.get(expression);
             if (!tokens) {
                 tokens = [];
@@ -1675,7 +1711,7 @@ var drunk;
             }
             return justTokens ? tokens : tokensToGetter(tokens, expression);
         }
-        parser.parseInterpolate = parseInterpolate;
+        Parser.parseInterpolate = parseInterpolate;
         /**
          * 是否有插值语法
          * @param   str  字符串
@@ -1683,7 +1719,7 @@ var drunk;
         function hasInterpolation(str) {
             return typeof str === 'string' && str.match(reAnychar) !== null && str.match(reInterpolate) !== null;
         }
-        parser.hasInterpolation = hasInterpolation;
+        Parser.hasInterpolation = hasInterpolation;
         // 根据token生成getter函数
         function tokensToGetter(tokens, expression) {
             var getter = interpolateGetterCache.get(expression);
@@ -1704,7 +1740,7 @@ var drunk;
                         dynamic_1 = true;
                         return getter;
                     }
-                    console.error("非法的token:\n", item);
+                    console.error("\u975E\u6CD5\u7684token:\n", item);
                 });
                 getter = function () {
                     var _this = this;
@@ -1735,18 +1771,18 @@ var drunk;
             });
             return properties;
         }
-        parser.getProxyProperties = getProxyProperties;
-    })(parser = drunk.parser || (drunk.parser = {}));
+        Parser.getProxyProperties = getProxyProperties;
+    })(Parser = drunk.Parser || (drunk.Parser = {}));
 })(drunk || (drunk = {}));
 /// <reference path="../parser/parser.ts" />
 /**
  * 数据过滤器模块
- * @module drunk.filter
+ * @module drunk.Filter
  */
 var drunk;
 (function (drunk) {
-    var filter;
-    (function (filter) {
+    var Filter;
+    (function (Filter) {
         /**
          * 使用提供的filter列表处理数据
          * @param   value       输入
@@ -1769,7 +1805,7 @@ var drunk;
                     if (!filterDefs[i]) {
                         return item;
                     }
-                    return filter.pipeFor.apply(filter, [item, filterDefs[i], filterMap, false].concat(args));
+                    return Filter.pipeFor.apply(Filter, [item, filterDefs[i], filterMap, false].concat(args));
                 });
                 // 对所有token求值得到的结果做处理,如果是undefined或null类型直接转成空字符串,避免页面显示出undefined或null
                 return getInterpolateValue(value);
@@ -1791,7 +1827,7 @@ var drunk;
             });
             return value;
         }
-        filter.pipeFor = pipeFor;
+        Filter.pipeFor = pipeFor;
         /**
          * 判断插值表达式的值个数,如果只有一个,则返回该值,如果有多个,则返回所有值的字符串相加
          */
@@ -1831,7 +1867,7 @@ var drunk;
         /**
          * filter方法表
          */
-        filter.filters = {
+        Filter.filters = {
             /**
              * 对输入的字符串进行编码
              * @param  input  输入
@@ -1983,7 +2019,7 @@ var drunk;
         function padded(n) {
             return n < 10 ? '0' + n : n;
         }
-    })(filter = drunk.filter || (drunk.filter = {}));
+    })(Filter = drunk.Filter || (drunk.Filter = {}));
 })(drunk || (drunk = {}));
 /// <reference path="../util/util.ts" />
 /// <reference path="../promise/promise.ts" />
@@ -2007,10 +2043,10 @@ var drunk;
             this._observers = {};
             this._properties = {};
             this._isActived = true;
-            this._isInterpolate = drunk.parser.hasInterpolation(expression);
-            this._getter = this._isInterpolate ? drunk.parser.parseInterpolate(expression) : drunk.parser.parseGetter(expression);
+            this._isInterpolate = drunk.Parser.hasInterpolation(expression);
+            this._getter = this._isInterpolate ? drunk.Parser.parseInterpolate(expression) : drunk.Parser.parseGetter(expression);
             if (!this._getter.dynamic) {
-                throw new Error('不能监控不包含任何变量的表达式: "' + expression + '"');
+                throw new Error("\u4E0D\u80FD\u76D1\u63A7\u4E0D\u5305\u542B\u4EFB\u4F55\u53D8\u91CF\u7684\u8868\u8FBE\u5F0F: \"" + expression + "\"");
             }
             this._propertyChanged = this._propertyChanged.bind(this);
             this.value = this._getValue();
@@ -2063,17 +2099,8 @@ var drunk;
                 util.cancelAnimationFrame(this._throttle);
             }
             var key = Watcher.getNameOfKey(this.expression, this.isDeepWatch);
-            this.viewModel._watchers[key] =
-                this._propertyChanged =
-                    this.value =
-                        this.viewModel =
-                            this.expression =
-                                this._getter =
-                                    this._actions =
-                                        this._observers =
-                                            this._properties =
-                                                this._tmpProperties =
-                                                    this._tmpObservers = null;
+            this.viewModel._watchers[key] = this._propertyChanged = this.value = this.viewModel = this.expression = this._getter = null;
+            this._actions = this._observers = this._properties = this._tmpProperties = this._tmpObservers = null;
             this._isActived = false;
         };
         /**
@@ -2116,7 +2143,7 @@ var drunk;
             }
             if (this._getter.filters) {
                 // 派发到各个filter中处理
-                newValue = drunk.filter.pipeFor(newValue, this._getter.filters, this.viewModel.$filter, this._isInterpolate, this.viewModel);
+                newValue = drunk.Filter.pipeFor(newValue, this._getter.filters, this.viewModel.$filter, this._isInterpolate, this.viewModel);
             }
             this._accessed();
             return newValue;
@@ -2372,7 +2399,7 @@ var drunk;
             var expression = this.expression;
             var isInterpolate = this.isInterpolate;
             var viewModel = this.viewModel;
-            var getter = drunk.parser.parseGetter(expression, isInterpolate);
+            var getter = drunk.Parser.parseGetter(expression, isInterpolate);
             if (!getter.dynamic) {
                 // 如果只是一个静态表达式直接取值更新
                 return this["update"](viewModel.$eval(expression, isInterpolate), undefined);
@@ -2454,7 +2481,7 @@ var drunk;
 var drunk;
 (function (drunk) {
     var util = drunk.util;
-    var parser = drunk.parser;
+    var parser = drunk.Parser;
     var Watcher = drunk.Watcher;
     var observable = drunk.observable;
     var EventEmitter = drunk.EventEmitter;
@@ -2520,10 +2547,11 @@ var drunk;
             var _this = this;
             model = model || {};
             observable.create(model);
-            util.defineProperty(this, "$filter", Object.create(drunk.filter.filters));
+            util.defineProperty(this, "$filter", Object.create(drunk.Filter.filters));
             util.defineProperty(this, "_model", model);
             util.defineProperty(this, "_bindings", []);
             util.defineProperty(this, "_watchers", {});
+            util.defineProperty(this, "_proxyProps", {});
             util.defineProperty(this, "_isActived", true);
             Object.keys(model).forEach(function (property) {
                 _this.$proxy(property);
@@ -2534,6 +2562,9 @@ var drunk;
          * @param   property  需要代理的属性名
          */
         ViewModel.prototype.$proxy = function (property) {
+            if (this._proxyProps[property]) {
+                return;
+            }
             var value = this[property];
             if (value === undefined) {
                 value = this._model[property];
@@ -2541,6 +2572,7 @@ var drunk;
             if (util.proxy(this, property, this._model)) {
                 this._model.$set(property, value);
             }
+            this._proxyProps[property] = true;
         };
         /**
          * 执行表达式并返回结果
@@ -2609,6 +2641,7 @@ var drunk;
             }
             descriptor = computed(this, property, descriptor);
             Object.defineProperty(this, property, descriptor);
+            this._proxyProps[property] = true;
             observer.$emit(property);
         };
         /**
@@ -2619,7 +2652,7 @@ var drunk;
             if (!this._isActived) {
                 return;
             }
-            Object.keys(this._model).forEach(function (property) {
+            Object.keys(this._proxyProps).forEach(function (property) {
                 delete _this[property];
             });
             Object.keys(this._watchers).forEach(function (key) {
@@ -2632,7 +2665,7 @@ var drunk;
             });
             EventEmitter.cleanup(this);
             this._isActived = false;
-            this._model = this._bindings = this._watchers = this.$filter = null;
+            this._model = this._bindings = this._watchers = this._proxyProps = this.$filter = null;
         };
         /**
          * 获取事件回调,内置方法
@@ -2668,7 +2701,7 @@ var drunk;
          */
         ViewModel.prototype.__execGetter = function (getter, isInterpolate) {
             var value = getter.call(this);
-            return drunk.filter.pipeFor.apply(null, [value, getter.filters, this.$filter, isInterpolate, this]);
+            return drunk.Filter.pipeFor.apply(null, [value, getter.filters, this.$filter, isInterpolate, this]);
         };
         return ViewModel;
     }(EventEmitter));
@@ -2682,12 +2715,12 @@ var drunk;
     var util = drunk.util;
     var config = drunk.config;
     var Promise = drunk.Promise;
+    var weakRefKey = 'drunk:action:binding';
     /**
      * 动画模块
      */
     var Action;
     (function (Action) {
-        Action.weakRefKey = 'drunk:action:binding';
         /**
          * action的类型
          */
@@ -2822,7 +2855,7 @@ var drunk;
         }
         Action.process = process;
         function triggerAction(target, type) {
-            var action = target[Action.weakRefKey];
+            var action = target[weakRefKey];
             if (action) {
                 action.runActionByType(type);
                 return process(target);
@@ -2832,12 +2865,13 @@ var drunk;
         Action.triggerAction = triggerAction;
         function wait(time) {
             var action = {};
-            action.promise = new Promise(function (resolve) {
+            action.promise = new Promise(function (resolve, reject) {
                 var timerid;
                 action.cancel = function () {
                     clearTimeout(timerid);
                     action.cancel = null;
                     action.promise = null;
+                    reject();
                 };
                 timerid = setTimeout(resolve, time);
             });
@@ -2847,7 +2881,7 @@ var drunk;
             var definition = definitionMap[detail];
             var action = {};
             var executor = definition[type];
-            action.promise = new Promise(function (resolve) {
+            action.promise = new Promise(function (resolve, reject) {
                 var cancel = executor(element, function () {
                     resolve();
                 });
@@ -2856,6 +2890,7 @@ var drunk;
                     action.cancel = null;
                     action.promise = null;
                     cancel();
+                    reject();
                 };
             });
             return action;
@@ -2870,12 +2905,12 @@ var drunk;
             var transitionDuration = style[getPropertyName('transitionDuration')];
             var transitionExist = transitionDuration !== '0s';
             var transitionTimerid;
-            action.promise = new Promise(function (resolve) {
+            action.promise = new Promise(function (resolve, reject) {
                 // 给样式赋值后,取animationDuration的值,判断有没有设置animation动画
                 element.classList.add(className);
                 var animationExist = style[getPropertyName('animationDuration')] !== '0s';
                 if (!transitionExist && !animationExist) {
-                    // 如果为设置动画直接返回resolve状态
+                    // 如果没有设置动画直接返回resolve状态
                     return resolve();
                 }
                 element.style[getPropertyName('animationFillMode')] = 'both';
@@ -2908,6 +2943,7 @@ var drunk;
                     element.classList.remove(className);
                     action.cancel = null;
                     action.promise = null;
+                    reject();
                 };
             });
             return action;
@@ -2923,7 +2959,7 @@ var drunk;
         }
         ActionBinding.prototype.init = function () {
             var _this = this;
-            this.element[Action.weakRefKey] = this;
+            this.element[weakRefKey] = this;
             if (document.body && document.body.contains(this.element)) {
                 this._actionJob = util.execAsyncWork(function () {
                     _this.runActionByType(Action.Type.created);
@@ -2964,7 +3000,7 @@ var drunk;
             }
             var actionQueue = {};
             var actions = this._actionNames;
-            actionQueue.promise = new Promise(function (resolve) {
+            actionQueue.promise = new Promise(function (resolve, reject) {
                 var index = 0;
                 var runAction = function () {
                     var detail = actions[index++];
@@ -2980,6 +3016,7 @@ var drunk;
                         currentAction.cancel();
                         actionQueue.cancel = null;
                         actionQueue.promise = null;
+                        reject();
                     };
                 };
                 runAction();
@@ -3009,7 +3046,7 @@ var drunk;
                 this._actionJob.cancel();
             }
             this.runActionByType(Action.Type.removed);
-            this.element[Action.weakRefKey] = null;
+            this.element[weakRefKey] = null;
             this._actionNames = null;
             this._actionJob = null;
         };
@@ -3328,10 +3365,10 @@ var drunk;
          */
         function compileTextNode(node) {
             var content = node.textContent;
-            if (!drunk.parser.hasInterpolation(content)) {
+            if (!drunk.Parser.hasInterpolation(content)) {
                 return;
             }
-            var tokens = drunk.parser.parseInterpolate(content, true);
+            var tokens = drunk.Parser.parseInterpolate(content, true);
             var fragment = document.createDocumentFragment();
             var executors = [];
             tokens.forEach(function (token, i) {
@@ -3392,7 +3429,7 @@ var drunk;
                         expression: expression
                     });
                 }
-                else if (drunk.parser.hasInterpolation(expression)) {
+                else if (drunk.Parser.hasInterpolation(expression)) {
                     // 如果是在某个属性上进行插值创建一个attr的绑定
                     executor = createExecutor(element, {
                         name: "attr",
@@ -3961,7 +3998,7 @@ var drunk;
             console.assert(matches !== null, "非法的 " + prefix + 'on 绑定表达式, ', str, '正确的用法如下:\n', prefix + 'on="click: expression"\n', prefix + 'on="mousedown: expression; mouseup: callback()"\n', prefix + 'on="click: callback($event, $el)"\n');
             var type = matches[1];
             var expr = matches[2];
-            var func = drunk.parser.parse(expr.trim());
+            var func = drunk.Parser.parse(expr.trim());
             var handler = function (e) {
                 if (drunk.config.debug) {
                     console.log(type + ': ' + expr);
@@ -4138,6 +4175,8 @@ var drunk;
     var Map = drunk.Map;
     var Binding = drunk.Binding;
     var Template = drunk.Template;
+    var Component = drunk.Component;
+    var global = typeof window !== 'undefined' ? window : typeof self !== 'undefined' ? self : {};
     /**
      * 用于repeat作用域下的子viewModel
      * @param _parent     父级ViewModel
@@ -4211,11 +4250,11 @@ var drunk;
                 handler = context[handlerName];
             }
             if (!handler) {
-                if (typeof window[handlerName] !== 'function') {
+                if (typeof global[handlerName] !== 'function') {
                     throw new Error("\u672A\u627E\u5230\u8BE5\u4E8B\u4EF6\u5904\u7406\u65B9\u6CD5" + handlerName);
                 }
-                handler = window[handlerName];
-                context = window;
+                handler = global[handlerName];
+                context = global;
             }
             return function () {
                 var args = [];
@@ -4230,8 +4269,7 @@ var drunk;
          */
         RepeatItem.prototype.$release = function () {
             _super.prototype.$release.call(this);
-            this._flagNode = null;
-            this._element = null;
+            this._flagNode = this._element = null;
         };
         /**
          * 把数据转成列表,如果为空则转成空数组
@@ -4271,7 +4309,7 @@ var drunk;
             return ret;
         };
         return RepeatItem;
-    }(drunk.Component));
+    }(Component));
     drunk.RepeatItem = RepeatItem;
     var regParam = /\s+in\s+/;
     var regComma = /\s*,\s*/;
@@ -4291,7 +4329,7 @@ var drunk;
          */
         RepeatBinding.prototype.init = function () {
             this._createCommentNodes();
-            this._parseDefinition();
+            this._parseExpression();
             this._map = new Map();
             this._items = [];
             this._bind = Template.compile(this.element);
@@ -4309,9 +4347,9 @@ var drunk;
             Binding.setWeakRef(this._tailNode, this);
         };
         /**
-         * 解析表达式定义
+         * 解析表达式
          */
-        RepeatBinding.prototype._parseDefinition = function () {
+        RepeatBinding.prototype._parseExpression = function () {
             var expression = this.expression;
             var parts = expression.split(regParam);
             if (parts.length !== 2) {
@@ -4353,7 +4391,7 @@ var drunk;
                 itemVm._isUsed = true;
             });
             if (!isEmpty) {
-                this._unrealizeUnusedItems();
+                this._unrealizeItems();
             }
             newVms.forEach(function (itemVm) { return itemVm._isUsed = false; });
             this._itemVms = newVms;
@@ -4396,6 +4434,7 @@ var drunk;
                             viewModel.element = viewModel._element = _this.element.cloneNode(true);
                             drunk.dom.after(viewModel._element, viewModel._flagNode);
                             _this._bind(viewModel, viewModel.element);
+                            Component.setWeakRef(viewModel._element, viewModel);
                             viewModel._isBinded = true;
                         }
                         else {
@@ -4439,21 +4478,21 @@ var drunk;
                 this._updateItemModel(viewModel, item);
             }
             else {
-                viewModel = this._realizeRepeatItem(item);
+                viewModel = this._realizeItem(item);
             }
             return viewModel;
         };
         /**
          * 根据item信息对象创建RepeatItem实例
          */
-        RepeatBinding.prototype._realizeRepeatItem = function (item) {
+        RepeatBinding.prototype._realizeItem = function (item) {
             var value = item.val;
             var options = {};
             this._updateItemModel(options, item);
             var viewModel = new RepeatItem(this.viewModel, options);
             var viewModelList = this._map.get(value);
             viewModel._flagNode = document.createComment(this._flagNodeContent);
-            drunk.Component.setWeakRef(viewModel._flagNode, viewModel);
+            Component.setWeakRef(viewModel._flagNode, viewModel);
             if (!viewModelList) {
                 viewModelList = [];
                 this._map.set(value, viewModelList);
@@ -4478,7 +4517,7 @@ var drunk;
          * 释放不再使用的RepeatItem实例并删除其指定的元素
          * @param  force  是否强制移除所有item
          */
-        RepeatBinding.prototype._unrealizeUnusedItems = function (force) {
+        RepeatBinding.prototype._unrealizeItems = function (force) {
             var _this = this;
             var nameOfVal = this._param.val;
             this._itemVms.forEach(function (viewModel, index) {
@@ -4494,7 +4533,8 @@ var drunk;
                 var element = viewModel._element;
                 var flagNode = viewModel._flagNode;
                 flagNode.textContent = 'Unused repeat item';
-                drunk.Component.removeWeakRef(flagNode);
+                Component.removeWeakRef(flagNode);
+                Component.removeWeakRef(viewModel._element);
                 viewModel.$release();
                 if (flagNode.parentNode) {
                     flagNode.parentNode.removeChild(flagNode);
@@ -4509,7 +4549,7 @@ var drunk;
          */
         RepeatBinding.prototype.release = function () {
             if (this._itemVms && this._itemVms.length) {
-                this._unrealizeUnusedItems(true);
+                this._unrealizeItems(true);
             }
             if (this._cancelRenderJob) {
                 this._cancelRenderJob();
@@ -4537,7 +4577,10 @@ var drunk;
 var drunk;
 (function (drunk) {
     var dom = drunk.dom;
+    var util = drunk.util;
     var Binding = drunk.Binding;
+    var Template = drunk.Template;
+    var Component = drunk.Component;
     var reOneInterpolate = /^\{\{([^{]+)\}\}$/;
     var ComponentBinding = (function (_super) {
         __extends(ComponentBinding, _super);
@@ -4553,45 +4596,45 @@ var drunk;
             if (src) {
                 return this._initAsyncComponent(src);
             }
-            var Ctor = drunk.Component.getConstructorByName(this.expression);
+            var Ctor = Component.getConstructorByName(this.expression);
             if (!Ctor) {
                 throw new Error(this.expression + ": 未找到该组件.");
             }
             this.component = new Ctor();
             this.unwatches = [];
             this._processComponentAttributes();
-            return this._processComponentBinding();
+            return this._realizeComponent();
         };
         /**
          * 初始化异步组件,先加载为fragment,再设置为组件的element,在进行初始化
          */
         ComponentBinding.prototype._initAsyncComponent = function (src) {
             var _this = this;
-            return drunk.Template.renderFragment(src, null, true).then(function (fragment) {
+            return Template.renderFragment(src, null, true).then(function (fragment) {
                 if (_this.isDisposed) {
                     return;
                 }
-                var Ctor = drunk.Component.getConstructorByName(_this.expression);
+                var Ctor = Component.getConstructorByName(_this.expression);
                 if (!Ctor) {
                     throw new Error(_this.expression + ": 未找到该组件.");
                 }
                 _this.unwatches = [];
                 _this.component = new Ctor();
-                _this.component.element = drunk.util.toArray(fragment.childNodes);
+                _this.component.element = util.toArray(fragment.childNodes);
                 _this._processComponentAttributes();
-                return _this._processComponentBinding();
+                return _this._realizeComponent();
             });
         };
         /**
          * 获取双向绑定的属性名
          */
-        ComponentBinding.prototype._getTwowayBindingAttrMap = function () {
+        ComponentBinding.prototype._getTwoWayBindingAttrs = function () {
             var result = this.element.getAttribute('two-way');
             var marked = {};
             this.element.removeAttribute('two-way');
             if (result) {
                 result.trim().split(/\s+/).forEach(function (str) {
-                    marked[drunk.util.camelCase(str)] = true;
+                    marked[util.camelCase(str)] = true;
                 });
             }
             return marked;
@@ -4603,29 +4646,29 @@ var drunk;
             var _this = this;
             var element = this.element;
             var component = this.component;
-            var twowayBindingAttrMap = this._getTwowayBindingAttrMap();
+            var twowayBindingAttrMap = this._getTwoWayBindingAttrs();
             if (element.hasAttributes()) {
                 // 遍历元素上所有的属性做数据准备或数据绑定的处理
                 // 如果某个属性用到插值表达式,如"a={{b}}",则对起进行表达式监听(当b改变时通知component的a属性更新到最新的值)
-                drunk.util.toArray(element.attributes).forEach(function (attr) {
+                util.toArray(element.attributes).forEach(function (attr) {
                     var attrName = attr.name;
                     var attrValue = attr.value;
                     if (attrName.indexOf(drunk.config.prefix) > -1) {
                         return console.warn("\u81EA\u5B9A\u4E49\u7EC4\u4EF6\u6807\u7B7E\u4E0A\u4E0D\u652F\u6301\u4F7F\u7528\"" + attrName + "\"\u7ED1\u5B9A\u8BED\u6CD5");
                     }
                     if (!attrValue) {
-                        component[drunk.util.camelCase(attrName)] = true;
+                        component[util.camelCase(attrName)] = true;
                         return;
                     }
                     var expression = attrValue.trim();
                     if (attrName.indexOf("on-") === 0) {
                         // on-click="doSomething()"
                         // => "click", "doSomething()"
-                        attrName = drunk.util.camelCase(attrName.slice(3));
+                        attrName = util.camelCase(attrName.slice(3));
                         return _this._registerComponentEvent(attrName, expression);
                     }
-                    attrName = drunk.util.camelCase(attrName);
-                    if (!drunk.parser.hasInterpolation(expression)) {
+                    attrName = util.camelCase(attrName);
+                    if (!drunk.Parser.hasInterpolation(expression)) {
                         // 没有插值表达式
                         // title="someConstantValue"
                         var value = void 0;
@@ -4642,20 +4685,21 @@ var drunk;
                         return component[attrName] = value;
                     }
                     // title="{{somelet}}"
-                    _this._watchExpressionForComponent(attrName, expression, twowayBindingAttrMap[attrName]);
+                    _this._initComponentWatcher(attrName, expression, twowayBindingAttrMap[attrName]);
                 });
             }
-            component.$emit(drunk.Component.Event.created, component);
+            component.$emit(Component.Event.created, component);
         };
         /**
          * 处理组件的视图与数据绑定
          */
-        ComponentBinding.prototype._processComponentBinding = function () {
+        ComponentBinding.prototype._realizeComponent = function () {
             var _this = this;
             var element = this.element;
             var component = this.component;
             var viewModel = this.viewModel;
-            return component.$processTemplate().then(function (template) {
+            this._realizePromise = component.$processTemplate();
+            this._realizePromise.done(function (template) {
                 if (_this.isDisposed) {
                     return;
                 }
@@ -4679,7 +4723,13 @@ var drunk;
                         viewModel._element = nodeList;
                     }
                 }
-            }).catch(function (error) { return console.warn(_this.expression + ": \u7EC4\u4EF6\u521B\u5EFA\u5931\u8D25\n", error); });
+            });
+            this._realizePromise.catch(function (error) {
+                if (error && error.message !== 'Canceled') {
+                    console.warn(_this.expression + ": \u7EC4\u4EF6\u521B\u5EFA\u5931\u8D25\n", error);
+                }
+            });
+            return this._realizePromise;
         };
         /**
          * 注册组件的事件
@@ -4687,7 +4737,7 @@ var drunk;
         ComponentBinding.prototype._registerComponentEvent = function (eventName, expression) {
             var _this = this;
             var viewModel = this.viewModel;
-            var func = drunk.parser.parse(expression);
+            var func = drunk.Parser.parse(expression);
             this.component.$on(eventName, function () {
                 var args = [];
                 for (var _i = 0; _i < arguments.length; _i++) {
@@ -4706,11 +4756,11 @@ var drunk;
         /**
          * 监控绑定表达式,表达式里任意数据更新时,同步到component的指定属性
          */
-        ComponentBinding.prototype._watchExpressionForComponent = function (property, expression, isTwoway) {
+        ComponentBinding.prototype._initComponentWatcher = function (property, expression, isTwoWay) {
             var viewModel = this.viewModel;
             var component = this.component;
             var unwatch;
-            if (isTwoway) {
+            if (isTwoWay) {
                 var result = expression.match(reOneInterpolate);
                 if (!result) {
                     throw new Error(expression + ": \u8BE5\u8868\u8FBE\u5F0F\u4E0D\u80FD\u8FDB\u884C\u53CC\u5411\u7ED1\u5B9A");
@@ -4737,6 +4787,9 @@ var drunk;
          * 组件释放
          */
         ComponentBinding.prototype.release = function () {
+            if (this._realizePromise) {
+                this._realizePromise.cancel();
+            }
             if (this.component) {
                 this.component.$release();
             }
@@ -4751,10 +4804,7 @@ var drunk;
                 Binding.removeWeakRef(this._tailNode, this);
             }
             // 移除所有引用
-            this._headNode = null;
-            this._tailNode = null;
-            this.component = null;
-            this.unwatches = null;
+            this._headNode = this._tailNode = this.component = this.unwatches = this._realizePromise = null;
             this.isDisposed = true;
         };
         ComponentBinding.isTerminal = true;
@@ -4886,6 +4936,7 @@ var drunk;
 /// <reference path="../../util/dom.ts" />
 var drunk;
 (function (drunk) {
+    var dom = drunk.dom;
     var ModelBinding = (function (_super) {
         __extends(ModelBinding, _super);
         function ModelBinding() {
@@ -4905,7 +4956,7 @@ var drunk;
                     break;
             }
             this._changedHandler = this._changedHandler.bind(this);
-            drunk.dom.on(this.element, this._changedEvent, this._changedHandler);
+            dom.on(this.element, this._changedEvent, this._changedHandler);
         };
         ModelBinding.prototype.initInput = function () {
             var type = this.element.type;
@@ -4919,6 +4970,7 @@ var drunk;
                 case "text":
                 case "tel":
                 case "email":
+                case "url":
                 case "password":
                 case "search":
                     this.initTextarea();
@@ -4957,7 +5009,7 @@ var drunk;
         };
         ModelBinding.prototype.release = function () {
             this._changedHandler = null;
-            drunk.dom.off(this.element, this._changedEvent, this._changedHandler);
+            dom.off(this.element, this._changedEvent, this._changedHandler);
         };
         ModelBinding.prototype._changedHandler = function () {
             this.$setValue(this._getValue());

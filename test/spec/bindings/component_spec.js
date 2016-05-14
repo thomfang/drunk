@@ -56,7 +56,7 @@ describe("Binding.component", function () {
         binding.component = new MyComponent();
         binding.component.element = drunk.dom.create('<div id="test"></div>');
 
-        binding._processComponentBinding();
+        binding._realizeComponent();
 
         drunk.util.execAsyncWork(function () {
             expect(binding.component.element.id).toBe('test');

@@ -4,13 +4,13 @@
 /**
  * 简单的解析器,只是做了字符串替换,然后使用new Function生成函数
  */
-namespace drunk.parser {
+namespace drunk.Parser {
     
     import Cache = drunk.Cache;
     
     export interface IGetter {
         (viewModel: ViewModel, ...args: Array<any>): any;
-        filters?: Array<filter.IFilterDef>;
+        filters?: Array<Filter.IFilterDef>;
         dynamic?: boolean;
         isInterpolate?: boolean;
     }
@@ -21,7 +21,7 @@ namespace drunk.parser {
     
     interface IFilterCache {
         input: string;
-        filters: Array<filter.IFilterDef>;
+        filters: Array<Filter.IFilterDef>;
     }
     
     let eventName = "$event";
@@ -62,7 +62,7 @@ namespace drunk.parser {
      */
     function parseFilterDef(str: string, skipSetter: boolean = false) {
         if (!filterCache.get(str)) {
-            let def: Array<filter.IFilterDef> = [];
+            let def: Array<Filter.IFilterDef> = [];
             let idx: number;
             
             str.replace(reFilter, ($0, quote, name, args, i) => {
@@ -100,7 +100,7 @@ namespace drunk.parser {
      */
     function assertNotEmptyString(target: string, message: string): void {
         if (!(typeof target === 'string' && reAnychar.test(target))) {
-            throw new Error(message + ": 表达式为空");
+            throw new Error(`${message} : 表达式为空`);
         }
     }
     
@@ -196,7 +196,7 @@ namespace drunk.parser {
             return Function.apply(Function, args);
         }
         catch (err) {
-            console.error(`"${expression}"表达式解析失败,尝试解析后的结果为`, args[args.length - 1]);
+            console.error(`"${expression}"解析失败,尝试解析后的结果为\n`, args[args.length - 1]);
             throw err;
         }
     }
@@ -206,7 +206,7 @@ namespace drunk.parser {
      * @param  expression  表达式
      */
     export function parse(expression: string): IGetter {
-        assertNotEmptyString(expression, "解析表达式失败");
+        assertNotEmptyString(expression, `[Parser.parse]解析表达式失败`);
         
         let fn = expressionCache.get(expression);
         
@@ -228,7 +228,7 @@ namespace drunk.parser {
      * @param   skipFilter      跳过解析filter
      */
     export function parseGetter(expression: string, isInterpolate?: boolean, skipFilter?: boolean): IGetter {
-        assertNotEmptyString(expression, "创建getter失败");
+        assertNotEmptyString(expression, `[Parser.parseGetter]创建getter失败`);
         
         if (isInterpolate) {
             return parseInterpolate(expression);
@@ -262,7 +262,7 @@ namespace drunk.parser {
      * @param   expression 表达式字符串
      */
     export function parseSetter(expression: string): ISetter {
-        assertNotEmptyString(expression, "创建setter失败");
+        assertNotEmptyString(expression, `[Parser.parseSetter]创建setter失败`);
         
         let setter = setterCache.get(expression);
 
@@ -286,7 +286,7 @@ namespace drunk.parser {
     export function parseInterpolate(expression: string): IGetter;
     export function parseInterpolate(expression: string, justTokens: boolean): any[];
     export function parseInterpolate(expression: string, justTokens?: boolean): any {
-        console.assert(hasInterpolation(expression), "parseInterpolate: 非法表达式", expression);
+        console.assert(hasInterpolation(expression), `[Parser.parseInterpolate]非法表达式`, expression);
         
         let tokens = tokenCache.get(expression);
         
@@ -352,7 +352,7 @@ namespace drunk.parser {
                     return getter;
                 }
                 
-                console.error("非法的token:\n", item);
+                console.error(`非法的token:\n`, item);
             });
 
             getter = function () {

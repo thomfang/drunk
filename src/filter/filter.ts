@@ -2,9 +2,9 @@
 
 /**
  * 数据过滤器模块
- * @module drunk.filter
+ * @module drunk.Filter
  */
-namespace drunk.filter {
+namespace drunk.Filter {
     
     /**
      * Filter声明
@@ -17,7 +17,7 @@ namespace drunk.filter {
 
     export interface IFilterDef {
         name: string;
-        param?: parser.IGetter;
+        param?: Parser.IGetter;
     }
     
     /**
@@ -39,7 +39,7 @@ namespace drunk.filter {
                 if (!filterDefs[i]) {
                     return item;
                 }
-                return filter.pipeFor(item, filterDefs[i], filterMap, false, ...args);
+                return Filter.pipeFor(item, filterDefs[i], filterMap, false, ...args);
             });
                 
             // 对所有token求值得到的结果做处理,如果是undefined或null类型直接转成空字符串,避免页面显示出undefined或null

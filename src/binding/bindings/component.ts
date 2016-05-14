@@ -7,18 +7,22 @@
 namespace drunk {
 
     import dom = drunk.dom;
+    import util = drunk.util;
     import Binding = drunk.Binding;
+    import Template = drunk.Template;
+    import Component = drunk.Component;
 
     let reOneInterpolate = /^\{\{([^{]+)\}\}$/;
 
     @binding("component")
     class ComponentBinding extends Binding implements IBindingDefinition {
-        
+
         static isTerminal = true;
         static priority = Binding.Priority.aboveNormal;
 
         private _headNode: any;
         private _tailNode: any;
+        private _realizePromise: Promise<any>;
 
         component: Component;
         unwatches: Function[];
@@ -43,7 +47,7 @@ namespace drunk {
             this.unwatches = [];
 
             this._processComponentAttributes();
-            return this._processComponentBinding();
+            return this._realizeComponent();
         }
 
         /**
@@ -65,14 +69,14 @@ namespace drunk {
                 this.component.element = util.toArray(fragment.childNodes);
 
                 this._processComponentAttributes();
-                return this._processComponentBinding();
+                return this._realizeComponent();
             });
         }
 
         /**
          * 获取双向绑定的属性名
          */
-        private _getTwowayBindingAttrMap() {
+        private _getTwoWayBindingAttrs() {
             let result = this.element.getAttribute('two-way');
             let marked: { [key: string]: boolean } = {};
 
@@ -92,7 +96,7 @@ namespace drunk {
         private _processComponentAttributes() {
             let element = this.element;
             let component = this.component;
-            let twowayBindingAttrMap = this._getTwowayBindingAttrMap();
+            let twowayBindingAttrMap = this._getTwoWayBindingAttrs();
 
             if (element.hasAttributes()) {
 
@@ -122,7 +126,7 @@ namespace drunk {
 
                     attrName = util.camelCase(attrName);
 
-                    if (!parser.hasInterpolation(expression)) {
+                    if (!Parser.hasInterpolation(expression)) {
                         // 没有插值表达式
                         // title="someConstantValue"
                         let value: any;
@@ -142,7 +146,7 @@ namespace drunk {
                     }
 
                     // title="{{somelet}}"
-                    this._watchExpressionForComponent(attrName, expression, twowayBindingAttrMap[attrName]);
+                    this._initComponentWatcher(attrName, expression, twowayBindingAttrMap[attrName]);
                 });
             }
 
@@ -152,12 +156,13 @@ namespace drunk {
         /**
          * 处理组件的视图与数据绑定
          */
-        private _processComponentBinding() {
+        private _realizeComponent() {
             let element = this.element;
             let component = this.component;
             let viewModel = this.viewModel;
 
-            return component.$processTemplate().then(template => {
+            this._realizePromise = component.$processTemplate();
+            this._realizePromise.done(template => {
                 if (this.isDisposed) {
                     return;
                 }
@@ -188,7 +193,14 @@ namespace drunk {
                         viewModel._element = nodeList;
                     }
                 }
-            }).catch((error) => console.warn(`${this.expression}: 组件创建失败\n`, error));
+            });
+            this._realizePromise.catch((error: Error) => {
+                if (error && error.message !== 'Canceled') {
+                    console.warn(`${this.expression}: 组件创建失败\n`, error);
+                }
+            });
+
+            return this._realizePromise;
         }
 
         /**
@@ -196,7 +208,7 @@ namespace drunk {
          */
         private _registerComponentEvent(eventName: string, expression: string) {
             let viewModel: Component = this.viewModel;
-            let func = parser.parse(expression);
+            let func = Parser.parse(expression);
 
             this.component.$on(eventName, (...args: any[]) => {
                 // 事件的处理函数,会生成一个$event对象,在表达式中可以访问该对象.
@@ -213,12 +225,12 @@ namespace drunk {
         /**
          * 监控绑定表达式,表达式里任意数据更新时,同步到component的指定属性
          */
-        private _watchExpressionForComponent(property: string, expression: string, isTwoway: boolean) {
+        private _initComponentWatcher(property: string, expression: string, isTwoWay: boolean) {
             let viewModel = this.viewModel;
             let component = this.component;
             let unwatch: () => void;
 
-            if (isTwoway) {
+            if (isTwoWay) {
                 let result = expression.match(reOneInterpolate);
 
                 if (!result) {
@@ -252,6 +264,9 @@ namespace drunk {
          * 组件释放
          */
         release() {
+            if (this._realizePromise) {
+                this._realizePromise.cancel();
+            }
             if (this.component) {
                 this.component.$release();
             }
@@ -263,16 +278,13 @@ namespace drunk {
             if (this._headNode && this._tailNode) {
                 dom.remove(this._headNode);
                 dom.remove(this._tailNode);
-                
+
                 Binding.removeWeakRef(this._headNode, <any>this);
                 Binding.removeWeakRef(this._tailNode, <any>this);
             }
 
             // 移除所有引用
-            this._headNode = null;
-            this._tailNode = null;
-            this.component = null;
-            this.unwatches = null;
+            this._headNode = this._tailNode = this.component = this.unwatches = this._realizePromise = null;
             this.isDisposed = true;
         }
     }

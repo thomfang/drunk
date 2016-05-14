@@ -2,6 +2,8 @@
 /// <reference path="../../util/dom.ts" />
 
 namespace drunk {
+    
+    import dom = drunk.dom;
 
     @binding("model")
     class ModelBinding extends Binding implements IBindingDefinition {
@@ -40,6 +42,7 @@ namespace drunk {
                 case "text":
                 case "tel":
                 case "email":
+                case "url":
                 case "password":
                 case "search":
                     this.initTextarea();

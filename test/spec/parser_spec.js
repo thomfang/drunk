@@ -3,7 +3,7 @@
 
 describe("parser", function () {
     
-    var parser  = drunk.parser;
+    var Parser  = drunk.Parser;
     var viewModel;
 
     describe("parseGetter", function () {
@@ -29,7 +29,7 @@ describe("parser", function () {
         });
 
         it("static literal getter", function () {
-            result0 = parser.parseGetter(str1);
+            result0 = Parser.parseGetter(str1);
             expect(result0.dynamic).toBe(false);
         });
 
@@ -61,7 +61,7 @@ describe("parser", function () {
             }];
             
             testCases.forEach(function (test) {
-                result1 = parser.parseGetter(test.expression);
+                result1 = Parser.parseGetter(test.expression);
                 expect(result1.dynamic).toBe(true);
                 expect(result1.filters).toBeNull();
                 expect(result1.call(viewModel)).toBe(test.expected);
@@ -111,19 +111,19 @@ describe("parser", function () {
             }];
 
             testCases.forEach(function (test) {
-                result2 = parser.parseGetter(test.expression);
+                result2 = Parser.parseGetter(test.expression);
                 var value = result2.call(viewModel);
 
                 expect(value).toBe(test.value);
                 
-                value = drunk.filter.pipeFor(value, result2.filters, viewModel.$filter, false, viewModel);
+                value = drunk.Filter.pipeFor(value, result2.filters, viewModel.$filter, false, viewModel);
                 expect(value).toBe(test.expected);
             });
 
         });
 
         it("dynamic literal setter", function () {
-            result3 = parser.parseSetter(str2);
+            result3 = Parser.parseSetter(str2);
             expect(result3).toBeDefined();
 
             result3.call(viewModel, 5);
@@ -138,23 +138,23 @@ describe("parser", function () {
         var result2, result3, result4, result5;
 
         it("no interpolate value", function () {
-            expect(parser.hasInterpolation(str1)).toBe(false);
+            expect(Parser.hasInterpolation(str1)).toBe(false);
         });
 
         it("parse to tokens", function () {
-            result2 = parser.parseInterpolate(str2, true);
+            result2 = Parser.parseInterpolate(str2, true);
             expect(result2.length).toBe(2);
             expect(result2[0]).toEqual("this has a ");
             expect(result2[1]).toEqual({expression: "interpolate"});
         });
 
         it("resuse tokens cache", function () {
-            result3 = parser.parseInterpolate(str2, true);
+            result3 = Parser.parseInterpolate(str2, true);
             expect(result3).toBe(result2); // reuse the cache
         });
 
         it("parse to getter", function () {
-            result4 = parser.parseInterpolate(str2);
+            result4 = Parser.parseInterpolate(str2);
             var vm = new drunk.ViewModel();
             vm.$proxy("interpolate");
             vm.interpolate = "123";
@@ -162,7 +162,7 @@ describe("parser", function () {
         });
 
         it("resuse getter", function () {
-            result5 = parser.parseInterpolate(str2);
+            result5 = Parser.parseInterpolate(str2);
             expect(result4).toBe(result5); // reuse the cache
         });
     });
@@ -179,7 +179,7 @@ describe("parser", function () {
 
             viewModel.test = jasmine.createSpy();
 
-            var handler = parser.parse(str);
+            var handler = Parser.parse(str);
 
             var $event = {};
             var $el    = {};
@@ -191,7 +191,7 @@ describe("parser", function () {
 
         it("assign value statement", function () {
             var str     = "a = a + 1";
-            var handler = parser.parse(str);
+            var handler = Parser.parse(str);
 
             handler.call(viewModel);
 
@@ -200,7 +200,7 @@ describe("parser", function () {
 
         it("single statement", function () {
             var str     = "a++";
-            var handler = parser.parse(str);
+            var handler = Parser.parse(str);
 
             handler.call(viewModel);
 
@@ -209,7 +209,7 @@ describe("parser", function () {
 
         it("multiple statement", function () {
             var str     = "a += 2, ++a";;
-            var handler = parser.parse(str);
+            var handler = Parser.parse(str);
 
             handler.call(viewModel);
 

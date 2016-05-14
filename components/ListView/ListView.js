@@ -1,3 +1,5 @@
+/// <reference path="../../build/drunk.d.ts" />
+/// <reference path="../Scheduler/Scheduler.d.ts" />
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
@@ -9,6 +11,25 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
+/**
+ * <body>
+ *   <list-view item-data-source="{{list}} scroll-to-item="{{locatedItemIndex}}">
+ *     <list-view-item>
+ *       <div>
+ *         <p>Name: {{$item.name}}</p>
+ *         <p>Age: {{$item.age}}</p>
+ *         <p>No.: {{$index}}</p>
+ *       </div>
+ *     </list-view-item>
+ *   </list-view>
+ * </body>
+ *
+ * var view = new drunk.Component({
+ *   list: [{name: Todd, age: 27}, {name: Fon, age: 20}, {name: Jim, age: 29}, {name: Tom, age: 22}],
+ *   locatedItemIndex: 1
+ * });
+ * view.$mount(document.body);
+ */
 var drunk;
 (function (drunk) {
     var dom = drunk.dom;
@@ -18,13 +39,18 @@ var drunk;
     var RepeatItem = drunk.RepeatItem;
     var Scheduler = drunk.Scheduler;
     var Template = drunk.Template;
+    var Promise = drunk.Promise;
     var templateString = "<div class=\"list-view\"><div class=\"header-container\"></div><div class=\"item-container\"></div><div class=\"footer-container\"></div></div>";
+    /**
+     * ListView
+     */
     var ListView = (function (_super) {
         __extends(ListView, _super);
         function ListView() {
             var _this = this;
             _super.call(this);
             this.template = templateString;
+            /** 布局方向 */
             this.layout = ListView.Layout.virtical;
             this._isFirstRender = true;
             this._items = [];
@@ -43,6 +69,9 @@ var drunk;
                 _this._updateScrollPosition();
             });
         }
+        /**
+         * @override
+         */
         ListView.prototype.$mount = function (viewportElement, owner, placeholder) {
             var _this = this;
             var header;
@@ -100,16 +129,24 @@ var drunk;
             this._updateItems();
             this._renderItems();
         };
+        /**
+         * @override
+         */
         ListView.prototype.$release = function () {
-            clearTimeout(this._hideTimerId);
+            this._renderHiddenItemsPromise && this._renderHiddenItemsPromise.cancel();
+            this._renderVisibleItemsJob && this._renderVisibleItemsJob.cancel();
             this._detachEvents();
             this._releaseItems(this._items);
             this._unbinds.forEach(function (unbind) { return unbind(); });
             this._itemsMap.clear();
+            this._renderHiddenItemsPromise = this._renderVisibleItemsJob = null;
             this._itemTemplate = this._itemContainer = this._headerContainer = this._footerContainer = this._unbinds = this._bind = this._owner = this._itemsMap = null;
             this._onResizeHandler = this._onScrollHandler = null;
             _super.prototype.$release.call(this);
         };
+        /**
+         * 滚动到指定位置
+         */
         ListView.prototype._updateScrollPosition = function () {
             var itemIndex = this.scrollToItem;
             if (itemIndex == null || !this._itemContainer) {
@@ -123,6 +160,9 @@ var drunk;
                 this._itemContainer.scrollTop = itemIndex * this._itemSize.height;
             }
         };
+        /**
+         * 计算Listview和每个item的宽高
+         */
         ListView.prototype._measureSize = function () {
             var viewport = this.element;
             var itemContainer = this._itemContainer;
@@ -157,11 +197,17 @@ var drunk;
             addCSSRule(itemContainerCSSRule);
             addCSSRule(placeholderCSSRule);
         };
+        /**
+         * 为一个item创建点位标签
+         */
         ListView.prototype._createItemPlaceholder = function () {
             var placeholder = document.createElement('div');
             dom.addClass(placeholder, 'placeholder');
             return placeholder;
         };
+        /**
+         * 更新item
+         */
         ListView.prototype._updateItems = function () {
             var _this = this;
             var itemDataSource = this.itemDataSource;
@@ -253,8 +299,8 @@ var drunk;
             if (this._renderVisibleItemsJob) {
                 this._renderVisibleItemsJob.cancel();
             }
-            if (this._hideTimerId) {
-                clearTimeout(this._hideTimerId);
+            if (this._renderHiddenItemsPromise) {
+                this._renderHiddenItemsPromise.cancel();
             }
             if (this.scrollToItem != null) {
                 this._isFirstRender = false;
@@ -321,21 +367,20 @@ var drunk;
         };
         ListView.prototype._renderHiddenItems = function () {
             var _this = this;
-            this._hideTimerId = setTimeout(function () {
-                _this._hideItemsJob = Scheduler.schedule(function (jobInfo) {
-                    if (_this._isScrollForward) {
-                        for (var i = _this._beginOffset + _this._visibleItemCount + 1, lastIndex = _this._items.length; i < lastIndex; i++) {
-                            _this._showItemPlaceholder(_this._items[i]);
-                        }
+            this._renderHiddenItemsPromise = Promise.timeout(500);
+            this._renderHiddenItemsPromise.done(function () {
+                if (_this._isScrollForward) {
+                    for (var i = _this._beginOffset + _this._visibleItemCount + 1, lastIndex = _this._items.length; i < lastIndex; i++) {
+                        _this._showItemPlaceholder(_this._items[i]);
                     }
-                    else {
-                        for (var i = _this._beginOffset - _this._visibleItemCount - 1; i >= 0; i--) {
-                            _this._showItemPlaceholder(_this._items[i]);
-                        }
+                }
+                else {
+                    for (var i = _this._beginOffset - _this._visibleItemCount - 1; i >= 0; i--) {
+                        _this._showItemPlaceholder(_this._items[i]);
                     }
-                    _this._hideItemsJob = null;
-                }, Scheduler.Priority.idle);
-            }, 500);
+                }
+                _this._renderHiddenItemsPromise = null;
+            });
         };
         ListView.prototype._showItemElement = function (item) {
             if (!item.renderred) {

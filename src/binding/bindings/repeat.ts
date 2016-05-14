@@ -11,6 +11,9 @@ namespace drunk {
     import Promise = drunk.Promise;
     import Binding = drunk.Binding;
     import Template = drunk.Template;
+    import Component = drunk.Component;
+    
+    var global = typeof window !== 'undefined' ? window : typeof self !== 'undefined' ? self : {};
 
     export interface IItemDataDescriptor {
         key: string | number;
@@ -108,12 +111,12 @@ namespace drunk {
             }
 
             if (!handler) {
-                if (typeof window[handlerName] !== 'function') {
+                if (typeof global[handlerName] !== 'function') {
                     throw new Error(`未找到该事件处理方法${handlerName}`);
                 }
 
-                handler = window[handlerName];
-                context = window;
+                handler = global[handlerName];
+                context = global;
             }
 
             return (...args: any[]) => {
@@ -126,8 +129,7 @@ namespace drunk {
          */
         $release() {
             super.$release();
-            this._flagNode = null;
-            this._element = null;
+            this._flagNode = this._element = null;
         }
 
         /**
@@ -203,7 +205,7 @@ namespace drunk {
          */
         init() {
             this._createCommentNodes();
-            this._parseDefinition();
+            this._parseExpression();
 
             this._map = new Map<RepeatItem[]>();
             this._items = [];
@@ -226,9 +228,9 @@ namespace drunk {
         }
 
         /**
-         * 解析表达式定义
+         * 解析表达式
          */
-        private _parseDefinition() {
+        private _parseExpression() {
             let expression: string = this.expression;
             let parts = expression.split(regParam);
 
@@ -278,7 +280,7 @@ namespace drunk {
             });
 
             if (!isEmpty) {
-                this._unrealizeUnusedItems();
+                this._unrealizeItems();
             }
 
             newVms.forEach(itemVm => itemVm._isUsed = false);
@@ -333,6 +335,7 @@ namespace drunk {
                             dom.after(viewModel._element, viewModel._flagNode);
 
                             this._bind(viewModel, viewModel.element);
+                            Component.setWeakRef(viewModel._element, viewModel);
                             viewModel._isBinded = true;
                         }
                         else {
@@ -382,7 +385,7 @@ namespace drunk {
                 this._updateItemModel(viewModel, item);
             }
             else {
-                viewModel = this._realizeRepeatItem(item);
+                viewModel = this._realizeItem(item);
             }
 
             return viewModel;
@@ -391,7 +394,7 @@ namespace drunk {
         /**
          * 根据item信息对象创建RepeatItem实例
          */
-        private _realizeRepeatItem(item: IItemDataDescriptor) {
+        private _realizeItem(item: IItemDataDescriptor) {
             let value = item.val;
             let options: IModel = {};
 
@@ -432,7 +435,7 @@ namespace drunk {
          * 释放不再使用的RepeatItem实例并删除其指定的元素
          * @param  force  是否强制移除所有item
          */
-        private _unrealizeUnusedItems(force?: boolean) {
+        private _unrealizeItems(force?: boolean) {
             let nameOfVal = this._param.val;
 
             this._itemVms.forEach((viewModel: RepeatItem, index) => {
@@ -453,6 +456,7 @@ namespace drunk {
 
                 flagNode.textContent = 'Unused repeat item';
                 Component.removeWeakRef(flagNode);
+                Component.removeWeakRef(viewModel._element);
                 viewModel.$release();
 
                 if (flagNode.parentNode) {
@@ -469,7 +473,7 @@ namespace drunk {
          */
         release() {
             if (this._itemVms && this._itemVms.length) {
-                this._unrealizeUnusedItems(true);
+                this._unrealizeItems(true);
             }
             if (this._cancelRenderJob) {
                 this._cancelRenderJob();

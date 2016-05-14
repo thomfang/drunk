@@ -13,13 +13,13 @@ describe("Binding.repeat", function () {
     it("should create the common properties", function () {
         binding.expression = "item in list";
 
-        spyOn(binding, "_parseDefinition").and.callThrough();
+        spyOn(binding, "_parseExpression").and.callThrough();
         binding.init();
         expect(binding._headNode).toBeDefined();
         expect(binding._tailNode).toBeDefined();
         expect(binding._map).toBeDefined();
         expect(binding._items).toBeDefined();
-        expect(binding._parseDefinition).toHaveBeenCalled();
+        expect(binding._parseExpression).toHaveBeenCalled();
         expect(binding._param).toEqual({ key: undefined, val: "item" });
     });
 
@@ -51,7 +51,7 @@ describe("Binding.repeat", function () {
             val: {}
         };
         binding._items.push(item0);
-        var vm0 = binding._realizeRepeatItem(item0);
+        var vm0 = binding._realizeItem(item0);
 
         expect(vm0._models.length).toBe(1);
         var model = JSON.parse(JSON.stringify(vm0._models[0]));
@@ -72,7 +72,7 @@ describe("Binding.repeat", function () {
             val: 0
         };
         binding._items.push(item1);
-        var vm1 = binding._realizeRepeatItem(item1);
+        var vm1 = binding._realizeItem(item1);
 
         expect(vm1._models.length).toBe(1);
         model = JSON.parse(JSON.stringify(vm1._models[0]));
@@ -96,7 +96,7 @@ describe("Binding.repeat", function () {
             val: 0
         };
 
-        var vm = binding._realizeRepeatItem(item);
+        var vm = binding._realizeItem(item);
         vm._isUsing = false;
 
         expect(binding._getRepeatItem(item)).toBe(vm);
@@ -135,7 +135,7 @@ describe("Binding.repeat", function () {
 
             binding.update(["a", "b"]);
 
-            drunk.Scheduler.schedule(function () {
+            drunk.util.requestAnimationFrame(function () {
                 expect(binding._itemVms[0].element.id).toBe('0');
                 expect(binding._itemVms[0].element.innerHTML).toBe('a');
                 expect(binding._itemVms[1].element.id).toBe('1');
@@ -143,7 +143,7 @@ describe("Binding.repeat", function () {
 
                 binding.release();
                 done();
-            }, drunk.Scheduler.Priority.idle);
+            });
         });
 
         it("object model", function (done) {
@@ -154,7 +154,7 @@ describe("Binding.repeat", function () {
 
             binding.update({ name: 'test', age: 13 });
 
-            drunk.Scheduler.schedule(function () {
+            drunk.util.requestAnimationFrame(function () {
                 expect(binding._itemVms[0].element.id).toBe('name');
                 expect(binding._itemVms[0].element.innerHTML).toBe('test');
                 expect(binding._itemVms[1].element.id).toBe('age');
@@ -162,7 +162,7 @@ describe("Binding.repeat", function () {
                 
                 binding.release();
                 done();
-            }, drunk.Scheduler.Priority.idle);
+            });
         });
 
         it("empty array model", function () {
@@ -171,11 +171,11 @@ describe("Binding.repeat", function () {
             binding.init();
 
             binding.update(["a", "b"]);
-            spyOn(binding, "_unrealizeUnusedItems").and.callThrough();
+            spyOn(binding, "_unrealizeItems").and.callThrough();
             binding.update([]);
 
             expect(binding._itemVms.length).toBe(0);
-            expect(binding._unrealizeUnusedItems.calls.count()).toBe(1);
+            expect(binding._unrealizeItems.calls.count()).toBe(1);
         });
 
         it("empty object model", function () {

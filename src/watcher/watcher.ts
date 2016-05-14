@@ -28,7 +28,7 @@ namespace drunk {
         private _tmpProperties: { [number: string]: { [property: string]: boolean } };
         private _isActived: boolean = true;
         private _throttle: number;
-        private _getter: parser.IGetter;
+        private _getter: Parser.IGetter;
 
         /**
          * 表达式求值的结果
@@ -41,11 +41,11 @@ namespace drunk {
          * @param   isDeepWatch 是否深度监听,当对象或数组里的任意一个数据改变都会发送更新消息
          */
         constructor(public viewModel: ViewModel, public expression: string, public isDeepWatch?: boolean) {
-            this._isInterpolate = parser.hasInterpolation(expression);
-            this._getter = this._isInterpolate ? parser.parseInterpolate(expression) : parser.parseGetter(expression);
+            this._isInterpolate = Parser.hasInterpolation(expression);
+            this._getter = this._isInterpolate ? Parser.parseInterpolate(expression) : Parser.parseGetter(expression);
 
             if (!this._getter.dynamic) {
-                throw new Error('不能监控不包含任何变量的表达式: "' + expression + '"');
+                throw new Error(`不能监控不包含任何变量的表达式: "${expression}"`);
             }
 
             this._propertyChanged = this._propertyChanged.bind(this);
@@ -99,18 +99,8 @@ namespace drunk {
 
             let key: string = Watcher.getNameOfKey(this.expression, this.isDeepWatch);
 
-            this.viewModel._watchers[key] =
-                this._propertyChanged =
-                this.value =
-                this.viewModel =
-                this.expression =
-                this._getter =
-                this._actions =
-                this._observers =
-                this._properties =
-                this._tmpProperties =
-                this._tmpObservers = null;
-
+            this.viewModel._watchers[key] = this._propertyChanged = this.value = this.viewModel = this.expression = this._getter = null;
+            this._actions = this._observers = this._properties = this._tmpProperties = this._tmpObservers = null;
             this._isActived = false;
         }
 
@@ -160,7 +150,7 @@ namespace drunk {
 
             if (this._getter.filters) {
                 // 派发到各个filter中处理
-                newValue = filter.pipeFor(newValue, this._getter.filters, this.viewModel.$filter, this._isInterpolate, this.viewModel);
+                newValue = Filter.pipeFor(newValue, this._getter.filters, this.viewModel.$filter, this._isInterpolate, this.viewModel);
             }
 
             this._accessed();

@@ -5,17 +5,13 @@ declare namespace drunk {
     interface IPromiseExecutor<R> {
         (resolve: (value?: R | IThenable<R>) => void, reject: (reason?: any) => void): void;
     }
-    enum PromiseState {
-        PENDING = 0,
-        RESOLVED = 1,
-        REJECTED = 2,
-    }
     class Promise<R> implements IThenable<R> {
         static all<R>(iterable: any[]): Promise<R[]>;
         static race<R>(iterable: any[]): Promise<R>;
         static resolve<R>(value?: R | IThenable<R>): Promise<R>;
         static reject<R>(reason?: R | IThenable<R>): Promise<R>;
-        _state: PromiseState;
+        static timeout(delay?: number): Promise<{}>;
+        _state: number;
         _value: any;
         _listeners: any[];
         /**
@@ -23,7 +19,9 @@ declare namespace drunk {
          */
         constructor(executor: IPromiseExecutor<R>);
         then<U>(onFulfillment?: (value: R) => U | IThenable<U>, onRejection?: (reason: any) => U | IThenable<U>): Promise<U>;
+        done<U>(onFulfillment?: (value: R) => U | IThenable<U>, onRejection?: (reason: any) => U | IThenable<U>): void;
         catch<U>(onRejection?: (reason: any) => U | IThenable<U>): Promise<U>;
+        cancel(): void;
     }
 }
 /**
@@ -172,7 +170,7 @@ declare namespace drunk.util {
      */
     function execAsyncWork(work: () => any, context?: any): IAsyncJob;
     var requestAnimationFrame: (callback: FrameRequestCallback) => number;
-    var cancelAnimationFrame: any;
+    var cancelAnimationFrame: (handle: number) => void;
 }
 declare namespace drunk {
     /**
@@ -442,7 +440,7 @@ declare namespace drunk.observable {
      * @param   value     对应字段的数据
      * @param   data      可观察数据
      */
-    let onPropertyAccessing: (observer: Observer, property: string, value: any, data: IObservableObject) => void;
+    var onPropertyAccessing: (observer: Observer, property: string, value: any, data: IObservableObject) => void;
     /**
      * 转换对象属性的getter/setter，使其能在数据更新是能接受到事件
      * @param  data  	 JSON对象
@@ -509,10 +507,10 @@ declare namespace drunk.observable {
 /**
  * 简单的解析器,只是做了字符串替换,然后使用new Function生成函数
  */
-declare namespace drunk.parser {
+declare namespace drunk.Parser {
     interface IGetter {
         (viewModel: ViewModel, ...args: Array<any>): any;
-        filters?: Array<filter.IFilterDef>;
+        filters?: Array<Filter.IFilterDef>;
         dynamic?: boolean;
         isInterpolate?: boolean;
     }
@@ -553,9 +551,9 @@ declare namespace drunk.parser {
 }
 /**
  * 数据过滤器模块
- * @module drunk.filter
+ * @module drunk.Filter
  */
-declare namespace drunk.filter {
+declare namespace drunk.Filter {
     /**
      * Filter声明
      * @param   input       输入
@@ -566,7 +564,7 @@ declare namespace drunk.filter {
     }
     interface IFilterDef {
         name: string;
-        param?: parser.IGetter;
+        param?: Parser.IGetter;
     }
     /**
      * 使用提供的filter列表处理数据
@@ -861,11 +859,15 @@ declare namespace drunk {
         _watchers: {
             [expression: string]: Watcher;
         };
+        /** 代理的属性 */
+        _proxyProps: {
+            [property: string]: boolean;
+        };
         /**
          * 过滤器方法,包含内置的
          */
         $filter: {
-            [name: string]: filter.IFilter;
+            [name: string]: Filter.IFilter;
         };
         /**
          * 事件处理方法集合
@@ -956,7 +958,6 @@ declare namespace drunk {
      * 动画模块
      */
     namespace Action {
-        const weakRefKey: string;
         /**
          * action的类型
          */
@@ -1139,7 +1140,7 @@ declare namespace drunk {
             [name: string]: any;
         };
         filters?: {
-            [name: string]: filter.IFilter;
+            [name: string]: Filter.IFilter;
         };
         watchers?: {
             [expression: string]: IBindingUpdateAction;
@@ -1218,10 +1219,10 @@ declare namespace drunk {
          * 该组件作用域下的数据过滤器表
          */
         protected __filters: {
-            [name: string]: filter.IFilter;
+            [name: string]: Filter.IFilter;
         };
         filters: {
-            [name: string]: filter.IFilter;
+            [name: string]: Filter.IFilter;
         };
         /**
          * 属性初始化
@@ -1313,6 +1314,7 @@ declare namespace drunk {
 declare namespace drunk {
 }
 declare namespace drunk {
+    import Component = drunk.Component;
     interface IItemDataDescriptor {
         key: string | number;
         idx: number;

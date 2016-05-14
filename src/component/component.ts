@@ -22,7 +22,7 @@ namespace drunk {
         name?: string;
         init?: () => void;
         data?: { [name: string]: any };
-        filters?: { [name: string]: filter.IFilter };
+        filters?: { [name: string]: Filter.IFilter };
         watchers?: { [expression: string]: IBindingUpdateAction };
         handlers?: { [name: string]: Function };
         element?: Node | Node[];
@@ -113,9 +113,9 @@ namespace drunk {
         /**
          * 该组件作用域下的数据过滤器表
          */
-        protected __filters: { [name: string]: filter.IFilter };
+        protected __filters: { [name: string]: Filter.IFilter };
 
-        set filters(newValue: { [name: string]: filter.IFilter }) {
+        set filters(newValue: { [name: string]: Filter.IFilter }) {
             if (this.$filter) {
                 util.extend(this.$filter, newValue);
             }

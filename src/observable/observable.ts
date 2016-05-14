@@ -63,7 +63,7 @@ namespace drunk.observable {
      * @param   value     对应字段的数据
      * @param   data      可观察数据
      */
-    export let onPropertyAccessing: (observer: Observer, property: string, value: any, data: IObservableObject) => void;
+    export var onPropertyAccessing: (observer: Observer, property: string, value: any, data: IObservableObject) => void;
      
     /**
      * 转换对象属性的getter/setter，使其能在数据更新是能接受到事件

@@ -14,8 +14,22 @@ declare namespace drunk {
         private __routerState;
         private __navigationState;
         private __visibleMap;
+        /**
+         * 启动
+         * @param  rootElement  默认以document.body启动
+         * @param  url          启动的路由
+         */
         start(rootElement?: HTMLElement, url?: string): void;
+        /**
+         * 导航到指定url
+         * @param  url           url参数
+         * @param  replaceState  是否替换掉当前的页面历史纪录
+         * @param  state         传递的参数
+         */
         navigate(url: string, replaceState?: boolean, state?: any): void;
+        /**
+         * 后退
+         */
         back(): void;
         private __enterView(view);
         private __exitView(view);

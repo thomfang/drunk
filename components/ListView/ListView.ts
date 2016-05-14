@@ -1,5 +1,5 @@
 /// <reference path="../../build/drunk.d.ts" />
-/// <reference path="./Scheduler/schedule.d.ts" />
+/// <reference path="../Scheduler/Scheduler.d.ts" />
 
 /**
  * <body>
@@ -30,6 +30,7 @@ namespace drunk {
     import RepeatItem = drunk.RepeatItem;
     import Scheduler = drunk.Scheduler;
     import Template = drunk.Template;
+    import Promise = drunk.Promise;
 
     type ItemDeclaration = {
         viewmodel: drunk.Component;
@@ -38,7 +39,7 @@ namespace drunk {
         isUsed?: boolean;
         isBinded?: boolean;
     };
-    
+
     var templateString = `<div class="list-view"><div class="header-container"></div><div class="item-container"></div><div class="footer-container"></div></div>`;
 
     /**
@@ -95,8 +96,7 @@ namespace drunk {
         private _onResizeHandler: (e) => any;
 
         private _renderVisibleItemsJob: Scheduler.IJob;
-        private _hideItemsJob: Scheduler.IJob;
-        private _hideTimerId: number;
+        private _renderHiddenItemsPromise: Promise<any>;
 
         constructor() {
             super();
@@ -188,11 +188,13 @@ namespace drunk {
          * @override
          */
         $release() {
-            clearTimeout(this._hideTimerId);
+            this._renderHiddenItemsPromise && this._renderHiddenItemsPromise.cancel();
+            this._renderVisibleItemsJob && this._renderVisibleItemsJob.cancel();
             this._detachEvents();
             this._releaseItems(this._items);
             this._unbinds.forEach(unbind => unbind());
             this._itemsMap.clear();
+            this._renderHiddenItemsPromise = this._renderVisibleItemsJob = null;
             this._itemTemplate = this._itemContainer = this._headerContainer = this._footerContainer = this._unbinds = this._bind = this._owner = this._itemsMap = null;
             this._onResizeHandler = this._onScrollHandler = null;
             super.$release();
@@ -385,8 +387,8 @@ namespace drunk {
             if (this._renderVisibleItemsJob) {
                 this._renderVisibleItemsJob.cancel();
             }
-            if (this._hideTimerId) {
-                clearTimeout(this._hideTimerId);
+            if (this._renderHiddenItemsPromise) {
+                this._renderHiddenItemsPromise.cancel();
             }
 
             if (this.scrollToItem != null) {
@@ -461,21 +463,20 @@ namespace drunk {
         }
 
         private _renderHiddenItems() {
-            this._hideTimerId = setTimeout(() => {
-                this._hideItemsJob = Scheduler.schedule(jobInfo => {
-                    if (this._isScrollForward) {
-                        for (let i = this._beginOffset + this._visibleItemCount + 1, lastIndex = this._items.length; i < lastIndex; i++) {
-                            this._showItemPlaceholder(this._items[i]);
-                        }
+            this._renderHiddenItemsPromise = Promise.timeout(500);
+            this._renderHiddenItemsPromise.done(() => {
+                if (this._isScrollForward) {
+                    for (let i = this._beginOffset + this._visibleItemCount + 1, lastIndex = this._items.length; i < lastIndex; i++) {
+                        this._showItemPlaceholder(this._items[i]);
                     }
-                    else {
-                        for (let i = this._beginOffset - this._visibleItemCount - 1; i >= 0; i--) {
-                            this._showItemPlaceholder(this._items[i]);
-                        }
+                }
+                else {
+                    for (let i = this._beginOffset - this._visibleItemCount - 1; i >= 0; i--) {
+                        this._showItemPlaceholder(this._items[i]);
                     }
-                    this._hideItemsJob = null;
-                }, Scheduler.Priority.idle);
-            }, 500);
+                }
+                this._renderHiddenItemsPromise = null;
+            });
         }
 
         private _showItemElement(item: ItemDeclaration) {
@@ -538,7 +539,7 @@ namespace drunk {
             this._itemContainer.addEventListener('touchmove', this._onScrollHandler, false);
             window.addEventListener('resize', this._onResizeHandler, false);
         }
-        
+
         private _detachEvents() {
             this._itemContainer.removeEventListener('scroll', this._onScrollHandler, false);
             this._itemContainer.removeEventListener('touchmove', this._onScrollHandler, false);

@@ -3,18 +3,19 @@
  */
 namespace drunk.util {
 
-    var nameOfUid: string = '__DRUNK_UID__';
-    var counter: number = 0;
+    var global: any = typeof window !== 'undefined' ? window : typeof self !== 'undefined' ? self : {};
+    var uniqueSymbol = typeof global.Symbol !== 'undefined' ? global.Symbol('__DRUNK_UID__') : '__DRUNK_UID__';
+    var uidCounter: number = 0;
 
     /**
      * 获取对象的唯一id
      * @param  target  设置的对象
      */
     export function uniqueId(target: any): number {
-        if (typeof target[nameOfUid] === 'undefined') {
-            defineProperty(target, nameOfUid, counter++);
+        if (typeof target[uniqueSymbol] === 'undefined') {
+            defineProperty(target, uniqueSymbol, uidCounter++);
         }
-        return target[nameOfUid];
+        return target[uniqueSymbol];
     }
 
     /**
@@ -191,28 +192,29 @@ namespace drunk.util {
 
         return job;
     }
-
-    var global: any = typeof window !== 'undefined' ? window : typeof self !== 'undefined' ? self : {};
-    var counter = 0;
+    
+    var handleCounter = 1;
     var requestAnimationCallbackMap = {};
     var requestAnimationWorker: number;
 
-    export var requestAnimationFrame: (callback: FrameRequestCallback) => number = global.requestAnimationFrame && global.requestAnimationFrame.bind(global) || function (callback: FrameRequestCallback) {
-        let id = counter++;
+    export var requestAnimationFrame: (callback: FrameRequestCallback) => number =
+        global.requestAnimationFrame && global.requestAnimationFrame.bind(global) || function (callback: FrameRequestCallback) {
+            let handle = handleCounter++;
 
-        requestAnimationCallbackMap[id] = callback;
-        requestAnimationWorker = requestAnimationWorker || setTimeout(function () {
-            let handlers = requestAnimationCallbackMap;
-            let now = Date.now();
-            requestAnimationCallbackMap = {};
-            requestAnimationWorker = null;
-            Object.keys(handlers).forEach(id => handlers[id](now));
-        }, 16);
+            requestAnimationCallbackMap[handle] = callback;
+            requestAnimationWorker = requestAnimationWorker || global.setTimeout(function () {
+                let handlers = requestAnimationCallbackMap;
+                let now = Date.now();
+                requestAnimationCallbackMap = {};
+                requestAnimationWorker = null;
+                Object.keys(handlers).forEach(id => handlers[id](now));
+            }, 16);
 
-        return id;
-    }
+            return handle;
+        };
 
-    export var cancelAnimationFrame = global.cancelAnimationFrame && global.cancelAnimationFrame.bind(global) || function (id: number) {
-        delete requestAnimationCallbackMap[id];
-    }
+    export var cancelAnimationFrame: (handle: number) => void =
+        global.cancelAnimationFrame && global.cancelAnimationFrame.bind(global) || function (handle: number) {
+            delete requestAnimationCallbackMap[handle];
+        };
 }

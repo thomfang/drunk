@@ -6,37 +6,43 @@
     <meta name="viewport" content="initial-scale=1" />
     <title>scheduler - demo</title>
     <script src="../../build/drunk.js"></script>
+    <script src="../../components/scheduler/scheduler.js"></script>
 </head>
 
 <body>
 
     <div id='container'>
         <div id="tpl">
-            <h2>Title</h2>
-            <section>Some content here</section>
+            <h2>Scheduler:</h2>
+            <div>
+                <p drunk-repeat="msg in list">{{msg}}</p>
+            </div>
+            <!--<section>Some content here</section>-->
         </div>
     </div>
 
     <script>
         /// <reference path="../../build/drunk.d.ts" />
-            
+        
+            var app = new drunk.Component({list: []});
+            app.$mount(document.body);
             
             drunk.Scheduler.schedule(function (jobInfo) {
                 var start = Date.now();
                 while (Date.now() - start < 100);
                 
-                console.log('should yield:', jobInfo.shouldYield, Date.now() - start);
+                app.list.push(`should yield: ${jobInfo.shouldYield}, ${Date.now() - start}`);
                 
                 drunk.util.execAsyncWork(function () {
-                    console.log('async work at Normal would execute before 1st normal priority job')
+                    app.list.push('async work at Normal would execute before 1st normal priority job');
                 });
                 jobInfo.setWork(function () {
-                    console.log('The 1st Normal priority job')
+                    app.list.push('The 1st Normal priority job');
                 });
             });
             
             drunk.Scheduler.schedule(function () {
-                console.log('The 2nd Normal priority job');
+                app.list.push('The 2nd Normal priority job');
                 drunk.util.execAsyncWork(function() {
                     idleJob.cancel();
                 })

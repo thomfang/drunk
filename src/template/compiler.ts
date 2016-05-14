@@ -162,11 +162,11 @@ namespace drunk.Template {
     function compileTextNode(node: any): IBindingExecutor {
         let content: string = node.textContent;
 
-        if (!parser.hasInterpolation(content)) {
+        if (!Parser.hasInterpolation(content)) {
             return;
         }
 
-        let tokens: any[] = parser.parseInterpolate(content, true);
+        let tokens: any[] = Parser.parseInterpolate(content, true);
         let fragment = document.createDocumentFragment();
         let executors = [];
 
@@ -236,7 +236,7 @@ namespace drunk.Template {
                     expression: expression
                 });
             }
-            else if (parser.hasInterpolation(expression)) {
+            else if (Parser.hasInterpolation(expression)) {
                 // 如果是在某个属性上进行插值创建一个attr的绑定
                 executor = createExecutor(element, {
                     name: "attr",
