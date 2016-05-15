@@ -13,6 +13,8 @@ namespace drunk {
     import Watcher = drunk.Watcher;
     import observable = drunk.observable;
     import EventEmitter = drunk.EventEmitter;
+    
+    var global = util.global;
 
     export interface IModel extends observable.IObservableObject {
         [key: string]: any;
@@ -297,9 +299,9 @@ namespace drunk {
             var context: any = this;
 
             if (!handler) {
-                if (typeof window[handlerName] === 'function') {
-                    handler = window[handlerName];
-                    context = window;
+                if (typeof global[handlerName] === 'function') {
+                    handler = global[handlerName];
+                    context = global;
                 }
                 else {
                     throw new Error(handlerName + ": 没有找到该事件处理方法");

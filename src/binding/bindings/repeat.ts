@@ -3,17 +3,17 @@
 /// <reference path="../../component/component.ts" />
 /// <reference path="../../template/compiler.ts" />
 /// <reference path="../../map/map.ts" />
-/// <reference path="../../promise/promise.ts" />
 
 namespace drunk {
 
     import Map = drunk.Map;
-    import Promise = drunk.Promise;
+    import dom = drunk.dom;
+    import util = drunk.util;
     import Binding = drunk.Binding;
     import Template = drunk.Template;
     import Component = drunk.Component;
     
-    var global = typeof window !== 'undefined' ? window : typeof self !== 'undefined' ? self : {};
+    var global = util.global;
 
     export interface IItemDataDescriptor {
         key: string | number;
@@ -223,8 +223,8 @@ namespace drunk {
             dom.before(this._headNode, this.element);
             dom.replace(this._tailNode, this.element);
 
-            Binding.setWeakRef(this._headNode, <any>this);
-            Binding.setWeakRef(this._tailNode, <any>this);
+            Binding.setWeakRef(this._headNode, this);
+            Binding.setWeakRef(this._tailNode, this);
         }
 
         /**
@@ -479,8 +479,8 @@ namespace drunk {
                 this._cancelRenderJob();
             }
 
-            Binding.removeWeakRef(this._headNode, <any>this);
-            Binding.removeWeakRef(this._tailNode, <any>this);
+            Binding.removeWeakRef(this._headNode, this);
+            Binding.removeWeakRef(this._tailNode, this);
 
             dom.remove(this._headNode);
             dom.remove(this._tailNode);

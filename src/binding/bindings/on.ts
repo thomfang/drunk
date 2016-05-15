@@ -4,6 +4,8 @@
 /// <reference path="../../config/config.ts" />
 
 namespace drunk {
+    
+    import dom = drunk.dom;
 
     let reg = {
         semic: /\s*;\s*/,
@@ -25,10 +27,10 @@ namespace drunk {
             let prefix = config.prefix;
 
             console.assert(matches !== null,
-                `非法的"${prefix}on"表达式 ${str}, 正确的用法如下:\n`,
-                prefix + 'on="click: expression"\n',
-                prefix + 'on="mousedown: expression; mouseup: callback()"\n',
-                prefix + 'on="click: callback($event, $el)"\n'
+                `不合法的"${prefix}on"表达式 ${str}, 正确的用法如下:
+                ${prefix}on="click: expression"
+                ${prefix}on="mousedown: expression; mouseup: callback()"
+                ${prefix}on="click: callback($event, $el)"`
             );
 
             let type = matches[1];

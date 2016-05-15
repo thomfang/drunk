@@ -97,6 +97,7 @@ declare namespace drunk {
  * 工具方法模块
  */
 declare namespace drunk.util {
+    var global: any;
     /**
      * 获取对象的唯一id
      * @param  target  设置的对象

@@ -22,7 +22,7 @@ namespace drunk {
          */
         init(ownerViewModel: Component, placeholder: HTMLElement) {
             if (!ownerViewModel || !placeholder) {
-                throw new Error(`未提供父级component实例和组件声明的占位标签`);
+                throw new Error(`$mount(element, ownerViewModel, placeholder): ownerViewModel和placeholder未提供`);
             }
 
             let nodes = [];

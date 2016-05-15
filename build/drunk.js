@@ -452,8 +452,8 @@ var drunk;
 (function (drunk) {
     var util;
     (function (util) {
-        var global = typeof window !== 'undefined' ? window : typeof self !== 'undefined' ? self : {};
-        var uniqueSymbol = typeof global.Symbol !== 'undefined' ? global.Symbol('__DRUNK_UID__') : '__DRUNK_UID__';
+        util.global = typeof window !== 'undefined' ? window : typeof self !== 'undefined' ? self : {};
+        var uniqueSymbol = typeof util.global.Symbol !== 'undefined' ? util.global.Symbol('__DRUNK_UID__') : '__DRUNK_UID__';
         var uidCounter = 0;
         /**
          * 获取对象的唯一id
@@ -621,10 +621,10 @@ var drunk;
         var handleCounter = 1;
         var requestAnimationCallbackMap = {};
         var requestAnimationWorker;
-        util.requestAnimationFrame = global.requestAnimationFrame && global.requestAnimationFrame.bind(global) || function (callback) {
+        util.requestAnimationFrame = util.global.requestAnimationFrame && util.global.requestAnimationFrame.bind(util.global) || function (callback) {
             var handle = handleCounter++;
             requestAnimationCallbackMap[handle] = callback;
-            requestAnimationWorker = requestAnimationWorker || global.setTimeout(function () {
+            requestAnimationWorker = requestAnimationWorker || util.global.setTimeout(function () {
                 var handlers = requestAnimationCallbackMap;
                 var now = Date.now();
                 requestAnimationCallbackMap = {};
@@ -633,7 +633,7 @@ var drunk;
             }, 16);
             return handle;
         };
-        util.cancelAnimationFrame = global.cancelAnimationFrame && global.cancelAnimationFrame.bind(global) || function (handle) {
+        util.cancelAnimationFrame = util.global.cancelAnimationFrame && util.global.cancelAnimationFrame.bind(util.global) || function (handle) {
             delete requestAnimationCallbackMap[handle];
         };
     })(util = drunk.util || (drunk.util = {}));
@@ -2511,6 +2511,7 @@ var drunk;
     var Watcher = drunk.Watcher;
     var observable = drunk.observable;
     var EventEmitter = drunk.EventEmitter;
+    var global = util.global;
     /**
      * Decorator for ViewModel#$computed
      */
@@ -2728,9 +2729,9 @@ var drunk;
             var handler = this[handlerName];
             var context = this;
             if (!handler) {
-                if (typeof window[handlerName] === 'function') {
-                    handler = window[handlerName];
-                    context = window;
+                if (typeof global[handlerName] === 'function') {
+                    handler = global[handlerName];
+                    context = global;
                 }
                 else {
                     throw new Error(handlerName + ": 没有找到该事件处理方法");
@@ -4049,6 +4050,7 @@ var drunk;
 /// <reference path="../../config/config.ts" />
 var drunk;
 (function (drunk) {
+    var dom = drunk.dom;
     var reg = {
         semic: /\s*;\s*/,
         statement: /(\w+):\s*(.+)/,
@@ -4067,7 +4069,7 @@ var drunk;
             var _this = this;
             var matches = str.match(reg.statement);
             var prefix = drunk.config.prefix;
-            console.assert(matches !== null, "\u975E\u6CD5\u7684\"" + prefix + "on\"\u8868\u8FBE\u5F0F " + str + ", \u6B63\u786E\u7684\u7528\u6CD5\u5982\u4E0B:\n", prefix + 'on="click: expression"\n', prefix + 'on="mousedown: expression; mouseup: callback()"\n', prefix + 'on="click: callback($event, $el)"\n');
+            console.assert(matches !== null, "\u4E0D\u5408\u6CD5\u7684\"" + prefix + "on\"\u8868\u8FBE\u5F0F " + str + ", \u6B63\u786E\u7684\u7528\u6CD5\u5982\u4E0B:\n                " + prefix + "on=\"click: expression\"\n                " + prefix + "on=\"mousedown: expression; mouseup: callback()\"\n                " + prefix + "on=\"click: callback($event, $el)\"");
             var type = matches[1];
             var expr = matches[2];
             var func = drunk.Parser.parse(expr.trim());
@@ -4077,13 +4079,13 @@ var drunk;
                 }
                 func.call(_this.viewModel, e, _this.element);
             };
-            drunk.dom.on(this.element, type, handler);
+            dom.on(this.element, type, handler);
             return { type: type, handler: handler };
         };
         EventBinding.prototype.release = function () {
             var _this = this;
             this._events.forEach(function (event) {
-                drunk.dom.off(_this.element, event.type, event.handler);
+                dom.off(_this.element, event.type, event.handler);
             });
             this._events = null;
         };
@@ -4241,14 +4243,15 @@ var drunk;
 /// <reference path="../../component/component.ts" />
 /// <reference path="../../template/compiler.ts" />
 /// <reference path="../../map/map.ts" />
-/// <reference path="../../promise/promise.ts" />
 var drunk;
 (function (drunk) {
     var Map = drunk.Map;
+    var dom = drunk.dom;
+    var util = drunk.util;
     var Binding = drunk.Binding;
     var Template = drunk.Template;
     var Component = drunk.Component;
-    var global = typeof window !== 'undefined' ? window : typeof self !== 'undefined' ? self : {};
+    var global = util.global;
     /**
      * 用于repeat作用域下的子viewModel
      * @param _parent     父级ViewModel
@@ -4289,7 +4292,7 @@ var drunk;
         RepeatItem.prototype.__proxyModel = function (model) {
             var _this = this;
             Object.keys(model).forEach(function (property) {
-                drunk.util.proxy(_this, property, model);
+                util.proxy(_this, property, model);
             });
             if (!this._models) {
                 this._models = [];
@@ -4300,14 +4303,14 @@ var drunk;
          * 重写代理方法,顺便也让父级viewModel代理该属性
          */
         RepeatItem.prototype.$proxy = function (property) {
-            if (drunk.util.proxy(this, property, this._model)) {
+            if (util.proxy(this, property, this._model)) {
                 this._parent.$proxy(property);
             }
         };
         RepeatItem.prototype.$getModel = function () {
             var result = _super.prototype.$getModel.call(this);
             this._models.forEach(function (model) {
-                drunk.util.extend(result, drunk.util.deepClone(model));
+                util.extend(result, util.deepClone(model));
             });
             return result;
         };
@@ -4358,7 +4361,7 @@ var drunk;
                     });
                 });
             }
-            else if (drunk.util.isObject(target)) {
+            else if (util.isObject(target)) {
                 var idx = 0;
                 var key = void 0;
                 for (key in target) {
@@ -4413,8 +4416,8 @@ var drunk;
             this._flagNodeContent = "[repeat-item]" + this.expression;
             this._headNode = document.createComment('<repeat>: ' + this.expression);
             this._tailNode = document.createComment('</repeat>: ' + this.expression);
-            drunk.dom.before(this._headNode, this.element);
-            drunk.dom.replace(this._tailNode, this.element);
+            dom.before(this._headNode, this.element);
+            dom.replace(this._tailNode, this.element);
             Binding.setWeakRef(this._headNode, this);
             Binding.setWeakRef(this._tailNode, this);
         };
@@ -4500,27 +4503,27 @@ var drunk;
                     viewModel = _this._itemVms[index++];
                     if (viewModel._flagNode !== placeholder) {
                         // 判断占位节点是否是当前item的节点，不是则换位
-                        drunk.dom.before(viewModel._flagNode, placeholder);
+                        dom.before(viewModel._flagNode, placeholder);
                         if (!viewModel._isBinded) {
                             // 创建节点和生成绑定
                             viewModel.element = viewModel._element = _this.element.cloneNode(true);
-                            drunk.dom.after(viewModel._element, viewModel._flagNode);
+                            dom.after(viewModel._element, viewModel._flagNode);
                             _this._bind(viewModel, viewModel.element);
                             Component.setWeakRef(viewModel._element, viewModel);
                             viewModel._isBinded = true;
                         }
                         else {
-                            drunk.dom.after(viewModel._element, viewModel._flagNode);
+                            dom.after(viewModel._element, viewModel._flagNode);
                         }
                         if (drunk.config.renderOptimization && Date.now() >= endTime && index < length) {
                             // 如果创建节点达到了一定时间，让出线程给ui线程
                             if (!_this._cancelRenderJob) {
                                 _this._cancelRenderJob = function () {
-                                    renderJob && drunk.util.cancelAnimationFrame(renderJob);
+                                    renderJob && util.cancelAnimationFrame(renderJob);
                                     _this._cancelRenderJob = renderJob = null;
                                 };
                             }
-                            return renderJob = drunk.util.requestAnimationFrame(renderItems);
+                            return renderJob = util.requestAnimationFrame(renderItems);
                         }
                     }
                     else {
@@ -4598,7 +4601,7 @@ var drunk;
                 }
                 var value = viewModel[nameOfVal];
                 var viewModelList = _this._map.get(value);
-                drunk.util.removeArrayItem(viewModelList, viewModel);
+                util.removeArrayItem(viewModelList, viewModel);
                 if (!viewModelList.length) {
                     _this._map.delete(value);
                 }
@@ -4612,7 +4615,7 @@ var drunk;
                     flagNode.parentNode.removeChild(flagNode);
                 }
                 if (element) {
-                    drunk.dom.remove(element);
+                    dom.remove(element);
                 }
             });
         };
@@ -4628,8 +4631,8 @@ var drunk;
             }
             Binding.removeWeakRef(this._headNode, this);
             Binding.removeWeakRef(this._tailNode, this);
-            drunk.dom.remove(this._headNode);
-            drunk.dom.remove(this._tailNode);
+            dom.remove(this._headNode);
+            dom.remove(this._tailNode);
             this._map.clear();
             this._map = this._items = this._itemVms = this._bind = this._headNode = this._tailNode = null;
         };
@@ -4952,7 +4955,6 @@ var drunk;
 /// <reference path="../binding.ts" />
 /// <reference path="../../template/loader.ts" />
 /// <reference path="../../template/compiler.ts" />
-/// <reference path="../../config/config.ts" />
 /// <reference path="../../promise/promise.ts" />
 /// <reference path="../../util/dom.ts" />
 var drunk;
@@ -4974,7 +4976,9 @@ var drunk;
             this._url = url;
             this._removeBind();
             if (url) {
-                return Template.renderFragment(url, null, true).then(function (fragment) { return _this._createBinding(fragment); });
+                return this._bindPromise = Template.renderFragment(url, null, true).then(function (fragment) {
+                    _this._createBinding(fragment);
+                });
             }
         };
         IncludeBinding.prototype.release = function () {
@@ -4983,11 +4987,16 @@ var drunk;
         };
         IncludeBinding.prototype._createBinding = function (fragment) {
             var _this = this;
+            this._bindPromise = null;
             this._elements = util.toArray(fragment.childNodes);
             this._elements.forEach(function (el) { return _this.element.appendChild(el); });
             this._unbind = Template.compile(this._elements)(this.viewModel, this._elements);
         };
         IncludeBinding.prototype._removeBind = function () {
+            if (this._bindPromise) {
+                this._bindPromise.cancel();
+                this._bindPromise = null;
+            }
             if (this._elements) {
                 var unbind_1 = this._unbind;
                 dom.remove(this._elements).then(function () {
@@ -5008,6 +5017,7 @@ var drunk;
 var drunk;
 (function (drunk) {
     var dom = drunk.dom;
+    var util = drunk.util;
     var ModelBinding = (function (_super) {
         __extends(ModelBinding, _super);
         function ModelBinding() {
@@ -5017,19 +5027,19 @@ var drunk;
             var tag = this.element.tagName.toLowerCase();
             switch (tag) {
                 case "input":
-                    this.initInput();
+                    this.initAsInput();
                     break;
                 case "select":
-                    this.initSelect();
+                    this.initAsSelect();
                     break;
                 case "textarea":
-                    this.initTextarea();
+                    this.initAsTextarea();
                     break;
             }
             this._changedHandler = this._changedHandler.bind(this);
             dom.on(this.element, this._changedEvent, this._changedHandler);
         };
-        ModelBinding.prototype.initInput = function () {
+        ModelBinding.prototype.initAsInput = function () {
             var type = this.element.type;
             switch (type) {
                 case "checkbox":
@@ -5044,7 +5054,7 @@ var drunk;
                 case "url":
                 case "password":
                 case "search":
-                    this.initTextarea();
+                    this.initAsTextarea();
                     break;
                 default:
                     this.initCommon();
@@ -5052,28 +5062,28 @@ var drunk;
         };
         ModelBinding.prototype.initCheckbox = function () {
             this._changedEvent = "change";
-            this._updateView = setCheckboxValue;
-            this._getValue = getCheckboxValue;
+            this._updateView = this._setCheckboxValue;
+            this._getValue = this._getCheckboxValue;
         };
         ModelBinding.prototype.initRadio = function () {
             this._changedEvent = "change";
-            this._updateView = setRadioValue;
-            this._getValue = getCommonValue;
+            this._updateView = this._setRadioValue;
+            this._getValue = this._getCommonControlValue;
         };
-        ModelBinding.prototype.initSelect = function () {
+        ModelBinding.prototype.initAsSelect = function () {
             this._changedEvent = "change";
-            this._updateView = setSelectValue;
-            this._getValue = getSelectValue;
+            this._updateView = this._setSelectValue;
+            this._getValue = this._getSelectValue;
         };
-        ModelBinding.prototype.initTextarea = function () {
+        ModelBinding.prototype.initAsTextarea = function () {
             this._changedEvent = "input";
-            this._updateView = setCommonValue;
-            this._getValue = getCommonValue;
+            this._updateView = this._setCommonControlValue;
+            this._getValue = this._getCommonControlValue;
         };
         ModelBinding.prototype.initCommon = function () {
             this._changedEvent = "change";
-            this._updateView = setCommonValue;
-            this._getValue = getCommonValue;
+            this._updateView = this._setCommonControlValue;
+            this._getValue = this._getCommonControlValue;
         };
         ModelBinding.prototype.update = function (newValue, oldValue) {
             this._updateView(newValue);
@@ -5085,55 +5095,55 @@ var drunk;
         ModelBinding.prototype._changedHandler = function () {
             this.$setValue(this._getValue());
         };
+        ModelBinding.prototype._setCheckboxValue = function (newValue) {
+            this.element.checked = !!newValue;
+        };
+        ModelBinding.prototype._getCheckboxValue = function () {
+            return !!this.element.checked;
+        };
+        ModelBinding.prototype._setRadioValue = function (newValue) {
+            this.element.checked = this.element.value == newValue;
+        };
+        ModelBinding.prototype._getSelectValue = function () {
+            if (this.element.options) {
+                for (var i = 0, option = void 0; option = this.element.options[i]; i++) {
+                    if (option.selected) {
+                        return option.value;
+                    }
+                }
+            }
+            return this.element.value;
+        };
+        ModelBinding.prototype._setSelectValue = function (newValue) {
+            if (newValue == null) {
+                this.element.value = '';
+                util.toArray(this.element.options).forEach(function (option) { return option.selected = false; });
+            }
+            else {
+                for (var i = 0, option_1; option_1 = this.element.options[i]; i++) {
+                    if (option_1.value == newValue) {
+                        option_1.selected = true;
+                        return;
+                    }
+                }
+                var option = document.createElement('option');
+                option.textContent = option.value = newValue;
+                this.element.add(option);
+                option.selected = true;
+            }
+        };
+        ModelBinding.prototype._setCommonControlValue = function (newValue) {
+            newValue = newValue == null ? '' : newValue;
+            this.element.value = newValue;
+        };
+        ModelBinding.prototype._getCommonControlValue = function () {
+            return this.element.value;
+        };
         ModelBinding = __decorate([
             drunk.binding("model")
         ], ModelBinding);
         return ModelBinding;
     }(drunk.Binding));
-    function setCheckboxValue(newValue) {
-        this.element.checked = !!newValue;
-    }
-    function getCheckboxValue() {
-        return !!this.element.checked;
-    }
-    function setRadioValue(newValue) {
-        this.element.checked = this.element.value == newValue;
-    }
-    function getSelectValue() {
-        if (this.element.options) {
-            for (var i = 0, option = void 0; option = this.element.options[i]; i++) {
-                if (option.selected) {
-                    return option.value;
-                }
-            }
-        }
-        return this.element.value;
-    }
-    function setSelectValue(newValue) {
-        if (newValue == null) {
-            this.element.value = '';
-            drunk.util.toArray(this.element.options).forEach(function (option) { return option.selected = false; });
-        }
-        else {
-            for (var i = 0, option_1; option_1 = this.element.options[i]; i++) {
-                if (option_1.value == newValue) {
-                    option_1.selected = true;
-                    return;
-                }
-            }
-            var option = document.createElement('option');
-            option.textContent = option.value = newValue;
-            this.element.add(option);
-            option.selected = true;
-        }
-    }
-    function setCommonValue(newValue) {
-        newValue = newValue == null ? '' : newValue;
-        this.element.value = newValue;
-    }
-    function getCommonValue() {
-        return this.element.value;
-    }
 })(drunk || (drunk = {}));
 /// <reference path="../binding.ts" />
 var drunk;
@@ -5182,7 +5192,7 @@ var drunk;
          */
         TranscludeBinding.prototype.init = function (ownerViewModel, placeholder) {
             if (!ownerViewModel || !placeholder) {
-                throw new Error("\u672A\u63D0\u4F9B\u7236\u7EA7component\u5B9E\u4F8B\u548C\u7EC4\u4EF6\u58F0\u660E\u7684\u5360\u4F4D\u6807\u7B7E");
+                throw new Error("$mount(element, ownerViewModel, placeholder): ownerViewModel\u548Cplaceholder\u672A\u63D0\u4F9B");
             }
             var nodes = [];
             var unbinds = [];

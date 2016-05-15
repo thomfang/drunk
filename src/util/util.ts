@@ -3,10 +3,11 @@
  */
 namespace drunk.util {
 
-    var global: any = typeof window !== 'undefined' ? window : typeof self !== 'undefined' ? self : {};
+    export var global: any = typeof window !== 'undefined' ? window : typeof self !== 'undefined' ? self : {};
+    
     var uniqueSymbol = typeof global.Symbol !== 'undefined' ? global.Symbol('__DRUNK_UID__') : '__DRUNK_UID__';
     var uidCounter: number = 0;
-
+    
     /**
      * 获取对象的唯一id
      * @param  target  设置的对象

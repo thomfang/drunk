@@ -2,12 +2,13 @@
 /// <reference path="../../util/dom.ts" />
 
 namespace drunk {
-    
+
     import dom = drunk.dom;
+    import util = drunk.util;
 
     @binding("model")
     class ModelBinding extends Binding implements IBindingDefinition {
-        
+
         private _changedEvent: string;
         private _updateView: Function;
         private _getValue: Function;
@@ -16,13 +17,13 @@ namespace drunk {
             let tag = this.element.tagName.toLowerCase();
             switch (tag) {
                 case "input":
-                    this.initInput();
+                    this.initAsInput();
                     break;
                 case "select":
-                    this.initSelect();
+                    this.initAsSelect();
                     break;
                 case "textarea":
-                    this.initTextarea();
+                    this.initAsTextarea();
                     break;
             }
 
@@ -30,7 +31,7 @@ namespace drunk {
             dom.on(this.element, this._changedEvent, this._changedHandler);
         }
 
-        initInput() {
+        initAsInput() {
             let type = this.element.type;
             switch (type) {
                 case "checkbox":
@@ -45,7 +46,7 @@ namespace drunk {
                 case "url":
                 case "password":
                 case "search":
-                    this.initTextarea();
+                    this.initAsTextarea();
                     break;
                 default:
                     this.initCommon();
@@ -54,32 +55,32 @@ namespace drunk {
 
         initCheckbox() {
             this._changedEvent = "change";
-            this._updateView = setCheckboxValue;
-            this._getValue = getCheckboxValue;
+            this._updateView = this._setCheckboxValue;
+            this._getValue = this._getCheckboxValue;
         }
 
         initRadio() {
             this._changedEvent = "change";
-            this._updateView = setRadioValue;
-            this._getValue = getCommonValue;
+            this._updateView = this._setRadioValue;
+            this._getValue = this._getCommonControlValue;
         }
 
-        initSelect() {
+        initAsSelect() {
             this._changedEvent = "change";
-            this._updateView = setSelectValue;
-            this._getValue = getSelectValue;
+            this._updateView = this._setSelectValue;
+            this._getValue = this._getSelectValue;
         }
 
-        initTextarea() {
+        initAsTextarea() {
             this._changedEvent = "input";
-            this._updateView = setCommonValue;
-            this._getValue = getCommonValue;
+            this._updateView = this._setCommonControlValue;
+            this._getValue = this._getCommonControlValue;
         }
 
         initCommon() {
             this._changedEvent = "change";
-            this._updateView = setCommonValue;
-            this._getValue = getCommonValue;
+            this._updateView = this._setCommonControlValue;
+            this._getValue = this._getCommonControlValue;
         }
 
         update(newValue, oldValue) {
@@ -91,61 +92,60 @@ namespace drunk {
             dom.off(this.element, this._changedEvent, this._changedHandler);
         }
 
-        _changedHandler() {
+        private _changedHandler() {
             this.$setValue(this._getValue());
         }
 
-    }
+        private _setCheckboxValue(newValue: any) {
+            this.element.checked = !!newValue;
+        }
 
-    function setCheckboxValue(newValue) {
-        this.element.checked = !!newValue;
-    }
+        private _getCheckboxValue() {
+            return !!this.element.checked;
+        }
 
-    function getCheckboxValue() {
-        return !!this.element.checked;
-    }
+        private _setRadioValue(newValue: any) {
+            this.element.checked = this.element.value == newValue;
+        }
 
-    function setRadioValue(newValue) {
-        this.element.checked = this.element.value == newValue;
-    }
-
-    function getSelectValue() {
-        if (this.element.options) {
-            for (let i = 0, option; option = this.element.options[i]; i++) {
-                if (option.selected) {
-                    return option.value;
+        private _getSelectValue() {
+            if (this.element.options) {
+                for (let i = 0, option; option = this.element.options[i]; i++) {
+                    if (option.selected) {
+                        return option.value;
+                    }
                 }
             }
+            return this.element.value;
         }
-        return this.element.value;
-    }
 
-    function setSelectValue(newValue) {
-        if (newValue == null) {
-            this.element.value = '';
-            drunk.util.toArray(this.element.options).forEach(option => option.selected = false);
-        }
-        else {
-            for (let i = 0, option; option = this.element.options[i]; i++) {
-                if (option.value == newValue) {
-                    option.selected = true;
-                    return;
-                }
+        private _setSelectValue(newValue: string) {
+            if (newValue == null) {
+                this.element.value = '';
+                util.toArray(this.element.options).forEach(option => option.selected = false);
             }
+            else {
+                for (let i = 0, option; option = this.element.options[i]; i++) {
+                    if (option.value == newValue) {
+                        option.selected = true;
+                        return;
+                    }
+                }
 
-            let option = document.createElement('option');
-            option.textContent = option.value = newValue;
-            this.element.add(option);
-            option.selected = true;
+                let option = document.createElement('option');
+                option.textContent = option.value = newValue;
+                this.element.add(option);
+                option.selected = true;
+            }
         }
-    }
 
-    function setCommonValue(newValue) {
-        newValue = newValue == null ? '' : newValue;
-        this.element.value = newValue;
-    }
-
-    function getCommonValue() {
-        return this.element.value;
+        private _setCommonControlValue(newValue: any) {
+            newValue = newValue == null ? '' : newValue;
+            this.element.value = newValue;
+        }
+        
+        private _getCommonControlValue() {
+            return this.element.value;
+        }
     }
 }
