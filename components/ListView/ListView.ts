@@ -145,12 +145,12 @@ namespace drunk {
                         this._itemTemplate = child.firstElementChild;
                         break;
                     default:
-                        throw new Error('list-view中存在无法识别的标签: ' + child.tagName.toLowerCase());
+                        throw new Error(`list-view中存在无法识别的标签:  ${child.tagName.toLowerCase()}`);
                 }
             });
 
             if (!this._itemTemplate) {
-                throw new Error('list-view: 未找到list-view-item模板标签');
+                throw new Error(`list-view: 未找到list-view-item模板标签`);
             }
 
             this._owner = owner;
@@ -159,12 +159,22 @@ namespace drunk {
             this._itemContainer = <HTMLElement>viewportElement.querySelector('.item-container');
             this._footerContainer = <HTMLElement>viewportElement.querySelector('.footer-container');
 
+            if (!this._itemContainer) {
+                throw new Error(`<list-view>: div.item-container容器未在模板中提供`);
+            }
+
             if (header) {
+                if (!this._headerContainer) {
+                    throw new Error(`<list-view>: div.header-container容器未在模板中提供`);
+                }
                 this._unbinds.push(Template.compile(header)(owner, header));
                 this._headerContainer.appendChild(header);
             }
 
             if (footer) {
+                if (!this._footerContainer) {
+                    throw new Error(`<list-view>: div.footer-container容器未在模板中提供`);
+                }
                 this._unbinds.push(Template.compile(footer)(owner, footer));
                 this._footerContainer.appendChild(footer);
             }
@@ -226,8 +236,8 @@ namespace drunk {
             let itemContainer = this._itemContainer;
             let itemTemplate = this._itemTemplate;
             let uuid = util.uniqueId(this);
-            let itemContainerCSSRule = '';
-            let placeholderCSSRule = '';
+            let itemContainerCSSRule: any;
+            let placeholderCSSRule: any;
 
             this._headerSize = { width: this._headerContainer.offsetWidth, height: this._headerContainer.offsetHeight };
             this._footerSize = { width: this._footerContainer.offsetWidth, height: this._footerContainer.offsetHeight };
@@ -235,9 +245,10 @@ namespace drunk {
                 width: viewport.offsetWidth - this._headerSize.width - this._footerSize.width,
                 height: viewport.offsetHeight - this._headerSize.height - this._footerSize.height
             };
-            itemContainerCSSRule = `.list-view-${uuid} .item-container {
-                width:${this._itemContainerSize.width}px;
-                height:${this._itemContainerSize.height}px;}`;
+            itemContainerCSSRule = {
+                width: this._itemContainerSize.width + 'px',
+                height: this._itemContainerSize.height + 'px'
+            };
 
             itemTemplate.style.visibility = 'hidden';
             itemContainer.appendChild(itemTemplate);
@@ -248,12 +259,13 @@ namespace drunk {
                 height: itemTemplate.offsetHeight + Math.max((parseFloat(templateStyle.marginTop) || 0), (parseFloat(templateStyle.marginBottom) || 0)),
             };
 
-            placeholderCSSRule = `.list-view-${uuid} .item-container .placeholder {
-                width:${templateStyle.width};
-                height:${templateStyle.height};
-                margin:${templateStyle.margin};
-                padding:${templateStyle.padding};
-                border:${templateStyle.border};}`;
+            placeholderCSSRule = {
+                width: templateStyle.width,
+                height: templateStyle.height,
+                margin: templateStyle.margin,
+                padding: templateStyle.padding,
+                border: templateStyle.border
+            };
 
             if (this.layout === ListView.Layout.horizental) {
                 this._visibleItemCount = Math.ceil(this._itemContainerSize.width / itemSize.width);
@@ -266,8 +278,10 @@ namespace drunk {
             itemContainer.removeChild(itemTemplate);
             itemTemplate.style.visibility = '';
 
-            addCSSRule(itemContainerCSSRule);
-            addCSSRule(placeholderCSSRule);
+            dom.addCSSRule({
+                [`.list-view-${uuid} .item-container`]: itemContainerCSSRule,
+                [`.list-view-${uuid} .item-container .placeholder`]: placeholderCSSRule
+            });
         }
 
         /**
@@ -434,27 +448,20 @@ namespace drunk {
                 let step = this._isScrollForward ? -1 : 1;
 
                 for (let index = this._beginOffset, j = 0; j < this._renderCount; j++ , index += step) {
-                    this._showItemElement(this._items[index]);
+                    this._renderVisibleItemImpl(this._items[index]);
                     if (Date.now() >= endTime && j >= this._visibleItemCount) {
                         return jobInfo.setWork(work);
                     }
                 }
 
                 step = -step;
-                if (this._isScrollForward) {
-                    for (let index = this._beginOffset, j = 0; j < this._visibleItemCount && index < this._items.length; j++ , index += step) {
-                        this._showItemElement(this._items[index]);
-                        if (jobInfo.shouldYield) {
-                            return jobInfo.setWork(work);
-                        }
-                    }
-                }
-                else {
-                    for (let index = this._beginOffset, j = 0; j < this._visibleItemCount && index >= 0; j++ , index += step) {
-                        this._showItemElement(this._items[index]);
-                        if (jobInfo.shouldYield) {
-                            return jobInfo.setWork(work);
-                        }
+                for (let index = this._beginOffset, j = 0;
+                    j < this._visibleItemCount && (this._isScrollForward ? index < this._items.length : index >= 0);
+                    j++ , index += step
+                ) {
+                    this._renderVisibleItemImpl(this._items[index]);
+                    if (jobInfo.shouldYield) {
+                        return jobInfo.setWork(work);
                     }
                 }
                 this._renderVisibleItemsJob = null;
@@ -467,19 +474,19 @@ namespace drunk {
             this._renderHiddenItemsPromise.done(() => {
                 if (this._isScrollForward) {
                     for (let i = this._beginOffset + this._visibleItemCount + 1, lastIndex = this._items.length; i < lastIndex; i++) {
-                        this._showItemPlaceholder(this._items[i]);
+                        this._renderHiddenItemImpl(this._items[i]);
                     }
                 }
                 else {
                     for (let i = this._beginOffset - this._visibleItemCount - 1; i >= 0; i--) {
-                        this._showItemPlaceholder(this._items[i]);
+                        this._renderHiddenItemImpl(this._items[i]);
                     }
                 }
                 this._renderHiddenItemsPromise = null;
             });
         }
 
-        private _showItemElement(item: ItemDeclaration) {
+        private _renderVisibleItemImpl(item: ItemDeclaration) {
             if (!item.renderred) {
                 if (!item.isBinded) {
                     this._bind(item.viewmodel, item.viewmodel.element);
@@ -490,7 +497,7 @@ namespace drunk {
             }
         }
 
-        private _showItemPlaceholder(item: ItemDeclaration) {
+        private _renderHiddenItemImpl(item: ItemDeclaration) {
             if (item.renderred) {
                 let element = <Node>item.viewmodel.element;
                 if (element && element.parentNode) {
@@ -547,26 +554,35 @@ namespace drunk {
         }
     }
 
-    var styleSheet;
-    function addCSSRule(rule: string) {
-        if (!styleSheet) {
-            var styleElement = document.createElement('style');
-            document.head.appendChild(styleElement);
-            styleSheet = styleElement.sheet;
-        }
-        styleSheet.insertRule(rule, styleSheet.cssRules.length);
-    }
-
     var initialized: boolean;
     function initListViewLayoutClass() {
         if (initialized) {
             return;
         }
-        addCSSRule(".list-view-virtical {display:-webkit-flex;display:flex;flex-direction:column;}");
-        addCSSRule(".list-view-horizental {display:-webkit-flex;display:flex;flex-direction:row;}");
-        addCSSRule(".list-view .item-container {-webkit-overflow-scrolling:touch;}")
-        addCSSRule(".list-view-virtical .item-container {overflow-x:hidden;overflow-y:auto;}");
-        addCSSRule(".list-view-horizental .item-container {overflow-y:hidden;overflow-x:auto;}");
+
+        dom.addCSSRule({
+            '.list-view-virtical': {
+                'display': '-webkit-flex',
+                ' display': 'flex',
+                'flex-direction': 'column'
+            },
+            '.list-view-horizental': {
+                'display': '-webkit-flex',
+                ' display': 'flex',
+                'flex-direction': 'row'
+            },
+            '.list-view .item-container': {
+                '-webkit-overflow-scrolling': 'touch'
+            },
+            '.list-view-virtical .item-container': {
+                'overflow-x': 'hidden',
+                'overflow-y': 'auto'
+            },
+            '.list-view-horizental .item-container': {
+                'overflow-x': 'auto',
+                'overflow-y': 'hidden'
+            }
+        });
         initialized = true;
     }
 }

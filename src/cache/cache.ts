@@ -42,7 +42,7 @@ namespace drunk {
          */
         constructor(capacity: number) {
             if (capacity < 1) {
-                throw new Error('缓存容量必须大于0');
+                throw new Error(`缓存容量必须大于0`);
             }
             this._capacity = capacity;
         }

@@ -35,18 +35,18 @@ namespace drunk.Parser {
     let reserved: Array<string> = [
         'break', 'case', 'catch', 'continue', 'debugger', 'default', 'delete', 'do',
         'else', 'finally', 'for', 'function', 'if', 'in', 'instanceof', 'new', 'return',
-        'switch', 'this', 'throw', 'try', 'typeof', 'let', 'void', 'while',
+        'switch', 'this', 'throw', 'try', 'typeof', 'var', 'void', 'while',
         'class', 'null', 'undefined', 'true', 'false', 'with', eventName, elementName,
         'let', 'abstract', 'import', 'yield', 'arguments'
     ];
     
-    let tokenCache = new Cache<any[]>(500);
-    let getterCache = new Cache<IGetter>(500);
-    let setterCache = new Cache<ISetter>(500);
-    let filterCache = new Cache<IFilterCache>(500);
-    let expressionCache = new Cache<IGetter>(500);
-    let identifierCache = new Cache<any>(500);
-    let interpolateGetterCache = new Cache<IGetter>(500);
+    let tokenCache = new Cache<any[]>(200);
+    let getterCache = new Cache<IGetter>(200);
+    let setterCache = new Cache<ISetter>(200);
+    let filterCache = new Cache<IFilterCache>(200);
+    let expressionCache = new Cache<IGetter>(200);
+    let identifierCache = new Cache<any>(200);
+    let interpolateGetterCache = new Cache<IGetter>(200);
     
     let reIdentifier = /("|').*?\1|[a-zA-Z$_][a-z0-9A-Z$_]*/g;
     let reFilter = /("|').*?\1|\|\||\|\s*([a-zA-Z$_][a-z0-9A-Z$_]*)(:[^|]*)?/g;
@@ -100,7 +100,7 @@ namespace drunk.Parser {
      */
     function assertNotEmptyString(target: string, message: string): void {
         if (!(typeof target === 'string' && reAnychar.test(target))) {
-            throw new Error(`${message} : 表达式为空`);
+            throw new Error(`${message}: 表达式不能为空`);
         }
     }
     

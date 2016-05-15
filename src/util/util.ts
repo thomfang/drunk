@@ -13,7 +13,9 @@ namespace drunk.util {
      */
     export function uniqueId(target: any): number {
         if (typeof target[uniqueSymbol] === 'undefined') {
-            defineProperty(target, uniqueSymbol, uidCounter++);
+            Object.defineProperty(target, uniqueSymbol, {
+                value: uidCounter++
+            });
         }
         return target[uniqueSymbol];
     }
@@ -105,22 +107,6 @@ namespace drunk.util {
      */
     export function camelCase(str: string) {
         return str.replace(/[-_](\w)/g, ($0, $1) => $1.toUpperCase());
-    }
-
-    /**
-     * Object.defineProperty的快捷方法，会设置configurable,writable默认为true
-     * @param   target         设置的目标
-     * @param   propertyName   属性
-     * @param   propertyValue  值
-     * @param   enumerable     该属性是否可枚举
-     */
-    export function defineProperty(target: any, propertyName: string, propertyValue: any, enumerable?: boolean): void {
-        Object.defineProperty(target, propertyName, {
-            value: propertyValue,
-            writable: true,
-            configurable: true,
-            enumerable: !!enumerable
-        });
     }
 
     /**

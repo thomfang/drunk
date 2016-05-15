@@ -1,5 +1,4 @@
 /// <reference path="../viewmodel/viewModel.ts" />
-/// <reference path="../promise/promise.ts" />
 /// <reference path="../util/xhr.ts" />
 /// <reference path="../util/dom.ts" />
 /// <reference path="../config/config.ts" />
@@ -9,6 +8,11 @@
  * 模板工具模块， 提供编译创建绑定，模板加载的工具方法
  */
 namespace drunk.Template {
+    
+    import dom = drunk.dom;
+    import util = drunk.util;
+    import config = drunk.config;
+    import Parser = drunk.Parser;
     
     /**
      * 编译模板元素生成绑定方法
@@ -93,7 +97,7 @@ namespace drunk.Template {
         if (executors.length > 1) {
             return (viewModel: ViewModel, nodes: any, ownerViewModel?: Component, placeholder?: HTMLElement) => {
                 if (nodes.length * 2 !== executors.length) {
-                    return console.error(`创建绑定之前,节点已经被动态修改`, viewModel, nodes);
+                    return console.error(`创建Binding之前,节点已经被动态修改`, viewModel, nodes);
                 }
 
                 let i = 0;
@@ -139,7 +143,7 @@ namespace drunk.Template {
             executor = processTerminalBinding(element) || processNormalBinding(element);
         }
 
-        if (element.tagName === 'TEXTAREA') {
+        if (element.tagName.toLowerCase() === 'textarea') {
             // 如果是textarea， 它的值有可能存在插值表达式， 比如 "the textarea value with {{some_let}}"
             // 第一次进行绑定先换成插值表达式
             let originExecutor = executor;
@@ -272,7 +276,7 @@ namespace drunk.Template {
         let executor: IBindingExecutor;
 
         if (!definition) {
-            console.warn(config.prefix + descriptor.name, "没有找到该绑定的定义");
+            console.warn(`${config.prefix + descriptor.name}: 该Binding未定义`);
             return;
         }
 

@@ -16,7 +16,6 @@ namespace drunk {
 
     let weakRefKey = 'DRUNK-COMPONENT-ID';
     let record: { [name: string]: boolean } = {};
-    let styleSheet: any;
 
     export interface IComponent {
         name?: string;
@@ -133,7 +132,13 @@ namespace drunk {
         protected __init(model?: IModel) {
             super.__init(model);
 
-            util.defineProperty(this, '_isMounted', false);
+            Object.defineProperties(this, {
+                _isMounted: {
+                    value: false,
+                    writable: true,
+                    configurable: true
+                }
+            });
 
             if (this.filters) {
                 // 如果配置了过滤器
@@ -157,7 +162,10 @@ namespace drunk {
                     this.$proxy(name);
 
                     // 不论返回的是什么值,使用promise进行处理
-                    Promise.resolve(data).then(result => this[name] = result, reason => console.warn("数据准备失败:", reason));
+                    Promise.resolve(data).then(
+                        result => this[name] = result,
+                        reason => console.warn(`Component.data["${name}"]数据准备失败:`, reason)
+                    );
                 });
             }
 
@@ -177,7 +185,7 @@ namespace drunk {
         $processTemplate(templateUrl?: string): Promise<any> {
             let onFailed = (reason) => {
                 this.$emit(Component.Event.templateLoadFailed, this);
-                console.warn("模板加载失败: " + templateUrl, reason);
+                console.warn(`模板加载失败: ${templateUrl}`, reason);
             }
 
             if (typeof templateUrl === 'string') {
@@ -198,7 +206,7 @@ namespace drunk {
                 return Template.renderFragment(templateUrl, null, true).then(fragment => util.toArray(fragment.childNodes)).catch(onFailed);
             }
 
-            throw new Error((this.name || (<any>this.constructor).name) + "组件的模板未指定");
+            throw new Error(`${(this.name || (<any>this.constructor).name)}组件的模板未指定`);
         }
 
         /**
@@ -208,11 +216,10 @@ namespace drunk {
          * @param  placeholder     组件占位标签
          */
         $mount<T extends Component>(element: Node | Node[], ownerViewModel?: T, placeholder?: HTMLElement) {
-            console.assert(!this._isMounted, "该组件已有挂载到", this.element);
+            console.assert(!this._isMounted, `重复挂载,该组件已挂载到:`, this.element);
 
             if (Component.getByElement(element)) {
-                console.error("$mount(element): 尝试挂载到一个已经挂载过组件实例的元素节点", element);
-                return;
+                return console.error(`$mount(element): 尝试挂载到一个已经挂载过组件实例的元素节点`, element);
             }
 
             Template.compile(element)(this, element, ownerViewModel, placeholder);
@@ -222,7 +229,7 @@ namespace drunk {
 
             let nodeList: Node[] = Array.isArray(element) ? <Node[]>element : [element];
             nodeList.forEach(node => Component.setWeakRef(node, this));
-            
+
             this.$emit(Component.Event.mounted);
         }
 
@@ -363,10 +370,10 @@ namespace drunk {
          * @param  componentCtor 组件类
          */
         static register(name: string, componentCtor: any) {
-            console.assert(name.indexOf('-') > -1, name, '组件明必须在中间带"-"字符,如"custom-view"');
+            console.assert(name.indexOf('-') > -1, `非法组件名"${name}", 组件名必须在中间带"-"字符,如"custom-view"`);
 
             if (Component.constructorsByName[name] != null) {
-                console.warn('组件 "' + name + '" 已被覆盖,请确认该操作');
+                console.warn(`组件"${name}"定义已被覆盖,请确认该操作`);
             }
 
             componentCtor.extend = Component.extend;
@@ -380,18 +387,16 @@ namespace drunk {
      * 设置样式
      */
     function addHiddenStyleForComponent(name: string) {
-        if (record[name] || typeof document === 'undefined' || typeof document.head === 'undefined') {
+        if (record[name]) {
             return;
         }
-
-        if (!styleSheet) {
-            let styleElement = document.createElement('style');
-            document.head.appendChild(styleElement);
-            styleSheet = styleElement.sheet;
-        }
-
-        styleSheet.insertRule(name + '{display:none}', styleSheet.cssRules.length);
+        
+        dom.addCSSRule({
+            [name]: {
+                display: 'none'
+            }
+        });
     }
-    
+
     Component.register(config.prefix + 'view', Component);
 }

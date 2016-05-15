@@ -25,7 +25,7 @@ namespace drunk {
             let prefix = config.prefix;
 
             console.assert(matches !== null,
-                "非法的 " + prefix + 'on 绑定表达式, ', str, '正确的用法如下:\n',
+                `非法的"${prefix}on"表达式 ${str}, 正确的用法如下:\n`,
                 prefix + 'on="click: expression"\n',
                 prefix + 'on="mousedown: expression; mouseup: callback()"\n',
                 prefix + 'on="click: callback($event, $el)"\n'

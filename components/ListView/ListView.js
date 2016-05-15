@@ -97,22 +97,31 @@ var drunk;
                         _this._itemTemplate = child.firstElementChild;
                         break;
                     default:
-                        throw new Error('list-view中存在无法识别的标签: ' + child.tagName.toLowerCase());
+                        throw new Error("list-view\u4E2D\u5B58\u5728\u65E0\u6CD5\u8BC6\u522B\u7684\u6807\u7B7E:  " + child.tagName.toLowerCase());
                 }
             });
             if (!this._itemTemplate) {
-                throw new Error('list-view: 未找到list-view-item模板标签');
+                throw new Error("list-view: \u672A\u627E\u5230list-view-item\u6A21\u677F\u6807\u7B7E");
             }
             this._owner = owner;
             this._bind = Template.compile(this._itemTemplate);
             this._headerContainer = viewportElement.querySelector('.header-container');
             this._itemContainer = viewportElement.querySelector('.item-container');
             this._footerContainer = viewportElement.querySelector('.footer-container');
+            if (!this._itemContainer) {
+                throw new Error("<list-view>: div.item-container\u5BB9\u5668\u672A\u5728\u6A21\u677F\u4E2D\u63D0\u4F9B");
+            }
             if (header) {
+                if (!this._headerContainer) {
+                    throw new Error("<list-view>: div.header-container\u5BB9\u5668\u672A\u5728\u6A21\u677F\u4E2D\u63D0\u4F9B");
+                }
                 this._unbinds.push(Template.compile(header)(owner, header));
                 this._headerContainer.appendChild(header);
             }
             if (footer) {
+                if (!this._footerContainer) {
+                    throw new Error("<list-view>: div.footer-container\u5BB9\u5668\u672A\u5728\u6A21\u677F\u4E2D\u63D0\u4F9B");
+                }
                 this._unbinds.push(Template.compile(footer)(owner, footer));
                 this._footerContainer.appendChild(footer);
             }
@@ -168,15 +177,18 @@ var drunk;
             var itemContainer = this._itemContainer;
             var itemTemplate = this._itemTemplate;
             var uuid = util.uniqueId(this);
-            var itemContainerCSSRule = '';
-            var placeholderCSSRule = '';
+            var itemContainerCSSRule;
+            var placeholderCSSRule;
             this._headerSize = { width: this._headerContainer.offsetWidth, height: this._headerContainer.offsetHeight };
             this._footerSize = { width: this._footerContainer.offsetWidth, height: this._footerContainer.offsetHeight };
             this._itemContainerSize = {
                 width: viewport.offsetWidth - this._headerSize.width - this._footerSize.width,
                 height: viewport.offsetHeight - this._headerSize.height - this._footerSize.height
             };
-            itemContainerCSSRule = ".list-view-" + uuid + " .item-container {\n                width:" + this._itemContainerSize.width + "px;\n                height:" + this._itemContainerSize.height + "px;}";
+            itemContainerCSSRule = {
+                width: this._itemContainerSize.width + 'px',
+                height: this._itemContainerSize.height + 'px'
+            };
             itemTemplate.style.visibility = 'hidden';
             itemContainer.appendChild(itemTemplate);
             var templateStyle = getComputedStyle(itemTemplate, null);
@@ -184,7 +196,13 @@ var drunk;
                 width: itemTemplate.offsetWidth + Math.max((parseFloat(templateStyle.marginLeft) || 0), (parseFloat(templateStyle.marginRight) || 0)),
                 height: itemTemplate.offsetHeight + Math.max((parseFloat(templateStyle.marginTop) || 0), (parseFloat(templateStyle.marginBottom) || 0)),
             };
-            placeholderCSSRule = ".list-view-" + uuid + " .item-container .placeholder {\n                width:" + templateStyle.width + ";\n                height:" + templateStyle.height + ";\n                margin:" + templateStyle.margin + ";\n                padding:" + templateStyle.padding + ";\n                border:" + templateStyle.border + ";}";
+            placeholderCSSRule = {
+                width: templateStyle.width,
+                height: templateStyle.height,
+                margin: templateStyle.margin,
+                padding: templateStyle.padding,
+                border: templateStyle.border
+            };
             if (this.layout === ListView.Layout.horizental) {
                 this._visibleItemCount = Math.ceil(this._itemContainerSize.width / itemSize.width);
             }
@@ -194,8 +212,12 @@ var drunk;
             this._prefetchCount = this._visibleItemCount * this._prefetchPage;
             itemContainer.removeChild(itemTemplate);
             itemTemplate.style.visibility = '';
-            addCSSRule(itemContainerCSSRule);
-            addCSSRule(placeholderCSSRule);
+            dom.addCSSRule((_a = {},
+                _a[".list-view-" + uuid + " .item-container"] = itemContainerCSSRule,
+                _a[".list-view-" + uuid + " .item-container .placeholder"] = placeholderCSSRule,
+                _a
+            ));
+            var _a;
         };
         /**
          * 为一个item创建点位标签
@@ -339,26 +361,16 @@ var drunk;
                 var endTime = Date.now() + 100;
                 var step = _this._isScrollForward ? -1 : 1;
                 for (var index = _this._beginOffset, j = 0; j < _this._renderCount; j++, index += step) {
-                    _this._showItemElement(_this._items[index]);
+                    _this._renderVisibleItemImpl(_this._items[index]);
                     if (Date.now() >= endTime && j >= _this._visibleItemCount) {
                         return jobInfo.setWork(work);
                     }
                 }
                 step = -step;
-                if (_this._isScrollForward) {
-                    for (var index = _this._beginOffset, j = 0; j < _this._visibleItemCount && index < _this._items.length; j++, index += step) {
-                        _this._showItemElement(_this._items[index]);
-                        if (jobInfo.shouldYield) {
-                            return jobInfo.setWork(work);
-                        }
-                    }
-                }
-                else {
-                    for (var index = _this._beginOffset, j = 0; j < _this._visibleItemCount && index >= 0; j++, index += step) {
-                        _this._showItemElement(_this._items[index]);
-                        if (jobInfo.shouldYield) {
-                            return jobInfo.setWork(work);
-                        }
+                for (var index = _this._beginOffset, j = 0; j < _this._visibleItemCount && (_this._isScrollForward ? index < _this._items.length : index >= 0); j++, index += step) {
+                    _this._renderVisibleItemImpl(_this._items[index]);
+                    if (jobInfo.shouldYield) {
+                        return jobInfo.setWork(work);
                     }
                 }
                 _this._renderVisibleItemsJob = null;
@@ -371,18 +383,18 @@ var drunk;
             this._renderHiddenItemsPromise.done(function () {
                 if (_this._isScrollForward) {
                     for (var i = _this._beginOffset + _this._visibleItemCount + 1, lastIndex = _this._items.length; i < lastIndex; i++) {
-                        _this._showItemPlaceholder(_this._items[i]);
+                        _this._renderHiddenItemImpl(_this._items[i]);
                     }
                 }
                 else {
                     for (var i = _this._beginOffset - _this._visibleItemCount - 1; i >= 0; i--) {
-                        _this._showItemPlaceholder(_this._items[i]);
+                        _this._renderHiddenItemImpl(_this._items[i]);
                     }
                 }
                 _this._renderHiddenItemsPromise = null;
             });
         };
-        ListView.prototype._showItemElement = function (item) {
+        ListView.prototype._renderVisibleItemImpl = function (item) {
             if (!item.renderred) {
                 if (!item.isBinded) {
                     this._bind(item.viewmodel, item.viewmodel.element);
@@ -392,7 +404,7 @@ var drunk;
                 item.renderred = true;
             }
         };
-        ListView.prototype._showItemPlaceholder = function (item) {
+        ListView.prototype._renderHiddenItemImpl = function (item) {
             if (item.renderred) {
                 var element = item.viewmodel.element;
                 if (element && element.parentNode) {
@@ -453,25 +465,34 @@ var drunk;
         return ListView;
     }(Component));
     drunk.ListView = ListView;
-    var styleSheet;
-    function addCSSRule(rule) {
-        if (!styleSheet) {
-            var styleElement = document.createElement('style');
-            document.head.appendChild(styleElement);
-            styleSheet = styleElement.sheet;
-        }
-        styleSheet.insertRule(rule, styleSheet.cssRules.length);
-    }
     var initialized;
     function initListViewLayoutClass() {
         if (initialized) {
             return;
         }
-        addCSSRule(".list-view-virtical {display:-webkit-flex;display:flex;flex-direction:column;}");
-        addCSSRule(".list-view-horizental {display:-webkit-flex;display:flex;flex-direction:row;}");
-        addCSSRule(".list-view .item-container {-webkit-overflow-scrolling:touch;}");
-        addCSSRule(".list-view-virtical .item-container {overflow-x:hidden;overflow-y:auto;}");
-        addCSSRule(".list-view-horizental .item-container {overflow-y:hidden;overflow-x:auto;}");
+        dom.addCSSRule({
+            '.list-view-virtical': {
+                'display': '-webkit-flex',
+                ' display': 'flex',
+                'flex-direction': 'column'
+            },
+            '.list-view-horizental': {
+                'display': '-webkit-flex',
+                ' display': 'flex',
+                'flex-direction': 'row'
+            },
+            '.list-view .item-container': {
+                '-webkit-overflow-scrolling': 'touch'
+            },
+            '.list-view-virtical .item-container': {
+                'overflow-x': 'hidden',
+                'overflow-y': 'auto'
+            },
+            '.list-view-horizental .item-container': {
+                'overflow-x': 'auto',
+                'overflow-y': 'hidden'
+            }
+        });
         initialized = true;
     }
 })(drunk || (drunk = {}));

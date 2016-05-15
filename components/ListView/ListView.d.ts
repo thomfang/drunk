@@ -94,8 +94,8 @@ declare namespace drunk {
         private _renderItems();
         private _renderVisibleItems();
         private _renderHiddenItems();
-        private _showItemElement(item);
-        private _showItemPlaceholder(item);
+        private _renderVisibleItemImpl(item);
+        private _renderHiddenItemImpl(item);
         private _checkScroller();
         private _attachEvents();
         private _detachEvents();

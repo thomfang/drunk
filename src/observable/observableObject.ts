@@ -1,14 +1,11 @@
-/// <reference path="../util/util.ts" />
 /// <reference path="./observable.ts" />
- 
+
 /**
  * 转换后的可以监控对象
  * 添加了设置和移除字段的两个能发送数据更新的方法。
  */
 namespace drunk.observable {
-    
-    import util = drunk.util;
-    
+
     /**
      * 可监控JSON对象的声明
      */
@@ -18,7 +15,7 @@ namespace drunk.observable {
         $set?(name: string, value: any): void;
         $remove?(name: string): void;
     }
-     
+
     /**
      * 设置对象的属性，并发送更新的消息
      * @param  data   JSON对象或已经为observable的JSON对象
@@ -26,12 +23,12 @@ namespace drunk.observable {
      */
     export function $set(data: IObservableObject, name: string, value: any): void {
         var descriptor = Object.getOwnPropertyDescriptor(data, name);
-        
+
         if (!descriptor || (!descriptor.get && !descriptor.set)) {
             var oldValue: any = data[name];
-            
+
             observable.observe(data, name, value);
-            
+
             if (oldValue !== value) {
                 notify(data);
             }
@@ -40,7 +37,7 @@ namespace drunk.observable {
             data[name] = value;
         }
     }
-     
+
     /**
      * 移除对象属性，并会发送更新的消息
      * @param  data  JSON对象或已经为observable的JSON对象
@@ -54,26 +51,33 @@ namespace drunk.observable {
         delete data[name];
         notify(data);
     }
-    
+
     /**
      * 对象转换成observable后指向的原型对象
      */
     export var ObservableObjectPrototype: IObservableObject = {};
-    
-    /**
-     * 设置对象的指定字段的值
-     * @param   name  字段名
-     * @param   value 值
-     */
-    util.defineProperty(ObservableObjectPrototype, "$set", function setObservableObjectProperty(name: string, value: any) {
-        $set(this, name, value);
-    });
 
-    /**
-     * 删除对象的指定字段的值
-     * @param   name  字段名
-     */
-    util.defineProperty(ObservableObjectPrototype, "$remove", function removeObservableObjectProperty(name: string) {
-        $remove(this, name);
+    Object.defineProperties(ObservableObjectPrototype, {
+
+        /**
+         * 设置对象的指定字段的值
+         * @param   name  字段名
+         * @param   value 值
+         */
+        $set: {
+            value: function setObservableObjectProperty(name: string, value: any) {
+                $set(this, name, value);
+            }
+        },
+
+        /**
+         * 删除对象的指定字段的值
+         * @param   name  字段名
+         */
+        $remove: {
+            value: function removeObservableObjectProperty(name: string) {
+                $remove(this, name);
+            }
+        }
     });
 }

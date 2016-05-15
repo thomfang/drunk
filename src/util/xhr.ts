@@ -4,6 +4,8 @@
 
 namespace drunk.util {
 
+    import querystring = drunk.querystring;
+
     /**
      * ajax方法参数接口
      */
@@ -44,17 +46,25 @@ namespace drunk.util {
         contentType?: string;
 
         /**
-         * 接受的数据类型(目前只支持json)
+         * deprecated,请使用responseType
          */
         dataType?: string;
+
+        /** 相应的数据类型 */
+        responseType?: string;
 
         /**
          * 请求超时时间
          */
         timeout?: number;
+
+        user?: string;
+        password?: string;
     }
 
-    const FORM_DATA_CONTENT_TYPE = 'application/x-www-form-urlencoded; charset=UTF-8';
+    // const FORM_DATA_CONTENT_TYPE = 'application/x-www-form-urlencoded; charset=UTF-8';
+
+    var schemeRegex = /^(\w+)\:\/\//;
 
     /**
      * XMLHTTP request工具方法
@@ -64,7 +74,7 @@ namespace drunk.util {
         var xhr = new XMLHttpRequest();
 
         if (typeof options.url !== 'string' || !options.url) {
-            throw new Error('发送ajax请求失败:url未提供或不合法');
+            throw new Error(`ajax(options):options.url未提供或不合法`);
         }
 
         return new Promise<T>((resolve, reject) => {
@@ -72,16 +82,18 @@ namespace drunk.util {
             var type = (options.type || 'GET').toUpperCase();
             var headers = options.headers || {};
             var data: any = options.data;
-            var contentType: string = options.contentType || FORM_DATA_CONTENT_TYPE;
-            var timerID: number;
+            var contentType: string = options.contentType;// || FORM_DATA_CONTENT_TYPE;
+            var isLocalRequest = false;
+            var schemeMatch = schemeRegex.exec(options.url.toLowerCase());
 
-            var rejectAndClearTimer = () => {
-                clearTimeout(timerID);
-                if (reject) {
-                    reject(xhr);
-                    reject = null;
+            if (schemeMatch) {
+                if (schemeMatch[1] === 'file') {
+                    isLocalRequest = true;
                 }
-            };
+            }
+            else if (location.protocol === 'file:') {
+                isLocalRequest = true;
+            }
 
             if (util.isObject(data)) {
                 if (contentType && contentType.match(/json/i)) {
@@ -97,45 +109,44 @@ namespace drunk.util {
                 }
             }
 
+            xhr.ontimeout = xhr.onerror = () => {
+                xhr.abort();
+                reject(xhr);
+                xhr = null;
+            };
+
             xhr.onreadystatechange = () => {
                 if (xhr.readyState === 4) {
-                    // status === 0 的情况在iOS平台使用cordova的页面中加载本地的文件得到的状态都是0，无解
-                    if (xhr.status >= 200 && xhr.status < 300 || xhr.status === 304 || (xhr.status === 0 && xhr.responseText.length > 0)) {
-                        var res: any = xhr.responseText;
-                        xhr = null;
-                        resolve(options.dataType === 'json' ? JSON.parse(res) : res);
-                        clearTimeout(timerID);
+                    if ((xhr.status >= 200 && xhr.status < 300) || (isLocalRequest && xhr.status === 0)) {
+                        resolve(xhr.response);
                     }
                     else {
-                        rejectAndClearTimer();
+                        reject(xhr);
                     }
+                    xhr = null;
                 }
             };
 
-            xhr.onerror = () => {
-                rejectAndClearTimer();
-            };
+            xhr.open(type, url, true, options.user, options.password);
 
-            xhr.open(type, url, true);
+            xhr.responseType = options.dataType || options.responseType || '';
 
             if (options.withCredentials || (options.xhrFields && options.xhrFields.withCredentials)) {
                 xhr.withCredentials = true;
             }
 
-            xhr.setRequestHeader("Content-Type", contentType);
+            if (typeof options.timeout === 'number' && options.timeout > 0) {
+                xhr.timeout = options.timeout;
+            }
+            if (contentType) {
+                xhr.setRequestHeader("Content-Type", contentType);
+            }
 
             Object.keys(headers).forEach(function (name) {
                 xhr.setRequestHeader(name, headers[name]);
             });
 
             xhr.send(data);
-
-            if (typeof options.timeout === 'number') {
-                timerID = setTimeout(() => {
-                    xhr.abort();
-                    rejectAndClearTimer();
-                }, options.timeout);
-            }
         });
     }
 

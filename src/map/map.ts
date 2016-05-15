@@ -18,7 +18,7 @@ namespace drunk {
         /**
          * 对应Key的数据
          */
-        private _store: { [key: string]: T } = {};
+        private _values: { [key: string]: T } = {};
 
         /**
          * 所有的key的列表
@@ -61,7 +61,7 @@ namespace drunk {
             if (type === 'number') {
                 return <any>('-' + key + '-');
             }
-            throw new Error('不支持的数据类型:' + type);
+            throw new Error(`不支持的数据类型: ${type}`);
         }
 
         /**
@@ -77,7 +77,7 @@ namespace drunk {
                 this._keys.push(key);
             }
 
-            this._store[uid] = value;
+            this._values[uid] = value;
             return this;
         }
 
@@ -87,7 +87,7 @@ namespace drunk {
          */
         get(key: any) {
             let uid = this._uidOf(key);
-            return this._store[uid];
+            return this._values[uid];
         }
 
         /**
@@ -109,7 +109,7 @@ namespace drunk {
             if (index > -1) {
                 this._uids.splice(index, 1);
                 this._keys.splice(index, 1);
-                delete this._store[uid];
+                delete this._values[uid];
                 return true;
             }
             return false;
@@ -121,7 +121,7 @@ namespace drunk {
         clear() {
             this._keys = [];
             this._uids = [];
-            this._store = {};
+            this._values = {};
         }
 
         /**
@@ -134,7 +134,7 @@ namespace drunk {
 
             this.keys().forEach((key, index) => {
                 let uid = uids[index];
-                callback.call(context, this._store[uid], key, this);
+                callback.call(context, this._values[uid], key, this);
             });
         }
 
@@ -149,7 +149,7 @@ namespace drunk {
          * 获取所有的值
          */
         values() {
-            return this._uids.map(uid => this._store[uid]);
+            return this._uids.map(uid => this._values[uid]);
         }
 
         /**

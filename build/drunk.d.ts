@@ -143,14 +143,6 @@ declare namespace drunk.util {
      */
     function camelCase(str: string): string;
     /**
-     * Object.defineProperty的快捷方法，会设置configurable,writable默认为true
-     * @param   target         设置的目标
-     * @param   propertyName   属性
-     * @param   propertyValue  值
-     * @param   enumerable     该属性是否可枚举
-     */
-    function defineProperty(target: any, propertyName: string, propertyValue: any, enumerable?: boolean): void;
-    /**
      * 属性代理,把a对象的某个属性的读写代理到b对象上,返回代理是否成功的结果
      * @param   a         对象a
      * @param   property  属性名
@@ -180,7 +172,7 @@ declare namespace drunk {
         /**
          * 对应Key的数据
          */
-        private _store;
+        private _values;
         /**
          * 所有的key的列表
          */
@@ -355,13 +347,17 @@ declare namespace drunk.util {
          */
         contentType?: string;
         /**
-         * 接受的数据类型(目前只支持json)
+         * deprecated,请使用responseType
          */
         dataType?: string;
+        /** 相应的数据类型 */
+        responseType?: string;
         /**
          * 请求超时时间
          */
         timeout?: number;
+        user?: string;
+        password?: string;
     }
     /**
      * XMLHTTP request工具方法
@@ -467,8 +463,9 @@ declare namespace drunk.observable {
         __observer__?: Observer;
         $setAt?(index: number, value: any): void;
         $removeAt?<T>(index: number): T;
-        $removeItem?(value: any): void;
-        $removeAllItem?(value: any): void;
+        $removeItem?(item: any): void;
+        $removeAllItem?(item: any): void;
+        $removeAll?(): void;
     }
     /**
      * 数组转换成observable后指向的原型对象
@@ -502,7 +499,7 @@ declare namespace drunk.observable {
     /**
      * 删除所有数组元素
      */
-    function removeAll<T>(array: IObservableArray<T>): void;
+    function $removeAll<T>(array: IObservableArray<T>): void;
 }
 /**
  * 简单的解析器,只是做了字符串替换,然后使用new Function生成函数
@@ -827,6 +824,7 @@ declare namespace drunk {
     }
 }
 declare namespace drunk {
+    import Filter = drunk.Filter;
     import Watcher = drunk.Watcher;
     import observable = drunk.observable;
     import EventEmitter = drunk.EventEmitter;
@@ -1096,6 +1094,11 @@ declare namespace drunk.dom {
      * @param  token      样式名
      */
     function removeClass(element: HTMLElement, token: string): void;
+    function addCSSRule(rules: {
+        [selector: string]: {
+            [property: string]: string;
+        };
+    }): void;
 }
 /**
  * 模板工具模块， 提供编译创建绑定，模板加载的工具方法

@@ -359,7 +359,7 @@ var drunk;
              */
             this._count = 0;
             if (capacity < 1) {
-                throw new Error('缓存容量必须大于0');
+                throw new Error("\u7F13\u5B58\u5BB9\u91CF\u5FC5\u987B\u5927\u4E8E0");
             }
             this._capacity = capacity;
         }
@@ -461,7 +461,9 @@ var drunk;
          */
         function uniqueId(target) {
             if (typeof target[uniqueSymbol] === 'undefined') {
-                defineProperty(target, uniqueSymbol, uidCounter++);
+                Object.defineProperty(target, uniqueSymbol, {
+                    value: uidCounter++
+                });
             }
             return target[uniqueSymbol];
         }
@@ -560,22 +562,6 @@ var drunk;
         }
         util.camelCase = camelCase;
         /**
-         * Object.defineProperty的快捷方法，会设置configurable,writable默认为true
-         * @param   target         设置的目标
-         * @param   propertyName   属性
-         * @param   propertyValue  值
-         * @param   enumerable     该属性是否可枚举
-         */
-        function defineProperty(target, propertyName, propertyValue, enumerable) {
-            Object.defineProperty(target, propertyName, {
-                value: propertyValue,
-                writable: true,
-                configurable: true,
-                enumerable: !!enumerable
-            });
-        }
-        util.defineProperty = defineProperty;
-        /**
          * 属性代理,把a对象的某个属性的读写代理到b对象上,返回代理是否成功的结果
          * @param   a         对象a
          * @param   property  属性名
@@ -669,7 +655,7 @@ var drunk;
             /**
              * 对应Key的数据
              */
-            this._store = {};
+            this._values = {};
             /**
              * 所有的key的列表
              */
@@ -708,7 +694,7 @@ var drunk;
             if (type === 'number') {
                 return ('-' + key + '-');
             }
-            throw new Error('不支持的数据类型:' + type);
+            throw new Error("\u4E0D\u652F\u6301\u7684\u6570\u636E\u7C7B\u578B: " + type);
         };
         /**
          * 设值
@@ -721,7 +707,7 @@ var drunk;
                 this._uids.push(uid);
                 this._keys.push(key);
             }
-            this._store[uid] = value;
+            this._values[uid] = value;
             return this;
         };
         /**
@@ -730,7 +716,7 @@ var drunk;
          */
         Map.prototype.get = function (key) {
             var uid = this._uidOf(key);
-            return this._store[uid];
+            return this._values[uid];
         };
         /**
          * 是否有对应键的值
@@ -750,7 +736,7 @@ var drunk;
             if (index > -1) {
                 this._uids.splice(index, 1);
                 this._keys.splice(index, 1);
-                delete this._store[uid];
+                delete this._values[uid];
                 return true;
             }
             return false;
@@ -761,7 +747,7 @@ var drunk;
         Map.prototype.clear = function () {
             this._keys = [];
             this._uids = [];
-            this._store = {};
+            this._values = {};
         };
         /**
          * 遍历
@@ -773,7 +759,7 @@ var drunk;
             var uids = this._uids.slice();
             this.keys().forEach(function (key, index) {
                 var uid = uids[index];
-                callback.call(context, _this._store[uid], key, _this);
+                callback.call(context, _this._values[uid], key, _this);
             });
         };
         /**
@@ -787,7 +773,7 @@ var drunk;
          */
         Map.prototype.values = function () {
             var _this = this;
-            return this._uids.map(function (uid) { return _this._store[uid]; });
+            return this._uids.map(function (uid) { return _this._values[uid]; });
         };
         Object.defineProperty(Map.prototype, "size", {
             /**
@@ -977,7 +963,9 @@ var drunk;
 (function (drunk) {
     var util;
     (function (util) {
-        var FORM_DATA_CONTENT_TYPE = 'application/x-www-form-urlencoded; charset=UTF-8';
+        var querystring = drunk.querystring;
+        // const FORM_DATA_CONTENT_TYPE = 'application/x-www-form-urlencoded; charset=UTF-8';
+        var schemeRegex = /^(\w+)\:\/\//;
         /**
          * XMLHTTP request工具方法
          * @param   options  配置参数
@@ -985,72 +973,72 @@ var drunk;
         function ajax(options) {
             var xhr = new XMLHttpRequest();
             if (typeof options.url !== 'string' || !options.url) {
-                throw new Error('发送ajax请求失败:url未提供或不合法');
+                throw new Error("ajax(options):options.url\u672A\u63D0\u4F9B\u6216\u4E0D\u5408\u6CD5");
             }
             return new drunk.Promise(function (resolve, reject) {
                 var url = options.url;
                 var type = (options.type || 'GET').toUpperCase();
                 var headers = options.headers || {};
                 var data = options.data;
-                var contentType = options.contentType || FORM_DATA_CONTENT_TYPE;
-                var timerID;
-                var rejectAndClearTimer = function () {
-                    clearTimeout(timerID);
-                    if (reject) {
-                        reject(xhr);
-                        reject = null;
+                var contentType = options.contentType; // || FORM_DATA_CONTENT_TYPE;
+                var isLocalRequest = false;
+                var schemeMatch = schemeRegex.exec(options.url.toLowerCase());
+                if (schemeMatch) {
+                    if (schemeMatch[1] === 'file') {
+                        isLocalRequest = true;
                     }
-                };
+                }
+                else if (location.protocol === 'file:') {
+                    isLocalRequest = true;
+                }
                 if (util.isObject(data)) {
                     if (contentType && contentType.match(/json/i)) {
                         data = JSON.stringify(data);
                     }
                     else {
-                        data = drunk.querystring.stringify(data);
+                        data = querystring.stringify(data);
                         if (type === 'GET') {
                             url += (url.indexOf('?') === -1 ? '?' : '&') + data;
                             data = null;
                         }
                     }
                 }
+                xhr.ontimeout = xhr.onerror = function () {
+                    xhr.abort();
+                    reject(xhr);
+                    xhr = null;
+                };
                 xhr.onreadystatechange = function () {
                     if (xhr.readyState === 4) {
-                        // status === 0 的情况在iOS平台使用cordova的页面中加载本地的文件得到的状态都是0，无解
-                        if (xhr.status >= 200 && xhr.status < 300 || xhr.status === 304 || (xhr.status === 0 && xhr.responseText.length > 0)) {
-                            var res = xhr.responseText;
-                            xhr = null;
-                            resolve(options.dataType === 'json' ? JSON.parse(res) : res);
-                            clearTimeout(timerID);
+                        if ((xhr.status >= 200 && xhr.status < 300) || (isLocalRequest && xhr.status === 0)) {
+                            resolve(xhr.response);
                         }
                         else {
-                            rejectAndClearTimer();
+                            reject(xhr);
                         }
+                        xhr = null;
                     }
                 };
-                xhr.onerror = function () {
-                    rejectAndClearTimer();
-                };
-                xhr.open(type, url, true);
+                xhr.open(type, url, true, options.user, options.password);
+                xhr.responseType = options.dataType || options.responseType || '';
                 if (options.withCredentials || (options.xhrFields && options.xhrFields.withCredentials)) {
                     xhr.withCredentials = true;
                 }
-                xhr.setRequestHeader("Content-Type", contentType);
+                if (typeof options.timeout === 'number' && options.timeout > 0) {
+                    xhr.timeout = options.timeout;
+                }
+                if (contentType) {
+                    xhr.setRequestHeader("Content-Type", contentType);
+                }
                 Object.keys(headers).forEach(function (name) {
                     xhr.setRequestHeader(name, headers[name]);
                 });
                 xhr.send(data);
-                if (typeof options.timeout === 'number') {
-                    timerID = setTimeout(function () {
-                        xhr.abort();
-                        rejectAndClearTimer();
-                    }, options.timeout);
-                }
             });
         }
         util.ajax = ajax;
     })(util = drunk.util || (drunk.util = {}));
 })(drunk || (drunk = {}));
-/// <reference path="../util/util.ts" />
 /// <reference path="./observable.ts" />
 /**
  * 转换后的可以监控对象
@@ -1060,7 +1048,6 @@ var drunk;
 (function (drunk) {
     var observable;
     (function (observable) {
-        var util = drunk.util;
         /**
          * 设置对象的属性，并发送更新的消息
          * @param  data   JSON对象或已经为observable的JSON对象
@@ -1097,20 +1084,26 @@ var drunk;
          * 对象转换成observable后指向的原型对象
          */
         observable.ObservableObjectPrototype = {};
-        /**
-         * 设置对象的指定字段的值
-         * @param   name  字段名
-         * @param   value 值
-         */
-        util.defineProperty(observable.ObservableObjectPrototype, "$set", function setObservableObjectProperty(name, value) {
-            $set(this, name, value);
-        });
-        /**
-         * 删除对象的指定字段的值
-         * @param   name  字段名
-         */
-        util.defineProperty(observable.ObservableObjectPrototype, "$remove", function removeObservableObjectProperty(name) {
-            $remove(this, name);
+        Object.defineProperties(observable.ObservableObjectPrototype, {
+            /**
+             * 设置对象的指定字段的值
+             * @param   name  字段名
+             * @param   value 值
+             */
+            $set: {
+                value: function setObservableObjectProperty(name, value) {
+                    $set(this, name, value);
+                }
+            },
+            /**
+             * 删除对象的指定字段的值
+             * @param   name  字段名
+             */
+            $remove: {
+                value: function removeObservableObjectProperty(name) {
+                    $remove(this, name);
+                }
+            }
         });
     })(observable = drunk.observable || (drunk.observable = {}));
 })(drunk || (drunk = {}));
@@ -1193,7 +1186,13 @@ var drunk;
             if (typeof data.__observer__ === 'undefined') {
                 // 如果从未创建过observer实例
                 ob = new observable.Observer();
-                util.defineProperty(data, '__observer__', ob);
+                Object.defineProperties(data, {
+                    __observer__: {
+                        value: ob,
+                        writable: true,
+                        configurable: true
+                    }
+                });
                 if (isObject) {
                     // 替换原型链
                     data.__proto__ = observable.ObservableObjectPrototype;
@@ -1278,9 +1277,9 @@ var drunk;
          * @param  property   要通知的字段名，如果该参数不提供，则派发该该数据更新的通知
          */
         function notify(data) {
-            var ob = data.__observer__;
-            if (ob) {
-                ob.notify();
+            var observer = data.__observer__;
+            if (observer) {
+                observer.notify();
             }
         }
         observable.notify = notify;
@@ -1348,15 +1347,15 @@ var drunk;
          * @param  value  要移除的值
          */
         function $removeAllItem(array, value) {
-            var $removeItemIndexs = [];
+            var indexes = [];
             var step = 0;
             array.forEach(function (item, index) {
                 if (value === item) {
-                    $removeItemIndexs.push(index - step++);
+                    indexes.push(index - step++);
                 }
             });
-            if ($removeItemIndexs.length) {
-                $removeItemIndexs.forEach(function (index) {
+            if (indexes.length) {
+                indexes.forEach(function (index) {
                     array.splice(index, 1);
                 });
                 observable.notify(array);
@@ -1366,98 +1365,124 @@ var drunk;
         /**
          * 删除所有数组元素
          */
-        function removeAll(array) {
+        function $removeAll(array) {
             if (array.length) {
                 array.length = 0;
                 observable.notify(array);
             }
         }
-        observable.removeAll = removeAll;
-        /**
-         * 根据下标设置数组的值，并发送数据更新的通知
-         * @param   index  数组下标
-         * @param   value  要设置的值
-         */
-        util.defineProperty(observable.ObservableArrayPrototype, "$setAt", function setObservableArrayItem(index, value) {
-            $setAt(this, index, value);
-        });
-        /**
-         * 根据下标移除数组的值，并发送数据更新的通知
-         * @param   index  数组下标
-         */
-        util.defineProperty(observable.ObservableArrayPrototype, "$removeAt", function removeObservalbeArrayByIndex(index) {
-            return $removeAt(this, index);
-        });
-        /**
-         * 移除指定的值，并发送数据更新的通知
-         * @param  value  指定值
-         */
-        util.defineProperty(observable.ObservableArrayPrototype, "$removeItem", function removeObservableArrayItem(value) {
-            return $removeItem(this, value);
-        });
-        /**
-         * 移除数组中所有指定的值，并发送数据更新的通知
-         * @param  value  指定值
-         */
-        util.defineProperty(observable.ObservableArrayPrototype, "$removeAllItem", function removeAllObservableArrayItem(value) {
-            return $removeAllItem(this, value);
-        });
-        /**
-         * 删除所有数组元素
-         * @method removeAll
-         */
-        util.defineProperty(observable.ObservableArrayPrototype, 'removeAll', function () {
-            return removeAll(this);
-        });
-        /**
-         * 调用原生方法并发送通知
-         */
-        function executeArrayMethodAndNotify(array, methodName, args, callback) {
-            var result = Array.prototype[methodName].apply(array, args);
-            if (callback) {
-                callback();
+        observable.$removeAll = $removeAll;
+        Object.defineProperties(observable.ObservableArrayPrototype, {
+            /**
+             * 根据下标设置数组的值，并发送数据更新的通知
+             * @param   index  数组下标
+             * @param   value  要设置的值
+             */
+            $setAt: {
+                value: function setObservableArrayItem(index, value) {
+                    $setAt(this, index, value);
+                }
+            },
+            /**
+             * 根据下标移除数组的值，并发送数据更新的通知
+             * @param   index  数组下标
+             */
+            $removeAt: {
+                value: function removeObservalbeArrayByIndex(index) {
+                    return $removeAt(this, index);
+                }
+            },
+            /**
+             * 移除指定的值，并发送数据更新的通知
+             * @param  value  指定值
+             */
+            $removeItem: {
+                value: function removeObservableArrayItem(value) {
+                    return $removeItem(this, value);
+                }
+            },
+            /**
+             * 移除数组中所有指定的值，并发送数据更新的通知
+             * @param  value  指定值
+             */
+            $removeAllItem: {
+                value: function removeAllObservableArrayItem(value) {
+                    return $removeAllItem(this, value);
+                }
+            },
+            /**
+             * 删除所有数组元素
+             * @method removeAll
+             */
+            $removeAll: {
+                value: function () {
+                    return $removeAll(this);
+                }
+            },
+            pop: {
+                value: function pop() {
+                    var result = Array.prototype.pop.call(this);
+                    observable.notify(this);
+                    return result;
+                }
+            },
+            shift: {
+                value: function shift() {
+                    var result = Array.prototype.shift.call(this);
+                    observable.notify(this);
+                    return result;
+                }
+            },
+            push: {
+                value: function push() {
+                    var args = [];
+                    for (var _i = 0; _i < arguments.length; _i++) {
+                        args[_i - 0] = arguments[_i];
+                    }
+                    var result = Array.prototype.push.apply(this, args);
+                    args.forEach(observable.create);
+                    observable.notify(this);
+                    return result;
+                }
+            },
+            unshift: {
+                value: function unshift() {
+                    var args = [];
+                    for (var _i = 0; _i < arguments.length; _i++) {
+                        args[_i - 0] = arguments[_i];
+                    }
+                    var result = Array.prototype.unshift.apply(this, args);
+                    args.forEach(observable.create);
+                    observable.notify(this);
+                    return result;
+                }
+            },
+            splice: {
+                value: function splice() {
+                    var args = [];
+                    for (var _i = 0; _i < arguments.length; _i++) {
+                        args[_i - 0] = arguments[_i];
+                    }
+                    var result = Array.prototype.splice.apply(this, args);
+                    args.slice(2).forEach(observable.create);
+                    observable.notify(this);
+                    return result;
+                }
+            },
+            sort: {
+                value: function sort(callback) {
+                    var result = Array.prototype.sort.call(this, callback);
+                    observable.notify(this);
+                    return result;
+                }
+            },
+            reverse: {
+                value: function reverse() {
+                    var result = Array.prototype.reverse.call(this);
+                    observable.notify(this);
+                    return result;
+                }
             }
-            observable.notify(array);
-            return result;
-        }
-        util.defineProperty(observable.ObservableArrayPrototype, "pop", function pop() {
-            return executeArrayMethodAndNotify(this, "pop", []);
-        });
-        util.defineProperty(observable.ObservableArrayPrototype, "shift", function shift() {
-            return executeArrayMethodAndNotify(this, "shift", []);
-        });
-        util.defineProperty(observable.ObservableArrayPrototype, "push", function push() {
-            var args = [];
-            for (var _i = 0; _i < arguments.length; _i++) {
-                args[_i - 0] = arguments[_i];
-            }
-            return executeArrayMethodAndNotify(this, "push", args, function () {
-                args.forEach(observable.create);
-            });
-        });
-        util.defineProperty(observable.ObservableArrayPrototype, "unshift", function unshift() {
-            var args = [];
-            for (var _i = 0; _i < arguments.length; _i++) {
-                args[_i - 0] = arguments[_i];
-            }
-            return executeArrayMethodAndNotify(this, "unshift", args, function () {
-                args.forEach(observable.create);
-            });
-        });
-        util.defineProperty(observable.ObservableArrayPrototype, "splice", function splice() {
-            var args = [];
-            for (var _i = 0; _i < arguments.length; _i++) {
-                args[_i - 0] = arguments[_i];
-            }
-            return executeArrayMethodAndNotify(this, "splice", args, function () {
-                args.slice(2).forEach(observable.create);
-            });
-        });
-        util.defineProperty(observable.ObservableArrayPrototype, "sort", function sort(callback) {
-            return executeArrayMethodAndNotify(this, "sort", [callback]);
-        });
-        util.defineProperty(observable.ObservableArrayPrototype, "reverse", function reverse() {
-            return executeArrayMethodAndNotify(this, "reverse", []);
         });
     })(observable = drunk.observable || (drunk.observable = {}));
 })(drunk || (drunk = {}));
@@ -1481,17 +1506,17 @@ var drunk;
         var reserved = [
             'break', 'case', 'catch', 'continue', 'debugger', 'default', 'delete', 'do',
             'else', 'finally', 'for', 'function', 'if', 'in', 'instanceof', 'new', 'return',
-            'switch', 'this', 'throw', 'try', 'typeof', 'let', 'void', 'while',
+            'switch', 'this', 'throw', 'try', 'typeof', 'var', 'void', 'while',
             'class', 'null', 'undefined', 'true', 'false', 'with', eventName, elementName,
             'let', 'abstract', 'import', 'yield', 'arguments'
         ];
-        var tokenCache = new Cache(500);
-        var getterCache = new Cache(500);
-        var setterCache = new Cache(500);
-        var filterCache = new Cache(500);
-        var expressionCache = new Cache(500);
-        var identifierCache = new Cache(500);
-        var interpolateGetterCache = new Cache(500);
+        var tokenCache = new Cache(200);
+        var getterCache = new Cache(200);
+        var setterCache = new Cache(200);
+        var filterCache = new Cache(200);
+        var expressionCache = new Cache(200);
+        var identifierCache = new Cache(200);
+        var interpolateGetterCache = new Cache(200);
         var reIdentifier = /("|').*?\1|[a-zA-Z$_][a-z0-9A-Z$_]*/g;
         var reFilter = /("|').*?\1|\|\||\|\s*([a-zA-Z$_][a-z0-9A-Z$_]*)(:[^|]*)?/g;
         var reInterpolate = /\{\{((.|\n)+?)\}\}/g;
@@ -1537,7 +1562,7 @@ var drunk;
          */
         function assertNotEmptyString(target, message) {
             if (!(typeof target === 'string' && reAnychar.test(target))) {
-                throw new Error(message + " : \u8868\u8FBE\u5F0F\u4E3A\u7A7A");
+                throw new Error(message + ": \u8868\u8FBE\u5F0F\u4E0D\u80FD\u4E3A\u7A7A");
             }
         }
         /**
@@ -2481,7 +2506,8 @@ var drunk;
 var drunk;
 (function (drunk) {
     var util = drunk.util;
-    var parser = drunk.Parser;
+    var Parser = drunk.Parser;
+    var Filter = drunk.Filter;
     var Watcher = drunk.Watcher;
     var observable = drunk.observable;
     var EventEmitter = drunk.EventEmitter;
@@ -2494,7 +2520,7 @@ var drunk;
         var proxies;
         if (descriptor.get) {
             getter = descriptor.get;
-            proxies = parser.getProxyProperties(descriptor.get);
+            proxies = Parser.getProxyProperties(descriptor.get);
         }
         if (descriptor.set) {
             setter = descriptor.set;
@@ -2547,12 +2573,38 @@ var drunk;
             var _this = this;
             model = model || {};
             observable.create(model);
-            util.defineProperty(this, "$filter", Object.create(drunk.Filter.filters));
-            util.defineProperty(this, "_model", model);
-            util.defineProperty(this, "_bindings", []);
-            util.defineProperty(this, "_watchers", {});
-            util.defineProperty(this, "_proxyProps", {});
-            util.defineProperty(this, "_isActived", true);
+            Object.defineProperties(this, {
+                $filter: {
+                    value: Object.create(Filter.filters),
+                    configurable: true,
+                    writable: true
+                },
+                _model: {
+                    value: model,
+                    configurable: true,
+                    writable: true
+                },
+                _bindings: {
+                    value: [],
+                    configurable: true,
+                    writable: true
+                },
+                _watchers: {
+                    value: {},
+                    configurable: true,
+                    writable: true
+                },
+                _proxyProps: {
+                    value: {},
+                    configurable: true,
+                    writable: true
+                },
+                _isActived: {
+                    value: true,
+                    configurable: true,
+                    writable: true
+                }
+            });
             Object.keys(model).forEach(function (property) {
                 _this.$proxy(property);
             });
@@ -2582,13 +2634,13 @@ var drunk;
         ViewModel.prototype.$eval = function (expression, isInterpolate) {
             var getter;
             if (isInterpolate) {
-                if (!parser.hasInterpolation(expression)) {
+                if (!Parser.hasInterpolation(expression)) {
                     return expression;
                 }
-                getter = parser.parseInterpolate(expression);
+                getter = Parser.parseInterpolate(expression);
             }
             else {
-                getter = parser.parseGetter(expression);
+                getter = Parser.parseGetter(expression);
             }
             return this.__execGetter(getter, isInterpolate);
         };
@@ -2598,7 +2650,7 @@ var drunk;
          * @param   value       值
          */
         ViewModel.prototype.$setValue = function (expression, value) {
-            var setter = parser.parseSetter(expression);
+            var setter = Parser.parseSetter(expression);
             setter.call(this, value);
         };
         /**
@@ -2701,7 +2753,7 @@ var drunk;
          */
         ViewModel.prototype.__execGetter = function (getter, isInterpolate) {
             var value = getter.call(this);
-            return drunk.Filter.pipeFor.apply(null, [value, getter.filters, this.$filter, isInterpolate, this]);
+            return Filter.pipeFor.apply(null, [value, getter.filters, this.$filter, isInterpolate, this]);
         };
         return ViewModel;
     }(EventEmitter));
@@ -3224,10 +3276,23 @@ var drunk;
             element.classList.remove.apply(element.classList, list);
         }
         dom.removeClass = removeClass;
+        var styleSheet;
+        function addCSSRule(rules) {
+            if (!styleSheet) {
+                var styleElement = document.createElement('style');
+                document.head.appendChild(styleElement);
+                styleSheet = styleElement.sheet;
+            }
+            Object.keys(rules).forEach(function (selector) {
+                var rule = rules[selector];
+                var content = Object.keys(rule).map(function (property) { return (property + ":" + rule[property]); }).join(';');
+                styleSheet.insertRule(selector + " {" + content + "}", styleSheet.cssRules.length);
+            });
+        }
+        dom.addCSSRule = addCSSRule;
     })(dom = drunk.dom || (drunk.dom = {}));
 })(drunk || (drunk = {}));
 /// <reference path="../viewmodel/viewModel.ts" />
-/// <reference path="../promise/promise.ts" />
 /// <reference path="../util/xhr.ts" />
 /// <reference path="../util/dom.ts" />
 /// <reference path="../config/config.ts" />
@@ -3239,6 +3304,10 @@ var drunk;
 (function (drunk) {
     var Template;
     (function (Template) {
+        var dom = drunk.dom;
+        var util = drunk.util;
+        var config = drunk.config;
+        var Parser = drunk.Parser;
         /**
          * 编译模板元素生成绑定方法
          * @param   node        模板元素
@@ -3297,7 +3366,7 @@ var drunk;
          */
         function compileNodeList(nodeList) {
             var executors = [];
-            drunk.util.toArray(nodeList).forEach(function (node) {
+            util.toArray(nodeList).forEach(function (node) {
                 var executor;
                 var childExecutor;
                 executor = compileNode(node);
@@ -3309,12 +3378,12 @@ var drunk;
             if (executors.length > 1) {
                 return function (viewModel, nodes, ownerViewModel, placeholder) {
                     if (nodes.length * 2 !== executors.length) {
-                        return console.error("\u521B\u5EFA\u7ED1\u5B9A\u4E4B\u524D,\u8282\u70B9\u5DF2\u7ECF\u88AB\u52A8\u6001\u4FEE\u6539", viewModel, nodes);
+                        return console.error("\u521B\u5EFABinding\u4E4B\u524D,\u8282\u70B9\u5DF2\u7ECF\u88AB\u52A8\u6001\u4FEE\u6539", viewModel, nodes);
                     }
                     var i = 0;
                     var nodeExecutor;
                     var childExecutor;
-                    drunk.util.toArray(nodes).forEach(function (node) {
+                    util.toArray(nodes).forEach(function (node) {
                         nodeExecutor = executors[i++];
                         childExecutor = executors[i++];
                         if (nodeExecutor) {
@@ -3340,14 +3409,14 @@ var drunk;
             var executor;
             var tagName = element.tagName.toLowerCase();
             if (tagName.indexOf('-') > 0) {
-                element.setAttribute(drunk.config.prefix + 'component', tagName);
+                element.setAttribute(config.prefix + 'component', tagName);
             }
             if (element.hasAttributes()) {
                 // 如果元素上有属性， 先判断是否存在终止型绑定指令
                 // 如果不存在则判断是否有普通的绑定指令
                 executor = processTerminalBinding(element) || processNormalBinding(element);
             }
-            if (element.tagName === 'TEXTAREA') {
+            if (element.tagName.toLowerCase() === 'textarea') {
                 // 如果是textarea， 它的值有可能存在插值表达式， 比如 "the textarea value with {{some_let}}"
                 // 第一次进行绑定先换成插值表达式
                 var originExecutor_1 = executor;
@@ -3365,10 +3434,10 @@ var drunk;
          */
         function compileTextNode(node) {
             var content = node.textContent;
-            if (!drunk.Parser.hasInterpolation(content)) {
+            if (!Parser.hasInterpolation(content)) {
                 return;
             }
-            var tokens = drunk.Parser.parseInterpolate(content, true);
+            var tokens = Parser.parseInterpolate(content, true);
             var fragment = document.createDocumentFragment();
             var executors = [];
             tokens.forEach(function (token, i) {
@@ -3386,12 +3455,12 @@ var drunk;
             });
             return function (viewModel, element) {
                 var frag = fragment.cloneNode(true);
-                drunk.util.toArray(frag.childNodes).forEach(function (node, i) {
+                util.toArray(frag.childNodes).forEach(function (node, i) {
                     if (executors[i]) {
                         executors[i](viewModel, node);
                     }
                 });
-                drunk.dom.replace(frag, element);
+                dom.replace(frag, element);
             };
         }
         /**
@@ -3402,7 +3471,7 @@ var drunk;
             var name;
             var expression;
             for (var i = 0; name = terminals[i]; i++) {
-                if (expression = element.getAttribute(drunk.config.prefix + name)) {
+                if (expression = element.getAttribute(config.prefix + name)) {
                     // 如果存在该绑定
                     return createExecutor(element, {
                         name: name,
@@ -3416,20 +3485,20 @@ var drunk;
          */
         function processNormalBinding(element) {
             var executors = [];
-            drunk.util.toArray(element.attributes).forEach(function (attr) {
+            util.toArray(element.attributes).forEach(function (attr) {
                 var name = attr.name;
-                var index = name.indexOf(drunk.config.prefix);
+                var index = name.indexOf(config.prefix);
                 var expression = attr.value;
                 var executor;
                 if (index > -1 && index < name.length - 1) {
                     // 已经注册的绑定
-                    name = name.slice(index + drunk.config.prefix.length);
+                    name = name.slice(index + config.prefix.length);
                     executor = createExecutor(element, {
                         name: name,
                         expression: expression
                     });
                 }
-                else if (drunk.Parser.hasInterpolation(expression)) {
+                else if (Parser.hasInterpolation(expression)) {
                     // 如果是在某个属性上进行插值创建一个attr的绑定
                     executor = createExecutor(element, {
                         name: "attr",
@@ -3461,12 +3530,12 @@ var drunk;
             var definition = drunk.Binding.getByName(descriptor.name);
             var executor;
             if (!definition) {
-                console.warn(drunk.config.prefix + descriptor.name, "没有找到该绑定的定义");
+                console.warn((config.prefix + descriptor.name) + ": \u8BE5Binding\u672A\u5B9A\u4E49");
                 return;
             }
             if (!definition.retainAttribute && element.removeAttribute) {
                 // 如果未声明保留这个绑定属性，则把它移除
-                element.removeAttribute(drunk.config.prefix + descriptor.name);
+                element.removeAttribute(config.prefix + descriptor.name);
             }
             // util.extend(descriptor, definition);
             executor = function (viewModel, element, ownerViewModel, placeholder) {
@@ -3527,7 +3596,7 @@ var drunk;
         var util = drunk.util;
         var Cache = drunk.Cache;
         var Promise = drunk.Promise;
-        var cacheStore = new Cache(50);
+        var fragCache = new Cache(50);
         var styleRecord = {};
         var linkRecord = {};
         var scriptRecord = {};
@@ -3541,10 +3610,10 @@ var drunk;
          */
         function renderFragment(url, hostedElement, useCache) {
             var fragmentId = url.toLowerCase();
-            var fragmentPromise = cacheStore.get(fragmentId);
+            var fragmentPromise = fragCache.get(fragmentId);
             if (!useCache || !fragmentPromise) {
                 fragmentPromise = populateDocument(url);
-                cacheStore.set(fragmentId, fragmentPromise);
+                fragCache.set(fragmentId, fragmentPromise);
             }
             return fragmentPromise.then(function (fragment) {
                 var newFragment = fragment.cloneNode(true);
@@ -3572,9 +3641,7 @@ var drunk;
             return Template.load(href).then(function (template) {
                 dom.html(htmlDoc.documentElement, template);
                 htmlDoc.head.appendChild(base);
-            }).then(function () {
-                return processDocument(htmlDoc, href);
-            });
+            }).then(function () { return processDocument(htmlDoc, href); });
         }
         /**
          * 处理模板的资源
@@ -3630,11 +3697,11 @@ var drunk;
          * 添加内链样式
          */
         function addStyle(tag, fragmentHref, position) {
-            var tagUid = (fragmentHref + '  style[' + position + ']').toLowerCase();
+            var tagUid = (fragmentHref + ' style[' + position + ']').toLowerCase();
             if (!styleRecord[tagUid]) {
                 var newStyle = tag.cloneNode(true);
                 styleRecord[tagUid] = true;
-                newStyle.setAttribute('__', tagUid);
+                newStyle.setAttribute('drunk:style:uid', tagUid);
                 document.head.appendChild(newStyle);
             }
             tag.parentNode.removeChild(tag);
@@ -3646,7 +3713,7 @@ var drunk;
             var tagUid = tag.src;
             var inline = !tagUid;
             if (inline) {
-                tagUid = fragmentHref + '  script[' + position + ']';
+                tagUid = fragmentHref + ' script[' + position + ']';
             }
             tagUid = tagUid.toLowerCase();
             tag.parentNode.removeChild(tag);
@@ -3666,7 +3733,7 @@ var drunk;
                     }).catch(function (e) {
                         // console.warn('脚本加载错误:', e);
                     });
-                    newScript_1.setAttribute('__', tagUid);
+                    newScript_1.setAttribute('drunk:script:uid', tagUid);
                 }
                 else {
                     promise = new Promise(function (resolve) {
@@ -3716,7 +3783,6 @@ var drunk;
     var ViewModel = drunk.ViewModel;
     var weakRefKey = 'DRUNK-COMPONENT-ID';
     var record = {};
-    var styleSheet;
     /**
      * Decorator for Component.register
      */
@@ -3761,7 +3827,13 @@ var drunk;
         Component.prototype.__init = function (model) {
             var _this = this;
             _super.prototype.__init.call(this, model);
-            util.defineProperty(this, '_isMounted', false);
+            Object.defineProperties(this, {
+                _isMounted: {
+                    value: false,
+                    writable: true,
+                    configurable: true
+                }
+            });
             if (this.filters) {
                 // 如果配置了过滤器
                 util.extend(this.$filter, this.filters);
@@ -3780,7 +3852,7 @@ var drunk;
                     // 代理该数据字段
                     _this.$proxy(name);
                     // 不论返回的是什么值,使用promise进行处理
-                    drunk.Promise.resolve(data).then(function (result) { return _this[name] = result; }, function (reason) { return console.warn("数据准备失败:", reason); });
+                    drunk.Promise.resolve(data).then(function (result) { return _this[name] = result; }, function (reason) { return console.warn("Component.data[\"" + name + "\"]\u6570\u636E\u51C6\u5907\u5931\u8D25:", reason); });
                 });
             }
             this.init();
@@ -3798,7 +3870,7 @@ var drunk;
             var _this = this;
             var onFailed = function (reason) {
                 _this.$emit(Component.Event.templateLoadFailed, _this);
-                console.warn("模板加载失败: " + templateUrl, reason);
+                console.warn("\u6A21\u677F\u52A0\u8F7D\u5931\u8D25: " + templateUrl, reason);
             };
             if (typeof templateUrl === 'string') {
                 return Template.renderFragment(templateUrl, null, true).then(function (fragment) { return util.toArray(fragment.childNodes); }).catch(onFailed);
@@ -3813,7 +3885,7 @@ var drunk;
             if (typeof templateUrl === 'string') {
                 return Template.renderFragment(templateUrl, null, true).then(function (fragment) { return util.toArray(fragment.childNodes); }).catch(onFailed);
             }
-            throw new Error((this.name || this.constructor.name) + "组件的模板未指定");
+            throw new Error((this.name || this.constructor.name) + "\u7EC4\u4EF6\u7684\u6A21\u677F\u672A\u6307\u5B9A");
         };
         /**
          * 把组件挂载到元素上
@@ -3823,10 +3895,9 @@ var drunk;
          */
         Component.prototype.$mount = function (element, ownerViewModel, placeholder) {
             var _this = this;
-            console.assert(!this._isMounted, "该组件已有挂载到", this.element);
+            console.assert(!this._isMounted, "\u91CD\u590D\u6302\u8F7D,\u8BE5\u7EC4\u4EF6\u5DF2\u6302\u8F7D\u5230:", this.element);
             if (Component.getByElement(element)) {
-                console.error("$mount(element): 尝试挂载到一个已经挂载过组件实例的元素节点", element);
-                return;
+                return console.error("$mount(element): \u5C1D\u8BD5\u6302\u8F7D\u5230\u4E00\u4E2A\u5DF2\u7ECF\u6302\u8F7D\u8FC7\u7EC4\u4EF6\u5B9E\u4F8B\u7684\u5143\u7D20\u8282\u70B9", element);
             }
             Template.compile(element)(this, element, ownerViewModel, placeholder);
             this.element = element;
@@ -3929,9 +4000,9 @@ var drunk;
          * @param  componentCtor 组件类
          */
         Component.register = function (name, componentCtor) {
-            console.assert(name.indexOf('-') > -1, name, '组件明必须在中间带"-"字符,如"custom-view"');
+            console.assert(name.indexOf('-') > -1, "\u975E\u6CD5\u7EC4\u4EF6\u540D\"" + name + "\", \u7EC4\u4EF6\u540D\u5FC5\u987B\u5728\u4E2D\u95F4\u5E26\"-\"\u5B57\u7B26,\u5982\"custom-view\"");
             if (Component.constructorsByName[name] != null) {
-                console.warn('组件 "' + name + '" 已被覆盖,请确认该操作');
+                console.warn("\u7EC4\u4EF6\"" + name + "\"\u5B9A\u4E49\u5DF2\u88AB\u8986\u76D6,\u8BF7\u786E\u8BA4\u8BE5\u64CD\u4F5C");
             }
             componentCtor.extend = Component.extend;
             Component.constructorsByName[name] = componentCtor;
@@ -3959,15 +4030,16 @@ var drunk;
      * 设置样式
      */
     function addHiddenStyleForComponent(name) {
-        if (record[name] || typeof document === 'undefined' || typeof document.head === 'undefined') {
+        if (record[name]) {
             return;
         }
-        if (!styleSheet) {
-            var styleElement = document.createElement('style');
-            document.head.appendChild(styleElement);
-            styleSheet = styleElement.sheet;
-        }
-        styleSheet.insertRule(name + '{display:none}', styleSheet.cssRules.length);
+        dom.addCSSRule((_a = {},
+            _a[name] = {
+                display: 'none'
+            },
+            _a
+        ));
+        var _a;
     }
     Component.register(config.prefix + 'view', Component);
 })(drunk || (drunk = {}));
@@ -3995,7 +4067,7 @@ var drunk;
             var _this = this;
             var matches = str.match(reg.statement);
             var prefix = drunk.config.prefix;
-            console.assert(matches !== null, "非法的 " + prefix + 'on 绑定表达式, ', str, '正确的用法如下:\n', prefix + 'on="click: expression"\n', prefix + 'on="mousedown: expression; mouseup: callback()"\n', prefix + 'on="click: callback($event, $el)"\n');
+            console.assert(matches !== null, "\u975E\u6CD5\u7684\"" + prefix + "on\"\u8868\u8FBE\u5F0F " + str + ", \u6B63\u786E\u7684\u7528\u6CD5\u5982\u4E0B:\n", prefix + 'on="click: expression"\n', prefix + 'on="mousedown: expression; mouseup: callback()"\n', prefix + 'on="click: callback($event, $el)"\n');
             var type = matches[1];
             var expr = matches[2];
             var func = drunk.Parser.parse(expr.trim());
@@ -4646,7 +4718,7 @@ var drunk;
             var _this = this;
             var element = this.element;
             var component = this.component;
-            var twowayBindingAttrMap = this._getTwoWayBindingAttrs();
+            var twoWayBindingAttrs = this._getTwoWayBindingAttrs();
             if (element.hasAttributes()) {
                 // 遍历元素上所有的属性做数据准备或数据绑定的处理
                 // 如果某个属性用到插值表达式,如"a={{b}}",则对起进行表达式监听(当b改变时通知component的a属性更新到最新的值)
@@ -4685,7 +4757,7 @@ var drunk;
                         return component[attrName] = value;
                     }
                     // title="{{somelet}}"
-                    _this._initComponentWatcher(attrName, expression, twowayBindingAttrMap[attrName]);
+                    _this._initComponentWatcher(attrName, expression, twoWayBindingAttrs[attrName]);
                 });
             }
             component.$emit(Component.Event.created, component);
@@ -4698,8 +4770,7 @@ var drunk;
             var element = this.element;
             var component = this.component;
             var viewModel = this.viewModel;
-            this._realizePromise = component.$processTemplate();
-            this._realizePromise.done(function (template) {
+            this._realizePromise = component.$processTemplate().then(function (template) {
                 if (_this.isDisposed) {
                     return;
                 }
@@ -4724,7 +4795,7 @@ var drunk;
                     }
                 }
             });
-            this._realizePromise.catch(function (error) {
+            this._realizePromise.done(null, function (error) {
                 if (error && error.message !== 'Canceled') {
                     console.warn(_this.expression + ": \u7EC4\u4EF6\u521B\u5EFA\u5931\u8D25\n", error);
                 }

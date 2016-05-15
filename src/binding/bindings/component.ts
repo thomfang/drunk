@@ -96,7 +96,7 @@ namespace drunk {
         private _processComponentAttributes() {
             let element = this.element;
             let component = this.component;
-            let twowayBindingAttrMap = this._getTwoWayBindingAttrs();
+            let twoWayBindingAttrs = this._getTwoWayBindingAttrs();
 
             if (element.hasAttributes()) {
 
@@ -146,7 +146,7 @@ namespace drunk {
                     }
 
                     // title="{{somelet}}"
-                    this._initComponentWatcher(attrName, expression, twowayBindingAttrMap[attrName]);
+                    this._initComponentWatcher(attrName, expression, twoWayBindingAttrs[attrName]);
                 });
             }
 
@@ -161,8 +161,7 @@ namespace drunk {
             let component = this.component;
             let viewModel = this.viewModel;
 
-            this._realizePromise = component.$processTemplate();
-            this._realizePromise.done(template => {
+            this._realizePromise = component.$processTemplate().then(template => {
                 if (this.isDisposed) {
                     return;
                 }
@@ -194,7 +193,7 @@ namespace drunk {
                     }
                 }
             });
-            this._realizePromise.catch((error: Error) => {
+            this._realizePromise.done(null, (error: Error) => {
                 if (error && error.message !== 'Canceled') {
                     console.warn(`${this.expression}: 组件创建失败\n`, error);
                 }

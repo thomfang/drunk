@@ -8,7 +8,8 @@
 namespace drunk {
 
     import util = drunk.util;
-    import parser = drunk.Parser;
+    import Parser = drunk.Parser;
+    import Filter = drunk.Filter;
     import Watcher = drunk.Watcher;
     import observable = drunk.observable;
     import EventEmitter = drunk.EventEmitter;
@@ -27,7 +28,7 @@ namespace drunk {
 
         if (descriptor.get) {
             getter = descriptor.get;
-            proxies = parser.getProxyProperties(descriptor.get);
+            proxies = Parser.getProxyProperties(descriptor.get);
         }
         if (descriptor.set) {
             setter = descriptor.set;
@@ -115,13 +116,39 @@ namespace drunk {
         protected __init(model?: IModel) {
             model = model || {};
             observable.create(model);
-
-            util.defineProperty(this, "$filter", Object.create(Filter.filters));
-            util.defineProperty(this, "_model", model);
-            util.defineProperty(this, "_bindings", []);
-            util.defineProperty(this, "_watchers", {});
-            util.defineProperty(this, "_proxyProps", {});
-            util.defineProperty(this, "_isActived", true);
+            
+            Object.defineProperties(this, {
+                $filter: {
+                    value: Object.create(Filter.filters),
+                    configurable: true,
+                    writable: true
+                },
+                _model: {
+                    value: model,
+                    configurable: true,
+                    writable: true
+                },
+                _bindings: {
+                    value: [],
+                    configurable: true,
+                    writable: true
+                },
+                _watchers: {
+                    value: {},
+                    configurable: true,
+                    writable: true
+                },
+                _proxyProps: {
+                    value: {},
+                    configurable: true,
+                    writable: true
+                },
+                _isActived: {
+                    value: true,
+                    configurable: true,
+                    writable: true
+                }
+            });
 
             Object.keys(model).forEach((property) => {
                 this.$proxy(property);
@@ -157,13 +184,13 @@ namespace drunk {
             var getter;
 
             if (isInterpolate) {
-                if (!parser.hasInterpolation(expression)) {
+                if (!Parser.hasInterpolation(expression)) {
                     return expression;
                 }
-                getter = parser.parseInterpolate(expression);
+                getter = Parser.parseInterpolate(expression);
             }
             else {
-                getter = parser.parseGetter(expression);
+                getter = Parser.parseGetter(expression);
             }
 
             return this.__execGetter(getter, isInterpolate);
@@ -175,7 +202,7 @@ namespace drunk {
          * @param   value       值
          */
         $setValue(expression: string, value: any): void {
-            var setter = parser.parseSetter(expression);
+            var setter = Parser.parseSetter(expression);
             setter.call(this, value);
         }
 
