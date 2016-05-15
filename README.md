@@ -1,3 +1,23 @@
+# 查看demo
+* 使用命令行工具或git工具拷贝本项目,比如
+  ```shell
+  git clone git@github.com:tilfon/drunk.git
+  ```
+
+* 在项目根目录启一个静态服务器比如
+  ```shell
+  python -m SimpleHTTPServer
+  ```
+  
+  然后在浏览器中查看`/demo/`目录下的的案例
+  
+  * 数据绑定:  `localhost:8000/demo/model/index.html`
+  * 条件判断:  `localhost:8000/demo/if/index.html`
+  * 列表循环:  `localhost:8000/demo/repeat/index.html`
+  * 动画控制:  `localhost:8000/demo/action/index.html`
+  * 创建组件:  `localhost:8000/demo/component/index.html`
+  * 单页应用:  `localhost:8000/demo/application/index.html`
+
 # 快速了解
     
 * **数据绑定**
@@ -23,6 +43,15 @@
         <p>Hello {{greeting}}!</p>
         <input type="text" drunk-model="greeting" />
     </body>
+    ```
+    
+    ```javascript
+    // 创建一个组件实例,并挂载到body
+    
+    var view = new drunk.Component({
+        greeting: 'world'
+    });
+    view.$mount(document.body);
     ```
     
 * **注册事件**
@@ -201,7 +230,8 @@
     </body>
     ```
     
-    ```javascript
+    ```typescript
+    // javascript
     var TestView = drunk.Component.define({
         // list: [ ... ], 这么写会吧list数组拓展到原型，每个实例都会引用同一个list，不推荐
         init: function () {
@@ -212,9 +242,8 @@
         }
     });
     new TestView().$mount(document.body);
-    ```
     
-    ```typescript
+    //typescript
     class TestView extends drunk.Component {
         // list在typescript中不会拓展到原型
         list = [
@@ -258,15 +287,14 @@
     </body>
     ```
 
-    ```javascript
+    ```typescript
     // javascript写法
-    
     drunk.Component.define('my-view', {
         templateUrl: 'my-view.html',
         
         init: function () {
             this.firstName = 'Todd';
-            this.lastName = 'Fon;
+            this.lastName = 'Fon';
             
             // 定义computed属性
             this.$computed('fullName', {
@@ -282,11 +310,8 @@
         }
     });
     new drunk.Component().$mount(document.body);
-    ```
     
-    ```typescript
     // typescript写法,可以使用decorator和继承
-    
     @drunk.component('my-view')
     class MyView extends drunk.Component {
         templateUrl = 'my-view.html';
@@ -400,14 +425,14 @@
         }
     }
     
-    
     new MyApp.$mount(document.body);
     ```
     
 * **带路由的单页面应用**
     
-    **index.html,里面引入./build/drunk.js和./components/application/application.js以及所有的页面组件，然后声明路由器如下：**
+    **引入./build/drunk.js和./components/application/application.js以及所有的页面组件，然后声明路由器如下：**
     
+    *index.html*
     ```html
     <!--
         * 【drunk-index】 声明默认的路由，初始化页面和发现404的路由时会跳转到该路由,
@@ -421,6 +446,7 @@
     
     **初始化脚本,页面就渲染出来了,不用自己new组件实例，只用关心组件的业务逻辑的实现**
     
+    *index.js*
     ```javascript
     // drunk.config.debug = true;
     drunk.Application.start();
@@ -428,9 +454,9 @@
 
     **每个页面定义为一个组件**
     
-    home-page.js:
+    *home-page.js*
     ```typescript
-    // typescript
+    // typescript写法
     @drunk.component('home-page')
     class HomePage extends drunk.Component {
         // 可以在这里设置templateUrl属性，也可以在使用组件的时候在组件标签上设置template-url的方式,
@@ -482,7 +508,7 @@
         }
     }
     
-    // javascript
+    // javascript写法
     drunk.Component.define('home-page', {
         templateUrl: 'home-page.html',
         init: function () {
@@ -527,7 +553,7 @@
     });
     ```
     
-    home-page.html
+    *home-page.html*
     ```html
     <ul>
         <li drunk-repeat="product in products" drunk-on="click: view(product.name)">
@@ -537,9 +563,9 @@
     </ul>
     ```
     
-    detail-page.js
+    *detail-page.js*
     ```typescript
-    //typescript
+    // typescript写法
     @drunk.component('detail-page')
     class DetailPage extends drunk.Component {
         name: string;
@@ -548,14 +574,15 @@
         }
     }
     
-    // javascript
+    // javascript写法
     drunk.Component.define('detail-page', {
         onEnter: function (state) {
            this.name = state.params.name;
         }
     });
     ```
-    detail-page.html
+    
+    *detail-page.html*
     ```html
     <div>
         <button onclick="history.back()">返回首页</button>
