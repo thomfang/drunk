@@ -129,95 +129,6 @@
         imgHeight: 100
     }).$mount(document.body);
     ```
-    
-* **action(动画)控制**
-    ```html
-    <style>
-        .blackbox {
-            background-color: #333;
-            width: 300px;
-            height: 100px;
-            transition: all 0.4s cubic-bezier(0, 0, 0, 1);
-            opacity: 0;
-            -webkit-transform: translateX(100px);
-            transform: translateX(100px);
-            margin: 5px 0;
-        }
-        .slide-left-created {
-            opacity: 1;
-            -webkit-transform: translateX(0px);
-            transform: translateX(0px);
-        }
-        .slide-left-removed {
-            opacity: 0;
-            -webkit-transform: translateX(100px);
-            transform: translateX(100px);
-        }
-        .bounce-created {
-            -webkit-animation: bounce-in .5s;
-            animation: bounce-in .5s;
-        }
-        
-        .bounce-removed {
-            -webkit-animation: bounce-out .5s;
-            animation: bounce-out .5s;
-        }
-    </style>
-    <body>
-        <p>* drunk-action属性里的值使用空格隔开每个action</p>
-        <p>* 数字会变成一个延迟时间，可以除了action结尾外任何位置设置延迟时间</p>
-        <p>* 可以组合css与js的action,只要它们在动画效果上不冲突</p>
-        <p>* action的执行会被drunk-if,drunk-show,drunk-repeat触发</p>
-        
-        <div>
-            <input type="text" drunk-model="delay">
-            <button drunk-on="click: visible = !visible">点击{{visible? '隐藏': '显示'}}</button>
-            <div drunk-show="visible" class="blackbox" drunk-action="{{delay}} slide-left bounce">
-            </div>
-        </div>
-    </body>
-    ```
-    
-    ```javascript
-    // 自定义一个js action
-    drunk.Action.register('fade', {
-        // created方法会在节点添加到dom树或从display:none变成不为none的情况调用
-        created: function (element, done) {
-            element.style.opacity = 0;
-            var timerid = setInterval(function () {
-                var opacity = Number(getComputedStyle(element, null).opacity);
-                if (opacity >= 1) {
-                    cancel();
-                    return done();
-                }
-                element.style.opacity = opacity + 0.3;
-            }, 50);
-            function cancel() {
-                clearInterval(timerid);
-            }
-            return cancel;
-        },
-        // removed方法会在节点从dom树移除或变成display:none的情况调用
-        removed: function (element, done) {
-            element.style.opacity = 1;
-            var timerid = setInterval(function () {
-                var opacity = Number(getComputedStyle(element, null).opacity);
-                if (opacity <= 0) {
-                    cancel();
-                    return done();
-                }
-                element.style.opacity = opacity - 0.3;
-            }, 50);
-            function cancel() {
-                clearInterval(timerid);
-            }
-            return cancel;
-        }
-    });
-    
-    // 绑定视图
-    new drunk.Component({delay: 0.3}).$mount(document.body);
-    ```
 
 * **渲染列表**
     ```html
@@ -270,6 +181,120 @@
         age: 16
     });
     new TestView().$mount(document.body)
+    ```
+    
+* **action(动画)控制**
+    ```html
+    <style>
+        .blackbox {
+            background-color: #333;
+            width: 300px;
+            height: 100px;
+            transition: all 0.4s cubic-bezier(0, 0, 0, 1);
+            opacity: 0;
+            -webkit-transform: translateX(100px);
+            transform: translateX(100px);
+            margin: 5px 0;
+        }
+        .slide-left-created {
+            opacity: 1;
+            -webkit-transform: translateX(0px);
+            transform: translateX(0px);
+        }
+        .slide-left-removed {
+            opacity: 0;
+            -webkit-transform: translateX(100px);
+            transform: translateX(100px);
+        }
+        .bounce-created {
+            -webkit-animation: bounce-in .5s;
+            animation: bounce-in .5s;
+        }
+        
+        .bounce-removed {
+            -webkit-animation: bounce-out .5s;
+            animation: bounce-out .5s;
+        }
+        @-webkit-keyframes bounce-in {
+            0% {
+                -webkit-transform: scale(0);
+            }
+            50% {
+                -webkit-transform: scale(1.5);
+            }
+            100% {
+                -webkit-transform: scale(1);
+            }
+        }
+        
+        @-webkit-keyframes bounce-out {
+            0% {
+                -webkit-transform: scale(1);
+            }
+            50% {
+                -webkit-transform: scale(1.5);
+            }
+            100% {
+                -webkit-transform: scale(0);
+            }
+        }
+    </style>
+    <body>
+        <p>* css声明的action,如取名slide-left,则对应创建(created)和移除(removed)的两个状态的样式名为slide-left-created,slide-left-removed</p>
+        <p>* drunk-action属性里的值使用空格隔开每个action</p>
+        <p>* 数字会变成一个延迟时间，可以除了action结尾外任何位置设置延迟时间</p>
+        <p>* 可以组合css与js的action,只要它们在动画效果上不冲突</p>
+        <p>* 当触发某个状态时,如created状态,action列表会依次触发各个action,css是添加actionName-created样式名,js是调用改action声明的created方法</p>
+        <p>* action的执行会被drunk-if,drunk-show,drunk-repeat触发</p>
+        
+        <div>
+            <input type="text" drunk-model="delay">
+            <button drunk-on="click: visible = !visible">点击{{visible? '隐藏': '显示'}}</button>
+            <div drunk-show="visible" class="blackbox" drunk-action="{{delay}} slide-left bounce">
+            </div>
+        </div>
+    </body>
+    ```
+    
+    ```javascript
+    // 自定义一个js action
+    drunk.Action.register('fade', {
+        // created方法会在节点添加到dom树或从display:none变成不为none的情况调用
+        created: function (element, done) {
+            element.style.opacity = 0;
+            var timerid = setInterval(function () {
+                var opacity = Number(getComputedStyle(element, null).opacity);
+                if (opacity >= 1) {
+                    cancel();
+                    return done();
+                }
+                element.style.opacity = opacity + 0.3;
+            }, 50);
+            function cancel() {
+                clearInterval(timerid);
+            }
+            return cancel;
+        },
+        // removed方法会在节点从dom树移除或变成display:none的情况调用
+        removed: function (element, done) {
+            element.style.opacity = 1;
+            var timerid = setInterval(function () {
+                var opacity = Number(getComputedStyle(element, null).opacity);
+                if (opacity <= 0) {
+                    cancel();
+                    return done();
+                }
+                element.style.opacity = opacity - 0.3;
+            }, 50);
+            function cancel() {
+                clearInterval(timerid);
+            }
+            return cancel;
+        }
+    });
+    
+    // 绑定视图
+    new drunk.Component({delay: 0.3}).$mount(document.body);
     ```
 
 * **自定义组件**
@@ -425,7 +450,7 @@
         }
     }
     
-    new MyApp.$mount(document.body);
+    new MyApp().$mount(document.body);
     ```
     
 * **带路由的单页面应用**
