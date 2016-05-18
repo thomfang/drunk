@@ -136,7 +136,7 @@ namespace drunk {
             this.__routeIndex = rootElement.getAttribute(nameOfIndex);
 
             if (!this.__routeIndex) {
-                console.error(rootElement, "节点上未找到" + nameOfIndex + "设置");
+                console.error(rootElement, `节点上未找到${nameOfIndex}设置`);
             }
             rootElement.removeAttribute(nameOfIndex);
         }

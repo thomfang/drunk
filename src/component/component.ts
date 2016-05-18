@@ -390,12 +390,9 @@ namespace drunk {
         if (record[name]) {
             return;
         }
-        
-        dom.addCSSRule({
-            [name]: {
-                display: 'none'
-            }
-        });
+
+        dom.addCSSRule({ [name]: { display: 'none' } });
+        record[name] = true;
     }
 
     Component.register(config.prefix + 'view', Component);

@@ -109,10 +109,11 @@ namespace drunk.util {
                 }
             }
 
-            xhr.ontimeout = xhr.onerror = () => {
-                xhr.abort();
-                reject(xhr);
-                xhr = null;
+            xhr.onerror = () => {
+                if (xhr) {
+                    reject(xhr);
+                    xhr = null;
+                }
             };
 
             xhr.onreadystatechange = () => {
@@ -137,6 +138,13 @@ namespace drunk.util {
 
             if (typeof options.timeout === 'number' && options.timeout > 0) {
                 xhr.timeout = options.timeout;
+                xhr.ontimeout = () => {
+                    if (xhr) {
+                        xhr.abort();
+                        reject(xhr);
+                        xhr = null;
+                    }
+                };
             }
             if (contentType) {
                 xhr.setRequestHeader("Content-Type", contentType);

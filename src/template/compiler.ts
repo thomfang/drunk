@@ -225,6 +225,7 @@ namespace drunk.Template {
      */
     function processNormalBinding(element: any): IBindingExecutor {
         let executors: IBindingExecutor[] = [];
+        let shouldTerminate = false;
 
         util.toArray(element.attributes).forEach((attr) => {
             let name: string = attr.name;
@@ -239,6 +240,9 @@ namespace drunk.Template {
                     name: name,
                     expression: expression
                 });
+                if (name === 'include') {
+                    shouldTerminate = true;
+                }
             }
             else if (Parser.hasInterpolation(expression)) {
                 // 如果是在某个属性上进行插值创建一个attr的绑定
@@ -260,11 +264,15 @@ namespace drunk.Template {
                 return b.priority - a.priority;
             });
             // 存在绑定
-            return (viewModel: ViewModel, element: any, ownerViewModel?: ViewModel, placeholder?: HTMLElement) => {
+            let executor: IBindingExecutor = (viewModel: ViewModel, element: any, ownerViewModel?: ViewModel, placeholder?: HTMLElement) => {
                 executors.forEach((executor) => {
                     executor(viewModel, element, ownerViewModel, placeholder);
                 });
             };
+            
+            executor.isTerminal = shouldTerminate;
+            
+            return executor;
         }
     }
     

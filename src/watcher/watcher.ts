@@ -1,12 +1,11 @@
 /// <reference path="../util/util.ts" />
-/// <reference path="../promise/promise.ts" />
 /// <reference path="../parser/parser.ts" />
 /// <reference path="../observable/observable.ts" />
 
 namespace drunk {
 
     import util = drunk.util;
-    import Promise = drunk.Promise;
+    import Parser = drunk.Parser;
     import observable = drunk.observable;
 
     export class Watcher {
@@ -45,7 +44,7 @@ namespace drunk {
             this._getter = this._isInterpolate ? Parser.parseInterpolate(expression) : Parser.parseGetter(expression);
 
             if (!this._getter.dynamic) {
-                throw new Error(`不能监控不包含任何变量的表达式: "${expression}"`);
+                throw new Error(`不能watch不包含任何变量的表达式: "${expression}"`);
             }
 
             this._propertyChanged = this._propertyChanged.bind(this);

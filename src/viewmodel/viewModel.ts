@@ -294,7 +294,7 @@ namespace drunk {
          * @param  handlerName  事件回调名称
          * @return              返回事件处理函数
          */
-        __getHandler(handlerName: string): Function {
+        protected __getHandler(handlerName: string): Function {
             var handler = this[handlerName];
             var context: any = this;
 
@@ -320,7 +320,7 @@ namespace drunk {
          * @param   event          事件对象
          * @param   el             元素对象
          */
-        __execGetter(getter, isInterpolate) {
+        protected __execGetter(getter, isInterpolate) {
             var value = getter.call(this);
             return Filter.pipeFor.apply(null, [value, getter.filters, this.$filter, isInterpolate, this]);
         }

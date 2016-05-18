@@ -1003,10 +1003,11 @@ var drunk;
                         }
                     }
                 }
-                xhr.ontimeout = xhr.onerror = function () {
-                    xhr.abort();
-                    reject(xhr);
-                    xhr = null;
+                xhr.onerror = function () {
+                    if (xhr) {
+                        reject(xhr);
+                        xhr = null;
+                    }
                 };
                 xhr.onreadystatechange = function () {
                     if (xhr.readyState === 4) {
@@ -1026,6 +1027,13 @@ var drunk;
                 }
                 if (typeof options.timeout === 'number' && options.timeout > 0) {
                     xhr.timeout = options.timeout;
+                    xhr.ontimeout = function () {
+                        if (xhr) {
+                            xhr.abort();
+                            reject(xhr);
+                            xhr = null;
+                        }
+                    };
                 }
                 if (contentType) {
                     xhr.setRequestHeader("Content-Type", contentType);
@@ -2047,12 +2055,12 @@ var drunk;
     })(Filter = drunk.Filter || (drunk.Filter = {}));
 })(drunk || (drunk = {}));
 /// <reference path="../util/util.ts" />
-/// <reference path="../promise/promise.ts" />
 /// <reference path="../parser/parser.ts" />
 /// <reference path="../observable/observable.ts" />
 var drunk;
 (function (drunk) {
     var util = drunk.util;
+    var Parser = drunk.Parser;
     var observable = drunk.observable;
     var Watcher = (function () {
         /**
@@ -2068,10 +2076,10 @@ var drunk;
             this._observers = {};
             this._properties = {};
             this._isActived = true;
-            this._isInterpolate = drunk.Parser.hasInterpolation(expression);
-            this._getter = this._isInterpolate ? drunk.Parser.parseInterpolate(expression) : drunk.Parser.parseGetter(expression);
+            this._isInterpolate = Parser.hasInterpolation(expression);
+            this._getter = this._isInterpolate ? Parser.parseInterpolate(expression) : Parser.parseGetter(expression);
             if (!this._getter.dynamic) {
-                throw new Error("\u4E0D\u80FD\u76D1\u63A7\u4E0D\u5305\u542B\u4EFB\u4F55\u53D8\u91CF\u7684\u8868\u8FBE\u5F0F: \"" + expression + "\"");
+                throw new Error("\u4E0D\u80FDwatch\u4E0D\u5305\u542B\u4EFB\u4F55\u53D8\u91CF\u7684\u8868\u8FBE\u5F0F: \"" + expression + "\"");
             }
             this._propertyChanged = this._propertyChanged.bind(this);
             this.value = this._getValue();
@@ -3486,6 +3494,7 @@ var drunk;
          */
         function processNormalBinding(element) {
             var executors = [];
+            var shouldTerminate = false;
             util.toArray(element.attributes).forEach(function (attr) {
                 var name = attr.name;
                 var index = name.indexOf(config.prefix);
@@ -3498,6 +3507,9 @@ var drunk;
                         name: name,
                         expression: expression
                     });
+                    if (name === 'include') {
+                        shouldTerminate = true;
+                    }
                 }
                 else if (Parser.hasInterpolation(expression)) {
                     // 如果是在某个属性上进行插值创建一个attr的绑定
@@ -3517,11 +3529,13 @@ var drunk;
                     return b.priority - a.priority;
                 });
                 // 存在绑定
-                return function (viewModel, element, ownerViewModel, placeholder) {
+                var executor = function (viewModel, element, ownerViewModel, placeholder) {
                     executors.forEach(function (executor) {
                         executor(viewModel, element, ownerViewModel, placeholder);
                     });
                 };
+                executor.isTerminal = shouldTerminate;
+                return executor;
             }
         }
         /**
@@ -4034,12 +4048,8 @@ var drunk;
         if (record[name]) {
             return;
         }
-        dom.addCSSRule((_a = {},
-            _a[name] = {
-                display: 'none'
-            },
-            _a
-        ));
+        dom.addCSSRule((_a = {}, _a[name] = { display: 'none' }, _a));
+        record[name] = true;
         var _a;
     }
     Component.register(config.prefix + 'view', Component);
@@ -5178,9 +5188,9 @@ var drunk;
 /// <reference path="../../template/compiler.ts" />
 var drunk;
 (function (drunk) {
-    var Template = drunk.Template;
-    var util = drunk.util;
     var dom = drunk.dom;
+    var util = drunk.util;
+    var Template = drunk.Template;
     var TranscludeBinding = (function (_super) {
         __extends(TranscludeBinding, _super);
         function TranscludeBinding() {

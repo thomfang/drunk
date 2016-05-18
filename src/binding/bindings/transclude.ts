@@ -5,10 +5,10 @@
 
 namespace drunk {
     
-    import Component = drunk.Component;
-    import Template = drunk.Template;
-    import util = drunk.util;
     import dom = drunk.dom;
+    import util = drunk.util;
+    import Template = drunk.Template;
+    import Component = drunk.Component;
 
     @binding("transclude")
     class TranscludeBinding extends Binding {

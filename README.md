@@ -183,6 +183,44 @@
     new TestView().$mount(document.body)
     ```
     
+* **监控属性**
+   ```html
+    <body>
+        <p>上次输入的消息: {{oldValue}}</p>
+        <p>刚刚输入的消息: {{newValue}}</p>
+        <div>
+            <input type="text" drunk-model="content" drunk-on="keyup: $event.keyCode == 13 && addMessage()" />
+            <button drunk-on="click: addMessage()">添加消息</button>
+        </div>
+        <p drunk-repeat="message in messageList">{{message}}</>
+    </body>
+    ```
+    
+    ```javascript
+    new drunk.Component({
+        newValue: '',
+        oldValue: '',
+        init: function () {
+            this.messageList = [];
+            // 监控元数据属性
+            this.$watch('content', function (newValue, oldValue) {
+                this.newValue = newValue;
+                this.oldValue = oldValue;
+            });
+            // 监控数组或对象
+            this.$watch('messageList', function () {
+                console.log('messageList changed');
+            }, true/*是否要深度监听每个元素的变化*/);
+        },
+        addMessage: function () {
+            if (this.content) {
+                this.messageList.push(this.content);
+                this.content = '';
+            }
+        }
+    }).$mount(document.body);
+    ```
+    
 * **action(动画)控制**
     ```html
     <style>
@@ -529,7 +567,8 @@
             console.log('退出home-page页面');
         }
         view(name: string) {
-            location.href = "#/detail/" + name;
+            // 或者用 location.replace(...), location.href = ...;
+            drunk.Application.navigate("#/detail/" + name);
         }
     }
     
@@ -573,7 +612,7 @@
             console.log('退出home-page页面');
         },
         view: function (name) {
-            location.href = "#/detail/" + name;
+            drunk.Application.navigate("#/detail/" + name);
         }
     });
     ```
@@ -615,4 +654,71 @@
     </div>
     ```
     
+* **自定义Binding**
+    
+    自定义一个当值改变时切换样式的binding
+    ```typescript
+    // typescript
+    @drunk.binding('toggle-class')
+    class ToggleClass extends drunk.Binding {
+        classList: string[];
+        init() {
+            // this.element可以访问到绑定的元素
+            this.classList = JSON.parse(this.element.getAttribute('class-list') || '[]');
+        }
+        update(newValue: any, oldValue: any) {
+            // 当绑定的属性更新时会调用该方法
+            this.classList.forEach(className => this.element.classList.toggle(className));
+        }
+        release() {
+            // binding移除时会调用该方法
+            this.classList = null;
+        }
+    }
+    
+    // javascript写法
+    drunk.Binding.register('toggle-class', {
+        init: function() {
+            this.classList = JSON.parse(this.element.getAttribute('class-list') || '[]');
+        },
+        update: function(newValue, oldValue) {
+            this.classList.forEach(function (className) {
+                this.element.classList.toggle(className);
+            });
+        },
+        release: function() {
+            this.classList = null;
+        }
+    });
+    ```
+    
+    使用方法
+    ```html
+    <style>
+       div {background: black; transition:all linear 0.5s; width: 100px;height:100px;}
+      .red {background: red;}
+      .large {transform: scale(1.5, 1.5)}
+    </style>
+    <body>
+        <!--需要加上drunk-前缀-->
+        <div drunk-toggle-class="counter" class-list="['red']"></div>
+    </body>
+    ```
+    
+    ```typescript
+    var MyApp = drunk.Component.define({
+        counter: 0,
+        init: function () {
+            var timerId = setInterval(function () {
+                this.counter += 1;
+            }.bind(this), 1000);
+            
+            // drunk.Component.Event. => release|created|mounted|templateLoadFailed
+            this.$on(drunk.Component.Event.release, function () {
+                clearInterval(timerId);
+            });
+        },
+    });
+    new MyApp().$mount(document.body);
+    ```
     

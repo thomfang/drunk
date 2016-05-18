@@ -925,7 +925,7 @@ declare namespace drunk {
          * @param  handlerName  事件回调名称
          * @return              返回事件处理函数
          */
-        __getHandler(handlerName: string): Function;
+        protected __getHandler(handlerName: string): Function;
         /**
          * 根据getter函数获取数据
          * @param   getter         表达式解析生成的getter函数
@@ -933,7 +933,7 @@ declare namespace drunk {
          * @param   event          事件对象
          * @param   el             元素对象
          */
-        __execGetter(getter: any, isInterpolate: any): any;
+        protected __execGetter(getter: any, isInterpolate: any): any;
     }
 }
 declare namespace drunk {
@@ -1336,7 +1336,7 @@ declare namespace drunk {
         _flagNode: Comment;
         _element: any;
         protected _models: IModel[];
-        constructor(_parent: Component | RepeatItem, ownModel: any);
+        constructor(_parent: Component | RepeatItem, ownModel: IModel);
         /**
          * 这里只初始化私有model
          */
@@ -1357,7 +1357,7 @@ declare namespace drunk {
         /**
          * 重写获取事件处理方法,忘父级查找该方法
          */
-        __getHandler(handlerName: string): (...args: any[]) => any;
+        protected __getHandler(handlerName: string): (...args: any[]) => any;
         /**
          * 实例释放
          */

@@ -35,7 +35,7 @@ namespace drunk {
 
         protected _models: IModel[];
 
-        constructor(private _parent: Component | RepeatItem, ownModel) {
+        constructor(private _parent: Component | RepeatItem, ownModel: IModel) {
             super(ownModel);
             this.__inheritParentMembers();
         }
@@ -101,7 +101,7 @@ namespace drunk {
         /**
          * 重写获取事件处理方法,忘父级查找该方法
          */
-        __getHandler(handlerName: string) {
+        protected __getHandler(handlerName: string) {
             let context: any = this;
             let handler = this[handlerName];
 
