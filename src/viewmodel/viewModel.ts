@@ -13,7 +13,7 @@ namespace drunk {
     import Watcher = drunk.Watcher;
     import observable = drunk.observable;
     import EventEmitter = drunk.EventEmitter;
-    
+
     var global = util.global;
 
     export interface IModel extends observable.IObservableObject {
@@ -41,7 +41,6 @@ namespace drunk {
                 if (getter) {
                     if (proxies) {
                         proxies.forEach(prop => this.$proxy(prop));
-                        proxies = null;
                     }
                     try {
                         return getter.call(this);
@@ -51,8 +50,7 @@ namespace drunk {
             else if (setter) {
                 try {
                     setter.call(this, arguments[0]);
-                }
-                catch (e) { }
+                } catch (e) { }
             }
         }
 
@@ -118,7 +116,7 @@ namespace drunk {
         protected __init(model?: IModel) {
             model = model || {};
             observable.create(model);
-            
+
             Object.defineProperties(this, {
                 $filter: {
                     value: Object.create(Filter.filters),
@@ -213,7 +211,9 @@ namespace drunk {
          * @return   json格式的不带getter/setter的model对象
          */
         $getModel() {
-            return util.deepClone(this._model);
+            let model = {};
+            Object.keys(this._proxyProps).forEach(prop => model[prop] = this._model[prop]);
+            return util.extend(model, util.deepClone(this._model));
         }
 
         /**

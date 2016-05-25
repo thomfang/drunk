@@ -561,30 +561,40 @@ var drunk;
             return str.replace(/[-_](\w)/g, function ($0, $1) { return $1.toUpperCase(); });
         }
         util.camelCase = camelCase;
+        function hasProxy(target, property) {
+            var des = Object.getOwnPropertyDescriptor(target, property);
+            if (des && ((typeof des.get === 'function' && des.get === des.set) || !des.configurable)) {
+                return true;
+            }
+            var proto = target.__proto__;
+            while (proto) {
+                des = Object.getOwnPropertyDescriptor(proto, property);
+                if (des && ((typeof des.get === 'function' && des.get === des.set) || !des.configurable)) {
+                    Object.defineProperty(target, property, des);
+                    return true;
+                }
+                proto = proto.__proto__;
+            }
+            return false;
+        }
         /**
          * 属性代理,把a对象的某个属性的读写代理到b对象上,返回代理是否成功的结果
-         * @param   a         对象a
-         * @param   property  属性名
-         * @param   b         对象b
+         * @param   target    目标对象
+         * @param   property  要代理的属性名
+         * @param   source    源对象
          * @return            如果已经代理过,则不再代理该属性
          */
-        function proxy(a, property, b) {
-            var proto = Object.getPrototypeOf(a);
-            var desOfProto = Object.getOwnPropertyDescriptor(proto, property);
-            if (desOfProto && (typeof desOfProto.get === 'function' && desOfProto.get === desOfProto.set)) {
-                return false;
-            }
-            var des = Object.getOwnPropertyDescriptor(a, property);
-            if (des && ((typeof des.get === 'function' && des.get === des.set) || !des.configurable)) {
+        function proxy(target, property, source) {
+            if (hasProxy(target, property)) {
                 return false;
             }
             function proxyGetterSetter() {
                 if (arguments.length === 0) {
-                    return b[property];
+                    return source[property];
                 }
-                b[property] = arguments[0];
+                source[property] = arguments[0];
             }
-            Object.defineProperty(a, property, {
+            Object.defineProperty(target, property, {
                 enumerable: true,
                 configurable: true,
                 set: proxyGetterSetter,
@@ -2540,7 +2550,6 @@ var drunk;
                 if (getter) {
                     if (proxies) {
                         proxies.forEach(function (prop) { return _this.$proxy(prop); });
-                        proxies = null;
                     }
                     try {
                         return getter.call(this);
@@ -2667,7 +2676,10 @@ var drunk;
          * @return   json格式的不带getter/setter的model对象
          */
         ViewModel.prototype.$getModel = function () {
-            return util.deepClone(this._model);
+            var _this = this;
+            var model = {};
+            Object.keys(this._proxyProps).forEach(function (prop) { return model[prop] = _this._model[prop]; });
+            return util.extend(model, util.deepClone(this._model));
         };
         /**
          * 监听表达式的里每个数据的变化
@@ -3132,6 +3144,7 @@ var drunk;
 (function (drunk) {
     var dom;
     (function (dom) {
+        var config = drunk.config;
         /**
          * 根据提供的html字符串创建html元素
          * @param   html  html字符串
@@ -3161,6 +3174,19 @@ var drunk;
             }
         }
         dom.html = html;
+        /**
+         * 创建标记节点，如果开启debug模式，则创建comment节点，发布版本则用textNode
+         */
+        function createFlagNode(content) {
+            var node = config.debug ? document.createComment(content) : document.createTextNode(' ');
+            node['flag'] = content;
+            // if (config.debug) {
+            //     return document.createComment(content);
+            // }
+            // return document.createTextNode(' ');
+            return node;
+        }
+        dom.createFlagNode = createFlagNode;
         /**
          * 在旧的元素节点前插入新的元素节点
          * @param  newNode  新的节点
@@ -3817,30 +3843,31 @@ var drunk;
             _super.call(this, model);
             Component.instancesById[util.uniqueId(this)] = this;
         }
-        /**
-         * 实例创建时会调用的初始化方法,派生类可覆盖该方法
-         */
-        Component.prototype.init = function () {
-        };
         Object.defineProperty(Component.prototype, "filters", {
-            get: function () {
-                return this.__filters;
+            set: function (filters) {
+                this.$setFilters(filters);
             },
-            set: function (newValue) {
-                if (this.$filter) {
-                    util.extend(this.$filter, newValue);
-                }
-                this.__filters = newValue;
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Component.prototype, "data", {
+            /** 组件的数据,会被初始化到Model中,可以为一个函数,函数可以直接返回值或一个处理值的Promise对象 */
+            set: function (dataDescriptors) {
+                this.$resolveData(dataDescriptors);
             },
             enumerable: true,
             configurable: true
         });
         /**
+         * 实例创建时会调用的初始化方法,派生类可覆盖该方法
+         */
+        Component.prototype.init = function () {
+        };
+        /**
          * 属性初始化
          * @param  model 数据
          */
         Component.prototype.__init = function (model) {
-            var _this = this;
             _super.prototype.__init.call(this, model);
             Object.defineProperties(this, {
                 _isMounted: {
@@ -3849,34 +3876,37 @@ var drunk;
                     configurable: true
                 }
             });
-            if (this.filters) {
-                // 如果配置了过滤器
-                util.extend(this.$filter, this.filters);
-            }
-            if (this.handlers) {
-                // 如果配置了事件处理函数
-                util.extend(this, this.handlers);
-            }
-            if (this.data) {
-                Object.keys(this.data).forEach(function (name) {
-                    var data = _this.data[name];
-                    if (typeof data === 'function') {
-                        // 如果是一个函数,直接调用该函数
-                        data = data.call(_this);
-                    }
-                    // 代理该数据字段
-                    _this.$proxy(name);
-                    // 不论返回的是什么值,使用promise进行处理
-                    drunk.Promise.resolve(data).then(function (result) { return _this[name] = result; }, function (reason) { return console.warn("Component.data[\"" + name + "\"]\u6570\u636E\u51C6\u5907\u5931\u8D25:", reason); });
-                });
-            }
             this.init();
-            if (this.watchers) {
-                // 如果配置了监控器
-                Object.keys(this.watchers).forEach(function (expression) {
-                    _this.$watch(expression, _this.watchers[expression]);
-                });
+        };
+        /**
+         * 设置数据过滤器
+         */
+        Component.prototype.$setFilters = function (filters) {
+            if (this.$filter) {
+                util.extend(this.$filter, filters);
             }
+            else {
+                console.warn("Component#$setFilters\uFF1A \u7EC4\u4EF6\u672A\u521D\u59CB\u5316");
+            }
+        };
+        /**
+         * 设置初始化数据
+         */
+        Component.prototype.$resolveData = function (dataDescriptors) {
+            var _this = this;
+            if (!dataDescriptors) {
+                return drunk.Promise.resolve();
+            }
+            return drunk.Promise.all(Object.keys(dataDescriptors).map(function (property) {
+                // 代理该数据字段
+                _this.$proxy(property);
+                var value = dataDescriptors[property];
+                if (typeof value === 'function') {
+                    // 如果是一个函数,直接调用该函数
+                    value = value.call(_this);
+                }
+                return drunk.Promise.resolve(value).then(function (result) { return _this[property] = result; }, function (reason) { return console.warn("Component\u6570\u636E[\"" + property + "\"]\u521D\u59CB\u5316\u5931\u8D25:", reason); });
+            }));
         };
         /**
          * 处理模板，并返回模板元素
@@ -3971,34 +4001,74 @@ var drunk;
             for (var _i = 0; _i < arguments.length; _i++) {
                 args[_i - 0] = arguments[_i];
             }
-            var members;
+            var options;
             if (args.length === 2) {
-                members = args[1];
-                members.name = args[0];
+                options = args[1];
+                options.name = args[0];
             }
             else {
-                members = args[0];
+                options = args[0];
             }
-            return Component.extend(members);
+            return Component.extend(options);
         };
-        Component.extend = function (name, members) {
+        Component.extend = function (name, options) {
             if (arguments.length === 1 && util.isObject(name)) {
-                members = arguments[0];
-                name = members.name;
+                options = arguments[0];
+                name = options.name;
             }
-            else {
-                members.name = arguments[0];
-            }
+            // else {
+            //     members.name = arguments[0];
+            // }
             var superClass = this;
             var prototype = Object.create(superClass.prototype);
+            var watchers;
+            var handlers;
+            var filters;
+            var computeds;
+            var data;
+            Object.keys(options).forEach(function (key) {
+                if (key === "watchers") {
+                    watchers = options[key];
+                }
+                else if (key === "filters") {
+                    filters = options[key];
+                }
+                else if (key === 'computeds') {
+                    computeds = options[key];
+                }
+                else if (key === 'data') {
+                    data = options[key];
+                }
+                else if (key === 'handlers') {
+                    handlers = options[key];
+                }
+                else {
+                    prototype[key] = options[key];
+                }
+            });
             var component = function () {
+                var _this = this;
                 var args = [];
                 for (var _i = 0; _i < arguments.length; _i++) {
                     args[_i - 0] = arguments[_i];
                 }
                 superClass.apply(this, args);
+                if (filters) {
+                    this.$setFilters(filters);
+                }
+                if (handlers) {
+                    util.extend(this, handlers);
+                }
+                if (computeds) {
+                    Object.keys(computeds).forEach(function (property) { return _this.$computed(property, computeds[property]); });
+                }
+                if (watchers) {
+                    Object.keys(watchers).forEach(function (expression) { return _this.$watch(expression, watchers[expression]); });
+                }
+                if (data) {
+                    this.$resolveData(data);
+                }
             };
-            util.extend(prototype, members);
             component.prototype = prototype;
             prototype.constructor = component;
             if (name) {
@@ -4066,6 +4136,7 @@ var drunk;
         statement: /(\w+):\s*(.+)/,
         breakword: /\n+/g
     };
+    var help = "\u6B63\u786E\u7684\u7528\u6CD5\u5982\u4E0B:\n        " + drunk.config.prefix + "on=\"click: expression\"\n        " + drunk.config.prefix + "on=\"mousedown: expression; mouseup: callback()\"\n        " + drunk.config.prefix + "on=\"click: callback($event, $el)\"";
     var EventBinding = (function (_super) {
         __extends(EventBinding, _super);
         function EventBinding() {
@@ -4079,7 +4150,7 @@ var drunk;
             var _this = this;
             var matches = str.match(reg.statement);
             var prefix = drunk.config.prefix;
-            console.assert(matches !== null, "\u4E0D\u5408\u6CD5\u7684\"" + prefix + "on\"\u8868\u8FBE\u5F0F " + str + ", \u6B63\u786E\u7684\u7528\u6CD5\u5982\u4E0B:\n                " + prefix + "on=\"click: expression\"\n                " + prefix + "on=\"mousedown: expression; mouseup: callback()\"\n                " + prefix + "on=\"click: callback($event, $el)\"");
+            console.assert(matches !== null, "\u4E0D\u5408\u6CD5\u7684\"" + prefix + "on\"\u8868\u8FBE\u5F0F " + str + ", " + help);
             var type = matches[1];
             var expr = matches[2];
             var func = drunk.Parser.parse(expr.trim());
@@ -4424,8 +4495,8 @@ var drunk;
          */
         RepeatBinding.prototype._createCommentNodes = function () {
             this._flagNodeContent = "[repeat-item]" + this.expression;
-            this._headNode = document.createComment('<repeat>: ' + this.expression);
-            this._tailNode = document.createComment('</repeat>: ' + this.expression);
+            this._headNode = dom.createFlagNode('<repeat>: ' + this.expression);
+            this._tailNode = dom.createFlagNode('</repeat>: ' + this.expression);
             dom.before(this._headNode, this.element);
             dom.replace(this._tailNode, this.element);
             Binding.setWeakRef(this._headNode, this);
@@ -4496,8 +4567,7 @@ var drunk;
             var renderJob;
             var next = function (node) {
                 placeholder = node.nextSibling;
-                while (placeholder && placeholder !== _this._tailNode &&
-                    (placeholder.nodeType !== 8 || placeholder.textContent != _this._flagNodeContent)) {
+                while (placeholder && placeholder !== _this._tailNode && placeholder.flag != _this._flagNodeContent) {
                     placeholder = placeholder.nextSibling;
                 }
             };
@@ -4576,7 +4646,7 @@ var drunk;
             this._updateItemModel(options, item);
             var viewModel = new RepeatItem(this.viewModel, options);
             var viewModelList = this._map.get(value);
-            viewModel._flagNode = document.createComment(this._flagNodeContent);
+            viewModel._flagNode = dom.createFlagNode(this._flagNodeContent);
             Component.setWeakRef(viewModel._flagNode, viewModel);
             if (!viewModelList) {
                 viewModelList = [];
@@ -4617,14 +4687,12 @@ var drunk;
                 }
                 var element = viewModel._element;
                 var flagNode = viewModel._flagNode;
-                flagNode.textContent = 'Unused repeat item';
+                flagNode.flag = 'Unused repeat item';
                 Component.removeWeakRef(flagNode);
-                Component.removeWeakRef(viewModel._element);
                 viewModel.$release();
-                if (flagNode.parentNode) {
-                    flagNode.parentNode.removeChild(flagNode);
-                }
+                dom.remove(flagNode);
                 if (element) {
+                    Component.removeWeakRef(element);
                     dom.remove(element);
                 }
             });
@@ -4667,6 +4735,10 @@ var drunk;
     var Template = drunk.Template;
     var Component = drunk.Component;
     var reOneInterpolate = /^\{\{([^{]+)\}\}$/;
+    var reStatement = /(\w+):\s*(.+)/;
+    var reSemic = /\s*;\s*/;
+    var reBreakword = /\n+/g;
+    var help = "\u6B63\u786E\u7684\u7528\u6CD5\u5982\u4E0B:\n        " + drunk.config.prefix + "on=\"click: expression\"\n        " + drunk.config.prefix + "on=\"mousedown: expression; mouseup: callback()\"\n        " + drunk.config.prefix + "on=\"click: callback($event, $el)\"";
     var ComponentBinding = (function (_super) {
         __extends(ComponentBinding, _super);
         function ComponentBinding() {
@@ -4701,7 +4773,7 @@ var drunk;
                 }
                 var Ctor = Component.getConstructorByName(_this.expression);
                 if (!Ctor) {
-                    throw new Error(_this.expression + ": 未找到该组件.");
+                    throw new Error(_this.expression + " : \u672A\u627E\u5230\u8BE5\u7EC4\u4EF6");
                 }
                 _this.unwatches = [];
                 _this.component = new Ctor();
@@ -4732,6 +4804,7 @@ var drunk;
             var element = this.element;
             var component = this.component;
             var twoWayBindingAttrs = this._getTwoWayBindingAttrs();
+            this._processEventBinding();
             if (element.hasAttributes()) {
                 // 遍历元素上所有的属性做数据准备或数据绑定的处理
                 // 如果某个属性用到插值表达式,如"a={{b}}",则对起进行表达式监听(当b改变时通知component的a属性更新到最新的值)
@@ -4787,8 +4860,8 @@ var drunk;
                 if (_this.isDisposed) {
                     return;
                 }
-                var headNode = _this._headNode = document.createComment("<component>: " + _this.expression);
-                var tailNode = _this._tailNode = document.createComment("</component>: " + _this.expression);
+                var headNode = _this._headNode = dom.createFlagNode("<component>: " + _this.expression);
+                var tailNode = _this._tailNode = dom.createFlagNode("</component>: " + _this.expression);
                 dom.replace(headNode, element);
                 dom.after(tailNode, headNode);
                 dom.after(template, headNode);
@@ -4815,6 +4888,20 @@ var drunk;
             });
             return this._realizePromise;
         };
+        ComponentBinding.prototype._processEventBinding = function () {
+            var _this = this;
+            var bindingName = drunk.config.prefix + 'on';
+            var expression = this.element.getAttribute(bindingName);
+            if (expression == null) {
+                return;
+            }
+            this.element.removeAttribute(bindingName);
+            expression.replace(reBreakword, ' ').split(reSemic).map(function (str) {
+                var matches = str.match(reStatement);
+                console.assert(matches !== null, "\u4E0D\u5408\u6CD5\u7684\"" + drunk.config.prefix + "on\"\u8868\u8FBE\u5F0F " + str + ", " + help);
+                _this._registerComponentEvent(matches[1], matches[2]);
+            });
+        };
         /**
          * 注册组件的事件
          */
@@ -4830,6 +4917,9 @@ var drunk;
                 // 事件的处理函数,会生成一个$event对象,在表达式中可以访问该对象.
                 // $event对象有type和args两个字段,args字段是组件派发这个事件所传递的参数的列表
                 // $el字段为该组件实例
+                if (drunk.config.debug) {
+                    console.log(eventName + ": " + expression);
+                }
                 func.call(viewModel, {
                     type: eventName,
                     args: args,
@@ -4913,7 +5003,7 @@ var drunk;
             _super.apply(this, arguments);
         }
         IfBinding.prototype.init = function () {
-            this._flagNode = document.createComment("<if: " + this.expression + ' />');
+            this._flagNode = dom.createFlagNode("<if: " + this.expression + " />");
             this._bind = Template.compile(this.element);
             this._inDocument = false;
             dom.replace(this._flagNode, this.element);

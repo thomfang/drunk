@@ -13,7 +13,7 @@ var drunk;
         function RouterComponent() {
             _super.apply(this, arguments);
             this.__routerList = [];
-            this.__visibleMap = {};
+            this.$visibleMap = {};
         }
         /**
          * 启动
@@ -23,10 +23,10 @@ var drunk;
         RouterComponent.prototype.start = function (rootElement, url) {
             if (rootElement === void 0) { rootElement = document.body; }
             if (url === void 0) { url = location.hash.slice(1); }
-            this.__scanElement(rootElement);
-            this.__initNavigationEvent();
+            this._scanElement(rootElement);
+            this._initNavigationEvent();
             this.$mount(drunk.util.toArray(rootElement.childNodes));
-            this.__navigate(url);
+            this._navigate(url);
         };
         /**
          * 导航到指定url
@@ -49,26 +49,30 @@ var drunk;
         RouterComponent.prototype.back = function () {
             history.back();
         };
-        RouterComponent.prototype.__enterView = function (view) {
+        RouterComponent.prototype.viewCreated = function (view) {
             this.__currentView = view;
             if (typeof view['onEnter'] === 'function') {
                 view['onEnter'](this.__routerState, this.__navigationState);
             }
         };
-        RouterComponent.prototype.__exitView = function (view) {
+        RouterComponent.prototype.viewRelease = function (view) {
             if (typeof view['onExit'] === 'function') {
                 view['onExit']();
             }
         };
-        RouterComponent.prototype.__scanElement = function (rootElement) {
+        RouterComponent.prototype.viewMounted = function (view) {
+            this.__isLoadingNext = false;
+        };
+        RouterComponent.prototype.templateLoadFailed = function (view) {
+            this.$emit('templateLoadFailed', view);
+        };
+        RouterComponent.prototype._scanElement = function (rootElement) {
             var _this = this;
             var nameOfRoute = config.prefix + 'route';
             var nameOfIndex = config.prefix + 'index';
             var nameOfIfBinding = config.prefix + 'if';
-            var nameOfCreatedEvent = 'on-' + Component.Event.created;
-            var nameOfReleaseEvent = 'on-' + Component.Event.release;
-            var createdEventExpression = '__enterView($el)';
-            var releaseEventExpression = '__exitView($el)';
+            var nameOfEventBinding = config.prefix + 'on';
+            var eventExpression = "\n                " + Component.Event.created + ":viewCreated($el);\n                " + Component.Event.mounted + ":viewMounted($el);\n                " + Component.Event.release + ":viewRelease($el);\n                " + Component.Event.templateLoadFailed + ":templateLoadFailed($el)";
             var route;
             var name;
             var scan = function (element) {
@@ -87,26 +91,26 @@ var drunk;
                     }
                     route = node.getAttribute(nameOfRoute); // 路由表
                     node.removeAttribute(nameOfRoute); // 移除属性
-                    // 添加一个if绑定,通过改实例的__visibleMap数据来监控和注册组件创建/销毁的事件,
+                    // 添加一个if绑定,通过改实例的$visibleMap数据来监控和注册组件创建/销毁的事件,
                     // 用于当理由切换时改变显示的组件和得到相应的组件实例
-                    // 会生成类似这样: <my-component drunk-if='__visibleMap.myComponent'></my-component>
-                    node.setAttribute(nameOfIfBinding, '__visibleMap["' + name + '"]');
-                    node.setAttribute(nameOfCreatedEvent, createdEventExpression);
-                    node.setAttribute(nameOfReleaseEvent, releaseEventExpression);
+                    // 会生成类似这样: <my-component drunk-if='$visibleMap.myComponent' drunk-on="..."></my-component>
+                    node.setAttribute(nameOfIfBinding, '$visibleMap["' + name + '"]');
+                    node.setAttribute(nameOfEventBinding, eventExpression);
                     // 添加并解析路由,设置改组件默认不可见
-                    _this.__addRoute(route, name);
-                    _this.__visibleMap[name] = false;
+                    _this._addRoute(route, name);
+                    _this.$visibleMap[name] = false;
+                    _this.__isLoadingNext = true;
                 });
             };
             scan(rootElement);
             // 查找drunk-index路径
             this.__routeIndex = rootElement.getAttribute(nameOfIndex);
             if (!this.__routeIndex) {
-                console.error(rootElement, "节点上未找到" + nameOfIndex + "设置");
+                console.error(rootElement, "\u8282\u70B9\u4E0A\u672A\u627E\u5230" + nameOfIndex + "\u8BBE\u7F6E");
             }
             rootElement.removeAttribute(nameOfIndex);
         };
-        RouterComponent.prototype.__addRoute = function (route, viewId) {
+        RouterComponent.prototype._addRoute = function (route, viewId) {
             var routeReg = pathToRegexp(route);
             var paramArr = routeReg.keys.map(function (key) { return key.name; });
             delete routeReg.keys;
@@ -117,15 +121,15 @@ var drunk;
                 viewId: viewId
             });
         };
-        RouterComponent.prototype.__initNavigationEvent = function () {
+        RouterComponent.prototype._initNavigationEvent = function () {
             var _this = this;
             window.addEventListener("hashchange", function () {
-                _this.__navigate(location.hash.slice(1));
+                _this._navigate(location.hash.slice(1));
             });
         };
-        RouterComponent.prototype.__navigate = function (url) {
+        RouterComponent.prototype._navigate = function (url) {
             var state;
-            if (!url || !(state = this.__parseUrl(url))) {
+            if (!url || !(state = this._parseUrl(url))) {
                 return this.navigate('#' + this.__routeIndex, true);
             }
             this.__routerState = state;
@@ -133,18 +137,18 @@ var drunk;
                 // 如果存在当前组件
                 if (this.__currentViewId === state.viewId) {
                     // 判断是否是在同一组件中导航,如果是,直接调用该组件的onEnter方法
-                    this.__enterView(this.__currentView);
+                    this.viewCreated(this.__currentView);
                 }
                 else {
                     // 设置当前组件隐藏
-                    this.__visibleMap[this.__currentViewId] = false;
+                    this.$visibleMap[this.__currentViewId] = false;
                 }
             }
             // 设置导航到的组件显示
-            this.__visibleMap[state.viewId] = true;
+            this.$visibleMap[state.viewId] = true;
             this.__currentViewId = state.viewId;
         };
-        RouterComponent.prototype.__parseUrl = function (url) {
+        RouterComponent.prototype._parseUrl = function (url) {
             var saveParam = function (param, j) {
                 params[param] = result[j + 1];
             };

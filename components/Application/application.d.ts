@@ -11,9 +11,10 @@ declare namespace drunk {
         private __routerList;
         private __currentView;
         private __currentViewId;
+        private __isLoadingNext;
         private __routerState;
         private __navigationState;
-        private __visibleMap;
+        private $visibleMap;
         /**
          * 启动
          * @param  rootElement  默认以document.body启动
@@ -31,13 +32,15 @@ declare namespace drunk {
          * 后退
          */
         back(): void;
-        private __enterView(view);
-        private __exitView(view);
-        private __scanElement(rootElement);
-        private __addRoute(route, viewId);
-        private __initNavigationEvent();
-        private __navigate(url);
-        private __parseUrl(url);
+        private viewCreated(view);
+        private viewRelease(view);
+        private viewMounted(view);
+        private templateLoadFailed(view);
+        private _scanElement(rootElement);
+        private _addRoute(route, viewId);
+        private _initNavigationEvent();
+        private _navigate(url);
+        private _parseUrl(url);
     }
     var Application: IApplication;
 }

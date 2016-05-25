@@ -17,7 +17,7 @@ namespace drunk {
     let weakRefKey = 'DRUNK-COMPONENT-ID';
     let record: { [name: string]: boolean } = {};
 
-    export interface IComponent {
+    export interface IComponentOptions {
         name?: string;
         init?: () => void;
         data?: { [name: string]: any };
@@ -29,8 +29,8 @@ namespace drunk {
         templateUrl?: string;
     }
 
-    export interface IComponentContructor<T extends IComponent> {
-        extend?<T extends IComponent>(name: string | T, members?: T): IComponentContructor<T>;
+    export interface IComponentContructor<T extends IComponentOptions> {
+        extend?<T extends IComponentOptions>(name: string | T, members?: T): IComponentContructor<T>;
         (...args: any[]): void;
     }
 
@@ -62,14 +62,10 @@ namespace drunk {
          */
         name: string;
 
-        /**
-         * 作为模板并与数据进行绑定的元素,可以创建一个组件类是指定该属性用于与视图进行绑定
-         */
+        /** 作为模板并与数据进行绑定的元素,可以创建一个组件类是指定该属性用于与视图进行绑定 */
         element: Node | Node[];
 
-        /**
-         * 组件的模板字符串,如果提供该属性,在未提供element属性的情况下会创建为模板元素
-         */
+        /** 组件的模板字符串,如果提供该属性,在未提供element属性的情况下会创建为模板元素 */
         template: string;
 
         /**
@@ -78,20 +74,20 @@ namespace drunk {
          */
         templateUrl: string;
 
-        /**
-         * 组件的数据,会被初始化到Model中,可以为一个函数,函数可以直接返回值或一个处理值的Promise对象
-         */
-        data: { [name: string]: any };
-
-        /**
-         * 该组件作用域下的事件处理方法
-         */
+        /** 该组件作用域下的事件处理方法 */
         handlers: { [name: string]: (...args) => void };
 
-        /**
-         * 监控器描述,key表示表达式,值为监控回调
-         */
+        /** 监控器描述,key表示表达式,值为监控回调 */
         watchers: { [expression: string]: (newValue: any, oldValue: any) => void };
+
+        set filters(filters: { [name: string]: Filter.IFilter }) {
+            this.$setFilters(filters);
+        }
+
+        /** 组件的数据,会被初始化到Model中,可以为一个函数,函数可以直接返回值或一个处理值的Promise对象 */
+        set data(dataDescriptors: { [name: string]: any }) {
+            this.$resolveData(dataDescriptors);
+        }
 
         /**
          * 组件类，继承ViewModel类，实现了模板的准备和数据的绑定
@@ -110,22 +106,6 @@ namespace drunk {
         }
 
         /**
-         * 该组件作用域下的数据过滤器表
-         */
-        protected __filters: { [name: string]: Filter.IFilter };
-
-        set filters(newValue: { [name: string]: Filter.IFilter }) {
-            if (this.$filter) {
-                util.extend(this.$filter, newValue);
-            }
-            this.__filters = newValue;
-        }
-
-        get filters() {
-            return this.__filters;
-        }
-
-        /**
          * 属性初始化
          * @param  model 数据
          */
@@ -140,43 +120,42 @@ namespace drunk {
                 }
             });
 
-            if (this.filters) {
-                // 如果配置了过滤器
-                util.extend(this.$filter, this.filters);
-            }
-            if (this.handlers) {
-                // 如果配置了事件处理函数
-                util.extend(this, this.handlers);
-            }
-
-            if (this.data) {
-                Object.keys(this.data).forEach(name => {
-                    var data = this.data[name];
-
-                    if (typeof data === 'function') {
-                        // 如果是一个函数,直接调用该函数
-                        data = data.call(this);
-                    }
-
-                    // 代理该数据字段
-                    this.$proxy(name);
-
-                    // 不论返回的是什么值,使用promise进行处理
-                    Promise.resolve(data).then(
-                        result => this[name] = result,
-                        reason => console.warn(`Component.data["${name}"]数据准备失败:`, reason)
-                    );
-                });
-            }
-
             this.init();
+        }
 
-            if (this.watchers) {
-                // 如果配置了监控器
-                Object.keys(this.watchers).forEach((expression) => {
-                    this.$watch(expression, this.watchers[expression]);
-                });
+        /**
+         * 设置数据过滤器
+         */
+        $setFilters(filters: { [name: string]: Filter.IFilter }) {
+            if (this.$filter) {
+                util.extend(this.$filter, filters);
+            } else {
+                console.warn(`Component#$setFilters： 组件未初始化`);
             }
+        }
+
+        /**
+         * 设置初始化数据
+         */
+        $resolveData(dataDescriptors: { [name: string]: any }) {
+            if (!dataDescriptors) {
+                return Promise.resolve();
+            }
+            return Promise.all(Object.keys(dataDescriptors).map(property => {
+                // 代理该数据字段
+                this.$proxy(property);
+
+                let value = dataDescriptors[property];
+                if (typeof value === 'function') {
+                    // 如果是一个函数,直接调用该函数
+                    value = value.call(this);
+                }
+
+                return Promise.resolve(value).then(
+                    result => this[property] = result,
+                    reason => console.warn(`Component数据["${property}"]初始化失败:`, reason)
+                );
+            }));
         }
 
         /**
@@ -191,17 +170,14 @@ namespace drunk {
             if (typeof templateUrl === 'string') {
                 return Template.renderFragment(templateUrl, null, true).then(fragment => util.toArray(fragment.childNodes)).catch(onFailed);
             }
-
             if (this.element) {
                 return Promise.resolve(this.element);
             }
-
             if (typeof this.template === 'string') {
                 return Promise.resolve(dom.create(this.template));
             }
 
             templateUrl = this.templateUrl;
-
             if (typeof templateUrl === 'string') {
                 return Template.renderFragment(templateUrl, null, true).then(fragment => util.toArray(fragment.childNodes)).catch(onFailed);
             }
@@ -311,45 +287,80 @@ namespace drunk {
          * @param  members  组件成员
          * @return          组件类的构造函数
          */
-        static define<T extends IComponent>(members: T): IComponentContructor<T>;
-        static define<T extends IComponent>(name: string, members: T): IComponentContructor<T>;
-        static define<T extends IComponent>(...args: any[]) {
-            let members: T;
+        static define<T extends IComponentOptions>(options: T): IComponentContructor<T>;
+        static define<T extends IComponentOptions>(name: string, options: T): IComponentContructor<T>;
+        static define<T extends IComponentOptions>(...args: any[]) {
+            let options: T;
             if (args.length === 2) {
-                members = args[1];
-                members.name = args[0];
+                options = args[1];
+                options.name = args[0];
             }
             else {
-                members = args[0];
+                options = args[0];
             }
-            return Component.extend(members);
+            return Component.extend(options);
         }
 
         /**
          * 当前组件类拓展出一个子组件
          * @param    name       子组件名
-         * @param    members    子组件的成员
+         * @param    members    子组件的实现配置项
          * @return              组件类的构造函数
          */
-        static extend<T extends IComponent>(members: T): IComponentContructor<T>;
-        static extend<T extends IComponent>(name: string, members: T): IComponentContructor<T>;
-        static extend<T extends IComponent>(name: string | T, members?: T) {
+        static extend<T extends IComponentOptions>(options: T): IComponentContructor<T>;
+        static extend<T extends IComponentOptions>(name: string, options: T): IComponentContructor<T>;
+        static extend<T extends IComponentOptions>(name: string | T, options?: T) {
             if (arguments.length === 1 && util.isObject(name)) {
-                members = arguments[0];
-                name = members.name;
+                options = arguments[0];
+                name = options.name;
             }
-            else {
-                members.name = arguments[0];
-            }
+            // else {
+            //     members.name = arguments[0];
+            // }
 
             var superClass = this;
             var prototype = Object.create(superClass.prototype);
+            var watchers: Object;
+            var handlers: Object;
+            var filters: Object;
+            var computeds: Object;
+            var data: Object;
+
+            Object.keys(options).forEach(key => {
+                if (key === "watchers") {
+                    watchers = options[key];
+                } else if (key === "filters") {
+                    filters = options[key];
+                } else if (key === 'computeds') {
+                    computeds = options[key];
+                } else if (key === 'data') {
+                    data = options[key];
+                } else if (key === 'handlers') {
+                    handlers = options[key];
+                } else {
+                    prototype[key] = options[key];
+                }
+            });
 
             var component: IComponentContructor<T> = function (...args: any[]) {
                 superClass.apply(this, args);
-            };
 
-            util.extend(prototype, members);
+                if (filters) {
+                    this.$setFilters(filters);
+                }
+                if (handlers) {
+                    util.extend(this, handlers);
+                }
+                if (computeds) {
+                    Object.keys(computeds).forEach(property => this.$computed(property, computeds[property]));
+                }
+                if (watchers) {
+                    Object.keys(watchers).forEach(expression => this.$watch(expression, watchers[expression]));
+                }
+                if (data) {
+                    this.$resolveData(data);
+                }
+            };
 
             component.prototype = prototype;
             prototype.constructor = component;

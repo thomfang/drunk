@@ -73,18 +73,6 @@ describe("util", function () {
         expect(array.length).toBe(3);
     });
 
-    it("defineProperty", function () {
-        var o = {};
-
-        util.defineProperty(o, "a", "a");
-        util.defineProperty(o, "b", "b", true);
-
-        var keys = Object.keys(o);
-
-        expect(keys.indexOf('a')).toBe(-1);
-        expect(keys.indexOf('b')).not.toBe(-1);
-    });
-
     it("proxy", function () {
         var src = {};
         var des = {};

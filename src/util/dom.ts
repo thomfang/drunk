@@ -6,6 +6,8 @@
  * DOM操作的工具方法模块
  */
 namespace drunk.dom {
+    
+    import config = drunk.config;
 
     /**
      * 根据提供的html字符串创建html元素
@@ -37,6 +39,19 @@ namespace drunk.dom {
         else {
             container.innerHTML = value;
         }
+    }
+    
+    /**
+     * 创建标记节点，如果开启debug模式，则创建comment节点，发布版本则用textNode
+     */
+    export function createFlagNode(content: string): Node {
+        let node = config.debug ? document.createComment(content) : document.createTextNode(' ');
+        node['flag'] = content;
+        // if (config.debug) {
+        //     return document.createComment(content);
+        // }
+        // return document.createTextNode(' ');
+        return node;
     }
 
     /**

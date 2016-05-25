@@ -145,12 +145,12 @@ declare namespace drunk.util {
     function camelCase(str: string): string;
     /**
      * 属性代理,把a对象的某个属性的读写代理到b对象上,返回代理是否成功的结果
-     * @param   a         对象a
-     * @param   property  属性名
-     * @param   b         对象b
+     * @param   target    目标对象
+     * @param   property  要代理的属性名
+     * @param   source    源对象
      * @return            如果已经代理过,则不再代理该属性
      */
-    function proxy(a: Object, property: string, b: Object): boolean;
+    function proxy(target: any, property: string, source: any): boolean;
     interface IAsyncJob {
         completed: boolean;
         cancel(): void;
@@ -1047,6 +1047,10 @@ declare namespace drunk.dom {
      */
     function html(container: HTMLElement, value: string): void;
     /**
+     * 创建标记节点，如果开启debug模式，则创建comment节点，发布版本则用textNode
+     */
+    function createFlagNode(content: string): Node;
+    /**
      * 在旧的元素节点前插入新的元素节点
      * @param  newNode  新的节点
      * @param  oldNode  旧的节点
@@ -1137,7 +1141,7 @@ declare namespace drunk.Template {
 }
 declare namespace drunk {
     import ViewModel = drunk.ViewModel;
-    interface IComponent {
+    interface IComponentOptions {
         name?: string;
         init?: () => void;
         data?: {
@@ -1156,8 +1160,8 @@ declare namespace drunk {
         template?: string;
         templateUrl?: string;
     }
-    interface IComponentContructor<T extends IComponent> {
-        extend?<T extends IComponent>(name: string | T, members?: T): IComponentContructor<T>;
+    interface IComponentContructor<T extends IComponentOptions> {
+        extend?<T extends IComponentOptions>(name: string | T, members?: T): IComponentContructor<T>;
         (...args: any[]): void;
     }
     interface IComponentEvent {
@@ -1179,36 +1183,29 @@ declare namespace drunk {
          * 组件被定义的名字
          */
         name: string;
-        /**
-         * 作为模板并与数据进行绑定的元素,可以创建一个组件类是指定该属性用于与视图进行绑定
-         */
+        /** 作为模板并与数据进行绑定的元素,可以创建一个组件类是指定该属性用于与视图进行绑定 */
         element: Node | Node[];
-        /**
-         * 组件的模板字符串,如果提供该属性,在未提供element属性的情况下会创建为模板元素
-         */
+        /** 组件的模板字符串,如果提供该属性,在未提供element属性的情况下会创建为模板元素 */
         template: string;
         /**
          * 组件的模板路径,可以是页面上某个标签的id,默认先尝试当成标签的id进行查找,找到的话使用该标签的innerHTML作为模板字符串,
          * 未找到则作为一个服务端的链接发送ajax请求获取
          */
         templateUrl: string;
-        /**
-         * 组件的数据,会被初始化到Model中,可以为一个函数,函数可以直接返回值或一个处理值的Promise对象
-         */
-        data: {
-            [name: string]: any;
-        };
-        /**
-         * 该组件作用域下的事件处理方法
-         */
+        /** 该组件作用域下的事件处理方法 */
         handlers: {
             [name: string]: (...args) => void;
         };
-        /**
-         * 监控器描述,key表示表达式,值为监控回调
-         */
+        /** 监控器描述,key表示表达式,值为监控回调 */
         watchers: {
             [expression: string]: (newValue: any, oldValue: any) => void;
+        };
+        filters: {
+            [name: string]: Filter.IFilter;
+        };
+        /** 组件的数据,会被初始化到Model中,可以为一个函数,函数可以直接返回值或一个处理值的Promise对象 */
+        data: {
+            [name: string]: any;
         };
         /**
          * 组件类，继承ViewModel类，实现了模板的准备和数据的绑定
@@ -1220,19 +1217,22 @@ declare namespace drunk {
          */
         init(): void;
         /**
-         * 该组件作用域下的数据过滤器表
-         */
-        protected __filters: {
-            [name: string]: Filter.IFilter;
-        };
-        filters: {
-            [name: string]: Filter.IFilter;
-        };
-        /**
          * 属性初始化
          * @param  model 数据
          */
         protected __init(model?: IModel): void;
+        /**
+         * 设置数据过滤器
+         */
+        $setFilters(filters: {
+            [name: string]: Filter.IFilter;
+        }): void;
+        /**
+         * 设置初始化数据
+         */
+        $resolveData(dataDescriptors: {
+            [name: string]: any;
+        }): Promise<{}>;
         /**
          * 处理模板，并返回模板元素
          */
@@ -1291,16 +1291,16 @@ declare namespace drunk {
          * @param  members  组件成员
          * @return          组件类的构造函数
          */
-        static define<T extends IComponent>(members: T): IComponentContructor<T>;
-        static define<T extends IComponent>(name: string, members: T): IComponentContructor<T>;
+        static define<T extends IComponentOptions>(options: T): IComponentContructor<T>;
+        static define<T extends IComponentOptions>(name: string, options: T): IComponentContructor<T>;
         /**
          * 当前组件类拓展出一个子组件
          * @param    name       子组件名
-         * @param    members    子组件的成员
+         * @param    members    子组件的实现配置项
          * @return              组件类的构造函数
          */
-        static extend<T extends IComponent>(members: T): IComponentContructor<T>;
-        static extend<T extends IComponent>(name: string, members: T): IComponentContructor<T>;
+        static extend<T extends IComponentOptions>(options: T): IComponentContructor<T>;
+        static extend<T extends IComponentOptions>(name: string, options: T): IComponentContructor<T>;
         /**
          * 把一个继承了drunk.Component的组件类根据组件名字注册到组件系统中
          * @param  name          组件名
@@ -1333,7 +1333,7 @@ declare namespace drunk {
         private _parent;
         _isUsed: boolean;
         _isBinded: boolean;
-        _flagNode: Comment;
+        _flagNode: Node;
         _element: any;
         protected _models: IModel[];
         constructor(_parent: Component | RepeatItem, ownModel: IModel);

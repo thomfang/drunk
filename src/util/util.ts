@@ -4,10 +4,10 @@
 namespace drunk.util {
 
     export var global: any = typeof window !== 'undefined' ? window : typeof self !== 'undefined' ? self : {};
-    
+
     var uniqueSymbol = typeof global.Symbol !== 'undefined' ? global.Symbol('__DRUNK_UID__') : '__DRUNK_UID__';
     var uidCounter: number = 0;
-    
+
     /**
      * 获取对象的唯一id
      * @param  target  设置的对象
@@ -110,35 +110,45 @@ namespace drunk.util {
         return str.replace(/[-_](\w)/g, ($0, $1) => $1.toUpperCase());
     }
 
+    function hasProxy(target: any, property: string) {
+        var des = Object.getOwnPropertyDescriptor(target, property);
+        if (des && ((typeof des.get === 'function' && des.get === des.set) || !des.configurable)) {
+            return true;
+        }
+        
+        var proto = target.__proto__;
+        while (proto) {
+            des = Object.getOwnPropertyDescriptor(proto, property);
+            if (des && ((typeof des.get === 'function' && des.get === des.set) || !des.configurable)) {
+                Object.defineProperty(target, property, des);
+                return true;
+            }
+            proto = proto.__proto__;
+        }
+        
+        return false;
+    }
+
     /**
      * 属性代理,把a对象的某个属性的读写代理到b对象上,返回代理是否成功的结果
-     * @param   a         对象a
-     * @param   property  属性名
-     * @param   b         对象b
+     * @param   target    目标对象
+     * @param   property  要代理的属性名
+     * @param   source    源对象
      * @return            如果已经代理过,则不再代理该属性
      */
-    export function proxy(a: Object, property: string, b: Object) {
-        var proto = Object.getPrototypeOf(a);
-        var desOfProto = Object.getOwnPropertyDescriptor(proto, property);
-
-        if (desOfProto && (typeof desOfProto.get === 'function' && desOfProto.get === desOfProto.set)) {
-            return false;
-        }
-
-        var des = Object.getOwnPropertyDescriptor(a, property);
-
-        if (des && ((typeof des.get === 'function' && des.get === des.set) || !des.configurable)) {
+    export function proxy(target: any, property: string, source: any) {
+        if (hasProxy(target, property)) {
             return false;
         }
 
         function proxyGetterSetter() {
             if (arguments.length === 0) {
-                return b[property];
+                return source[property];
             }
-            b[property] = arguments[0];
+            source[property] = arguments[0];
         }
 
-        Object.defineProperty(a, property, {
+        Object.defineProperty(target, property, {
             enumerable: true,
             configurable: true,
             set: proxyGetterSetter,
@@ -179,7 +189,7 @@ namespace drunk.util {
 
         return job;
     }
-    
+
     var handleCounter = 1;
     var requestAnimationCallbackMap = {};
     var requestAnimationWorker: number;

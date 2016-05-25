@@ -8,7 +8,7 @@
     <script src="../../build/drunk.js"></script>
     <style>
         .msg {
-            -webkit-transition: all .3s ease;
+            transition: all .3s ease;
             transition: all .3s ease;
             height: 0px;
             background-color: #eee;
@@ -27,7 +27,7 @@
         }
         
         .animated {
-            -webkit-transition: all .3s ease;
+            transition: all .3s ease;
             transition: all .3s ease;
             height: 0px;
             background-color: #eee;
@@ -46,7 +46,7 @@
         }
         
         .color {
-            -webkit-transition: all .3s ease;
+            transition: all .3s ease;
             transition: all .3s ease;
             background-color: #eee;
             color: #eee;
@@ -67,20 +67,20 @@
             height: 100px;
             transition: all 0.4s cubic-bezier(0, 0, 0, 1);
             opacity: 0;
-            -webkit-transform: translateX(100px);
+            transform: translateX(100px);
             transform: translateX(100px);
             margin: 5px 0;
         }
         
         .blackbox.box-created {
             opacity: 1;
-            -webkit-transform: translateX(0px);
+            transform: translateX(0px);
             transform: translateX(0px);
         }
         
         .blackbox.box-removed {
             opacity: 0;
-            -webkit-transform: translateX(100px);
+            transform: translateX(100px);
             transform: translateX(100px);
         }
         
@@ -91,12 +91,12 @@
         }
         
         .bounce-created {
-            -webkit-animation: bounce-in .5s;
+            animation: bounce-in .5s;
             animation: bounce-in .5s;
         }
         
         .bounce-removed {
-            -webkit-animation: bounce-out .5s;
+            animation: bounce-out .5s;
             animation: bounce-out .5s;
         }
         
@@ -104,43 +104,44 @@
             background-color: green;
             width: 100px;
             height: 100px;
+            opacity: 0;
         }
         
-        @-webkit-keyframes bounce-in {
+        @keyframes bounce-in {
             0% {
-                -webkit-transform: scale(0);
+                transform: scale(0);
             }
             50% {
-                -webkit-transform: scale(1.5);
+                transform: scale(1.5);
             }
             100% {
-                -webkit-transform: scale(1);
+                transform: scale(1);
             }
         }
         
-        @-webkit-keyframes bounce-out {
+        @keyframes bounce-out {
             0% {
-                -webkit-transform: scale(1);
+                transform: scale(1);
             }
             50% {
-                -webkit-transform: scale(1.5);
+                transform: scale(1.5);
             }
             100% {
-                -webkit-transform: scale(0);
+                transform: scale(0);
             }
         }
         
         .slogan {
             transition: all 0.5s ease-out;
-            -webkit-transform: translateY(50px);
+            transform: translateY(50px);
         }
         
         .slide-created {
-            -webkit-transform: translateY(0px);
+            transform: translateY(0px);
         }
         
         .slide-removed {
-            -webkit-transform: translateY(-50px);
+            transform: translateY(-50px);
         }
     </style>
 </head>

@@ -180,10 +180,10 @@ describe("observable", function () {
         var val = { name: 'a' };
 
         arr.$setAt(0, val);
+        
 
         expect(arr[0]).toBe(val);
         expect(arr.length).toBe(1);
-        expect(arr.splice).toHaveBeenCalledWith(0, 1, val);
         expect(val.__observer__).toBeDefined();
     });
     
@@ -205,7 +205,6 @@ describe("observable", function () {
         arr.$removeItem(3);
 
         expect(arr).toEqual([1, 2, 4]);
-        expect(arr.splice).toHaveBeenCalledWith(2, 1);
     });
     
     it("ObservableArray.$removeAllItem", function () {

@@ -13,6 +13,14 @@ namespace drunk {
     import Component = drunk.Component;
 
     let reOneInterpolate = /^\{\{([^{]+)\}\}$/;
+    let reStatement = /(\w+):\s*(.+)/;
+    let reSemic = /\s*;\s*/;
+    let reBreakword = /\n+/g;
+
+    let help = `正确的用法如下:
+        ${config.prefix}on="click: expression"
+        ${config.prefix}on="mousedown: expression; mouseup: callback()"
+        ${config.prefix}on="click: callback($event, $el)"`;
 
     @binding("component")
     class ComponentBinding extends Binding implements IBindingDefinition {
@@ -61,7 +69,7 @@ namespace drunk {
 
                 let Ctor = Component.getConstructorByName(this.expression);
                 if (!Ctor) {
-                    throw new Error(this.expression + ": 未找到该组件.");
+                    throw new Error(`${this.expression} : 未找到该组件`);
                 }
 
                 this.unwatches = [];
@@ -97,6 +105,8 @@ namespace drunk {
             let element = this.element;
             let component = this.component;
             let twoWayBindingAttrs = this._getTwoWayBindingAttrs();
+
+            this._processEventBinding();
 
             if (element.hasAttributes()) {
 
@@ -166,8 +176,8 @@ namespace drunk {
                     return;
                 }
 
-                let headNode = this._headNode = document.createComment(`<component>: ${this.expression}`);
-                let tailNode = this._tailNode = document.createComment(`</component>: ${this.expression}`);
+                let headNode = this._headNode = dom.createFlagNode(`<component>: ${this.expression}`);
+                let tailNode = this._tailNode = dom.createFlagNode(`</component>: ${this.expression}`);
 
                 dom.replace(headNode, element);
                 dom.after(tailNode, headNode);
@@ -202,6 +212,23 @@ namespace drunk {
             return this._realizePromise;
         }
 
+        private _processEventBinding() {
+            let bindingName = config.prefix + 'on';
+            let expression = this.element.getAttribute(bindingName);
+            
+            if (expression == null) {
+                return;
+            }
+
+            this.element.removeAttribute(bindingName);
+
+            expression.replace(reBreakword, ' ').split(reSemic).map(str => {
+                let matches = str.match(reStatement);
+                console.assert(matches !== null, `不合法的"${config.prefix}on"表达式 ${str}, ${help}`);
+                this._registerComponentEvent(matches[1], matches[2]);
+            });
+        }
+
         /**
          * 注册组件的事件
          */
@@ -213,6 +240,9 @@ namespace drunk {
                 // 事件的处理函数,会生成一个$event对象,在表达式中可以访问该对象.
                 // $event对象有type和args两个字段,args字段是组件派发这个事件所传递的参数的列表
                 // $el字段为该组件实例
+                if (config.debug) {
+                    console.log(`${eventName}: ${expression}`)
+                }
                 func.call(viewModel, {
                     type: eventName,
                     args: args,

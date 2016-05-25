@@ -14,14 +14,14 @@ namespace drunk {
         static isTerminal = true;
         static priority = Binding.Priority.aboveNormal + 2;
 
-        private _flagNode: Comment;
+        private _flagNode: Node;
         private _bind: Function;
         private _unbind: Function;
         private _inDocument: boolean;
         private _clonedElement: HTMLElement;
 
         init() {
-            this._flagNode = document.createComment("<if: " + this.expression + ' />');
+            this._flagNode = dom.createFlagNode(`<if: ${this.expression} />`);
             this._bind = Template.compile(this.element);
             this._inDocument = false;
 

@@ -4,7 +4,7 @@
 /// <reference path="../../config/config.ts" />
 
 namespace drunk {
-    
+
     import dom = drunk.dom;
 
     let reg = {
@@ -12,6 +12,11 @@ namespace drunk {
         statement: /(\w+):\s*(.+)/,
         breakword: /\n+/g
     };
+
+    let help = `正确的用法如下:
+        ${config.prefix}on="click: expression"
+        ${config.prefix}on="mousedown: expression; mouseup: callback()"
+        ${config.prefix}on="click: callback($event, $el)"`;
 
     @binding("on")
     class EventBinding extends Binding implements IBindingDefinition {
@@ -26,12 +31,7 @@ namespace drunk {
             let matches = str.match(reg.statement);
             let prefix = config.prefix;
 
-            console.assert(matches !== null,
-                `不合法的"${prefix}on"表达式 ${str}, 正确的用法如下:
-                ${prefix}on="click: expression"
-                ${prefix}on="mousedown: expression; mouseup: callback()"
-                ${prefix}on="click: callback($event, $el)"`
-            );
+            console.assert(matches !== null, `不合法的"${prefix}on"表达式 ${str}, ${help}`);
 
             let type = matches[1];
             let expr = matches[2];

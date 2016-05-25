@@ -12,7 +12,7 @@ namespace drunk {
     import Binding = drunk.Binding;
     import Template = drunk.Template;
     import Component = drunk.Component;
-    
+
     var global = util.global;
 
     export interface IItemDataDescriptor {
@@ -30,7 +30,7 @@ namespace drunk {
 
         _isUsed: boolean;
         _isBinded: boolean;
-        _flagNode: Comment;
+        _flagNode: Node;
         _element: any;
 
         protected _models: IModel[];
@@ -217,8 +217,8 @@ namespace drunk {
          */
         private _createCommentNodes() {
             this._flagNodeContent = `[repeat-item]${this.expression}`;
-            this._headNode = document.createComment('<repeat>: ' + this.expression);
-            this._tailNode = document.createComment('</repeat>: ' + this.expression);
+            this._headNode = dom.createFlagNode('<repeat>: ' + this.expression);
+            this._tailNode = dom.createFlagNode('</repeat>: ' + this.expression);
 
             dom.before(this._headNode, this.element);
             dom.replace(this._tailNode, this.element);
@@ -305,8 +305,7 @@ namespace drunk {
 
             let next = (node: Node) => {
                 placeholder = node.nextSibling;
-                while (placeholder && placeholder !== this._tailNode &&
-                    (placeholder.nodeType !== 8 || placeholder.textContent != this._flagNodeContent)) {
+                while (placeholder && placeholder !== this._tailNode && placeholder.flag != this._flagNodeContent) {
                     placeholder = placeholder.nextSibling;
                 }
             };
@@ -337,8 +336,7 @@ namespace drunk {
                             this._bind(viewModel, viewModel.element);
                             Component.setWeakRef(viewModel._element, viewModel);
                             viewModel._isBinded = true;
-                        }
-                        else {
+                        } else {
                             dom.after(viewModel._element, viewModel._flagNode);
                         }
 
@@ -403,7 +401,7 @@ namespace drunk {
             let viewModel = new RepeatItem(this.viewModel, options);
             let viewModelList = this._map.get(value);
 
-            viewModel._flagNode = document.createComment(this._flagNodeContent);
+            viewModel._flagNode = dom.createFlagNode(this._flagNodeContent);
             Component.setWeakRef(viewModel._flagNode, viewModel);
 
             if (!viewModelList) {
@@ -454,15 +452,13 @@ namespace drunk {
                 let element = viewModel._element;
                 let flagNode: any = viewModel._flagNode;
 
-                flagNode.textContent = 'Unused repeat item';
+                flagNode.flag = 'Unused repeat item';
                 Component.removeWeakRef(flagNode);
-                Component.removeWeakRef(viewModel._element);
                 viewModel.$release();
 
-                if (flagNode.parentNode) {
-                    flagNode.parentNode.removeChild(flagNode);
-                }
+                dom.remove(flagNode);
                 if (element) {
+                    Component.removeWeakRef(element);
                     dom.remove(element);
                 }
             });

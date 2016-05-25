@@ -1,7 +1,7 @@
 ﻿///<reference path="../../build/drunk.d.ts" />
 
 namespace drunk {
-    
+
     import config = drunk.config;
     import Component = drunk.Component;
 
@@ -31,10 +31,11 @@ namespace drunk {
         private __routerList: IRouter[] = [];
         private __currentView: Component;
         private __currentViewId: string;
+        private __isLoadingNext: boolean;
         private __routerState: IRouterState;
         private __navigationState: any;
-
-        private __visibleMap: IModel = {};
+        
+        private $visibleMap: IModel = {};
 
         /**
          * 启动
@@ -42,11 +43,11 @@ namespace drunk {
          * @param  url          启动的路由
          */
         start(rootElement = document.body, url = location.hash.slice(1)) {
-            this.__scanElement(rootElement);
-            this.__initNavigationEvent();
+            this._scanElement(rootElement);
+            this._initNavigationEvent();
 
             this.$mount(util.toArray(rootElement.childNodes));
-            this.__navigate(url);
+            this._navigate(url);
         }
 
         /**
@@ -72,7 +73,7 @@ namespace drunk {
             history.back();
         }
 
-        private __enterView(view: Component) {
+        private viewCreated(view: Component) {
             this.__currentView = view;
 
             if (typeof view['onEnter'] === 'function') {
@@ -80,20 +81,30 @@ namespace drunk {
             }
         }
 
-        private __exitView(view: Component) {
+        private viewRelease(view: Component) {
             if (typeof view['onExit'] === 'function') {
                 view['onExit']();
             }
         }
+        
+        private viewMounted(view: Component) {
+            this.__isLoadingNext = false;
+        }
+        
+        private templateLoadFailed(view: Component) {
+            this.$emit('templateLoadFailed', view);
+        }
 
-        private __scanElement(rootElement: HTMLElement) {
+        private _scanElement(rootElement: HTMLElement) {
             var nameOfRoute = config.prefix + 'route';
             var nameOfIndex = config.prefix + 'index';
             var nameOfIfBinding = config.prefix + 'if';
-            var nameOfCreatedEvent = 'on-' + Component.Event.created;
-            var nameOfReleaseEvent = 'on-' + Component.Event.release;
-            var createdEventExpression = '__enterView($el)';
-            var releaseEventExpression = '__exitView($el)';
+            var nameOfEventBinding = config.prefix + 'on';
+            var eventExpression = `
+                ${Component.Event.created}:viewCreated($el);
+                ${Component.Event.mounted}:viewMounted($el);
+                ${Component.Event.release}:viewRelease($el);
+                ${Component.Event.templateLoadFailed}:templateLoadFailed($el)`;
             var route: string;
             var name: string;
 
@@ -109,7 +120,7 @@ namespace drunk {
                         }
                         return;
                     }
-                    
+
                     if (node.hasAttribute(nameOfIfBinding)) {
                         return console.error(`设置了路由的组件标签上请勿再使用'${nameOfIfBinding}'绑定指令`, node);
                     }
@@ -117,19 +128,19 @@ namespace drunk {
                     route = node.getAttribute(nameOfRoute); // 路由表
                     node.removeAttribute(nameOfRoute); // 移除属性
 
-                    // 添加一个if绑定,通过改实例的__visibleMap数据来监控和注册组件创建/销毁的事件,
+                    // 添加一个if绑定,通过改实例的$visibleMap数据来监控和注册组件创建/销毁的事件,
                     // 用于当理由切换时改变显示的组件和得到相应的组件实例
-                    // 会生成类似这样: <my-component drunk-if='__visibleMap.myComponent'></my-component>
-                    node.setAttribute(nameOfIfBinding, '__visibleMap["' + name + '"]');
-                    node.setAttribute(nameOfCreatedEvent, createdEventExpression);
-                    node.setAttribute(nameOfReleaseEvent, releaseEventExpression);
+                    // 会生成类似这样: <my-component drunk-if='$visibleMap.myComponent' drunk-on="..."></my-component>
+                    node.setAttribute(nameOfIfBinding, '$visibleMap["' + name + '"]');
+                    node.setAttribute(nameOfEventBinding, eventExpression);
 
                     // 添加并解析路由,设置改组件默认不可见
-                    this.__addRoute(route, name);
-                    this.__visibleMap[name] = false;
+                    this._addRoute(route, name);
+                    this.$visibleMap[name] = false;
+                    this.__isLoadingNext = true;
                 });
             };
-            
+
             scan(rootElement);
 
             // 查找drunk-index路径
@@ -141,7 +152,7 @@ namespace drunk {
             rootElement.removeAttribute(nameOfIndex);
         }
 
-        private __addRoute(route: string, viewId: string) {
+        private _addRoute(route: string, viewId: string) {
             var routeReg = pathToRegexp(route);
             var paramArr = routeReg.keys.map(key => key.name);
 
@@ -155,16 +166,16 @@ namespace drunk {
             });
         }
 
-        private __initNavigationEvent() {
+        private _initNavigationEvent() {
             window.addEventListener("hashchange", () => {
-                this.__navigate(location.hash.slice(1));
+                this._navigate(location.hash.slice(1));
             });
         }
 
-        private __navigate(url: string) {
+        private _navigate(url: string) {
             var state: IRouterState;
 
-            if (!url || !(state = this.__parseUrl(url))) {
+            if (!url || !(state = this._parseUrl(url))) {
                 return this.navigate('#' + this.__routeIndex, true);
             }
 
@@ -174,20 +185,20 @@ namespace drunk {
                 // 如果存在当前组件
                 if (this.__currentViewId === state.viewId) {
                     // 判断是否是在同一组件中导航,如果是,直接调用该组件的onEnter方法
-                    this.__enterView(this.__currentView);
+                    this.viewCreated(this.__currentView);
                 }
                 else {
                     // 设置当前组件隐藏
-                    this.__visibleMap[this.__currentViewId] = false;
+                    this.$visibleMap[this.__currentViewId] = false;
                 }
             }
 
             // 设置导航到的组件显示
-            this.__visibleMap[state.viewId] = true;
+            this.$visibleMap[state.viewId] = true;
             this.__currentViewId = state.viewId;
         }
 
-        private __parseUrl(url: string): IRouterState {
+        private _parseUrl(url: string): IRouterState {
             var saveParam = (param, j) => {
                 params[param] = result[j + 1];
             };
@@ -202,9 +213,7 @@ namespace drunk {
                 if (routeReg.test(url)) {
                     result = routeReg.exec(url);
                     params = {};
-
                     paramArr.forEach(saveParam);
-
                     return {
                         url: url,
                         route: routeStr,
@@ -253,7 +262,7 @@ namespace drunk {
      * @param  {Array}  keys
      * @return {RegExp}
      */
-    var attachKeys = function(re, keys) {
+    var attachKeys = function (re, keys) {
         re.keys = keys;
 
         return re;
@@ -289,7 +298,7 @@ namespace drunk {
             var groups = path.source.match(/\((?!\?)/g) || [];
 
             // Map all the matches to their numeric keys and push into the keys.
-            keys.push.apply(keys, groups.definedComponent(function(match, index) {
+            keys.push.apply(keys, groups.definedComponent(function (match, index) {
                 return {
                     name: index,
                     delimiter: null,
@@ -306,7 +315,7 @@ namespace drunk {
             // Map array parts into regexps and return their source. We also pass
             // the same keys and options instance into every generation to get
             // consistent matching groups before we join the sources together.
-            path = path.definedComponent(function(value) {
+            path = path.definedComponent(function (value) {
                 return pathToRegexp(value, keys, options).source;
             });
 
@@ -315,7 +324,7 @@ namespace drunk {
         }
 
         // Alter the path string into a usable regexp.
-        path = path.replace(PATH_REGEXP, function(match, escaped, prefix, key, capture, group, suffix, escape) {
+        path = path.replace(PATH_REGEXP, function (match, escaped, prefix, key, capture, group, suffix, escape) {
             // Avoiding re-escaping escaped characters.
             if (escaped) {
                 return escaped;
