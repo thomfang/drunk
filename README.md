@@ -1,12 +1,14 @@
 # 查看demo
 * 使用命令行工具或git工具拷贝本项目,比如
   ```shell
-  git clone git@github.com:tilfon/drunk.git
+  > git clone git@github.com:tilfon/drunk.git
   ```
 
 * 在项目根目录启一个静态服务器比如
+
   ```shell
-  python -m SimpleHTTPServer
+  > cd ./drunk
+  > python -m SimpleHTTPServer
   ```
   
   然后在浏览器中查看`/demo/`目录下的的案例
@@ -17,10 +19,27 @@
   * 动画控制:  `localhost:8000/demo/action/index.html`
   * 创建组件:  `localhost:8000/demo/component/index.html`
   * 单页应用:  `localhost:8000/demo/application/index.html`
+  
+# 编译源码
+* `drunk`源码编译，在项目根目录下使用
+
+  ```shell
+  > tsc
+  ```
+  
+* 项目组件编译
+
+  ```shell
+  > cd ./components
+  > tsc
+  ```
 
 # 快速了解
     
 * **数据绑定**
+
+    > 使用`{{$variable}}`的插值方式`
+    
     ```html
     <body>
         Hello {{greeting}}!
@@ -37,10 +56,13 @@
     ```
     
 * **数据双向绑定**
+
+    > 在标签上使用`drunk-model`属性进行双向绑定
+    
     ```html
     <!--在输入框修改数据后，会更新p标签的内容-->
     <body>
-        <p>Hello {{greeting}}!</p>
+    Hello {{greeting}}!
         <input type="text" drunk-model="greeting" />
     </body>
     ```
@@ -55,9 +77,14 @@
     ```
     
 * **注册事件**
+
+    > * `drunk-on="eventType: doSomething()"`属性进行事件注册   
+    > * `$event`可访问到原生event对象,`$el`可访问到当前element对象    
+    > * `drunk-on="click: onClicked(); keyup: $event.keyCode == 13 && onTypingEnterKey()"`注册多个事件用分号隔开:
+    
     ```html
     <body>
-        <p>Hello {{greeting}}!</p>
+    Hello {{greeting}}!
         <input type="text" drunk-model="greeting" />
         <button drunk-on="click: greeting = ''">清空输入框</button>
         <button drunk-on="click: clear()">清空输入框</button>
@@ -87,6 +114,11 @@
     ```
     
 * **样式绑定**
+
+    > * `drunk-class="{class1: condition1, class2: condition2}"`值为object形式,当每个key对应的value为true则增加这个key为class  
+    > * `drunk-class="[class1, class2, class3]"` 数组的形式添加多个样式  
+    > * `drunk-class="$varibal"` 变量的形式绑定样式    
+    
     ```html
     <style>
         .red {color: red}
@@ -96,9 +128,9 @@
     <body>
         <div>
             <input type="text" drunk-model="fontColor" placeholder="请输入red,black,strike查看效果">
-            <p drunk-class="fontColor">根据变量的值改变颜色</p>
-            <p drunk-class="{red: fontColor == 'red', black: fontColor == 'black'}">值为true则设置添加对应的key为样式</p>
-            <p drunk-class="[fontColor, 'red']">列表的形式设置多个样式根据变量的值变化</p>
+            <p drunk-class="fontColor">根据变量的值改变颜色
+            <p drunk-class="{red: fontColor == 'red', black: fontColor == 'black'}">值为true则设置添加对应的key为样式
+            <p drunk-class="[fontColor, 'red']">列表的形式设置多个样式根据变量的值变化
         </div>
     </body>
     ```
@@ -115,7 +147,7 @@
     <body>
         <div style="color: {{fontColor}}">直接用{{$var}}的插值方式</div>
         <div>
-            <p>使用drunk-attr的方式设置</p>
+        使用drunk-attr的方式设置
             <img drunk-attr="{src: imgUrl, width: imgWidth, height: imgHeight}" />
         </div>
     </body>
@@ -168,9 +200,9 @@
 * **条件判断**
     ```html
     <body>
-        <p>当前年龄: {{age}}</p>
-        <p drunk-if="age < 18">18岁禁止观看！</p>
-        <p drunk-if="age >= 18">文明观球！</p>
+    当前年龄: {{age}}
+        <p drunk-if="age < 18">18岁禁止观看！
+        <p drunk-if="age >= 18">文明观球！
         <button drunk-on="click: age += 1">增加一岁</button>
         <button drunk-on="click: age -= 1">减少一岁</button>
     </body>
@@ -186,8 +218,8 @@
 * **监控属性**
    ```html
     <body>
-        <p>上次输入的消息: {{oldValue}}</p>
-        <p>刚刚输入的消息: {{newValue}}</p>
+    上次输入的消息: {{oldValue}}
+    刚刚输入的消息: {{newValue}}
         <div>
             <input type="text" drunk-model="content" drunk-on="keyup: $event.keyCode == 13 && addMessage()" />
             <button drunk-on="click: addMessage()">添加消息</button>
@@ -222,6 +254,14 @@
     ```
     
 * **action(动画)控制**
+
+    > * css声明的action,如取名slide-left,则对应创建(created)和移除(removed)的两个状态的样式名为slide-left-created,slide-left-removed
+    > * drunk-action属性里的值使用空格隔开每个action
+    > * 数字会变成一个延迟时间，可以除了action结尾外任何位置设置延迟时间
+    > * 可以组合css与js的action,只要它们在动画效果上不冲突
+    > * 当触发某个状态时,如created状态,action列表会依次触发各个action,css是添加actionName-created样式名,js是调用改action声明的created方法
+    > * action的执行会被drunk-if,drunk-show,drunk-repeat触发
+        
     ```html
     <style>
         .blackbox {
@@ -230,61 +270,54 @@
             height: 100px;
             transition: all 0.4s cubic-bezier(0, 0, 0, 1);
             opacity: 0;
-            -webkit-transform: translateX(100px);
+            transform: translateX(100px);
             transform: translateX(100px);
             margin: 5px 0;
         }
         .slide-left-created {
             opacity: 1;
-            -webkit-transform: translateX(0px);
+            transform: translateX(0px);
             transform: translateX(0px);
         }
         .slide-left-removed {
             opacity: 0;
-            -webkit-transform: translateX(100px);
+            transform: translateX(100px);
             transform: translateX(100px);
         }
         .bounce-created {
-            -webkit-animation: bounce-in .5s;
+            animation: bounce-in .5s;
             animation: bounce-in .5s;
         }
         
         .bounce-removed {
-            -webkit-animation: bounce-out .5s;
+            animation: bounce-out .5s;
             animation: bounce-out .5s;
         }
-        @-webkit-keyframes bounce-in {
+        @keyframes bounce-in {
             0% {
-                -webkit-transform: scale(0);
+                transform: scale(0);
             }
             50% {
-                -webkit-transform: scale(1.5);
+                transform: scale(1.5);
             }
             100% {
-                -webkit-transform: scale(1);
+                transform: scale(1);
             }
         }
         
-        @-webkit-keyframes bounce-out {
+        @keyframes bounce-out {
             0% {
-                -webkit-transform: scale(1);
+                transform: scale(1);
             }
             50% {
-                -webkit-transform: scale(1.5);
+                transform: scale(1.5);
             }
             100% {
-                -webkit-transform: scale(0);
+                transform: scale(0);
             }
         }
     </style>
     <body>
-        <p>* css声明的action,如取名slide-left,则对应创建(created)和移除(removed)的两个状态的样式名为slide-left-created,slide-left-removed</p>
-        <p>* drunk-action属性里的值使用空格隔开每个action</p>
-        <p>* 数字会变成一个延迟时间，可以除了action结尾外任何位置设置延迟时间</p>
-        <p>* 可以组合css与js的action,只要它们在动画效果上不冲突</p>
-        <p>* 当触发某个状态时,如created状态,action列表会依次触发各个action,css是添加actionName-created样式名,js是调用改action声明的created方法</p>
-        <p>* action的执行会被drunk-if,drunk-show,drunk-repeat触发</p>
-        
         <div>
             <input type="text" drunk-model="delay">
             <button drunk-on="click: visible = !visible">点击{{visible? '隐藏': '显示'}}</button>
@@ -336,19 +369,13 @@
     ```
 
 * **自定义组件**
-    ```html
-    <body>
-        <my-view></my-view>
-        <my-view template-url="other-template.html"></my-view>
-        
-        <script type="text/tpl" id="my-view.html">
-          <div>Hello {{fullName}}!</div>
-        </script>
-        <script type="text/tpl" id="other-template.html">
-          <div>Hello {{fullName}}! 这是另一个模板，不过同样使用的是一套逻辑.</div>
-        </script>
-    </body>
-    ```
+
+    > * `drunk.Component.define(componentName, options)`定义并注册一个组件标签,componentName类型这种形式:`my-view`
+    > * 定义了类似`my-view`组件名后就可以用这个名字作为标签名`<my-view></my-view>`
+    > * `options.template` 组件的模板字符串
+    > * `options.templateUrl` 组件的模板链接，会自动加载进来
+    > * `options.init` 创建组件时会调用该方法，可用于初始化组件
+    > * 可在`options`上提供该组件的方法或事件处理函数
 
     ```typescript
     // javascript写法
@@ -372,7 +399,6 @@
             });
         }
     });
-    new drunk.Component().$mount(document.body);
     
     // typescript写法,可以使用decorator和继承
     @drunk.component('my-view')
@@ -394,7 +420,34 @@
     }
     ```
     
+    ```html
+    <body>
+        <my-view></my-view>
+        <my-view template-url="other-template.html"></my-view>
+        
+        <script type="text/tpl" id="my-view.html">
+          <div>Hello {{fullName}}!</div>
+        </script>
+        <script type="text/tpl" id="other-template.html">
+          <div>Hello {{fullName}}! 这是另一个模板，不过同样使用的是一套逻辑.</div>
+        </script>
+    </body>
+    <script>
+        // 创建一个以body为根元素的组件，会
+        new drunk.Component().$mount(document.body);
+    </script>
+    ```
+    
 * **异步组件**
+
+    > 一个异步组件可以是一个.html文件,里面包含模板和样式(用`<link>`外链或`<style>`直接声明),以及js脚本
+    
+    > * 【标签名称】使用注册的组件名作为标签名
+    > * 【异步加载】设置`src`属性为`.html`文件的路径后会把该组件作为异步组件加载
+    > * 【数据传递】跟webcomponent相同，通过属性传递数据,如`alertVisible`和`alertContent`通过属性传递进去
+    > * 【双向绑定】通过在标签上设置`two-way`属性，可以建立当前组件和所属组件的双向绑定，和我们写其他input类标签实现的效果一样，如`two-way="alertVisible alertContent"`(多个属性用空格隔开),当组件内部修改两个属性，外部组件对应的属性也会改变
+    > * 【事件注册】通过设置`on-`前缀加上事件名注册事件(如"cancel"事件要写成"on-cancel")，属性的值可以是任何表达式，表达式里变量对应的上下文为组件所属的Component实例
+    > * 【！注意！】因为html语法忽略大小写，所以所有的驼峰式的属性和事件名都要换成带`-`的写法，如`alertVisible`要写成`alert-visible`
 
     *alert.html:*
     
@@ -403,7 +456,7 @@
     <link rel='stylesheet' type='text/css' href='alert.css' />
     
     <div class="alert" drunk-show="alertVisible">
-        <p>{{alertContent}}</p>
+    {{alertContent}}
         <button drunk-on="click: cancel()">取消</button>
         <button drunk-on="click: confirm()">确认</button>
     </div>
@@ -439,17 +492,6 @@
     **使用方法:**
     ```html
     <body>
-        <!--
-        * 【标签名称】使用注册的组件名作为标签名
-        * 【异步加载】设置 src 属性为.html文件的路径后会把该组件作为异步组件加载
-        * 【数据传递】跟webcomponent相同，通过属性传递数据,如alertVisible和alertContent通过属性传递进去
-        * 【双向绑定】通过在标签上设置two-way属性，可以建立当前组件和所属组件的双向绑定，和我们写其他input类标签实现的效果一样，
-                     如two-way="alertVisible alertContent"(多个属性用空格隔开),当组件内部修改两个属性，外部组件对应的属性也会改变
-        * 【事件注册】通过设置`on-`前缀加上事件名注册事件(如"cancel"事件要写成"on-cancel")，属性的值可以是任何表达式，
-                     表达式里变量对应的上下文为组件所属的Component实例
-        * 【！注意！】因为html语法忽略大小写，所以所有的驼峰式的属性和事件名都要换成带`-`的写法，如 alertVisible要写成alert-visible
-        -->
-        
         <button drunk-on="click: alertVisible = !alertVisible">{{alertVisible?'隐藏':'显示'}}ui-alert-view</button>
         <ui-alert-view
             src='alert.html'
@@ -493,29 +535,24 @@
     
 * **带路由的单页面应用**
     
-    **引入./build/drunk.js和./components/application/application.js以及所有的页面组件，然后声明路由器如下：**
+    > * 引入./build/drunk.js和./components/application/application.js以及所有的页面组件，然后声明路由
+    > * `drunk-index` 声明默认的路由，初始化页面和发现404的路由时会跳转到该路由,
+    > * `drunk-route` 声明组件的路由规则
+    > * `drunk.Application.start()`启动解析页面就渲染出来了,不用自己new组件实例，只用关心组件的业务逻辑的实现
     
     *index.html*
     ```html
-    <!--
-        * 【drunk-index】 声明默认的路由，初始化页面和发现404的路由时会跳转到该路由,
-        * 【drunk-route】 声明组件的路由规则
-    -->
     <body drunk-index="/home/book">
         <home-page drunk-route="/home/:type"></home-page>
         <detail-page drunk-route="/detail/:name" template-url="order-page.html"></detail-page>
     </body>
-    ```
-    
-    **初始化脚本,页面就渲染出来了,不用自己new组件实例，只用关心组件的业务逻辑的实现**
-    
-    *index.js*
-    ```javascript
-    // drunk.config.debug = true;
-    drunk.Application.start();
+    <script>
+        // drunk.config.debug = true;
+        drunk.Application.start();
+    </script>
     ```
 
-    **每个页面定义为一个组件**
+    > 每个页面定义为一个组件
     
     *home-page.js*
     ```typescript
@@ -622,7 +659,7 @@
     <ul>
         <li drunk-repeat="product in products" drunk-on="click: view(product.name)">
           <strong>《{{product.name}}》</strong>
-          <p>Sale: ￥{{price}}</p>
+      Sale: ￥{{price}}
         </li>
     </ul>
     ```
@@ -656,7 +693,13 @@
     
 * **自定义Binding**
     
-    自定义一个当值改变时切换样式的binding
+    > * `Binding.register(bindingName, prototype)`,bindingName的格式类似于`on-click`,使用的时候就是`<div drunk-on-click="...">`
+    > * (可选)`prototype.init`初始化
+    > * (可选)`prototype.update(newValue, oldValue)`当绑定的model更新会调用该方法，如果该方法不提供，则为一个静态绑定，
+    > * 可以声明一个静态绑定不坚挺任何model,所以也可以不用为绑定属性设置值，如假设有一个`remove-on-click`的Binding点击该元素就删除，用法是`<div drunk-remove-on-click>`
+    > * (可选)`prorotype.release`当解除绑定和释放该Binding实例时会调用该方法，可以做一些释放引用的操作
+    
+    **以下是一个当值改变时切换样式的Binding实现**
     ```typescript
     // typescript
     @drunk.binding('toggle-class')
@@ -692,7 +735,7 @@
     });
     ```
     
-    使用方法
+    **使用方法**
     ```html
     <style>
        div {background: black; transition:all linear 0.5s; width: 100px;height:100px;}
