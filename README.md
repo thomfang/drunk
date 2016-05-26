@@ -446,7 +446,8 @@
     > * 【异步加载】设置`src`属性为`.html`文件的路径后会把该组件作为异步组件加载
     > * 【数据传递】跟webcomponent相同，通过属性传递数据,如`alertVisible`和`alertContent`通过属性传递进去
     > * 【双向绑定】通过在标签上设置`two-way`属性，可以建立当前组件和所属组件的双向绑定，和我们写其他input类标签实现的效果一样，如`two-way="alertVisible alertContent"`(多个属性用空格隔开),当组件内部修改两个属性，外部组件对应的属性也会改变
-    > * 【事件注册】通过设置`on-`前缀加上事件名注册事件(如"cancel"事件要写成"on-cancel")，属性的值可以是任何表达式，表达式里变量对应的上下文为组件所属的Component实例
+    > * 【事件注册A】通过设置`on-`前缀加上事件名注册事件(如"cancel"事件要写成"on-cancel")，属性的值可以是任何表达式，表达式里变量对应的上下文为组件所属的Component实例
+    > * 【事件注册B】通过`drunk-on`注册,这样事件名就可以直接用声明的字符串，如`drunk-on="cancel: a(); confirm: bbb()"`
     > * 【！注意！】因为html语法忽略大小写，所以所有的驼峰式的属性和事件名都要换成带`-`的写法，如`alertVisible`要写成`alert-visible`
 
     *alert.html:*
@@ -498,7 +499,7 @@
             alert-visible="{{alertVisible}}"
             alert-content="{{alertContent}}"
             on-confirm="alertVisible = false, doConfirm()"
-            on-cancel="alertVisible = false, doCancel()
+            drunk-on="cancel: alertVisible = false, doCancel()"
             two-way="alertVisible">
         </ui-alert-view>
     </body>
