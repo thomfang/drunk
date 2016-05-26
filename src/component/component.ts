@@ -22,7 +22,7 @@ namespace drunk {
         init?: () => void;
         data?: { [name: string]: any };
         filters?: { [name: string]: Filter.IFilter };
-        watchers?: { [expression: string]: IBindingUpdateAction };
+        watchers?: { [expression: string]: IBindingAction };
         handlers?: { [name: string]: Function };
         element?: Node | Node[];
         template?: string;

@@ -221,7 +221,7 @@ namespace drunk {
          * @param   expression  表达式
          * @return              返回一个取消监听的函数
          */
-        $watch(expression: string, action: IBindingUpdateAction, isDeepWatch?: boolean, isImmediate?: boolean) {
+        $watch(expression: string, action: IBindingAction, isDeepWatch?: boolean, isImmediate?: boolean) {
             var key: string = Watcher.getNameOfKey(expression, isDeepWatch);
             var watcher: Watcher;
 
@@ -231,7 +231,7 @@ namespace drunk {
                 watcher = this._watchers[key] = new Watcher(this, expression, isDeepWatch);
             }
 
-            var wrappedAction: IBindingUpdateAction = (newValue: any, oldValue: any) => {
+            var wrappedAction: IBindingAction = (newValue: any, oldValue: any) => {
                 action.call(this, newValue, oldValue);
             };
 

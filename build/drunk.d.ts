@@ -615,12 +615,12 @@ declare namespace drunk {
          * 添加数据更新回调
          * @param  action  回调函数
          */
-        addAction(action: IBindingUpdateAction): void;
+        addAction(action: IBindingAction): void;
         /**
          * 移除数据更新回调
          * @param  action 回调函数
          */
-        removeAction(action: IBindingUpdateAction): void;
+        removeAction(action: IBindingAction): void;
         /**
          * 销毁实例和移除所有应用
          */
@@ -694,7 +694,7 @@ declare namespace drunk {
     /**
      * 更新函数接口
      */
-    interface IBindingUpdateAction {
+    interface IBindingAction {
         (newValue: any, oldValue: any): any;
     }
     function binding(name: string): (constructor: BindingConstructor) => void;
@@ -910,7 +910,7 @@ declare namespace drunk {
          * @param   expression  表达式
          * @return              返回一个取消监听的函数
          */
-        $watch(expression: string, action: IBindingUpdateAction, isDeepWatch?: boolean, isImmediate?: boolean): () => void;
+        $watch(expression: string, action: IBindingAction, isDeepWatch?: boolean, isImmediate?: boolean): () => void;
         $computed(property: string, descriptor: () => any): any;
         $computed(property: string, descriptor: {
             set?: (value: any) => void;
@@ -1151,7 +1151,7 @@ declare namespace drunk {
             [name: string]: Filter.IFilter;
         };
         watchers?: {
-            [expression: string]: IBindingUpdateAction;
+            [expression: string]: IBindingAction;
         };
         handlers?: {
             [name: string]: Function;

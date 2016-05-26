@@ -1022,7 +1022,8 @@ var drunk;
                 xhr.onreadystatechange = function () {
                     if (xhr.readyState === 4) {
                         if ((xhr.status >= 200 && xhr.status < 300) || (isLocalRequest && xhr.status === 0)) {
-                            resolve(xhr.response);
+                            var result = (options.responseType || options.dataType) == 'json' ? JSON.parse(xhr.responseText) : xhr.response;
+                            resolve(result);
                         }
                         else {
                             reject(xhr);
@@ -1031,7 +1032,6 @@ var drunk;
                     }
                 };
                 xhr.open(type, url, true, options.user, options.password);
-                xhr.responseType = options.dataType || options.responseType || '';
                 if (options.withCredentials || (options.xhrFields && options.xhrFields.withCredentials)) {
                     xhr.withCredentials = true;
                 }
@@ -1171,7 +1171,7 @@ var drunk;
                 if (!this._propertyChangedCallbackList) {
                     return;
                 }
-                this._propertyChangedCallbackList.forEach(function (callback) { return callback(); });
+                this._propertyChangedCallbackList.slice().forEach(function (callback) { return callback(); });
             };
             return Observer;
         }(EventEmitter));

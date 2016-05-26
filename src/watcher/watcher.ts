@@ -20,7 +20,7 @@ namespace drunk {
         }
 
         private _isInterpolate: boolean;
-        private _actions: IBindingUpdateAction[] = [];
+        private _actions: IBindingAction[] = [];
         private _observers: { [id: string]: observable.Observer } = {};
         private _properties: { [number: string]: { [property: string]: boolean } } = {};
         private _tmpObservers: { [id: string]: observable.Observer };
@@ -55,7 +55,7 @@ namespace drunk {
          * 添加数据更新回调
          * @param  action  回调函数
          */
-        addAction(action: IBindingUpdateAction): void {
+        addAction(action: IBindingAction): void {
             if (!this._isActived) {
                 return;
             }
@@ -66,7 +66,7 @@ namespace drunk {
          * 移除数据更新回调
          * @param  action 回调函数
          */
-        removeAction(action: IBindingUpdateAction): void {
+        removeAction(action: IBindingAction): void {
             if (!this._isActived) {
                 return;
             }

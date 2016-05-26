@@ -50,7 +50,7 @@ namespace drunk.observable {
                 return;
             }
             
-            this._propertyChangedCallbackList.forEach(callback => callback());
+            this._propertyChangedCallbackList.slice().forEach(callback => callback());
         }
     }
 }

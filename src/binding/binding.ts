@@ -50,7 +50,7 @@ namespace drunk {
     /**
      * 更新函数接口
      */
-    export interface IBindingUpdateAction {
+    export interface IBindingAction {
         (newValue: any, oldValue: any): any;
     }
 

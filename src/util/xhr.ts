@@ -119,7 +119,8 @@ namespace drunk.util {
             xhr.onreadystatechange = () => {
                 if (xhr.readyState === 4) {
                     if ((xhr.status >= 200 && xhr.status < 300) || (isLocalRequest && xhr.status === 0)) {
-                        resolve(xhr.response);
+                        let result = (options.responseType || options.dataType) == 'json' ? JSON.parse(xhr.responseText) : xhr.response;
+                        resolve(result);
                     }
                     else {
                         reject(xhr);
@@ -129,8 +130,6 @@ namespace drunk.util {
             };
 
             xhr.open(type, url, true, options.user, options.password);
-
-            xhr.responseType = options.dataType || options.responseType || '';
 
             if (options.withCredentials || (options.xhrFields && options.xhrFields.withCredentials)) {
                 xhr.withCredentials = true;
