@@ -14,6 +14,11 @@ namespace drunk.Template {
     let styleRecord = {};
     let linkRecord = {};
     let scriptRecord = {};
+    let scopedClassCounter = 0;
+    let scopedClassNamePrefix = 'drunk-scoped-';
+
+    let initialized = false;
+    let cachedDocument: Document;
 
     /**
      * 把模块连接渲染为documentFragment,会对样式和脚本进行处理,避免重复加载,如果提供宿主容器元素,则会把
@@ -72,11 +77,11 @@ namespace drunk.Template {
     function processDocument(htmlDoc: Document, href: string) {
         let body = htmlDoc.body;
         let lastNonInlineScriptPromise = Promise.resolve();
+        let scopedClassList: string[] = [];
         let promiseList = [];
 
-        util.toArray(htmlDoc.querySelectorAll('link[type="text/css"], link[rel="stylesheet"]')).forEach(addLink);
-
-        util.toArray(htmlDoc.getElementsByTagName('style')).forEach((styleTag, index) => addStyle(styleTag, href, index));
+        util.toArray(htmlDoc.querySelectorAll('link[type="text/css"], link[rel="stylesheet"]')).forEach(e => addLink(e, scopedClassList));
+        util.toArray(htmlDoc.getElementsByTagName('style')).forEach((styleTag, index) => addStyle(styleTag, href, index, scopedClassList));
 
         util.toArray(htmlDoc.getElementsByTagName('script')).forEach((scriptTag, index) => {
             let result = addScript(scriptTag, href, index, lastNonInlineScriptPromise);
@@ -103,43 +108,100 @@ namespace drunk.Template {
             let fragment = document.createDocumentFragment();
             let imported = document.importNode(body, true);
             while (imported.childNodes.length > 0) {
-                fragment.appendChild(imported.firstChild);
+                let node: any = imported.firstChild;
+                fragment.appendChild(node);
+                addScopedClassList(node, scopedClassList);
             }
             return fragment;
         });
     }
 
     /**
-     * 添加外链样式
+     * 为节点添加作用域样式
      */
-    function addLink(tag: HTMLLinkElement) {
-        let tagUid = tag.href.toLowerCase();
-
-        if (!linkRecord[tagUid]) {
-            linkRecord[tagUid] = true;
-
-            let newLink: any = tag.cloneNode(false);
-            newLink.href = tag.href;
-            document.head.appendChild(newLink);
+    function addScopedClassList(node: HTMLElement, classList: string[]) {
+        if (!node.classList || !classList.length) {
+            return;
         }
 
-        tag.parentNode.removeChild(tag);
+        classList.forEach(className => node.classList.add(className));
+
+        if (node.hasChildNodes()) {
+            util.toArray(node.childNodes).forEach(child => addScopedClassList(child, classList));
+        }
+    }
+
+    /**
+     * 添加外链样式
+     */
+    function addLink(link: HTMLLinkElement, scopedClassList: string[]) {
+        let href = link.href.toLowerCase();
+
+        if (!linkRecord[href]) {
+            linkRecord[href] = true;
+
+            if (link.hasAttribute('scoped')) {
+                let scopedClassName = scopedClassNamePrefix + scopedClassCounter++;
+                util.addArrayItem(scopedClassList, scopedClassName);
+
+                loadCssAndCreateStyle(href).done((styleElement) => {
+                    let style = generateScopedStyle(styleElement.sheet['cssRules'], scopedClassName);
+                    style.setAttribute('drunk:link:href', href);
+                    document.head.appendChild(style);
+                    styleElement.parentNode.removeChild(styleElement);
+                }, err => {
+                    console.error(href, `样式加载失败:\n`, err);
+                });
+            } else {
+                let newLink: any = link.cloneNode(false);
+                newLink.href = href;
+                document.head.appendChild(newLink);
+            }
+        }
+
+        link.parentNode.removeChild(link);
     }
 
     /**
      * 添加内链样式
      */
-    function addStyle(tag: HTMLStyleElement, fragmentHref: string, position: number) {
+    function addStyle(styleElement: HTMLStyleElement, fragmentHref: string, position: number, scopedClassList: string[]) {
         let tagUid = (fragmentHref + ' style[' + position + ']').toLowerCase();
 
         if (!styleRecord[tagUid]) {
-            let newStyle: any = tag.cloneNode(true);
             styleRecord[tagUid] = true;
+            let newStyle: HTMLStyleElement;
+
+            if (styleElement.hasAttribute('scoped')) {
+                let scopedClassName = scopedClassNamePrefix + scopedClassCounter++;
+                util.addArrayItem(scopedClassList, scopedClassName);
+                newStyle = generateScopedStyle(styleElement.sheet['cssRules'], scopedClassName);
+            } else {
+                newStyle = styleElement.cloneNode(true) as HTMLStyleElement;
+            }
+
             newStyle.setAttribute('drunk:style:uid', tagUid);
             document.head.appendChild(newStyle);
         }
 
-        tag.parentNode.removeChild(tag);
+        styleElement.parentNode.removeChild(styleElement);
+    }
+
+    /**
+     * 修改样式的作用域
+     */
+    function generateScopedStyle(cssRules: CSSStyleRule[], scopedClassName: string) {
+        let style = document.createElement('style');
+        let rules = [];
+
+        util.toArray(cssRules).forEach(rule => {
+            rules.push(rule.cssText.replace(rule.selectorText, '.' + scopedClassName + rule.selectorText));
+        });
+
+        // console.log((rules.join('\n')));
+        style.textContent = rules.join('\n');
+        style.setAttribute('drunk:scoped:style', '');
+        return style;
     }
 
     /**
@@ -175,8 +237,7 @@ namespace drunk.Template {
                     // console.warn('脚本加载错误:', e);
                 });
                 newScript.setAttribute('drunk:script:uid', tagUid);
-            }
-            else {
+            } else {
                 promise = new Promise((resolve) => {
                     newScript.onload = newScript.onerror = () => {
                         resolve();
@@ -186,15 +247,12 @@ namespace drunk.Template {
             }
 
             document.head.appendChild(newScript);
-
             return {
                 promise: promise,
                 inline: inline
             };
         }
     }
-
-    let initialized = false;
 
     /**
      * 标记已经存在于页面上的脚本和样式
@@ -211,6 +269,19 @@ namespace drunk.Template {
             linkRecord[e.href.toLowerCase()] = true;
         });
 
+        cachedDocument = document.implementation.createHTMLDocument("cached document");
         initialized = true;
+    }
+
+    /**
+     * 加载css文件并创建style标签
+     */
+    function loadCssAndCreateStyle(href: string) {
+        return util.ajax({ url: href }).then((cssContent: string) => {
+            let style = document.createElement('style');
+            style.textContent = cssContent;
+            cachedDocument.head.appendChild(style);
+            return style;
+        });
     }
 }

@@ -2983,7 +2983,8 @@ var drunk;
                 element.classList.add(className);
                 var animationExist = style[getPropertyName('animationDuration')] !== '0s';
                 if (!transitionExist && !animationExist) {
-                    // 如果没有设置动画直接返回resolve状态
+                    // 如果没有设置动画,移除样式后resolve状态
+                    element.classList.remove(className);
                     return resolve();
                 }
                 element.style[getPropertyName('animationFillMode')] = 'both';
@@ -3641,6 +3642,10 @@ var drunk;
         var styleRecord = {};
         var linkRecord = {};
         var scriptRecord = {};
+        var scopedClassCounter = 0;
+        var scopedClassNamePrefix = 'drunk-scoped-';
+        var initialized = false;
+        var cachedDocument;
         /**
          * 把模块连接渲染为documentFragment,会对样式和脚本进行处理,避免重复加载,如果提供宿主容器元素,则会把
          * 模板渲染到改容器中
@@ -3690,62 +3695,118 @@ var drunk;
         function processDocument(htmlDoc, href) {
             var body = htmlDoc.body;
             var lastNonInlineScriptPromise = Promise.resolve();
+            var scopedClassList = [];
             var promiseList = [];
-            util.toArray(htmlDoc.querySelectorAll('link[type="text/css"], link[rel="stylesheet"]')).forEach(addLink);
-            util.toArray(htmlDoc.getElementsByTagName('style')).forEach(function (styleTag, index) { return addStyle(styleTag, href, index); });
-            util.toArray(htmlDoc.getElementsByTagName('script')).forEach(function (scriptTag, index) {
-                var result = addScript(scriptTag, href, index, lastNonInlineScriptPromise);
-                if (result) {
-                    if (!result.inline) {
-                        lastNonInlineScriptPromise = result.promise;
+            try {
+                util.toArray(htmlDoc.querySelectorAll('link[type="text/css"], link[rel="stylesheet"]')).forEach(function (e) { return addLink(e, scopedClassList); });
+                util.toArray(htmlDoc.getElementsByTagName('style')).forEach(function (styleTag, index) { return addStyle(styleTag, href, index, scopedClassList); });
+                util.toArray(htmlDoc.getElementsByTagName('script')).forEach(function (scriptTag, index) {
+                    var result = addScript(scriptTag, href, index, lastNonInlineScriptPromise);
+                    if (result) {
+                        if (!result.inline) {
+                            lastNonInlineScriptPromise = result.promise;
+                        }
+                        promiseList.push(result.promise);
                     }
-                    promiseList.push(result.promise);
-                }
-            });
-            util.toArray(htmlDoc.getElementsByTagName('img')).forEach(function (img) { return img.src = img.src; });
-            util.toArray(htmlDoc.getElementsByTagName('a')).forEach(function (a) {
-                // href为#开头的不用去更新属性
-                if (a.href !== '') {
-                    var href_1 = a.getAttribute('href');
-                    if (href_1 && href_1[0] !== '#') {
-                        a.href = href_1;
+                });
+                util.toArray(htmlDoc.getElementsByTagName('img')).forEach(function (img) { return img.src = img.src; });
+                util.toArray(htmlDoc.getElementsByTagName('a')).forEach(function (a) {
+                    // href为#开头的不用去更新属性
+                    if (a.href !== '') {
+                        var href_1 = a.getAttribute('href');
+                        if (href_1 && href_1[0] !== '#') {
+                            a.href = href_1;
+                        }
                     }
-                }
-            });
+                });
+            }
+            catch (e) {
+                console.log(e);
+            }
             return Promise.all(promiseList).then(function () {
                 var fragment = document.createDocumentFragment();
                 var imported = document.importNode(body, true);
                 while (imported.childNodes.length > 0) {
-                    fragment.appendChild(imported.firstChild);
+                    var node = imported.firstChild;
+                    fragment.appendChild(node);
+                    addScopedClassList(node, scopedClassList);
                 }
                 return fragment;
             });
         }
         /**
+         * 为节点添加作用域样式
+         */
+        function addScopedClassList(node, classList) {
+            if (!node.classList || !classList.length) {
+                return;
+            }
+            classList.forEach(function (className) { return node.classList.add(className); });
+            if (node.hasChildNodes()) {
+                util.toArray(node.childNodes).forEach(function (child) { return addScopedClassList(child, classList); });
+            }
+        }
+        /**
          * 添加外链样式
          */
-        function addLink(tag) {
-            var tagUid = tag.href.toLowerCase();
-            if (!linkRecord[tagUid]) {
-                linkRecord[tagUid] = true;
-                var newLink = tag.cloneNode(false);
-                newLink.href = tag.href;
-                document.head.appendChild(newLink);
+        function addLink(link, scopedClassList) {
+            var href = link.href.toLowerCase();
+            if (!linkRecord[href]) {
+                linkRecord[href] = true;
+                if (link.hasAttribute('scoped')) {
+                    var scopedClassName_1 = scopedClassNamePrefix + scopedClassCounter++;
+                    util.addArrayItem(scopedClassList, scopedClassName_1);
+                    loadCssAndCreateStyle(href).done(function (styleElement) {
+                        var style = generateScopedStyle(styleElement.sheet['cssRules'], scopedClassName_1);
+                        style.setAttribute('drunk:link:href', href);
+                        document.head.appendChild(style);
+                        styleElement.parentNode.removeChild(styleElement);
+                    }, function (err) {
+                        console.error(href, "\u6837\u5F0F\u52A0\u8F7D\u5931\u8D25:\n", err);
+                    });
+                }
+                else {
+                    var newLink = link.cloneNode(false);
+                    newLink.href = href;
+                    document.head.appendChild(newLink);
+                }
             }
-            tag.parentNode.removeChild(tag);
+            link.parentNode.removeChild(link);
         }
         /**
          * 添加内链样式
          */
-        function addStyle(tag, fragmentHref, position) {
+        function addStyle(styleElement, fragmentHref, position, scopedClassList) {
             var tagUid = (fragmentHref + ' style[' + position + ']').toLowerCase();
             if (!styleRecord[tagUid]) {
-                var newStyle = tag.cloneNode(true);
                 styleRecord[tagUid] = true;
+                var newStyle = void 0;
+                if (styleElement.hasAttribute('scoped')) {
+                    var scopedClassName = scopedClassNamePrefix + scopedClassCounter++;
+                    util.addArrayItem(scopedClassList, scopedClassName);
+                    newStyle = generateScopedStyle(styleElement.sheet['cssRules'], scopedClassName);
+                }
+                else {
+                    newStyle = styleElement.cloneNode(true);
+                }
                 newStyle.setAttribute('drunk:style:uid', tagUid);
                 document.head.appendChild(newStyle);
             }
-            tag.parentNode.removeChild(tag);
+            styleElement.parentNode.removeChild(styleElement);
+        }
+        /**
+         * 修改样式的作用域
+         */
+        function generateScopedStyle(cssRules, scopedClassName) {
+            var style = document.createElement('style');
+            var rules = [];
+            util.toArray(cssRules).forEach(function (rule) {
+                rules.push(rule.cssText.replace(rule.selectorText, '.' + scopedClassName + rule.selectorText));
+            });
+            // console.log((rules.join('\n')));
+            style.textContent = rules.join('\n');
+            style.setAttribute('drunk:scoped:style', '');
+            return style;
         }
         /**
          * 添加脚本
@@ -3791,7 +3852,6 @@ var drunk;
                 };
             }
         }
-        var initialized = false;
         /**
          * 标记已经存在于页面上的脚本和样式
          */
@@ -3805,7 +3865,19 @@ var drunk;
             util.toArray(document.querySelectorAll('link[rel="stylesheet"], link[type="text/css"]')).forEach(function (e) {
                 linkRecord[e.href.toLowerCase()] = true;
             });
+            cachedDocument = document.implementation.createHTMLDocument("cached document");
             initialized = true;
+        }
+        /**
+         * 加载css文件并创建style标签
+         */
+        function loadCssAndCreateStyle(href) {
+            return util.ajax({ url: href }).then(function (cssContent) {
+                var style = document.createElement('style');
+                style.textContent = cssContent;
+                cachedDocument.head.appendChild(style);
+                return style;
+            });
         }
     })(Template = drunk.Template || (drunk.Template = {}));
 })(drunk || (drunk = {}));

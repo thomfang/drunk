@@ -153,7 +153,6 @@ namespace drunk {
             }
 
             this._accessed();
-
             return newValue;
         }
 

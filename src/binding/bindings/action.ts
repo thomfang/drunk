@@ -255,7 +255,8 @@ namespace drunk {
                 let animationExist = style[getPropertyName('animationDuration')] !== '0s';
 
                 if (!transitionExist && !animationExist) {
-                    // 如果没有设置动画直接返回resolve状态
+                    // 如果没有设置动画,移除样式后resolve状态
+                    element.classList.remove(className);
                     return resolve();
                 }
 

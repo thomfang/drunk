@@ -1,12 +1,8 @@
-<style>
-    .alert-view {width:250px;height:100px;text-align: center;background:#333;color:#eee;transition: all 0.5s ease-out;opacity: 0;}
-    .alert-view.drunk-created {opacity: 1;}
-    .alert-view.drunk-removed {opacity: 0;}
-</style>
+<link rel="stylesheet" type="text/css" href="alert.css" scoped />
 
-<div drunk-if="visible" drunk-action class="alert-view">
-    <p>{{title}}</p>
-    <p>{{content}}</p>
+<div drunk-show="visible" drunk-action class="alert-view">
+    <p class="title">{{title}}</p>
+    <p class="content">{{content}}</p>
     <button drunk-on="click: visible = false">confirm</button>
 </div>
 
