@@ -11,6 +11,7 @@ namespace drunk {
     import dom = drunk.dom;
     import util = drunk.util;
     import config = drunk.config;
+    import Promise = drunk.Promise;
     import Template = drunk.Template;
     import ViewModel = drunk.ViewModel;
 

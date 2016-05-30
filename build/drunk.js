@@ -3642,6 +3642,7 @@ var drunk;
         var styleRecord = {};
         var linkRecord = {};
         var scriptRecord = {};
+        var scopedClassRecord = {};
         var scopedClassCounter = 0;
         var scopedClassNamePrefix = 'drunk-scoped-';
         var initialized = false;
@@ -3687,7 +3688,8 @@ var drunk;
             return Template.load(href).then(function (template) {
                 dom.html(htmlDoc.documentElement, template);
                 htmlDoc.head.appendChild(base);
-            }).then(function () { return processDocument(htmlDoc, href); });
+                return processDocument(htmlDoc, href);
+            });
         }
         /**
          * 处理模板的资源
@@ -3697,32 +3699,27 @@ var drunk;
             var lastNonInlineScriptPromise = Promise.resolve();
             var scopedClassList = [];
             var promiseList = [];
-            try {
-                util.toArray(htmlDoc.querySelectorAll('link[type="text/css"], link[rel="stylesheet"]')).forEach(function (e) { return addLink(e, scopedClassList); });
-                util.toArray(htmlDoc.getElementsByTagName('style')).forEach(function (styleTag, index) { return addStyle(styleTag, href, index, scopedClassList); });
-                util.toArray(htmlDoc.getElementsByTagName('script')).forEach(function (scriptTag, index) {
-                    var result = addScript(scriptTag, href, index, lastNonInlineScriptPromise);
-                    if (result) {
-                        if (!result.inline) {
-                            lastNonInlineScriptPromise = result.promise;
-                        }
-                        promiseList.push(result.promise);
+            util.toArray(htmlDoc.querySelectorAll('link[type="text/css"], link[rel="stylesheet"]')).forEach(function (e) { return addLink(e, scopedClassList); });
+            util.toArray(htmlDoc.getElementsByTagName('style')).forEach(function (styleTag, index) { return addStyle(styleTag, href, index, scopedClassList); });
+            util.toArray(htmlDoc.getElementsByTagName('script')).forEach(function (scriptTag, index) {
+                var result = addScript(scriptTag, href, index, lastNonInlineScriptPromise);
+                if (result) {
+                    if (!result.inline) {
+                        lastNonInlineScriptPromise = result.promise;
                     }
-                });
-                util.toArray(htmlDoc.getElementsByTagName('img')).forEach(function (img) { return img.src = img.src; });
-                util.toArray(htmlDoc.getElementsByTagName('a')).forEach(function (a) {
-                    // href为#开头的不用去更新属性
-                    if (a.href !== '') {
-                        var href_1 = a.getAttribute('href');
-                        if (href_1 && href_1[0] !== '#') {
-                            a.href = href_1;
-                        }
+                    promiseList.push(result.promise);
+                }
+            });
+            util.toArray(htmlDoc.getElementsByTagName('img')).forEach(function (img) { return img.src = img.src; });
+            util.toArray(htmlDoc.getElementsByTagName('a')).forEach(function (a) {
+                // href为#开头的不用去更新属性
+                if (a.href !== '') {
+                    var href_1 = a.getAttribute('href');
+                    if (href_1 && href_1[0] !== '#') {
+                        a.href = href_1;
                     }
-                });
-            }
-            catch (e) {
-                console.log(e);
-            }
+                }
+            });
             return Promise.all(promiseList).then(function () {
                 var fragment = document.createDocumentFragment();
                 var imported = document.importNode(body, true);
@@ -3751,13 +3748,19 @@ var drunk;
          */
         function addLink(link, scopedClassList) {
             var href = link.href.toLowerCase();
-            if (!linkRecord[href]) {
-                linkRecord[href] = true;
-                if (link.hasAttribute('scoped')) {
-                    var scopedClassName_1 = scopedClassNamePrefix + scopedClassCounter++;
-                    util.addArrayItem(scopedClassList, scopedClassName_1);
+            var tagUid = href;
+            var scoped = link.hasAttribute('scoped');
+            var scopedClassName;
+            if (scoped) {
+                tagUid += '<scoped>';
+                scopedClassName = scopedClassRecord[tagUid] || (scopedClassRecord[tagUid] = scopedClassNamePrefix + scopedClassCounter++);
+                util.addArrayItem(scopedClassList, scopedClassName);
+            }
+            if (!linkRecord[tagUid]) {
+                linkRecord[tagUid] = true;
+                if (scoped) {
                     loadCssAndCreateStyle(href).done(function (styleElement) {
-                        var style = generateScopedStyle(styleElement.sheet['cssRules'], scopedClassName_1);
+                        var style = generateScopedStyle(styleElement.sheet['cssRules'], scopedClassName);
                         style.setAttribute('drunk:link:href', href);
                         document.head.appendChild(style);
                         styleElement.parentNode.removeChild(styleElement);
@@ -3778,12 +3781,17 @@ var drunk;
          */
         function addStyle(styleElement, fragmentHref, position, scopedClassList) {
             var tagUid = (fragmentHref + ' style[' + position + ']').toLowerCase();
+            var scoped = styleElement.hasAttribute('scoped');
+            var scopedClassName;
+            if (scoped) {
+                tagUid += '<scoped>';
+                scopedClassName = scopedClassRecord[tagUid] || (scopedClassRecord[tagUid] = scopedClassNamePrefix + scopedClassCounter++);
+                util.addArrayItem(scopedClassList, scopedClassName);
+            }
             if (!styleRecord[tagUid]) {
                 styleRecord[tagUid] = true;
                 var newStyle = void 0;
-                if (styleElement.hasAttribute('scoped')) {
-                    var scopedClassName = scopedClassNamePrefix + scopedClassCounter++;
-                    util.addArrayItem(scopedClassList, scopedClassName);
+                if (scoped) {
                     newStyle = generateScopedStyle(styleElement.sheet['cssRules'], scopedClassName);
                 }
                 else {
@@ -3872,7 +3880,7 @@ var drunk;
          * 加载css文件并创建style标签
          */
         function loadCssAndCreateStyle(href) {
-            return util.ajax({ url: href }).then(function (cssContent) {
+            return Template.load(href).then(function (cssContent) {
                 var style = document.createElement('style');
                 style.textContent = cssContent;
                 cachedDocument.head.appendChild(style);
@@ -3892,6 +3900,7 @@ var drunk;
     var dom = drunk.dom;
     var util = drunk.util;
     var config = drunk.config;
+    var Promise = drunk.Promise;
     var Template = drunk.Template;
     var ViewModel = drunk.ViewModel;
     var weakRefKey = 'DRUNK-COMPONENT-ID';
@@ -3967,9 +3976,9 @@ var drunk;
         Component.prototype.$resolveData = function (dataDescriptors) {
             var _this = this;
             if (!dataDescriptors) {
-                return drunk.Promise.resolve();
+                return Promise.resolve();
             }
-            return drunk.Promise.all(Object.keys(dataDescriptors).map(function (property) {
+            return Promise.all(Object.keys(dataDescriptors).map(function (property) {
                 // 代理该数据字段
                 _this.$proxy(property);
                 var value = dataDescriptors[property];
@@ -3977,7 +3986,7 @@ var drunk;
                     // 如果是一个函数,直接调用该函数
                     value = value.call(_this);
                 }
-                return drunk.Promise.resolve(value).then(function (result) { return _this[property] = result; }, function (reason) { return console.warn("Component\u6570\u636E[\"" + property + "\"]\u521D\u59CB\u5316\u5931\u8D25:", reason); });
+                return Promise.resolve(value).then(function (result) { return _this[property] = result; }, function (reason) { return console.warn("Component\u6570\u636E[\"" + property + "\"]\u521D\u59CB\u5316\u5931\u8D25:", reason); });
             }));
         };
         /**
@@ -3993,10 +4002,10 @@ var drunk;
                 return Template.renderFragment(templateUrl, null, true).then(function (fragment) { return util.toArray(fragment.childNodes); }).catch(onFailed);
             }
             if (this.element) {
-                return drunk.Promise.resolve(this.element);
+                return Promise.resolve(this.element);
             }
             if (typeof this.template === 'string') {
-                return drunk.Promise.resolve(dom.create(this.template));
+                return Promise.resolve(dom.create(this.template));
             }
             templateUrl = this.templateUrl;
             if (typeof templateUrl === 'string') {

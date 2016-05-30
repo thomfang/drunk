@@ -1140,6 +1140,7 @@ declare namespace drunk.Template {
     function renderFragment(url: string, hostedElement?: HTMLElement, useCache?: boolean): Promise<Node>;
 }
 declare namespace drunk {
+    import Promise = drunk.Promise;
     import ViewModel = drunk.ViewModel;
     interface IComponentOptions {
         name?: string;

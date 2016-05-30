@@ -14,6 +14,7 @@ namespace drunk.Template {
     let styleRecord = {};
     let linkRecord = {};
     let scriptRecord = {};
+    let scopedClassRecord = {};
     let scopedClassCounter = 0;
     let scopedClassNamePrefix = 'drunk-scoped-';
 
@@ -68,7 +69,8 @@ namespace drunk.Template {
         return load(href).then((template) => {
             dom.html(htmlDoc.documentElement, template);
             htmlDoc.head.appendChild(base);
-        }).then(() => processDocument(htmlDoc, href));
+            return processDocument(htmlDoc, href);
+        });
     }
 
     /**
@@ -136,14 +138,20 @@ namespace drunk.Template {
      */
     function addLink(link: HTMLLinkElement, scopedClassList: string[]) {
         let href = link.href.toLowerCase();
+        let tagUid = href;
+        let scoped = link.hasAttribute('scoped');
+        let scopedClassName: string;
 
-        if (!linkRecord[href]) {
-            linkRecord[href] = true;
+        if (scoped) {
+            tagUid += '<scoped>';
+            scopedClassName = scopedClassRecord[tagUid] || (scopedClassRecord[tagUid] = scopedClassNamePrefix + scopedClassCounter++);
+            util.addArrayItem(scopedClassList, scopedClassName);
+        }
 
-            if (link.hasAttribute('scoped')) {
-                let scopedClassName = scopedClassNamePrefix + scopedClassCounter++;
-                util.addArrayItem(scopedClassList, scopedClassName);
+        if (!linkRecord[tagUid]) {
+            linkRecord[tagUid] = true;
 
+            if (scoped) {
                 loadCssAndCreateStyle(href).done((styleElement) => {
                     let style = generateScopedStyle(styleElement.sheet['cssRules'], scopedClassName);
                     style.setAttribute('drunk:link:href', href);
@@ -167,14 +175,20 @@ namespace drunk.Template {
      */
     function addStyle(styleElement: HTMLStyleElement, fragmentHref: string, position: number, scopedClassList: string[]) {
         let tagUid = (fragmentHref + ' style[' + position + ']').toLowerCase();
+        let scoped = styleElement.hasAttribute('scoped');
+        let scopedClassName: string;
+
+        if (scoped) {
+            tagUid += '<scoped>';
+            scopedClassName = scopedClassRecord[tagUid] || (scopedClassRecord[tagUid] = scopedClassNamePrefix + scopedClassCounter++);
+            util.addArrayItem(scopedClassList, scopedClassName);
+        }
 
         if (!styleRecord[tagUid]) {
             styleRecord[tagUid] = true;
             let newStyle: HTMLStyleElement;
 
-            if (styleElement.hasAttribute('scoped')) {
-                let scopedClassName = scopedClassNamePrefix + scopedClassCounter++;
-                util.addArrayItem(scopedClassList, scopedClassName);
+            if (scoped) {
                 newStyle = generateScopedStyle(styleElement.sheet['cssRules'], scopedClassName);
             } else {
                 newStyle = styleElement.cloneNode(true) as HTMLStyleElement;
@@ -277,7 +291,7 @@ namespace drunk.Template {
      * 加载css文件并创建style标签
      */
     function loadCssAndCreateStyle(href: string) {
-        return util.ajax({ url: href }).then((cssContent: string) => {
+        return load(href).then((cssContent: string) => {
             let style = document.createElement('style');
             style.textContent = cssContent;
             cachedDocument.head.appendChild(style);
