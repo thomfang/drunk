@@ -136,7 +136,7 @@ namespace drunk.util {
      * @param   source    源对象
      * @return            如果已经代理过,则不再代理该属性
      */
-    export function proxy(target: any, property: string, source: any) {
+    export function createProxy(target: any, property: string, source: any) {
         if (hasProxy(target, property)) {
             return false;
         }

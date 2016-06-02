@@ -29,7 +29,7 @@ namespace drunk {
             let unbinds = [];
             let transclude = placeholder.childNodes;
             let fragment = document.createDocumentFragment();
-
+            
             util.toArray(transclude).forEach((node) => {
                 nodes.push(node);
                 fragment.appendChild(node);

@@ -50,10 +50,8 @@ namespace drunk {
             if (!Ctor) {
                 throw new Error(this.expression + ": 未找到该组件.");
             }
-
             this.component = new Ctor();
             this.unwatches = [];
-
             this._processComponentAttributes();
             return this._realizeComponent();
         }
@@ -89,7 +87,6 @@ namespace drunk {
             let marked: { [key: string]: boolean } = {};
 
             this.element.removeAttribute('two-way');
-
             if (result) {
                 result.trim().split(/\s+/).forEach((str) => {
                     marked[util.camelCase(str)] = true;
@@ -119,14 +116,12 @@ namespace drunk {
                     if (attrName.indexOf(config.prefix) > -1) {
                         return console.warn(`自定义组件标签上不支持使用"${attrName}"绑定语法`);
                     }
-
                     if (!attrValue) {
                         component[util.camelCase(attrName)] = true;
                         return;
                     }
 
                     let expression = attrValue.trim();
-
                     if (attrName.indexOf("on-") === 0) {
                         // on-click="doSomething()"
                         // => "click", "doSomething()"
@@ -140,18 +135,14 @@ namespace drunk {
                         // 没有插值表达式
                         // title="someConstantValue"
                         let value: any;
-
                         if (attrValue === 'true') {
                             value = true;
-                        }
-                        else if (attrValue === 'false') {
+                        } else if (attrValue === 'false') {
                             value = false;
-                        }
-                        else {
+                        } else {
                             value = parseFloat(attrValue);
                             value = isNaN(value) ? attrValue : value;
                         }
-
                         return component[attrName] = value;
                     }
 

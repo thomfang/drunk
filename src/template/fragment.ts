@@ -65,11 +65,11 @@ namespace drunk.Template {
         base.href = document.location.href;
         anchor.setAttribute("href", href);
         base.href = anchor.href;
-
+        
         return load(href).then((template) => {
             dom.html(htmlDoc.documentElement, template);
             htmlDoc.head.appendChild(base);
-            return processDocument(htmlDoc, href);
+            return processDocument(htmlDoc, base.href);
         });
     }
 
@@ -183,7 +183,6 @@ namespace drunk.Template {
             scopedClassName = scopedClassRecord[tagUid] || (scopedClassRecord[tagUid] = scopedClassNamePrefix + scopedClassCounter++);
             util.addArrayItem(scopedClassList, scopedClassName);
         }
-
         if (!styleRecord[tagUid]) {
             styleRecord[tagUid] = true;
             let newStyle: HTMLStyleElement;

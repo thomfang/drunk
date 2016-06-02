@@ -4,303 +4,237 @@
 /// <reference path="../config/config.ts" />
 /// <reference path="../parser/parser.ts" />
 
-/**
- * 模板工具模块， 提供编译创建绑定，模板加载的工具方法
- */
 namespace drunk.Template {
-    
+
     import dom = drunk.dom;
     import util = drunk.util;
     import config = drunk.config;
     import Parser = drunk.Parser;
-    
-    /**
-     * 编译模板元素生成绑定方法
-     * @param   node        模板元素
-     * @param   isRootNode  是否是根元素
-     * @return              绑定元素与viewModel的方法
-     */
-    export function compile(node: any): IBindingGenerator {
-        let isArray: boolean = Array.isArray(node);
-        let executor: IBindingExecutor = isArray || node.nodeType === 11 ? null : compileNode(node);
-        let isTerminal: boolean = executor && executor.isTerminal;
-        let childExecutor: IBindingExecutor;
+    import Binding = drunk.Binding;
 
+    export type BindingNode = {
+        name: string;
+        expression: string;
+        priority: number;
+        attribute?: string;
+        isInterpolate?: boolean;
+    }
+
+    export type BindingDescriptor = {
+        bindings?: BindingNode[];
+        children?: BindingDescriptor[];
+        fragment?: DocumentFragment;
+        isTerminal?: boolean;
+        isTextNode?: boolean;
+    }
+
+    const componentName = config.prefix + 'component';
+    const noop = () => { };
+
+    export function compile(node: Node | Node[]) {
+        var isArray = Array.isArray(node);
+        var bindingDesc: BindingDescriptor;
         if (isArray) {
-            executor = compileNodeList(node);
-        }
-        else if (!isTerminal && isNeedCompileChild(node)) {
-            childExecutor = compileNodeList(node.childNodes);
+            bindingDesc = createBindingDescriptorList(node as Node[]);
+        } else {
+            bindingDesc = createBindingDescriptor(node as Node);
         }
 
-        return (viewModel: ViewModel, element: any, ownerViewModel?: Component, placeholder?: HTMLElement) => {
-            let allBindings = viewModel._bindings;
-            let startIndex: number = allBindings.length;
-            let bindingList: Binding[];
-
-            if (executor) {
-                executor(viewModel, element, ownerViewModel, placeholder);
-            }
-            if (childExecutor) {
-                childExecutor(viewModel, element.childNodes, ownerViewModel, placeholder);
+        return (viewModel: ViewModel, node: Node | Node[], owner?: ViewModel, placeholder?: HTMLElement) => {
+            if (!bindingDesc) {
+                return noop;
             }
 
-            bindingList = viewModel._bindings.slice(startIndex);
-            bindingList.forEach(binding => binding.$execute());
+            var allBindings = viewModel._bindings;
+            var beginOffset = allBindings.length;
+            var newBindings: Binding[];
+            if (isArray) {
+                bindNodeList(viewModel, node as Node[], bindingDesc as BindingDescriptor[], owner, placeholder);
+            } else if (bindingDesc) {
+                bindNode(viewModel, node as HTMLElement, bindingDesc, owner, placeholder);
+            }
+            newBindings = viewModel._bindings.slice(beginOffset);
+            newBindings.forEach(binding => binding.$execute());
 
             return () => {
-                bindingList.forEach((binding) => {
-                    binding.$dispose();
-                });
-
-                startIndex = allBindings.indexOf(bindingList[0]);
-                allBindings.splice(startIndex, bindingList.length);
+                newBindings.forEach((binding) => binding.$dispose());
+                beginOffset = allBindings.indexOf(newBindings[0]);
+                allBindings.splice(beginOffset, newBindings.length);
             };
         };
     }
-    
-    /**
-     *  判断元素是什么类型,调用相应的类型编译方法
-     */
-    function compileNode(node: any): IBindingExecutor {
-        let nodeType: number = node.nodeType;
 
-        if (nodeType === 1 && node.tagName !== "SCRIPT") {
-            // 如果是元素节点
-            return compileElement(node);
+    export function createBindingDescriptor(node: Node) {
+        var nodeType = node.nodeType;
+        var bindingDesc: BindingDescriptor;
+
+        if (nodeType === 1) {
+            bindingDesc = createElementBindingDescriptor(node as HTMLElement);
+        } else if (nodeType === 3) {
+            bindingDesc = createTextBindingDescriptor(node as Text);
         }
-        if (nodeType === 3) {
-            // 如果是textNode
-            return compileTextNode(node);
-        }
-    }
-    
-    /**
-     *  编译NodeList
-     */
-    function compileNodeList(nodeList: any[]): IBindingExecutor {
-        let executors: any = [];
 
-        util.toArray(nodeList).forEach((node) => {
-            let executor: IBindingExecutor;
-            let childExecutor: IBindingExecutor;
-
-            executor = compileNode(node);
-
-            if (!(executor && executor.isTerminal) && isNeedCompileChild(node)) {
-                childExecutor = compileNodeList(node.childNodes);
+        if (!(bindingDesc && bindingDesc.isTerminal) && isNeedCompileChildNodes(node as HTMLElement)) {
+            let children = createBindingDescriptorList(util.toArray(node.childNodes));
+            if (children) {
+                bindingDesc = bindingDesc || {};
+                bindingDesc.children = children;
             }
+        }
+        return bindingDesc;
+    }
 
-            executors.push(executor, childExecutor);
+    export function createBindingDescriptorList(nodeList: Node[]) {
+        var hasDescriptor = false;
+        var descriptorList = nodeList.map(node => {
+            let bindingDesc = createBindingDescriptor(node);
+            if (bindingDesc != null) {
+                hasDescriptor = true;
+            }
+            return bindingDesc;
         });
-
-        if (executors.length > 1) {
-            return (viewModel: ViewModel, nodes: any, ownerViewModel?: Component, placeholder?: HTMLElement) => {
-                if (nodes.length * 2 !== executors.length) {
-                    return console.error(`创建Binding之前,节点已经被动态修改`, viewModel, nodes);
-                }
-
-                let i = 0;
-                let nodeExecutor: IBindingExecutor;
-                let childExecutor: IBindingExecutor;
-
-                util.toArray(nodes).forEach((node) => {
-                    nodeExecutor = executors[i++];
-                    childExecutor = executors[i++];
-
-                    if (nodeExecutor) {
-                        nodeExecutor(viewModel, node, ownerViewModel, placeholder);
-                    }
-                    if (childExecutor) {
-                        childExecutor(viewModel, node.childNodes, ownerViewModel, placeholder);
-                    }
-                });
-            };
-        }
+        return hasDescriptor ? descriptorList : undefined;
     }
-    
-    /**
-     *  判断是否可以编译childNodes
-     */
-    function isNeedCompileChild(node: any) {
-        return node.tagName !== 'SCRIPT' && node.hasChildNodes();
+
+    function createElementBindingDescriptor(element: HTMLElement) {
+        if (element.tagName.toLowerCase().indexOf('-') > 0) {
+            element.setAttribute(componentName, element.tagName.toLowerCase());
+        }
+        return createTerminalBindingDescriptor(element) || createNormalBindingDescriptor(element);
     }
-    
-    /**
-     *  编译元素的绑定并创建绑定描述符
-     */
-    function compileElement(element: any): IBindingExecutor {
-        let executor;
-        let tagName: string = element.tagName.toLowerCase();
 
-        if (tagName.indexOf('-') > 0) {
-            element.setAttribute(config.prefix + 'component', tagName);
-        }
-
-        if (element.hasAttributes()) {
-            // 如果元素上有属性， 先判断是否存在终止型绑定指令
-            // 如果不存在则判断是否有普通的绑定指令
-            executor = processTerminalBinding(element) || processNormalBinding(element);
-        }
-
-        if (element.tagName.toLowerCase() === 'textarea') {
-            // 如果是textarea， 它的值有可能存在插值表达式， 比如 "the textarea value with {{some_let}}"
-            // 第一次进行绑定先换成插值表达式
-            let originExecutor = executor;
-
-            executor = (viewModel: ViewModel, textarea: HTMLTextAreaElement) => {
-                textarea.value = viewModel.$eval(textarea.value, true);
-
-                if (originExecutor) {
-                    return originExecutor(viewModel, textarea);
-                }
-            };
-        }
-
-        return executor;
-    }
-    
-    /**
-     *  编译文本节点
-     */
-    function compileTextNode(node: any): IBindingExecutor {
-        let content: string = node.textContent;
-
+    function createTextBindingDescriptor(node: Text) {
+        var content = node.textContent;
         if (!Parser.hasInterpolation(content)) {
             return;
         }
 
-        let tokens: any[] = Parser.parseInterpolate(content, true);
-        let fragment = document.createDocumentFragment();
-        let executors = [];
+        var tokens: any[] = Parser.parseInterpolate(content, true);
+        var fragment = document.createDocumentFragment();
+        var bindings: Array<BindingNode | string> = [];
 
         tokens.forEach((token, i) => {
             if (typeof token === 'string') {
                 fragment.appendChild(document.createTextNode(token));
-                executors[i] = null;
-            }
-            else {
+            } else {
                 fragment.appendChild(document.createTextNode(' '));
-                executors[i] = createExecutor(node, {
+                bindings[i] = {
                     name: "bind",
+                    priority: Binding.getByName('bind').priority,
                     expression: token.expression
-                });
+                };
             }
         });
+        return { bindings: bindings as BindingNode[], fragment, isTextNode: true };
+    }
 
-        return (viewModel, element) => {
-            let frag = fragment.cloneNode(true);
+    function createTerminalBindingDescriptor(element: HTMLElement) {
+        var terminalBindings = Binding.getTerminalBindings();
 
-            util.toArray(frag.childNodes).forEach((node, i) => {
-                if (executors[i]) {
-                    executors[i](viewModel, node);
+        for (let i = 0, name; name = terminalBindings[i]; i++) {
+            let attrValue = element.getAttribute(config.prefix + name)
+            if (attrValue != null) {
+                return {
+                    bindings: [{
+                        name: name,
+                        expression: attrValue,
+                        priority: Binding.getByName(name).priority
+                    }],
+                    isTerminal: true,
+                    execute: bindElement
+                };
+            }
+        }
+    }
+
+    function createNormalBindingDescriptor(element: HTMLElement): BindingDescriptor {
+        var bindingNodes: BindingNode[];
+        var shouldTerminate: boolean;
+
+        if (element.hasAttributes()) {
+            util.toArray(element.attributes).forEach(attr => {
+                let name = attr.name;
+                let value = attr.value;
+                let index = name.indexOf(config.prefix);
+                let bindingNode: BindingNode;
+
+                if (index > -1 && index < name.length - 1) {
+                    name = name.slice(index + config.prefix.length);
+                    let bind = Binding.getByName(name);
+                    if (!bind) {
+                        throw new Error(`${config.prefix + name}: 未定义`);
+                    }
+                    if (name === 'include') {
+                        shouldTerminate = true;
+                    }
+                    bindingNode = {
+                        name: name,
+                        expression: value,
+                        priority: bind.priority
+                    };
+                } else if (Parser.hasInterpolation(value)) {
+                    bindingNode = {
+                        name: 'attr',
+                        attribute: name,
+                        expression: value,
+                        priority: Binding.getByName('attr').priority,
+                        isInterpolate: true
+                    };
+                }
+
+                if (bindingNode) {
+                    if (!bindingNodes) {
+                        bindingNodes = [];
+                    }
+                    bindingNodes.push(bindingNode);
                 }
             });
 
-            dom.replace(frag, element);
-        };
-    }
-    
-    /**
-     *  检测是否存在终止编译的绑定，比如component指令会终止当前编译过程，如果有创建绑定描述符
-     */
-    function processTerminalBinding(element: any): IBindingExecutor {
-        let terminals: string[] = Binding.getTerminalBindings();
-        let name: string;
-        let expression: string;
-
-        for (let i = 0; name = terminals[i]; i++) {
-            if (expression = element.getAttribute(config.prefix + name)) {
-                // 如果存在该绑定
-                return createExecutor(element, {
-                    name: name,
-                    expression: expression
-                });
+            if (bindingNodes) {
+                bindingNodes.sort((a, b) => b.priority - a.priority);
+                return { bindings: bindingNodes, isTerminal: shouldTerminate };
             }
         }
     }
-    
-    /**
-     *  查找并创建通常的绑定
-     */
-    function processNormalBinding(element: any): IBindingExecutor {
-        let executors: IBindingExecutor[] = [];
-        let shouldTerminate = false;
 
-        util.toArray(element.attributes).forEach((attr) => {
-            let name: string = attr.name;
-            let index: number = name.indexOf(config.prefix);
-            let expression: string = attr.value;
-            let executor;
-
-            if (index > -1 && index < name.length - 1) {
-                // 已经注册的绑定
-                name = name.slice(index + config.prefix.length);
-                executor = createExecutor(element, {
-                    name: name,
-                    expression: expression
-                });
-                if (name === 'include') {
-                    shouldTerminate = true;
-                }
+    function bindNode(viewModel: ViewModel, node: Node, desc: BindingDescriptor, owner?: ViewModel, placeholder?: HTMLElement) {
+        if (desc.bindings) {
+            if (desc.isTextNode) {
+                bindTextNode(viewModel, node as Text, desc);
+            } else {
+                bindElement(viewModel, node as HTMLElement, desc, owner, placeholder);
             }
-            else if (Parser.hasInterpolation(expression)) {
-                // 如果是在某个属性上进行插值创建一个attr的绑定
-                executor = createExecutor(element, {
-                    name: "attr",
-                    attrName: name,
-                    expression: expression,
-                    isInterpolate: true
-                });
-            }
+        }
+        if (desc.children) {
+            bindNodeList(viewModel, util.toArray(node.childNodes), desc.children, owner, placeholder);
+        }
+    }
 
-            if (executor) {
-                executors.push(executor);
+    function bindNodeList(viewModel: ViewModel, nodeList: Node[], descList: BindingDescriptor[], owner?: ViewModel, placeholder?: HTMLElement) {
+        descList.forEach((desc, i) => {
+            if (desc) {
+                bindNode(viewModel, nodeList[i] as HTMLElement, desc, owner, placeholder);
             }
         });
-
-        if (executors.length) {
-            executors.sort((a, b) => {
-                return b.priority - a.priority;
-            });
-            // 存在绑定
-            let executor: IBindingExecutor = (viewModel: ViewModel, element: any, ownerViewModel?: ViewModel, placeholder?: HTMLElement) => {
-                executors.forEach((executor) => {
-                    executor(viewModel, element, ownerViewModel, placeholder);
-                });
-            };
-            
-            executor.isTerminal = shouldTerminate;
-            
-            return executor;
-        }
     }
-    
-    /**
-     *  生成绑定描述符方法
-     */
-    function createExecutor(element: any, descriptor: IBindingDefinition): IBindingExecutor {
-        let definition = Binding.getByName(descriptor.name);
-        let executor: IBindingExecutor;
 
-        if (!definition) {
-            console.warn(`${config.prefix + descriptor.name}: 该Binding未定义`);
-            return;
-        }
+    function bindElement(viewModel: ViewModel, element: HTMLElement, desc: BindingDescriptor, owner?: ViewModel, placeholder?: HTMLElement) {
+        desc.bindings.forEach(descriptor => {
+            Binding.create(viewModel, element, descriptor, owner, placeholder);
+        });
+    }
 
-        if (!definition.retainAttribute && element.removeAttribute) {
-            // 如果未声明保留这个绑定属性，则把它移除
-            element.removeAttribute(config.prefix + descriptor.name);
-        }
+    function bindTextNode(viewModel: ViewModel, node: Text, desc: BindingDescriptor) {
+        var fragment = desc.fragment.cloneNode(true);
+        util.toArray(fragment.childNodes).forEach((node, i) => {
+            if (desc.bindings[i]) {
+                Binding.create(viewModel, node, desc.bindings[i]);
+            }
+        });
+        dom.replace(fragment, node);
+    }
 
-        // util.extend(descriptor, definition);
-
-        executor = (viewModel, element, ownerViewModel?: ViewModel, placeholder?: HTMLElement) => {
-            Binding.create(viewModel, element, descriptor, ownerViewModel, placeholder);
-        };
-        executor.isTerminal = definition.isTerminal;
-        executor.priority = definition.priority;
-
-        return executor;
+    function isNeedCompileChildNodes(node: HTMLElement) {
+        return node.tagName && node.tagName.toLowerCase() !== 'script' && node.childNodes.length > 0;
     }
 }

@@ -16,28 +16,18 @@ namespace drunk {
         priority?: number;
         retainAttribute?: boolean;
         expression?: string;
-        attrName?: string;
-
+        attribute?: string;
         init?(parentViewModel?: ViewModel, placeholder?: HTMLElement): void;
         update?(newValue: any, oldValue: any): void;
         release?(): void;
     }
 
-    export interface BindingConstructor {
+    export interface IBindingConstructor {
         new (...args: any[]): Binding;
         isDeepWatch?: boolean;
         isTerminal?: boolean;
         priority?: number;
         retainAttribute?: boolean;
-    }
-
-    /**
-     * 绑定实例构建函数接口
-     */
-    export interface IBindingExecutor {
-        (viewModel: ViewModel, element: any, parentViewModel?: ViewModel, placeHolder?: HTMLElement);
-        isTerminal?: boolean;
-        priority?: number;
     }
 
     /**
@@ -63,7 +53,7 @@ namespace drunk {
     let terminalBindings: string[] = [];
 
     export function binding(name: string) {
-        return function (constructor: BindingConstructor) {
+        return function (constructor: IBindingConstructor) {
             Binding.register(name, constructor);
         };
     }
@@ -74,12 +64,12 @@ namespace drunk {
     export class Binding {
 
         /** 实例 */
-        static instancesById: { [id: number]: Binding } = {};
+        private static instancesById: { [id: number]: Binding } = {};
 
         /**
          * 缓存的所有绑定声明的表
          */
-        static definitions: { [name: string]: BindingConstructor } = {};
+        static definitions: { [name: string]: IBindingConstructor } = {};
 
         /**
          * 获取元素的所有绑定实例
@@ -101,7 +91,6 @@ namespace drunk {
             if (!element[refKey]) {
                 element[refKey] = [];
             }
-
             util.addArrayItem(element[refKey], util.uniqueId(binding));
         }
 
@@ -121,7 +110,9 @@ namespace drunk {
          * @param   name  指令名
          * @param   def   binding实现的定义对象或绑定的更新函数
          */
-        static register<T extends IBindingDefinition>(name: string, definition: T | BindingConstructor): void {
+        static register<T extends IBindingDefinition>(name: string, definition: T): void;
+        static register(name: string, IBindingConstructor): void;
+        static register<T extends IBindingDefinition>(name: string, definition: any): void {
             definition.priority = definition.priority || Binding.Priority.normal;
 
             if (definition.isTerminal) {
@@ -129,7 +120,7 @@ namespace drunk {
             }
 
             if (util.isObject(definition)) {
-                let ctor: BindingConstructor = <any>function (...args: any[]) {
+                let ctor: IBindingConstructor = <any>function (...args: any[]) {
                     Binding.apply(this, args);
                 };
                 ctor.isTerminal = definition.isTerminal;
@@ -141,11 +132,11 @@ namespace drunk {
             }
 
             if (Binding.definitions[name]) {
-                console.warn(name, `绑定原已定义为：`, Binding.definitions[name]);
-                console.warn(`替换为`, definition);
+                console.warn(name, `绑定原已定义为: `, Binding.definitions[name]);
+                console.warn(`替换为: `, definition);
             }
 
-            Binding.definitions[name] = <BindingConstructor>definition;
+            Binding.definitions[name] = <IBindingConstructor>definition;
         }
 
         /**
@@ -172,6 +163,11 @@ namespace drunk {
          */
         static create(viewModel, element: any, descriptor: IBindingDefinition, parentViewModel?, placeholder?: HTMLElement) {
             let Ctor = Binding.definitions[descriptor.name];
+
+            if (!Ctor.retainAttribute && element.removeAttribute) {
+                element.removeAttribute(config.prefix + descriptor.name);
+            }
+
             let binding: Binding = new Ctor(viewModel, element, descriptor);
 
             util.addArrayItem(viewModel._bindings, binding);
@@ -187,7 +183,8 @@ namespace drunk {
          * @param   priority  绑定的优先级
          */
         private static _setTernimalBinding(name: string, priority: number): void {
-            // 检测是否已经存在该绑定
+            // 检测是否已经存在该binding
+            // 如果存在则更新该binding的优先级
             for (let i = 0, item; item = terminalBindingDescriptors[i]; i++) {
                 if (item.name === name) {
                     item.priority = priority;
@@ -196,15 +193,10 @@ namespace drunk {
             }
 
             // 添加到列表中
-            terminalBindingDescriptors.push({
-                name: name,
-                priority: priority
-            });
-
             // 重新根据优先级排序
+            // 更新terminal bindings列表
+            terminalBindingDescriptors.push({ name, priority });
             terminalBindingDescriptors.sort((a, b) => b.priority - a.priority);
-
-            // 更新名字列表
             terminalBindings = terminalBindingDescriptors.map(item => item.name);
         }
 
@@ -287,7 +279,6 @@ namespace drunk {
 
                 this["update"](newValue, oldValue);
             }
-
             this._unwatch = viewModel.$watch(expression, this._update, this.isDeepWatch, false);
             this._isDynamic = true;
         }
@@ -302,16 +293,13 @@ namespace drunk {
             if (typeof this["release"] === "function") {
                 this["release"]();
             }
-
             if (this._unwatch) {
                 this._unwatch();
             }
 
             Binding.removeWeakRef(this.element, this);
             delete Binding.instancesById[util.uniqueId(this)];
-
             this._unwatch = this._update = this.element = this.expression = this.viewModel = null;
-
             this._isActived = false;
         }
 

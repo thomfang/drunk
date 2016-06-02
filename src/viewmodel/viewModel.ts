@@ -169,7 +169,7 @@ namespace drunk {
                 value = this._model[property];
             }
 
-            if (util.proxy(this, property, this._model)) {
+            if (util.createProxy(this, property, this._model)) {
                 this._model.$set(property, value);
             }
             this._proxyProps[property] = true;

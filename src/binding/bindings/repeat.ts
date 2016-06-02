@@ -71,7 +71,7 @@ namespace drunk {
          */
         protected __proxyModel(model: IModel) {
             Object.keys(model).forEach((property) => {
-                util.proxy(this, property, model);
+                util.createProxy(this, property, model);
             });
 
             if (!this._models) {
@@ -85,7 +85,7 @@ namespace drunk {
          * 重写代理方法,顺便也让父级viewModel代理该属性
          */
         $proxy(property: string) {
-            if (util.proxy(this, property, this._model)) {
+            if (util.createProxy(this, property, this._model)) {
                 this._parent.$proxy(property);
             }
         }

@@ -13,12 +13,12 @@ describe("Binding.attr", function () {
     it("simple variable literal", function () {
         expect(binding.element.style.color).toBe("");
         
-        binding.attrName = "style";
+        binding.attribute = "style";
         binding.update("color:red;");
         
         expect(binding.element.style.color).toBe("red");
         
-        binding.attrName = "class";
+        binding.attribute = "class";
         binding.update("a b");
         
         expect(binding.element.className).toBe("a b");

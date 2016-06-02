@@ -73,11 +73,11 @@ describe("util", function () {
         expect(array.length).toBe(3);
     });
 
-    it("proxy", function () {
+    it("createProxy", function () {
         var src = {};
         var des = {};
 
-        var res = util.proxy(des, 'a', src);
+        var res = util.createProxy(des, 'a', src);
 
         expect(res).toBe(true);
 
@@ -86,7 +86,7 @@ describe("util", function () {
         expect(des.a).toBe(123);
         expect(src.a).toBe(123);
 
-        res = util.proxy(des, 'a', src);
+        res = util.createProxy(des, 'a', src);
 
         expect(res).toBe(false);
     });

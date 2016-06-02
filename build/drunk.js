@@ -584,7 +584,7 @@ var drunk;
          * @param   source    源对象
          * @return            如果已经代理过,则不再代理该属性
          */
-        function proxy(target, property, source) {
+        function createProxy(target, property, source) {
             if (hasProxy(target, property)) {
                 return false;
             }
@@ -602,7 +602,7 @@ var drunk;
             });
             return true;
         }
-        util.proxy = proxy;
+        util.createProxy = createProxy;
         /**
          * 创建一个异步工作
          * @param   work       回调函数
@@ -2345,11 +2345,6 @@ var drunk;
                 util.removeArrayItem(element[refKey], util.uniqueId(binding));
             }
         };
-        /**
-         * 根据一个绑定原型对象注册一个binding指令
-         * @param   name  指令名
-         * @param   def   binding实现的定义对象或绑定的更新函数
-         */
         Binding.register = function (name, definition) {
             definition.priority = definition.priority || Binding.Priority.normal;
             if (definition.isTerminal) {
@@ -2371,8 +2366,8 @@ var drunk;
                 definition = ctor;
             }
             if (Binding.definitions[name]) {
-                console.warn(name, "\u7ED1\u5B9A\u539F\u5DF2\u5B9A\u4E49\u4E3A\uFF1A", Binding.definitions[name]);
-                console.warn("\u66FF\u6362\u4E3A", definition);
+                console.warn(name, "\u7ED1\u5B9A\u539F\u5DF2\u5B9A\u4E49\u4E3A: ", Binding.definitions[name]);
+                console.warn("\u66FF\u6362\u4E3A: ", definition);
             }
             Binding.definitions[name] = definition;
         };
@@ -2398,6 +2393,9 @@ var drunk;
          */
         Binding.create = function (viewModel, element, descriptor, parentViewModel, placeholder) {
             var Ctor = Binding.definitions[descriptor.name];
+            if (!Ctor.retainAttribute && element.removeAttribute) {
+                element.removeAttribute(drunk.config.prefix + descriptor.name);
+            }
             var binding = new Ctor(viewModel, element, descriptor);
             util.addArrayItem(viewModel._bindings, binding);
             Binding.setWeakRef(element, binding);
@@ -2410,7 +2408,8 @@ var drunk;
          * @param   priority  绑定的优先级
          */
         Binding._setTernimalBinding = function (name, priority) {
-            // 检测是否已经存在该绑定
+            // 检测是否已经存在该binding
+            // 如果存在则更新该binding的优先级
             for (var i = 0, item = void 0; item = terminalBindingDescriptors[i]; i++) {
                 if (item.name === name) {
                     item.priority = priority;
@@ -2418,13 +2417,10 @@ var drunk;
                 }
             }
             // 添加到列表中
-            terminalBindingDescriptors.push({
-                name: name,
-                priority: priority
-            });
             // 重新根据优先级排序
+            // 更新terminal bindings列表
+            terminalBindingDescriptors.push({ name: name, priority: priority });
             terminalBindingDescriptors.sort(function (a, b) { return b.priority - a.priority; });
-            // 更新名字列表
             terminalBindings = terminalBindingDescriptors.map(function (item) { return item.name; });
         };
         /**
@@ -2639,7 +2635,7 @@ var drunk;
             if (value === undefined) {
                 value = this._model[property];
             }
-            if (util.proxy(this, property, this._model)) {
+            if (util.createProxy(this, property, this._model)) {
                 this._model.$set(property, value);
             }
             this._proxyProps[property] = true;
@@ -3333,9 +3329,6 @@ var drunk;
 /// <reference path="../util/dom.ts" />
 /// <reference path="../config/config.ts" />
 /// <reference path="../parser/parser.ts" />
-/**
- * 模板工具模块， 提供编译创建绑定，模板加载的工具方法
- */
 var drunk;
 (function (drunk) {
     var Template;
@@ -3344,248 +3337,200 @@ var drunk;
         var util = drunk.util;
         var config = drunk.config;
         var Parser = drunk.Parser;
-        /**
-         * 编译模板元素生成绑定方法
-         * @param   node        模板元素
-         * @param   isRootNode  是否是根元素
-         * @return              绑定元素与viewModel的方法
-         */
+        var Binding = drunk.Binding;
+        var componentName = config.prefix + 'component';
+        var noop = function () { };
         function compile(node) {
             var isArray = Array.isArray(node);
-            var executor = isArray || node.nodeType === 11 ? null : compileNode(node);
-            var isTerminal = executor && executor.isTerminal;
-            var childExecutor;
+            var bindingDesc;
             if (isArray) {
-                executor = compileNodeList(node);
+                bindingDesc = createBindingDescriptorList(node);
             }
-            else if (!isTerminal && isNeedCompileChild(node)) {
-                childExecutor = compileNodeList(node.childNodes);
+            else {
+                bindingDesc = createBindingDescriptor(node);
             }
-            return function (viewModel, element, ownerViewModel, placeholder) {
+            return function (viewModel, node, owner, placeholder) {
+                if (!bindingDesc) {
+                    return noop;
+                }
                 var allBindings = viewModel._bindings;
-                var startIndex = allBindings.length;
-                var bindingList;
-                if (executor) {
-                    executor(viewModel, element, ownerViewModel, placeholder);
+                var beginOffset = allBindings.length;
+                var newBindings;
+                if (isArray) {
+                    bindNodeList(viewModel, node, bindingDesc, owner, placeholder);
                 }
-                if (childExecutor) {
-                    childExecutor(viewModel, element.childNodes, ownerViewModel, placeholder);
+                else if (bindingDesc) {
+                    bindNode(viewModel, node, bindingDesc, owner, placeholder);
                 }
-                bindingList = viewModel._bindings.slice(startIndex);
-                bindingList.forEach(function (binding) { return binding.$execute(); });
+                newBindings = viewModel._bindings.slice(beginOffset);
+                newBindings.forEach(function (binding) { return binding.$execute(); });
                 return function () {
-                    bindingList.forEach(function (binding) {
-                        binding.$dispose();
-                    });
-                    startIndex = allBindings.indexOf(bindingList[0]);
-                    allBindings.splice(startIndex, bindingList.length);
+                    newBindings.forEach(function (binding) { return binding.$dispose(); });
+                    beginOffset = allBindings.indexOf(newBindings[0]);
+                    allBindings.splice(beginOffset, newBindings.length);
                 };
             };
         }
         Template.compile = compile;
-        /**
-         *  判断元素是什么类型,调用相应的类型编译方法
-         */
-        function compileNode(node) {
+        function createBindingDescriptor(node) {
             var nodeType = node.nodeType;
-            if (nodeType === 1 && node.tagName !== "SCRIPT") {
-                // 如果是元素节点
-                return compileElement(node);
+            var bindingDesc;
+            if (nodeType === 1) {
+                bindingDesc = createElementBindingDescriptor(node);
             }
-            if (nodeType === 3) {
-                // 如果是textNode
-                return compileTextNode(node);
+            else if (nodeType === 3) {
+                bindingDesc = createTextBindingDescriptor(node);
             }
-        }
-        /**
-         *  编译NodeList
-         */
-        function compileNodeList(nodeList) {
-            var executors = [];
-            util.toArray(nodeList).forEach(function (node) {
-                var executor;
-                var childExecutor;
-                executor = compileNode(node);
-                if (!(executor && executor.isTerminal) && isNeedCompileChild(node)) {
-                    childExecutor = compileNodeList(node.childNodes);
+            if (!(bindingDesc && bindingDesc.isTerminal) && isNeedCompileChildNodes(node)) {
+                var children = createBindingDescriptorList(util.toArray(node.childNodes));
+                if (children) {
+                    bindingDesc = bindingDesc || {};
+                    bindingDesc.children = children;
                 }
-                executors.push(executor, childExecutor);
+            }
+            return bindingDesc;
+        }
+        Template.createBindingDescriptor = createBindingDescriptor;
+        function createBindingDescriptorList(nodeList) {
+            var hasDescriptor = false;
+            var descriptorList = nodeList.map(function (node) {
+                var bindingDesc = createBindingDescriptor(node);
+                if (bindingDesc != null) {
+                    hasDescriptor = true;
+                }
+                return bindingDesc;
             });
-            if (executors.length > 1) {
-                return function (viewModel, nodes, ownerViewModel, placeholder) {
-                    if (nodes.length * 2 !== executors.length) {
-                        return console.error("\u521B\u5EFABinding\u4E4B\u524D,\u8282\u70B9\u5DF2\u7ECF\u88AB\u52A8\u6001\u4FEE\u6539", viewModel, nodes);
-                    }
-                    var i = 0;
-                    var nodeExecutor;
-                    var childExecutor;
-                    util.toArray(nodes).forEach(function (node) {
-                        nodeExecutor = executors[i++];
-                        childExecutor = executors[i++];
-                        if (nodeExecutor) {
-                            nodeExecutor(viewModel, node, ownerViewModel, placeholder);
-                        }
-                        if (childExecutor) {
-                            childExecutor(viewModel, node.childNodes, ownerViewModel, placeholder);
-                        }
-                    });
-                };
-            }
+            return hasDescriptor ? descriptorList : undefined;
         }
-        /**
-         *  判断是否可以编译childNodes
-         */
-        function isNeedCompileChild(node) {
-            return node.tagName !== 'SCRIPT' && node.hasChildNodes();
+        Template.createBindingDescriptorList = createBindingDescriptorList;
+        function createElementBindingDescriptor(element) {
+            if (element.tagName.toLowerCase().indexOf('-') > 0) {
+                element.setAttribute(componentName, element.tagName.toLowerCase());
+            }
+            return createTerminalBindingDescriptor(element) || createNormalBindingDescriptor(element);
         }
-        /**
-         *  编译元素的绑定并创建绑定描述符
-         */
-        function compileElement(element) {
-            var executor;
-            var tagName = element.tagName.toLowerCase();
-            if (tagName.indexOf('-') > 0) {
-                element.setAttribute(config.prefix + 'component', tagName);
-            }
-            if (element.hasAttributes()) {
-                // 如果元素上有属性， 先判断是否存在终止型绑定指令
-                // 如果不存在则判断是否有普通的绑定指令
-                executor = processTerminalBinding(element) || processNormalBinding(element);
-            }
-            if (element.tagName.toLowerCase() === 'textarea') {
-                // 如果是textarea， 它的值有可能存在插值表达式， 比如 "the textarea value with {{some_let}}"
-                // 第一次进行绑定先换成插值表达式
-                var originExecutor_1 = executor;
-                executor = function (viewModel, textarea) {
-                    textarea.value = viewModel.$eval(textarea.value, true);
-                    if (originExecutor_1) {
-                        return originExecutor_1(viewModel, textarea);
-                    }
-                };
-            }
-            return executor;
-        }
-        /**
-         *  编译文本节点
-         */
-        function compileTextNode(node) {
+        function createTextBindingDescriptor(node) {
             var content = node.textContent;
             if (!Parser.hasInterpolation(content)) {
                 return;
             }
             var tokens = Parser.parseInterpolate(content, true);
             var fragment = document.createDocumentFragment();
-            var executors = [];
+            var bindings = [];
             tokens.forEach(function (token, i) {
                 if (typeof token === 'string') {
                     fragment.appendChild(document.createTextNode(token));
-                    executors[i] = null;
                 }
                 else {
                     fragment.appendChild(document.createTextNode(' '));
-                    executors[i] = createExecutor(node, {
+                    bindings[i] = {
                         name: "bind",
+                        priority: Binding.getByName('bind').priority,
                         expression: token.expression
-                    });
+                    };
                 }
             });
-            return function (viewModel, element) {
-                var frag = fragment.cloneNode(true);
-                util.toArray(frag.childNodes).forEach(function (node, i) {
-                    if (executors[i]) {
-                        executors[i](viewModel, node);
-                    }
-                });
-                dom.replace(frag, element);
-            };
+            return { bindings: bindings, fragment: fragment, isTextNode: true };
         }
-        /**
-         *  检测是否存在终止编译的绑定，比如component指令会终止当前编译过程，如果有创建绑定描述符
-         */
-        function processTerminalBinding(element) {
-            var terminals = drunk.Binding.getTerminalBindings();
-            var name;
-            var expression;
-            for (var i = 0; name = terminals[i]; i++) {
-                if (expression = element.getAttribute(config.prefix + name)) {
-                    // 如果存在该绑定
-                    return createExecutor(element, {
-                        name: name,
-                        expression: expression
-                    });
+        function createTerminalBindingDescriptor(element) {
+            var terminalBindings = Binding.getTerminalBindings();
+            for (var i = 0, name_1; name_1 = terminalBindings[i]; i++) {
+                var attrValue = element.getAttribute(config.prefix + name_1);
+                if (attrValue != null) {
+                    return {
+                        bindings: [{
+                                name: name_1,
+                                expression: attrValue,
+                                priority: Binding.getByName(name_1).priority
+                            }],
+                        isTerminal: true,
+                        execute: bindElement
+                    };
                 }
             }
         }
-        /**
-         *  查找并创建通常的绑定
-         */
-        function processNormalBinding(element) {
-            var executors = [];
-            var shouldTerminate = false;
-            util.toArray(element.attributes).forEach(function (attr) {
-                var name = attr.name;
-                var index = name.indexOf(config.prefix);
-                var expression = attr.value;
-                var executor;
-                if (index > -1 && index < name.length - 1) {
-                    // 已经注册的绑定
-                    name = name.slice(index + config.prefix.length);
-                    executor = createExecutor(element, {
-                        name: name,
-                        expression: expression
-                    });
-                    if (name === 'include') {
-                        shouldTerminate = true;
+        function createNormalBindingDescriptor(element) {
+            var bindingNodes;
+            var shouldTerminate;
+            if (element.hasAttributes()) {
+                util.toArray(element.attributes).forEach(function (attr) {
+                    var name = attr.name;
+                    var value = attr.value;
+                    var index = name.indexOf(config.prefix);
+                    var bindingNode;
+                    if (index > -1 && index < name.length - 1) {
+                        name = name.slice(index + config.prefix.length);
+                        var bind = Binding.getByName(name);
+                        if (!bind) {
+                            throw new Error((config.prefix + name) + ": \u672A\u5B9A\u4E49");
+                        }
+                        if (name === 'include') {
+                            shouldTerminate = true;
+                        }
+                        bindingNode = {
+                            name: name,
+                            expression: value,
+                            priority: bind.priority
+                        };
                     }
+                    else if (Parser.hasInterpolation(value)) {
+                        bindingNode = {
+                            name: 'attr',
+                            attribute: name,
+                            expression: value,
+                            priority: Binding.getByName('attr').priority,
+                            isInterpolate: true
+                        };
+                    }
+                    if (bindingNode) {
+                        if (!bindingNodes) {
+                            bindingNodes = [];
+                        }
+                        bindingNodes.push(bindingNode);
+                    }
+                });
+                if (bindingNodes) {
+                    bindingNodes.sort(function (a, b) { return b.priority - a.priority; });
+                    return { bindings: bindingNodes, isTerminal: shouldTerminate };
                 }
-                else if (Parser.hasInterpolation(expression)) {
-                    // 如果是在某个属性上进行插值创建一个attr的绑定
-                    executor = createExecutor(element, {
-                        name: "attr",
-                        attrName: name,
-                        expression: expression,
-                        isInterpolate: true
-                    });
+            }
+        }
+        function bindNode(viewModel, node, desc, owner, placeholder) {
+            if (desc.bindings) {
+                if (desc.isTextNode) {
+                    bindTextNode(viewModel, node, desc);
                 }
-                if (executor) {
-                    executors.push(executor);
+                else {
+                    bindElement(viewModel, node, desc, owner, placeholder);
+                }
+            }
+            if (desc.children) {
+                bindNodeList(viewModel, util.toArray(node.childNodes), desc.children, owner, placeholder);
+            }
+        }
+        function bindNodeList(viewModel, nodeList, descList, owner, placeholder) {
+            descList.forEach(function (desc, i) {
+                if (desc) {
+                    bindNode(viewModel, nodeList[i], desc, owner, placeholder);
                 }
             });
-            if (executors.length) {
-                executors.sort(function (a, b) {
-                    return b.priority - a.priority;
-                });
-                // 存在绑定
-                var executor = function (viewModel, element, ownerViewModel, placeholder) {
-                    executors.forEach(function (executor) {
-                        executor(viewModel, element, ownerViewModel, placeholder);
-                    });
-                };
-                executor.isTerminal = shouldTerminate;
-                return executor;
-            }
         }
-        /**
-         *  生成绑定描述符方法
-         */
-        function createExecutor(element, descriptor) {
-            var definition = drunk.Binding.getByName(descriptor.name);
-            var executor;
-            if (!definition) {
-                console.warn((config.prefix + descriptor.name) + ": \u8BE5Binding\u672A\u5B9A\u4E49");
-                return;
-            }
-            if (!definition.retainAttribute && element.removeAttribute) {
-                // 如果未声明保留这个绑定属性，则把它移除
-                element.removeAttribute(config.prefix + descriptor.name);
-            }
-            // util.extend(descriptor, definition);
-            executor = function (viewModel, element, ownerViewModel, placeholder) {
-                drunk.Binding.create(viewModel, element, descriptor, ownerViewModel, placeholder);
-            };
-            executor.isTerminal = definition.isTerminal;
-            executor.priority = definition.priority;
-            return executor;
+        function bindElement(viewModel, element, desc, owner, placeholder) {
+            desc.bindings.forEach(function (descriptor) {
+                Binding.create(viewModel, element, descriptor, owner, placeholder);
+            });
+        }
+        function bindTextNode(viewModel, node, desc) {
+            var fragment = desc.fragment.cloneNode(true);
+            util.toArray(fragment.childNodes).forEach(function (node, i) {
+                if (desc.bindings[i]) {
+                    Binding.create(viewModel, node, desc.bindings[i]);
+                }
+            });
+            dom.replace(fragment, node);
+        }
+        function isNeedCompileChildNodes(node) {
+            return node.tagName && node.tagName.toLowerCase() !== 'script' && node.childNodes.length > 0;
         }
     })(Template = drunk.Template || (drunk.Template = {}));
 })(drunk || (drunk = {}));
@@ -3688,7 +3633,7 @@ var drunk;
             return Template.load(href).then(function (template) {
                 dom.html(htmlDoc.documentElement, template);
                 htmlDoc.head.appendChild(base);
-                return processDocument(htmlDoc, href);
+                return processDocument(htmlDoc, base.href);
             });
         }
         /**
@@ -4270,9 +4215,9 @@ var drunk;
         }
         AttributeBinding.prototype.update = function (newValue) {
             var _this = this;
-            if (this.attrName) {
+            if (this.attribute) {
                 // 如果有提供指定的属性名
-                this._setAttribute(this.attrName, newValue);
+                this._setAttribute(this.attribute, newValue);
             }
             else if (util.isObject(newValue)) {
                 Object.keys(newValue).forEach(function (name) {
@@ -4454,7 +4399,7 @@ var drunk;
         RepeatItem.prototype.__proxyModel = function (model) {
             var _this = this;
             Object.keys(model).forEach(function (property) {
-                util.proxy(_this, property, model);
+                util.createProxy(_this, property, model);
             });
             if (!this._models) {
                 this._models = [];
@@ -4465,7 +4410,7 @@ var drunk;
          * 重写代理方法,顺便也让父级viewModel代理该属性
          */
         RepeatItem.prototype.$proxy = function (property) {
-            if (util.proxy(this, property, this._model)) {
+            if (util.createProxy(this, property, this._model)) {
                 this._parent.$proxy(property);
             }
         };

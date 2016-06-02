@@ -9,12 +9,12 @@ namespace drunk {
     @binding('attr')
     class AttributeBinding extends Binding implements IBindingDefinition {
 
-        attrName: string;
+        attribute: string;
 
         update(newValue: any) {
-            if (this.attrName) {
+            if (this.attribute) {
                 // 如果有提供指定的属性名
-                this._setAttribute(this.attrName, newValue);
+                this._setAttribute(this.attribute, newValue);
             }
             else if (util.isObject(newValue)) {
                 Object.keys(newValue).forEach(name => {

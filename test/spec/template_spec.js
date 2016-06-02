@@ -50,7 +50,7 @@ describe("Template", function () {
 
             expect(vm._bindings.length).toBe(1);
             expect(vm._bindings[0].name).toBe("attr");
-            expect(vm._bindings[0].attrName).toBe("class");
+            expect(vm._bindings[0].attribute).toBe("class");
 
             vm.color = "black";
 
@@ -61,10 +61,10 @@ describe("Template", function () {
         });
 
         it("compile nodeList", function () {
-            var nodeList = document.createDocumentFragment();
+            var nodeList = [];
 
             for (var i = 0; i < 5; i++) {
-                nodeList.appendChild(dom.create("<div id='" + i + "' drunk-class='a'></div>"));
+                nodeList.push(dom.create("<div id='" + i + "' drunk-class='a'></div>"));
             }
 
             var bindExecutor = compile(nodeList);

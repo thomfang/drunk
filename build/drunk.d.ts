@@ -150,7 +150,7 @@ declare namespace drunk.util {
      * @param   source    源对象
      * @return            如果已经代理过,则不再代理该属性
      */
-    function proxy(target: any, property: string, source: any): boolean;
+    function createProxy(target: any, property: string, source: any): boolean;
     interface IAsyncJob {
         completed: boolean;
         cancel(): void;
@@ -665,25 +665,17 @@ declare namespace drunk {
         priority?: number;
         retainAttribute?: boolean;
         expression?: string;
-        attrName?: string;
+        attribute?: string;
         init?(parentViewModel?: ViewModel, placeholder?: HTMLElement): void;
         update?(newValue: any, oldValue: any): void;
         release?(): void;
     }
-    interface BindingConstructor {
+    interface IBindingConstructor {
         new (...args: any[]): Binding;
         isDeepWatch?: boolean;
         isTerminal?: boolean;
         priority?: number;
         retainAttribute?: boolean;
-    }
-    /**
-     * 绑定实例构建函数接口
-     */
-    interface IBindingExecutor {
-        (viewModel: ViewModel, element: any, parentViewModel?: ViewModel, placeHolder?: HTMLElement): any;
-        isTerminal?: boolean;
-        priority?: number;
     }
     /**
      * 元素与viewModel绑定创建的函数接口
@@ -697,7 +689,7 @@ declare namespace drunk {
     interface IBindingAction {
         (newValue: any, oldValue: any): any;
     }
-    function binding(name: string): (constructor: BindingConstructor) => void;
+    function binding(name: string): (constructor: IBindingConstructor) => void;
     /**
      * 绑定类
      */
@@ -705,14 +697,12 @@ declare namespace drunk {
         viewModel: Component;
         element: any;
         /** 实例 */
-        static instancesById: {
-            [id: number]: Binding;
-        };
+        private static instancesById;
         /**
          * 缓存的所有绑定声明的表
          */
         static definitions: {
-            [name: string]: BindingConstructor;
+            [name: string]: IBindingConstructor;
         };
         /**
          * 获取元素的所有绑定实例
@@ -736,13 +726,14 @@ declare namespace drunk {
          * @param   name  指令名
          * @param   def   binding实现的定义对象或绑定的更新函数
          */
-        static register<T extends IBindingDefinition>(name: string, definition: T | BindingConstructor): void;
+        static register<T extends IBindingDefinition>(name: string, definition: T): void;
+        static register(name: string, IBindingConstructor: any): void;
         /**
          * 根据绑定名获取绑定的定义
          * @param   name      绑定的名称
          * @return            具有绑定定义信息的对象
          */
-        static getByName(name: string): BindingConstructor;
+        static getByName(name: string): IBindingConstructor;
         /**
          * 获取已经根据优先级排序的终止型绑定的名称列表
          * @return 返回绑定名称列表
@@ -1105,17 +1096,48 @@ declare namespace drunk.dom {
         };
     }): void;
 }
-/**
- * 模板工具模块， 提供编译创建绑定，模板加载的工具方法
- */
 declare namespace drunk.Template {
-    /**
-     * 编译模板元素生成绑定方法
-     * @param   node        模板元素
-     * @param   isRootNode  是否是根元素
-     * @return              绑定元素与viewModel的方法
-     */
-    function compile(node: any): IBindingGenerator;
+    type BindingNode = {
+        name: string;
+        expression: string;
+        priority: number;
+        attribute?: string;
+        isInterpolate?: boolean;
+    };
+    type BindingDescriptor = {
+        bindings?: BindingNode[];
+        children?: BindingDescriptor[];
+        fragment?: DocumentFragment;
+        isTerminal?: boolean;
+        isTextNode?: boolean;
+    };
+    function compile(node: Node | Node[]): (viewModel: ViewModel, node: Node | Node[], owner?: ViewModel, placeholder?: HTMLElement) => () => void;
+    function createBindingDescriptor(node: Node): {
+        bindings?: {
+            name: string;
+            expression: string;
+            priority: number;
+            attribute?: string;
+            isInterpolate?: boolean;
+        }[];
+        children?: BindingDescriptor[];
+        fragment?: DocumentFragment;
+        isTerminal?: boolean;
+        isTextNode?: boolean;
+    };
+    function createBindingDescriptorList(nodeList: Node[]): {
+        bindings?: {
+            name: string;
+            expression: string;
+            priority: number;
+            attribute?: string;
+            isInterpolate?: boolean;
+        }[];
+        children?: BindingDescriptor[];
+        fragment?: DocumentFragment;
+        isTerminal?: boolean;
+        isTextNode?: boolean;
+    }[];
 }
 declare namespace drunk.Template {
     import Promise = drunk.Promise;
