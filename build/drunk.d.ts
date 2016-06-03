@@ -311,6 +311,7 @@ declare namespace drunk.querystring {
     function stringify(obj: Object): string;
 }
 declare namespace drunk.util {
+    import Promise = drunk.Promise;
     /**
      * ajax方法参数接口
      */
@@ -1025,6 +1026,7 @@ declare namespace drunk {
  * DOM操作的工具方法模块
  */
 declare namespace drunk.dom {
+    import Promise = drunk.Promise;
     /**
      * 根据提供的html字符串创建html元素
      * @param   html  html字符串
@@ -1145,9 +1147,9 @@ declare namespace drunk.Template {
      * 加载模板，先尝试从指定ID的标签上查找，找不到再作为url发送ajax请求，
      * 加载到的模板字符串会进行缓存
      * @param    urlOrId  script模板标签的id或模板的url地址
-     * @returns           一个Promise 对象,Promise的返回值为模板字符串
+     * @returns           Promise 对象,Promise的返回值为模板字符串
      */
-    function load(urlOrId: string): Promise<string>;
+    function load(urlOrId: string, useCache?: boolean): Promise<string>;
 }
 declare namespace drunk.Template {
     import Promise = drunk.Promise;

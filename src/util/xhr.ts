@@ -4,6 +4,7 @@
 
 namespace drunk.util {
 
+    import Promise = drunk.Promise;
     import querystring = drunk.querystring;
 
     /**

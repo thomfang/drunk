@@ -13,24 +13,24 @@ namespace drunk.Template {
      * 加载模板，先尝试从指定ID的标签上查找，找不到再作为url发送ajax请求，
      * 加载到的模板字符串会进行缓存
      * @param    urlOrId  script模板标签的id或模板的url地址 
-     * @returns           一个Promise 对象,Promise的返回值为模板字符串
+     * @returns           Promise 对象,Promise的返回值为模板字符串
      */
-    export function load(urlOrId: string): Promise<string> {
-        let template = cacheStore.get(urlOrId);
+    export function load(urlOrId: string, useCache: boolean = true): Promise<string> {
+        var template = cacheStore.get(urlOrId);
 
-        if (template != null) {
+        if (template != null && useCache) {
             return Promise.resolve(template);
         }
         
-        let node = document.getElementById(urlOrId);
+        var node = document.getElementById(urlOrId);
         if (node && node.innerHTML) {
             template = node.innerHTML;
             cacheStore.set(urlOrId, template);
             return Promise.resolve(template);
         }
         
-        let promise: Promise<string> = util.ajax<string>({url: urlOrId});
-        promise.then(result => {
+        var promise: Promise<string> = util.ajax<string>({url: urlOrId});
+        promise.done(result => {
             cacheStore.set(urlOrId, result);
         });
         cacheStore.set(urlOrId, promise);

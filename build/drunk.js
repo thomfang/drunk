@@ -973,6 +973,7 @@ var drunk;
 (function (drunk) {
     var util;
     (function (util) {
+        var Promise = drunk.Promise;
         var querystring = drunk.querystring;
         // const FORM_DATA_CONTENT_TYPE = 'application/x-www-form-urlencoded; charset=UTF-8';
         var schemeRegex = /^(\w+)\:\/\//;
@@ -985,7 +986,7 @@ var drunk;
             if (typeof options.url !== 'string' || !options.url) {
                 throw new Error("ajax(options):options.url\u672A\u63D0\u4F9B\u6216\u4E0D\u5408\u6CD5");
             }
-            return new drunk.Promise(function (resolve, reject) {
+            return new Promise(function (resolve, reject) {
                 var url = options.url;
                 var type = (options.type || 'GET').toUpperCase();
                 var headers = options.headers || {};
@@ -3142,6 +3143,7 @@ var drunk;
     var dom;
     (function (dom) {
         var config = drunk.config;
+        var Promise = drunk.Promise;
         /**
          * 根据提供的html字符串创建html元素
          * @param   html  html字符串
@@ -3177,10 +3179,6 @@ var drunk;
         function createFlagNode(content) {
             var node = config.debug ? document.createComment(content) : document.createTextNode(' ');
             node['flag'] = content;
-            // if (config.debug) {
-            //     return document.createComment(content);
-            // }
-            // return document.createTextNode(' ');
             return node;
         }
         dom.createFlagNode = createFlagNode;
@@ -3231,9 +3229,9 @@ var drunk;
          */
         function remove(target) {
             if (Array.isArray(target)) {
-                return drunk.Promise.all(target.map(function (node) { return removeAfterActionEnd(node); }));
+                return Promise.all(target.map(function (node) { return removeAfterActionEnd(node); }));
             }
-            return drunk.Promise.resolve(removeAfterActionEnd(target));
+            return Promise.resolve(removeAfterActionEnd(target));
         }
         dom.remove = remove;
         function removeAfterActionEnd(node) {
@@ -3548,12 +3546,17 @@ var drunk;
          * 加载模板，先尝试从指定ID的标签上查找，找不到再作为url发送ajax请求，
          * 加载到的模板字符串会进行缓存
          * @param    urlOrId  script模板标签的id或模板的url地址
-         * @returns           一个Promise 对象,Promise的返回值为模板字符串
+         * @returns           Promise 对象,Promise的返回值为模板字符串
          */
-        function load(urlOrId) {
+        function load(urlOrId, useCache) {
+            if (useCache === void 0) { useCache = true; }
             var template = cacheStore.get(urlOrId);
-            if (template != null) {
+            if (template != null && useCache) {
                 return Promise.resolve(template);
+            }
+            if (template && typeof template.cancel === 'function') {
+                template.cancel();
+                cacheStore.set(urlOrId, null);
             }
             var node = document.getElementById(urlOrId);
             if (node && node.innerHTML) {
@@ -3562,7 +3565,7 @@ var drunk;
                 return Promise.resolve(template);
             }
             var promise = drunk.util.ajax({ url: urlOrId });
-            promise.then(function (result) {
+            promise.done(function (result) {
                 cacheStore.set(urlOrId, result);
             });
             cacheStore.set(urlOrId, promise);
@@ -3620,7 +3623,7 @@ var drunk;
         /**
          * 创建一个htmlDocument并加载模板
          */
-        function populateDocument(href) {
+        function populateDocument(url) {
             initialize();
             var htmlDoc = document.implementation.createHTMLDocument("frag");
             var base = htmlDoc.createElement("base");
@@ -3628,9 +3631,9 @@ var drunk;
             htmlDoc.head.appendChild(base);
             htmlDoc.body.appendChild(anchor);
             base.href = document.location.href;
-            anchor.setAttribute("href", href);
+            anchor.setAttribute("href", url);
             base.href = anchor.href;
-            return Template.load(href).then(function (template) {
+            return Template.load(url, false).then(function (template) {
                 dom.html(htmlDoc.documentElement, template);
                 htmlDoc.head.appendChild(base);
                 return processDocument(htmlDoc, base.href);
@@ -3639,15 +3642,15 @@ var drunk;
         /**
          * 处理模板的资源
          */
-        function processDocument(htmlDoc, href) {
+        function processDocument(htmlDoc, url) {
             var body = htmlDoc.body;
             var lastNonInlineScriptPromise = Promise.resolve();
             var scopedClassList = [];
             var promiseList = [];
             util.toArray(htmlDoc.querySelectorAll('link[type="text/css"], link[rel="stylesheet"]')).forEach(function (e) { return addLink(e, scopedClassList); });
-            util.toArray(htmlDoc.getElementsByTagName('style')).forEach(function (styleTag, index) { return addStyle(styleTag, href, index, scopedClassList); });
+            util.toArray(htmlDoc.getElementsByTagName('style')).forEach(function (styleTag, index) { return addStyle(styleTag, url, index, scopedClassList); });
             util.toArray(htmlDoc.getElementsByTagName('script')).forEach(function (scriptTag, index) {
-                var result = addScript(scriptTag, href, index, lastNonInlineScriptPromise);
+                var result = addScript(scriptTag, url, index, lastNonInlineScriptPromise);
                 if (result) {
                     if (!result.inline) {
                         lastNonInlineScriptPromise = result.promise;
@@ -3659,9 +3662,9 @@ var drunk;
             util.toArray(htmlDoc.getElementsByTagName('a')).forEach(function (a) {
                 // href为#开头的不用去更新属性
                 if (a.href !== '') {
-                    var href_1 = a.getAttribute('href');
-                    if (href_1 && href_1[0] !== '#') {
-                        a.href = href_1;
+                    var href = a.getAttribute('href');
+                    if (href && href[0] !== '#') {
+                        a.href = href;
                     }
                 }
             });

@@ -8,6 +8,7 @@
 namespace drunk.dom {
     
     import config = drunk.config;
+    import Promise = drunk.Promise;
 
     /**
      * 根据提供的html字符串创建html元素
@@ -47,10 +48,6 @@ namespace drunk.dom {
     export function createFlagNode(content: string): Node {
         let node = config.debug ? document.createComment(content) : document.createTextNode(' ');
         node['flag'] = content;
-        // if (config.debug) {
-        //     return document.createComment(content);
-        // }
-        // return document.createTextNode(' ');
         return node;
     }
 

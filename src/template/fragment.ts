@@ -52,7 +52,7 @@ namespace drunk.Template {
     /**
      * 创建一个htmlDocument并加载模板
      */
-    function populateDocument(href: string) {
+    function populateDocument(url: string) {
         initialize();
 
         let htmlDoc = document.implementation.createHTMLDocument("frag");
@@ -63,10 +63,10 @@ namespace drunk.Template {
         htmlDoc.body.appendChild(anchor);
 
         base.href = document.location.href;
-        anchor.setAttribute("href", href);
+        anchor.setAttribute("href", url);
         base.href = anchor.href;
         
-        return load(href).then((template) => {
+        return load(url, false).then((template) => {
             dom.html(htmlDoc.documentElement, template);
             htmlDoc.head.appendChild(base);
             return processDocument(htmlDoc, base.href);
@@ -76,17 +76,17 @@ namespace drunk.Template {
     /**
      * 处理模板的资源
      */
-    function processDocument(htmlDoc: Document, href: string) {
+    function processDocument(htmlDoc: Document, url: string) {
         let body = htmlDoc.body;
         let lastNonInlineScriptPromise = Promise.resolve();
         let scopedClassList: string[] = [];
         let promiseList = [];
 
         util.toArray(htmlDoc.querySelectorAll('link[type="text/css"], link[rel="stylesheet"]')).forEach(e => addLink(e, scopedClassList));
-        util.toArray(htmlDoc.getElementsByTagName('style')).forEach((styleTag, index) => addStyle(styleTag, href, index, scopedClassList));
+        util.toArray(htmlDoc.getElementsByTagName('style')).forEach((styleTag, index) => addStyle(styleTag, url, index, scopedClassList));
 
         util.toArray(htmlDoc.getElementsByTagName('script')).forEach((scriptTag, index) => {
-            let result = addScript(scriptTag, href, index, lastNonInlineScriptPromise);
+            let result = addScript(scriptTag, url, index, lastNonInlineScriptPromise);
             if (result) {
                 if (!result.inline) {
                     lastNonInlineScriptPromise = result.promise;
