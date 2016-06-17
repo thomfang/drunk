@@ -1,5 +1,4 @@
 /// <reference path="../../build/drunk.d.ts" />
-/// <reference path="../Scheduler/Scheduler.d.ts" />
 
 /**
  * <body>
@@ -28,12 +27,11 @@ namespace drunk {
     import util = drunk.util;
     import Component = drunk.Component;
     import RepeatItem = drunk.RepeatItem;
-    import Scheduler = drunk.Scheduler;
     import Template = drunk.Template;
     import Promise = drunk.Promise;
 
     type ItemDeclaration = {
-        viewmodel: drunk.Component;
+        viewmodel: RepeatItem;
         placeholder: HTMLElement;
         renderred: boolean;
         isUsed?: boolean;
@@ -81,6 +79,8 @@ namespace drunk {
         private _footerSize: { width: number; height: number; };
         private _headerContainer: HTMLElement;
         private _footerContainer: HTMLElement;
+
+        private _unloadedImages: { img: HTMLImageElement; src: string }[] = [];
 
         private _beginOffset: number; // 开始渲染的item的下标
         private _renderCount: number; // 可以渲染的item个数
@@ -206,7 +206,7 @@ namespace drunk {
             this._itemsMap.clear();
             this._renderHiddenItemsPromise = this._renderVisibleItemsJob = null;
             this._itemTemplate = this._itemContainer = this._headerContainer = this._footerContainer = this._unbinds = this._bind = this._owner = this._itemsMap = null;
-            this._onResizeHandler = this._onScrollHandler = null;
+            this._onResizeHandler = this._onScrollHandler = this._unloadedImages = null;
             super.$release();
         }
 
@@ -439,6 +439,7 @@ namespace drunk {
             }
 
             this._renderVisibleItems();
+            this._renderImages();
             this._renderHiddenItems();
         }
 
@@ -490,6 +491,12 @@ namespace drunk {
             if (!item.renderred) {
                 if (!item.isBinded) {
                     this._bind(item.viewmodel, item.viewmodel.element);
+                    util.toArray((item.viewmodel.element as HTMLElement).querySelectorAll('img[src]')).forEach((img: HTMLImageElement) => {
+                        if (img.src && img.src.indexOf('#') === -1) {
+                            this._unloadedImages.push({ img, src: img.src });
+                            img.removeAttribute('src');
+                        }
+                    });
                     item.isBinded = true;
                 }
                 dom.replace(item.viewmodel.element, item.placeholder);
@@ -505,6 +512,32 @@ namespace drunk {
                 }
                 item.renderred = false;
             }
+        }
+
+        private _renderImages() {
+            Scheduler.schedule(() => {
+                this._unloadedImages.slice().forEach(options => {
+                    if (this._shouldRenderImage(options)) {
+                        util.removeArrayItem(this._unloadedImages, options);
+                    }
+                });
+            });
+        }
+
+        private _shouldRenderImage(options: { img: HTMLImageElement; src: string }) {
+            var img = options.img;
+            var src = options.src;
+            if (!document.body.contains(img)) {
+                return false;
+            }
+
+            var imgRect = img.getBoundingClientRect();
+            var bodyRect = document.body.getBoundingClientRect();
+            if (imgRect.left >= 0 && imgRect.right <= bodyRect.width && imgRect.top >= 0 && imgRect.bottom <= bodyRect.height) {
+                img.setAttribute('src', src);
+                return true;
+            }
+            return false;
         }
 
         private _checkScroller() {

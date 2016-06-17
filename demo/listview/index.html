@@ -1,0 +1,94 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="initial-scale=1" />
+    <title>drunk ListView - demo</title>
+    <script src="../../build/drunk.js"></script>
+    <script src="../../components/scheduler/scheduler.js"></script>
+    <script src="../../components/listview/listview.js"></script>
+
+    <style>
+        html,
+        body {
+            height: 100%;
+            overflow: hidden;
+        }
+        
+        * {
+            padding: 0;
+            margin: 0
+        }
+        
+        .list-view {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .smallListIconTextItem {
+            width: 100%;
+            height: 70px;
+            /*padding: 5px;*/
+            overflow: hidden;
+        }
+        
+        .smallListIconTextItem img.smallListIconTextItem-Image {
+            width: 60px;
+            height: 60px;
+            margin: 5px;
+            margin-right: 20px;
+            float: left;
+        }
+        
+        .smallListIconTextItem .smallListIconTextItem-Detail {
+            margin: 5px;
+            float: left;
+        }
+        
+        .listLayoutTopHeaderTemplateRoot,
+        .gridLayoutLeftHeaderTemplateRoot {
+            font-size: larger;
+            margin-left: 16px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <list-view item-data-source="{{list}}" scroll-to-item="{{locatedIndex}}">
+        <list-view-item>
+            <div class="smallListIconTextItem">
+                <img class="smallListIconTextItem-Image" drunk-attr="{src: $item.picture}" />
+                <div class="smallListIconTextItem-Detail">
+                    <h4 class="win-h4" drunk-bind="$item.title"></h4>
+                    <h6 class="win-h6" drunk-bind="$item.text"></h6>
+                </div>
+            </div>
+        </list-view-item>
+    </list-view>
+
+    <script>
+        var list = [
+                { title: "Marvelous Mint", text: "Gelato", picture: "img/60Mint.png" },
+                { title: "Succulent Strawberry", text: "Sorbet", picture: "img/60Strawberry.png" },
+                { title: "Banana Blast", text: "Low-fat frozen yogurt", picture: "img/60Banana.png" },
+                { title: "Lavish Lemon Ice", text: "Sorbet", picture: "img/60Lemon.png" },
+                { title: "Creamy Orange", text: "Sorbet", picture: "img/60Orange.png" },
+                { title: "Very Vanilla", text: "Ice Cream", picture: "img/60Vanilla.png" },
+                { title: "Banana Blast", text: "Low-fat frozen yogurt", picture: "img/60Banana.png" },
+                { title: "Lavish Lemon Ice", text: "Sorbet", picture: "img/60Lemon.png" }
+        ];
+        var totalList = [];
+        for (var i = 0; i < 100; i++) {
+            totalList.push.apply(totalList, list);
+        }
+        var view = new drunk.Component({
+            list: totalList,
+            locatedIndex: 100, // 定位到第100个item的位置
+        });
+        view.$mount(drunk.util.toArray(document.body.children));
+    </script>
+</body>
+
+</html>

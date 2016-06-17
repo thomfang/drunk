@@ -1,5 +1,4 @@
 /// <reference path="../../build/drunk.d.ts" />
-/// <reference path="../Scheduler/Scheduler.d.ts" />
 /**
  * <body>
  *   <list-view item-data-source="{{list}} scroll-to-item="{{locatedItemIndex}}">
@@ -51,6 +50,7 @@ declare namespace drunk {
         private _footerSize;
         private _headerContainer;
         private _footerContainer;
+        private _unloadedImages;
         private _beginOffset;
         private _renderCount;
         private _visibleItemCount;
@@ -96,6 +96,8 @@ declare namespace drunk {
         private _renderHiddenItems();
         private _renderVisibleItemImpl(item);
         private _renderHiddenItemImpl(item);
+        private _renderImages();
+        private _shouldRenderImage(options);
         private _checkScroller();
         private _attachEvents();
         private _detachEvents();

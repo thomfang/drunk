@@ -27,6 +27,10 @@
             var app = new drunk.Component({list: []});
             app.$mount(document.body);
             
+            drunk.Scheduler.requestDrainPromise(drunk.Scheduler.Priority.normal).done(function () {
+                app.list.push('All normal work done!');
+            })
+            
             drunk.Scheduler.schedule(function (jobInfo) {
                 var start = Date.now();
                 while (Date.now() - start < 100);

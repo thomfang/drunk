@@ -315,4 +315,4 @@ var drunk;
     ;
     drunk.Application = new RouterComponent();
 })(drunk || (drunk = {}));
-//# sourceMappingURL=application.js.map
+//# sourceMappingURL=Application.js.map

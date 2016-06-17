@@ -1,5 +1,4 @@
 /// <reference path="../../build/drunk.d.ts" />
-/// <reference path="../Scheduler/Scheduler.d.ts" />
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
@@ -37,7 +36,6 @@ var drunk;
     var util = drunk.util;
     var Component = drunk.Component;
     var RepeatItem = drunk.RepeatItem;
-    var Scheduler = drunk.Scheduler;
     var Template = drunk.Template;
     var Promise = drunk.Promise;
     var templateString = "<div class=\"list-view\"><div class=\"header-container\"></div><div class=\"item-container\"></div><div class=\"footer-container\"></div></div>";
@@ -56,6 +54,7 @@ var drunk;
             this._items = [];
             this._itemsMap = new Map();
             this._unbinds = [];
+            this._unloadedImages = [];
             this._prefetchPage = 3;
             this._currScrollPosition = 0;
             this.$watch('itemDataSource', function (newValue, oldValue) {
@@ -150,7 +149,7 @@ var drunk;
             this._itemsMap.clear();
             this._renderHiddenItemsPromise = this._renderVisibleItemsJob = null;
             this._itemTemplate = this._itemContainer = this._headerContainer = this._footerContainer = this._unbinds = this._bind = this._owner = this._itemsMap = null;
-            this._onResizeHandler = this._onScrollHandler = null;
+            this._onResizeHandler = this._onScrollHandler = this._unloadedImages = null;
             _super.prototype.$release.call(this);
         };
         /**
@@ -353,6 +352,7 @@ var drunk;
                 this._beginOffset = beginOffset;
             }
             this._renderVisibleItems();
+            this._renderImages();
             this._renderHiddenItems();
         };
         ListView.prototype._renderVisibleItems = function () {
@@ -375,7 +375,7 @@ var drunk;
                 }
                 _this._renderVisibleItemsJob = null;
             };
-            this._renderVisibleItemsJob = Scheduler.schedule(work, Scheduler.Priority.aboveNormal);
+            this._renderVisibleItemsJob = drunk.Scheduler.schedule(work, drunk.Scheduler.Priority.aboveNormal);
         };
         ListView.prototype._renderHiddenItems = function () {
             var _this = this;
@@ -395,9 +395,16 @@ var drunk;
             });
         };
         ListView.prototype._renderVisibleItemImpl = function (item) {
+            var _this = this;
             if (!item.renderred) {
                 if (!item.isBinded) {
                     this._bind(item.viewmodel, item.viewmodel.element);
+                    util.toArray(item.viewmodel.element.querySelectorAll('img[src]')).forEach(function (img) {
+                        if (img.src && img.src.indexOf('#') === -1) {
+                            _this._unloadedImages.push({ img: img, src: img.src });
+                            img.removeAttribute('src');
+                        }
+                    });
                     item.isBinded = true;
                 }
                 dom.replace(item.viewmodel.element, item.placeholder);
@@ -412,6 +419,30 @@ var drunk;
                 }
                 item.renderred = false;
             }
+        };
+        ListView.prototype._renderImages = function () {
+            var _this = this;
+            drunk.Scheduler.schedule(function () {
+                _this._unloadedImages.slice().forEach(function (options) {
+                    if (_this._shouldRenderImage(options)) {
+                        util.removeArrayItem(_this._unloadedImages, options);
+                    }
+                });
+            });
+        };
+        ListView.prototype._shouldRenderImage = function (options) {
+            var img = options.img;
+            var src = options.src;
+            if (!document.body.contains(img)) {
+                return false;
+            }
+            var imgRect = img.getBoundingClientRect();
+            var bodyRect = document.body.getBoundingClientRect();
+            if (imgRect.left >= 0 && imgRect.right <= bodyRect.width && imgRect.top >= 0 && imgRect.bottom <= bodyRect.height) {
+                img.setAttribute('src', src);
+                return true;
+            }
+            return false;
         };
         ListView.prototype._checkScroller = function () {
             var _this = this;
