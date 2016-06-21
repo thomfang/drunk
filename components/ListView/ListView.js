@@ -58,7 +58,7 @@ var drunk;
             this._prefetchPage = 3;
             this._currScrollPosition = 0;
             this.$watch('itemDataSource', function (newValue, oldValue) {
-                if (!_this._itemContainer || oldValue === undefined) {
+                if (!_this._itemContainer || !_this._isActived) {
                     return;
                 }
                 _this._updateItems();
@@ -143,11 +143,13 @@ var drunk;
         ListView.prototype.$release = function () {
             this._renderHiddenItemsPromise && this._renderHiddenItemsPromise.cancel();
             this._renderVisibleItemsJob && this._renderVisibleItemsJob.cancel();
+            this._renderImageJob && this._renderImageJob.cancel();
+            this._pendingScroll && util.cancelAnimationFrame(this._pendingScroll);
             this._detachEvents();
             this._releaseItems(this._items);
             this._unbinds.forEach(function (unbind) { return unbind(); });
             this._itemsMap.clear();
-            this._renderHiddenItemsPromise = this._renderVisibleItemsJob = null;
+            this._renderHiddenItemsPromise = this._renderVisibleItemsJob = this._renderImageJob = null;
             this._itemTemplate = this._itemContainer = this._headerContainer = this._footerContainer = this._unbinds = this._bind = this._owner = this._itemsMap = null;
             this._onResizeHandler = this._onScrollHandler = this._unloadedImages = null;
             _super.prototype.$release.call(this);
@@ -157,7 +159,7 @@ var drunk;
          */
         ListView.prototype._updateScrollPosition = function () {
             var itemIndex = this.scrollToItem;
-            if (itemIndex == null || !this._itemContainer) {
+            if (itemIndex == null || !this._itemContainer || !this._isActived) {
                 return;
             }
             this.scrollToItem = null;
@@ -304,7 +306,7 @@ var drunk;
             if (!this._inited) {
                 var itemElems = this._itemContainer.children;
                 var elem_1 = itemElems[0];
-                items.forEach(function (item) {
+                items.slice().forEach(function (item) {
                     if (!elem_1) {
                         _this._itemContainer.appendChild(item.renderred ? item.viewmodel.element : item.placeholder);
                     }
@@ -396,7 +398,7 @@ var drunk;
         };
         ListView.prototype._renderVisibleItemImpl = function (item) {
             var _this = this;
-            if (!item.renderred) {
+            if (item && !item.renderred && this._isActived) {
                 if (!item.isBinded) {
                     this._bind(item.viewmodel, item.viewmodel.element);
                     util.toArray(item.viewmodel.element.querySelectorAll('img[src]')).forEach(function (img) {
@@ -412,7 +414,7 @@ var drunk;
             }
         };
         ListView.prototype._renderHiddenItemImpl = function (item) {
-            if (item.renderred) {
+            if (item && item.renderred && this._isActived) {
                 var element = item.viewmodel.element;
                 if (element && element.parentNode) {
                     dom.replace(item.placeholder, element);
@@ -422,7 +424,11 @@ var drunk;
         };
         ListView.prototype._renderImages = function () {
             var _this = this;
-            drunk.Scheduler.schedule(function () {
+            if (this._renderImageJob || !this._isActived) {
+                return;
+            }
+            this._renderImageJob = drunk.Scheduler.schedule(function () {
+                _this._renderImageJob = null;
                 _this._unloadedImages.slice().forEach(function (options) {
                     if (_this._shouldRenderImage(options)) {
                         util.removeArrayItem(_this._unloadedImages, options);
@@ -469,7 +475,7 @@ var drunk;
         ListView.prototype._attachEvents = function () {
             var _this = this;
             this._onScrollHandler = function (e) {
-                if (!_this._pendingScroll) {
+                if (!_this._pendingScroll && _this._isActived) {
                     _this._checkScroller();
                 }
             };

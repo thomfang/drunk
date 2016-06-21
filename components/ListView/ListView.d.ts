@@ -62,6 +62,7 @@ declare namespace drunk {
         private _pendingScroll;
         private _onScrollHandler;
         private _onResizeHandler;
+        private _renderImageJob;
         private _renderVisibleItemsJob;
         private _renderHiddenItemsPromise;
         constructor();

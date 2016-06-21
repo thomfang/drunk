@@ -95,6 +95,7 @@ namespace drunk {
         private _onScrollHandler: (e) => any;
         private _onResizeHandler: (e) => any;
 
+        private _renderImageJob: Scheduler.IJob;
         private _renderVisibleItemsJob: Scheduler.IJob;
         private _renderHiddenItemsPromise: Promise<any>;
 
@@ -102,7 +103,7 @@ namespace drunk {
             super();
 
             this.$watch('itemDataSource', (newValue, oldValue) => {
-                if (!this._itemContainer || oldValue === undefined) {
+                if (!this._itemContainer || !this._isActived) {
                     return;
                 }
                 this._updateItems();
@@ -200,11 +201,13 @@ namespace drunk {
         $release() {
             this._renderHiddenItemsPromise && this._renderHiddenItemsPromise.cancel();
             this._renderVisibleItemsJob && this._renderVisibleItemsJob.cancel();
+            this._renderImageJob && this._renderImageJob.cancel();
+            this._pendingScroll && util.cancelAnimationFrame(this._pendingScroll);
             this._detachEvents();
             this._releaseItems(this._items);
             this._unbinds.forEach(unbind => unbind());
             this._itemsMap.clear();
-            this._renderHiddenItemsPromise = this._renderVisibleItemsJob = null;
+            this._renderHiddenItemsPromise = this._renderVisibleItemsJob = this._renderImageJob = null;
             this._itemTemplate = this._itemContainer = this._headerContainer = this._footerContainer = this._unbinds = this._bind = this._owner = this._itemsMap = null;
             this._onResizeHandler = this._onScrollHandler = this._unloadedImages = null;
             super.$release();
@@ -215,7 +218,7 @@ namespace drunk {
          */
         private _updateScrollPosition() {
             let itemIndex = this.scrollToItem;
-            if (itemIndex == null || !this._itemContainer) {
+            if (itemIndex == null || !this._itemContainer || !this._isActived) {
                 return;
             }
 
@@ -383,7 +386,7 @@ namespace drunk {
                 let itemElems = this._itemContainer.children;
                 let elem = itemElems[0];
 
-                items.forEach(item => {
+                items.slice().forEach(item => {
                     if (!elem) {
                         this._itemContainer.appendChild(item.renderred ? <Node>item.viewmodel.element : item.placeholder);
                     }
@@ -488,7 +491,7 @@ namespace drunk {
         }
 
         private _renderVisibleItemImpl(item: ItemDeclaration) {
-            if (!item.renderred) {
+            if (item && !item.renderred && this._isActived) {
                 if (!item.isBinded) {
                     this._bind(item.viewmodel, item.viewmodel.element);
                     util.toArray((item.viewmodel.element as HTMLElement).querySelectorAll('img[src]')).forEach((img: HTMLImageElement) => {
@@ -505,7 +508,7 @@ namespace drunk {
         }
 
         private _renderHiddenItemImpl(item: ItemDeclaration) {
-            if (item.renderred) {
+            if (item && item.renderred && this._isActived) {
                 let element = <Node>item.viewmodel.element;
                 if (element && element.parentNode) {
                     dom.replace(item.placeholder, element);
@@ -515,7 +518,12 @@ namespace drunk {
         }
 
         private _renderImages() {
-            Scheduler.schedule(() => {
+            if (this._renderImageJob || !this._isActived) {
+                return;
+            }
+
+            this._renderImageJob = Scheduler.schedule(() => {
+                this._renderImageJob = null;
                 this._unloadedImages.slice().forEach(options => {
                     if (this._shouldRenderImage(options)) {
                         util.removeArrayItem(this._unloadedImages, options);
@@ -566,7 +574,7 @@ namespace drunk {
 
         private _attachEvents() {
             this._onScrollHandler = (e: UIEvent) => {
-                if (!this._pendingScroll) {
+                if (!this._pendingScroll && this._isActived) {
                     this._checkScroller();
                 }
             };
