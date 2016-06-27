@@ -61,6 +61,7 @@ var drunk;
                 if (!_this._itemContainer || !_this._isActived) {
                     return;
                 }
+                _this._inited = false;
                 _this._updateItems();
                 _this._renderItems();
             }, true);
@@ -511,12 +512,14 @@ var drunk;
             '.list-view-virtical': {
                 'display': '-webkit-flex',
                 ' display': 'flex',
-                'flex-direction': 'column'
+                'flex-direction': 'column',
+                ' -webkit-flex-direction': 'column',
             },
             '.list-view-horizental': {
                 'display': '-webkit-flex',
                 ' display': 'flex',
-                'flex-direction': 'row'
+                'flex-direction': 'row',
+                ' -webkit-flex-direction': 'row',
             },
             '.list-view .item-container': {
                 '-webkit-overflow-scrolling': 'touch'

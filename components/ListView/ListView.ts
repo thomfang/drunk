@@ -106,6 +106,7 @@ namespace drunk {
                 if (!this._itemContainer || !this._isActived) {
                     return;
                 }
+                this._inited = false;
                 this._updateItems();
                 this._renderItems();
             }, true);
@@ -605,12 +606,14 @@ namespace drunk {
             '.list-view-virtical': {
                 'display': '-webkit-flex',
                 ' display': 'flex',
-                'flex-direction': 'column'
+                'flex-direction': 'column',
+                ' -webkit-flex-direction': 'column',
             },
             '.list-view-horizental': {
                 'display': '-webkit-flex',
                 ' display': 'flex',
-                'flex-direction': 'row'
+                'flex-direction': 'row',
+                ' -webkit-flex-direction': 'row',
             },
             '.list-view .item-container': {
                 '-webkit-overflow-scrolling': 'touch'

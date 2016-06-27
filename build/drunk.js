@@ -3554,10 +3554,6 @@ var drunk;
             if (template != null && useCache) {
                 return Promise.resolve(template);
             }
-            if (template && typeof template.cancel === 'function') {
-                template.cancel();
-                cacheStore.set(urlOrId, null);
-            }
             var node = document.getElementById(urlOrId);
             if (node && node.innerHTML) {
                 template = node.innerHTML;
