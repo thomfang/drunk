@@ -1,14 +1,18 @@
+# 介绍
+drunk是一个高性能的web前端MVVM开发框架，采用WebComponents的开发方式，提供简单易用的API，可以实现强大的自定义组件，异步组件，自定义指令以及简单易用的自定义动画等功能。
+只支持兼容ES5以上的浏览器。
+
 # 查看demo
 * 使用命令行工具或git工具拷贝本项目,比如
   ```shell
-  > git clone git@github.com:tilfon/drunk.git
+  git clone git@github.com:tilfon/drunk.git
   ```
 
 * 在项目根目录启一个静态服务器比如
 
   ```shell
-  > cd ./drunk
-  > python -m SimpleHTTPServer
+  cd ./drunk
+  python -m SimpleHTTPServer
   ```
   
   然后在浏览器中查看`/demo/`目录下的的案例
@@ -24,14 +28,14 @@
 * `drunk`源码编译，在项目根目录下使用
 
   ```shell
-  > tsc
+  tsc
   ```
   
 * 项目组件编译
 
   ```shell
-  > cd ./components
-  > tsc
+  cd ./components
+  tsc
   ```
 
 # 快速了解

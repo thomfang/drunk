@@ -191,9 +191,12 @@ namespace drunk {
             initListViewLayoutClass();
 
             this._attachEvents();
-            this._measureSize();
-            this._updateItems();
-            this._renderItems();
+
+            util.requestAnimationFrame(() => {
+                this._measureSize();
+                this._updateItems();
+                this._renderItems();
+            });
         }
 
         /**
@@ -219,16 +222,29 @@ namespace drunk {
          */
         private _updateScrollPosition() {
             let itemIndex = this.scrollToItem;
-            if (itemIndex == null || !this._itemContainer || !this._isActived) {
+            if (itemIndex == null || !this._itemContainer || !this._itemSize || !this._isActived) {
                 return;
             }
 
             this.scrollToItem = null;
+
+            var attr: string;
+            var dist: number;
             if (this.layout === ListView.Layout.horizental) {
-                this._itemContainer.scrollLeft = itemIndex * this._itemSize.width;
+                attr = 'scrollLeft';
+                dist = itemIndex * this._itemSize.width;
             }
             else if (this.layout === ListView.Layout.virtical) {
-                this._itemContainer.scrollTop = itemIndex * this._itemSize.height;
+                attr = 'scrollTop';
+                dist = itemIndex * this._itemSize.height;
+            }
+
+            dist = Math.max(0, dist);
+            if (dist === this._itemContainer[attr]) {
+                this._onScrollHandler({});
+            }
+            else {
+                this._itemContainer[attr] = dist;
             }
         }
 

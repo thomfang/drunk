@@ -134,9 +134,11 @@ var drunk;
             }
             initListViewLayoutClass();
             this._attachEvents();
-            this._measureSize();
-            this._updateItems();
-            this._renderItems();
+            util.requestAnimationFrame(function () {
+                _this._measureSize();
+                _this._updateItems();
+                _this._renderItems();
+            });
         };
         /**
          * @override
@@ -160,15 +162,26 @@ var drunk;
          */
         ListView.prototype._updateScrollPosition = function () {
             var itemIndex = this.scrollToItem;
-            if (itemIndex == null || !this._itemContainer || !this._isActived) {
+            if (itemIndex == null || !this._itemContainer || !this._itemSize || !this._isActived) {
                 return;
             }
             this.scrollToItem = null;
+            var attr;
+            var dist;
             if (this.layout === ListView.Layout.horizental) {
-                this._itemContainer.scrollLeft = itemIndex * this._itemSize.width;
+                attr = 'scrollLeft';
+                dist = itemIndex * this._itemSize.width;
             }
             else if (this.layout === ListView.Layout.virtical) {
-                this._itemContainer.scrollTop = itemIndex * this._itemSize.height;
+                attr = 'scrollTop';
+                dist = itemIndex * this._itemSize.height;
+            }
+            dist = Math.max(0, dist);
+            if (dist === this._itemContainer[attr]) {
+                this._onScrollHandler({});
+            }
+            else {
+                this._itemContainer[attr] = dist;
             }
         };
         /**
