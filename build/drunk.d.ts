@@ -228,7 +228,7 @@ declare namespace drunk {
         /**
          * map的成员个数
          */
-        size: number;
+        readonly size: number;
     }
 }
 declare namespace drunk {
@@ -586,7 +586,7 @@ declare namespace drunk {
     class Watcher {
         viewModel: ViewModel;
         expression: string;
-        isDeepWatch: boolean;
+        isDeepWatch?: boolean;
         /**
          * 根据表达式和是否深度监听生成唯一的key,用于储存在关联的viewModel实例的watcher表中
          * @param   expression  表达式

@@ -269,6 +269,8 @@ namespace drunk {
                 return;
             }
 
+            this._isActived = false;
+
             Object.keys(this._proxyProps).forEach(property => {
                 delete this[property];
             });
@@ -284,8 +286,6 @@ namespace drunk {
             });
 
             EventEmitter.cleanup(this);
-
-            this._isActived = false;
             this._model = this._bindings = this._watchers = this._proxyProps = this.$filter = null;
         }
 

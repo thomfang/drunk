@@ -2722,6 +2722,7 @@ var drunk;
             if (!this._isActived) {
                 return;
             }
+            this._isActived = false;
             Object.keys(this._proxyProps).forEach(function (property) {
                 delete _this[property];
             });
@@ -2734,7 +2735,6 @@ var drunk;
                 binding.$dispose();
             });
             EventEmitter.cleanup(this);
-            this._isActived = false;
             this._model = this._bindings = this._watchers = this._proxyProps = this.$filter = null;
         };
         /**
@@ -3980,6 +3980,10 @@ var drunk;
          * 释放组件
          */
         Component.prototype.$release = function () {
+            if (!this._isActived) {
+                return;
+            }
+            this._isActived = false;
             this.$emit(Component.Event.release, this);
             _super.prototype.$release.call(this);
             if (this._isMounted) {

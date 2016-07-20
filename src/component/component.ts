@@ -214,6 +214,11 @@ namespace drunk {
          * 释放组件
          */
         $release() {
+            if (!this._isActived) {
+                return;
+            }
+            
+            this._isActived = false;
             this.$emit(Component.Event.release, this);
 
             super.$release();

@@ -4,6 +4,7 @@ namespace drunk {
 
     import config = drunk.config;
     import Component = drunk.Component;
+    import Promise = drunk.Promise;
 
     interface IRouter {
         routeReg: RegExp;
@@ -27,15 +28,15 @@ namespace drunk {
 
     export class RouterComponent extends Component implements IApplication {
 
-        private __routeIndex: string;
-        private __routerList: IRouter[] = [];
-        private __currentView: Component;
-        private __currentViewId: string;
-        private __isLoadingNext: boolean;
-        private __routerState: IRouterState;
-        private __navigationState: any;
-        
-        private $visibleMap: IModel = {};
+        private $routeIndex: string;
+        private $routeList: IRouter[] = [];
+        private $currView: Component;
+        private $currViewId: string;
+        private $isNavigating: boolean;
+        private $routeState: IRouterState;
+        private $navigationState: any;
+        private $navigatingPromise: Promise<any> = Promise.resolve();
+        private $visibleViews: IModel = {};
 
         /**
          * 启动
@@ -57,7 +58,7 @@ namespace drunk {
          * @param  state         传递的参数
          */
         navigate(url: string, replaceState?: boolean, state?: any) {
-            this.__navigationState = state;
+            this.$navigationState = state;
             if (replaceState) {
                 location.replace(url);
             }
@@ -73,25 +74,25 @@ namespace drunk {
             history.back();
         }
 
-        private viewCreated(view: Component) {
-            this.__currentView = view;
+        private $viewCreated(view: Component) {
+            this.$currView = view;
 
             if (typeof view['onEnter'] === 'function') {
-                view['onEnter'](this.__routerState, this.__navigationState);
+                view['onEnter'](this.$routeState, this.$navigationState);
             }
         }
 
-        private viewRelease(view: Component) {
+        private $viewRelease(view: Component) {
             if (typeof view['onExit'] === 'function') {
                 view['onExit']();
             }
         }
-        
-        private viewMounted(view: Component) {
-            this.__isLoadingNext = false;
+
+        private $viewMounted(view: Component) {
+            this.$isNavigating = false;
         }
-        
-        private templateLoadFailed(view: Component) {
+
+        private $templateLoadFailed(view: Component) {
             this.$emit('templateLoadFailed', view);
         }
 
@@ -101,14 +102,14 @@ namespace drunk {
             var nameOfIfBinding = config.prefix + 'if';
             var nameOfEventBinding = config.prefix + 'on';
             var eventExpression = `
-                ${Component.Event.created}:viewCreated($el);
-                ${Component.Event.mounted}:viewMounted($el);
-                ${Component.Event.release}:viewRelease($el);
-                ${Component.Event.templateLoadFailed}:templateLoadFailed($el)`;
+                ${Component.Event.created}:$viewCreated($el);
+                ${Component.Event.mounted}:$viewMounted($el);
+                ${Component.Event.release}:$viewRelease($el);
+                ${Component.Event.templateLoadFailed}:$templateLoadFailed($el)`;
             var route: string;
             var name: string;
 
-            let scan = (element: HTMLElement) => {
+            var scan = (element: HTMLElement) => {
                 // 检查所有的child元素节点
                 util.toArray(element.children).forEach(node => {
                     name = node.tagName.toLowerCase();
@@ -131,22 +132,22 @@ namespace drunk {
                     // 添加一个if绑定,通过改实例的$visibleMap数据来监控和注册组件创建/销毁的事件,
                     // 用于当理由切换时改变显示的组件和得到相应的组件实例
                     // 会生成类似这样: <my-component drunk-if='$visibleMap.myComponent' drunk-on="..."></my-component>
-                    node.setAttribute(nameOfIfBinding, '$visibleMap["' + name + '"]');
+                    node.setAttribute(nameOfIfBinding, '$visibleViews["' + name + '"]');
                     node.setAttribute(nameOfEventBinding, eventExpression);
 
                     // 添加并解析路由,设置改组件默认不可见
                     this._addRoute(route, name);
-                    this.$visibleMap[name] = false;
-                    this.__isLoadingNext = true;
+                    this.$visibleViews[name] = false;
+                    this.$isNavigating = true;
                 });
             };
 
             scan(rootElement);
 
             // 查找drunk-index路径
-            this.__routeIndex = rootElement.getAttribute(nameOfIndex);
+            this.$routeIndex = rootElement.getAttribute(nameOfIndex);
 
-            if (!this.__routeIndex) {
+            if (!this.$routeIndex) {
                 console.error(rootElement, `节点上未找到${nameOfIndex}设置`);
             }
             rootElement.removeAttribute(nameOfIndex);
@@ -158,7 +159,7 @@ namespace drunk {
 
             delete routeReg.keys;
 
-            this.__routerList.push({
+            this.$routeList.push({
                 routeReg: routeReg,
                 routeStr: route,
                 paramArr: paramArr,
@@ -176,26 +177,26 @@ namespace drunk {
             var state: IRouterState;
 
             if (!url || !(state = this._parseUrl(url))) {
-                return this.navigate('#' + this.__routeIndex, true);
+                return this.navigate('#' + this.$routeIndex, true);
             }
 
-            this.__routerState = state;
+            this.$routeState = state;
 
-            if (this.__currentView) {
+            if (this.$currView) {
                 // 如果存在当前组件
-                if (this.__currentViewId === state.viewId) {
+                if (this.$currViewId === state.viewId) {
                     // 判断是否是在同一组件中导航,如果是,直接调用该组件的onEnter方法
-                    this.viewCreated(this.__currentView);
+                    this.$viewCreated(this.$currView);
                 }
                 else {
                     // 设置当前组件隐藏
-                    this.$visibleMap[this.__currentViewId] = false;
+                    this.$visibleViews[this.$currViewId] = false;
                 }
             }
 
             // 设置导航到的组件显示
-            this.$visibleMap[state.viewId] = true;
-            this.__currentViewId = state.viewId;
+            this.$visibleViews[state.viewId] = true;
+            this.$currViewId = state.viewId;
         }
 
         private _parseUrl(url: string): IRouterState {
@@ -205,7 +206,7 @@ namespace drunk {
             var result: RegExpExecArray;
             var params: { [name: string]: any };
 
-            for (let router: IRouter, i = 0, routeReg: RegExp, routeStr: string, paramArr; router = this.__routerList[i]; i++) {
+            for (let router: IRouter, i = 0, routeReg: RegExp, routeStr: string, paramArr; router = this.$routeList[i]; i++) {
                 routeReg = router.routeReg;
                 routeStr = router.routeStr;
                 paramArr = router.paramArr;
