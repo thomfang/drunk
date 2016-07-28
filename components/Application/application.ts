@@ -299,7 +299,7 @@ namespace drunk {
             var groups = path.source.match(/\((?!\?)/g) || [];
 
             // Map all the matches to their numeric keys and push into the keys.
-            keys.push.apply(keys, groups.definedComponent(function (match, index) {
+            keys.push.apply(keys, groups.map(function (match, index) {
                 return {
                     name: index,
                     delimiter: null,
@@ -316,7 +316,7 @@ namespace drunk {
             // Map array parts into regexps and return their source. We also pass
             // the same keys and options instance into every generation to get
             // consistent matching groups before we join the sources together.
-            path = path.definedComponent(function (value) {
+            path = path.map(function (value) {
                 return pathToRegexp(value, keys, options).source;
             });
 
