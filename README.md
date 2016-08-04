@@ -769,4 +769,218 @@ drunk是一个高性能的web前端MVVM开发框架，采用WebComponents的开�
     });
     new MyApp().$mount(document.body);
     ```
+
+# API
+
+## drunk.Component
+
+* 静态属性/方法
+
+    * 事件
+
+    > `Event`   
+    > `Event.created, Event.mounted, Event.release, Event.templateLoadFailed`
+
+    ```typescript
+    var view = new drunk.Component();
+    view.$on(drunk.Component.Event.release, () => {
+        console.log('View instance will be released');
+    });
+    ```
+
+    * 定义组件
+
+    > `define(members: Object)` 匿名组件  
+    > `define(name: string, members: Object)` 具名组件    
+
+    ```typescript
+    // 匿名组件
+    var ComponentA = drunk.Component.define({
+        init() {
+
+        }
+    });
+
+    // 具名组件
+    var ComponentB = drunk.Component.define('component-b', {
+        init() {
+
+        }
+    });
+    ```
     
+    * 根据名字和组件的类(构造函数)注册一个组件 
+
+    > `register(name: string, constructor: Function)` 
+
+    ```typescript
+    class ComponentC extends drunk.Component {
+        // ....
+    }
+    drunk.Component.register('component-c', ComponentC);
+    ```
+
+
+* 实例属性/方法
+
+    * `$filter` 持有该实例的所有过滤器的对象
+
+    ```typescript
+    var vm = new drunk.Component();
+    vm.$filter.capitalize = (value: string) => {
+        return value.charAt(0).toUpperCase() + value.slice(1);
+    };
+    ```
+    
+    * 把实例挂载到DOM节点上
+
+    > `$mount(element: HTMLElement)` 
+
+    ```typescript
+    new drunk.Component().$mount(document.body);
+    ```
+    
+    * 监听数据
+
+    > `$watch(expression: string, callback: (newValue: any, oldValue: any) => any, deepWatch?: boolean): Function`
+
+    ```typescript
+    var cp = new drunk.Component({list: []});
+    var unwatch = cp.$watch('list.length', (newLen: number) => {
+        console.log('list.length has changed to: ', newLen);
+    }, true);
+
+    unwatch();
+    ```
+
+    * 执行字符串表达式并返回结果
+
+    > `$eval(expression: string): any;`
+
+    ```typescript
+    var vm = new drunk.Component({user: {name: 'Todd'}});
+    vm.$eval('user.name'); // 结果: 'Todd'
+    ```
+
+    * 根据字符串表达式设置值
+
+    > `$setValue(expression: string)`
+
+    ```typescript
+    var vm = new drunk.Component({user: {}});
+    vm.$setValue('user.name', 'Todd'); // vm.user.name => 'Todd'
+    ```
+    
+    * 设置计算属性
+
+    > `$computed(property: string, descriptor: {set: Function; get: Function})` 根据descriptor设置getter,setter     
+    > `$computed(property: string, getter: Function)` 根据getter函数设置  
+
+    ```typescript
+    var vm = new drunk.Component({
+        firstName: 'Todd',
+        lastName: 'Fon'
+    });
+
+    vm.$computed('fullName', {
+        get() {
+            return this.firstname + ' ' + this.lastName;
+        },
+        set(fullName: string) {
+            var list = fullName.split(/\W+/);
+            this.firstName = list[0];
+            this.lastName = list[1];
+        }
+    });
+    ```
+
+    * 设置数据过滤器
+    
+    > `$setFilters(filterDefs: Object)`
+
+    ```typescript
+    class ComponentD extends drunk.Component {
+        init() {
+            this.$setFilters({
+                toPadded: (value: number) => {
+                    return (value < 10 ? '0' : '') + value;
+                }
+            });
+        }
+    }
+    ```
+
+    * 处理异步或同步数据
+
+    > `$resolveData(data: {[name: string]: Promise<any> | any})`
+
+    ```typescript
+    var vm = new drunk.Component();
+    vm.$resolveData({
+        time: Promise.resole(1000),
+        userName: 'Todd Fon'
+    })
+    ```
+
+    * 注册事件
+
+    > `$on(eventName: string, callback: Function)`  
+    > `$addListener(eventName: string, callback: Function)`
+
+    ```typescript
+    var vm = new drunk.Component();
+    vm.$on(drunk.Component.release, () => {
+
+    });
+    ```
+
+    * 触发事件
+
+    > `$emit(eventName: string, ...args: any[])`
+
+    ```typescript
+    var vm = new drunk.Component();
+    vm.$on('event:x', (...data: any[]) => {
+        console.log('event:x recieves data: ', data);
+    });
+    vm.$emit('event:x', 1, 2, 3); // console.log: 'event:x recieves data: [1, 2, 3]'
+    ```
+
+    * 注册一次性事件,事件触发后会移除这个回调
+
+    > `$once(eventName: string, callback: Function)`
+
+    ```typescript
+    var vm = new drunk.Component();
+    vm.$once('custom:event', () => {
+        console.log('custom:event triggered');
+    });
+    vm.$emit('custom:event');  // console.log: 'custom:event triggered'
+    vm.$emit('custom:event');  // nothing happen
+    ```
+
+    * 移除事件
+
+    > `$removeListener(eventName: string, callback?: Function)`
+
+    ```typescript
+    var callback1 = () => {
+        console.log('event:x triggered');
+    };
+    var callback2 = () => {
+        console.log('callback2 invoked');
+    };
+    vm.$on('event:x', callback1);
+    vm.$on('event:x', callback2);
+    vm.$removeListener('event:x', callback1); // 移除了callback1
+    vm.$removeListener('event:x'); // 移除了所有的event:x回调
+    ```
+
+    * 实例释放
+
+    > `$release()`
+
+    ```typescript
+    var vm = new drunk.Component();
+    vm.$release();
+    ```
