@@ -107,7 +107,7 @@ declare namespace drunk.util {
      * 判断是否是对象
      * @param   target 判断目标
      */
-    function isObject(target: any): boolean;
+    function isPlainObjectOrObservableObject(target: any): boolean;
     /**
      * 拓展对象
      * @param  destination  目标对象
@@ -228,7 +228,7 @@ declare namespace drunk {
         /**
          * map的成员个数
          */
-        readonly size: number;
+        size: number;
     }
 }
 declare namespace drunk {
@@ -586,7 +586,7 @@ declare namespace drunk {
     class Watcher {
         viewModel: ViewModel;
         expression: string;
-        isDeepWatch?: boolean;
+        isDeepWatch: boolean;
         /**
          * 根据表达式和是否深度监听生成唯一的key,用于储存在关联的viewModel实例的watcher表中
          * @param   expression  表达式
@@ -1189,12 +1189,6 @@ declare namespace drunk {
         extend?<T extends IComponentOptions>(name: string | T, members?: T): IComponentContructor<T>;
         (...args: any[]): void;
     }
-    interface IComponentEvent {
-        created: string;
-        release: string;
-        mounted: string;
-        templateLoadFailed: string;
-    }
     /**
      * Decorator for Component.register
      */
@@ -1286,7 +1280,12 @@ declare namespace drunk {
         /**
          * 组件的事件名称
          */
-        static Event: IComponentEvent;
+        static Event: {
+            created: string;
+            release: string;
+            mounted: string;
+            templateLoadFailed: string;
+        };
         /**
          * 获取挂在在元素上的viewModel实例
          * @param   element 元素

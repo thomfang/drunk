@@ -25,7 +25,7 @@ namespace drunk.util {
      * 判断是否是对象
      * @param   target 判断目标
      */
-    export function isObject(target: any): boolean {
+    export function isPlainObjectOrObservableObject(target: any): boolean {
         if (!target || typeof target !== 'object') {
             return false;
         }
@@ -60,7 +60,7 @@ namespace drunk.util {
                 return deepClone(item);
             });
         }
-        if (isObject(target)) {
+        if (isPlainObjectOrObservableObject(target)) {
             var ret = {};
             Object.keys(target).forEach(name => {
                 ret[name] = deepClone(target[name]);

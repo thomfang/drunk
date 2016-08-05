@@ -96,7 +96,7 @@ namespace drunk.util {
                 isLocalRequest = true;
             }
 
-            if (util.isObject(data)) {
+            if (Object.prototype.toString.call(data) === '[object Object]') {
                 if (contentType && contentType.match(/json/i)) {
                     data = JSON.stringify(data);
                 }

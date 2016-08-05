@@ -317,12 +317,12 @@ namespace drunk {
 
         init() {
             this.element[weakRefKey] = this;
-            if (document.body && document.body.contains(this.element)) {
-                this._actionJob = util.execAsyncWork(() => {
+            this._actionJob = util.execAsyncWork(() => {
+                this._actionJob = null;
+                if (document.body && document.body.contains(this.element)) {
                     this.runActionByType(Action.Type.created);
-                    this._actionJob = null;
-                });
-            }
+                }
+            });
         }
 
         /**

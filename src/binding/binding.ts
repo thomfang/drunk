@@ -119,7 +119,7 @@ namespace drunk {
                 Binding._setTernimalBinding(name, definition.priority);
             }
 
-            if (util.isObject(definition)) {
+            if (Object.prototype.toString.call(definition) === '[object Object]') {
                 let ctor: IBindingConstructor = <any>function (...args: any[]) {
                     Binding.apply(this, args);
                 };

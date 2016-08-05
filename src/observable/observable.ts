@@ -16,7 +16,7 @@ namespace drunk.observable {
      * @param data 数组或JSON对象
      */
     export function create<T>(data: IObservableArray<T> | IObservableObject | any): Observer {
-        let isObject = util.isObject(data);
+        let isObject = util.isPlainObjectOrObservableObject(data);
 
         if (!isObject && !Array.isArray(data)) {
             return;

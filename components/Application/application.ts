@@ -13,11 +13,16 @@ namespace drunk {
         viewId: string;
     }
 
-    interface IRouterState {
+    export interface IRouterState {
         url: string;
         route: string;
         params: { [name: string]: any };
         viewId: string;
+    }
+
+    export interface IRouterComponent extends drunk.IComponentOptions {
+        onEnter?(state: IRouterState, navigationState?: Object);
+        onExit?();
     }
 
     export interface IApplication {
@@ -28,15 +33,15 @@ namespace drunk {
 
     export class RouterComponent extends Component implements IApplication {
 
-        private $routeIndex: string;
-        private $routeList: IRouter[] = [];
-        private $currView: Component;
-        private $currViewId: string;
-        private $isNavigating: boolean;
-        private $routeState: IRouterState;
-        private $navigationState: any;
-        private $navigatingPromise: Promise<any> = Promise.resolve();
-        private $visibleViews: IModel = {};
+        private _rootUrl: string;
+        private _routeList: IRouter[] = [];
+        private _currView: IRouterComponent;
+        private _currViewId: string;
+        private _isNavigating: boolean;
+        private _routeState: IRouterState;
+        private _navigationState: any;
+        private _navigatingPromise: Promise<any> = Promise.resolve();
+        private _visibleViews: IModel = {};
 
         /**
          * 启动
@@ -44,7 +49,7 @@ namespace drunk {
          * @param  url          启动的路由
          */
         start(rootElement = document.body, url = location.hash.slice(1)) {
-            this._scanElement(rootElement);
+            this._parse(rootElement);
             this._initNavigationEvent();
 
             this.$mount(util.toArray(rootElement.childNodes));
@@ -58,7 +63,7 @@ namespace drunk {
          * @param  state         传递的参数
          */
         navigate(url: string, replaceState?: boolean, state?: any) {
-            this.$navigationState = state;
+            this._navigationState = state;
             if (replaceState) {
                 location.replace(url);
             }
@@ -74,38 +79,38 @@ namespace drunk {
             history.back();
         }
 
-        private $viewCreated(view: Component) {
-            this.$currView = view;
+        private _viewCreated(view: IRouterComponent) {
+            this._currView = view;
 
-            if (typeof view['onEnter'] === 'function') {
-                view['onEnter'](this.$routeState, this.$navigationState);
+            if (typeof view.onEnter === 'function') {
+                view.onEnter(this._routeState, this._navigationState);
             }
         }
 
-        private $viewRelease(view: Component) {
-            if (typeof view['onExit'] === 'function') {
-                view['onExit']();
+        private _viewRelease(view: IRouterComponent) {
+            if (typeof view.onExit === 'function') {
+                view.onExit();
             }
         }
 
-        private $viewMounted(view: Component) {
-            this.$isNavigating = false;
+        private _viewMounted(view: IRouterComponent) {
+            this._isNavigating = false;
         }
 
-        private $templateLoadFailed(view: Component) {
-            this.$emit('templateLoadFailed', view);
+        private _templateLoadFailed(view: IRouterComponent) {
+            this.$emit(Component.Event.templateLoadFailed, view);
         }
 
-        private _scanElement(rootElement: HTMLElement) {
+        private _parse(rootElement: HTMLElement) {
             var nameOfRoute = config.prefix + 'route';
             var nameOfIndex = config.prefix + 'index';
             var nameOfIfBinding = config.prefix + 'if';
             var nameOfEventBinding = config.prefix + 'on';
             var eventExpression = `
-                ${Component.Event.created}:$viewCreated($el);
-                ${Component.Event.mounted}:$viewMounted($el);
-                ${Component.Event.release}:$viewRelease($el);
-                ${Component.Event.templateLoadFailed}:$templateLoadFailed($el)`;
+                ${Component.Event.created}:_viewCreated($el);
+                ${Component.Event.mounted}:_viewMounted($el);
+                ${Component.Event.release}:_viewRelease($el);
+                ${Component.Event.templateLoadFailed}:_templateLoadFailed($el)`;
             var route: string;
             var name: string;
 
@@ -129,25 +134,25 @@ namespace drunk {
                     route = node.getAttribute(nameOfRoute); // 路由表
                     node.removeAttribute(nameOfRoute); // 移除属性
 
-                    // 添加一个if绑定,通过改实例的$visibleMap数据来监控和注册组件创建/销毁的事件,
+                    // 添加一个if绑定,通过改实例的_visibleViews数据来监控和注册组件创建/销毁的事件,
                     // 用于当理由切换时改变显示的组件和得到相应的组件实例
-                    // 会生成类似这样: <my-component drunk-if='$visibleMap.myComponent' drunk-on="..."></my-component>
-                    node.setAttribute(nameOfIfBinding, '$visibleViews["' + name + '"]');
+                    // 会生成类似这样: <my-component drunk-if='_visibleViews.myComponent' drunk-on="..."></my-component>
+                    node.setAttribute(nameOfIfBinding, '_visibleViews["' + name + '"]');
                     node.setAttribute(nameOfEventBinding, eventExpression);
 
                     // 添加并解析路由,设置改组件默认不可见
                     this._addRoute(route, name);
-                    this.$visibleViews[name] = false;
-                    this.$isNavigating = true;
+                    this._visibleViews[name] = false;
+                    this._isNavigating = true;
                 });
             };
 
             scan(rootElement);
 
             // 查找drunk-index路径
-            this.$routeIndex = rootElement.getAttribute(nameOfIndex);
+            this._rootUrl = rootElement.getAttribute(nameOfIndex);
 
-            if (!this.$routeIndex) {
+            if (!this._rootUrl) {
                 console.error(rootElement, `节点上未找到${nameOfIndex}设置`);
             }
             rootElement.removeAttribute(nameOfIndex);
@@ -159,7 +164,7 @@ namespace drunk {
 
             delete routeReg.keys;
 
-            this.$routeList.push({
+            this._routeList.push({
                 routeReg: routeReg,
                 routeStr: route,
                 paramArr: paramArr,
@@ -177,26 +182,26 @@ namespace drunk {
             var state: IRouterState;
 
             if (!url || !(state = this._parseUrl(url))) {
-                return this.navigate('#' + this.$routeIndex, true);
+                return this.navigate('#' + this._rootUrl, true);
             }
 
-            this.$routeState = state;
+            this._routeState = state;
 
-            if (this.$currView) {
+            if (this._currView) {
                 // 如果存在当前组件
-                if (this.$currViewId === state.viewId) {
+                if (this._currViewId === state.viewId) {
                     // 判断是否是在同一组件中导航,如果是,直接调用该组件的onEnter方法
-                    this.$viewCreated(this.$currView);
+                    this._viewCreated(this._currView);
                 }
                 else {
                     // 设置当前组件隐藏
-                    this.$visibleViews[this.$currViewId] = false;
+                    this._visibleViews[this._currViewId] = false;
                 }
             }
 
             // 设置导航到的组件显示
-            this.$visibleViews[state.viewId] = true;
-            this.$currViewId = state.viewId;
+            this._visibleViews[state.viewId] = true;
+            this._currViewId = state.viewId;
         }
 
         private _parseUrl(url: string): IRouterState {
@@ -206,7 +211,7 @@ namespace drunk {
             var result: RegExpExecArray;
             var params: { [name: string]: any };
 
-            for (let router: IRouter, i = 0, routeReg: RegExp, routeStr: string, paramArr; router = this.$routeList[i]; i++) {
+            for (let router: IRouter, i = 0, routeReg: RegExp, routeStr: string, paramArr; router = this._routeList[i]; i++) {
                 routeReg = router.routeReg;
                 routeStr = router.routeStr;
                 paramArr = router.paramArr;

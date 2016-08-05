@@ -8,12 +8,14 @@ var drunk;
 (function (drunk) {
     var config = drunk.config;
     var Component = drunk.Component;
+    var Promise = drunk.Promise;
     var RouterComponent = (function (_super) {
         __extends(RouterComponent, _super);
         function RouterComponent() {
             _super.apply(this, arguments);
-            this.__routerList = [];
-            this.$visibleMap = {};
+            this._routeList = [];
+            this._navigatingPromise = Promise.resolve();
+            this._visibleViews = {};
         }
         /**
          * 启动
@@ -23,7 +25,7 @@ var drunk;
         RouterComponent.prototype.start = function (rootElement, url) {
             if (rootElement === void 0) { rootElement = document.body; }
             if (url === void 0) { url = location.hash.slice(1); }
-            this._scanElement(rootElement);
+            this._parse(rootElement);
             this._initNavigationEvent();
             this.$mount(drunk.util.toArray(rootElement.childNodes));
             this._navigate(url);
@@ -35,7 +37,7 @@ var drunk;
          * @param  state         传递的参数
          */
         RouterComponent.prototype.navigate = function (url, replaceState, state) {
-            this.__navigationState = state;
+            this._navigationState = state;
             if (replaceState) {
                 location.replace(url);
             }
@@ -49,30 +51,30 @@ var drunk;
         RouterComponent.prototype.back = function () {
             history.back();
         };
-        RouterComponent.prototype.viewCreated = function (view) {
-            this.__currentView = view;
-            if (typeof view['onEnter'] === 'function') {
-                view['onEnter'](this.__routerState, this.__navigationState);
+        RouterComponent.prototype._viewCreated = function (view) {
+            this._currView = view;
+            if (typeof view.onEnter === 'function') {
+                view.onEnter(this._routeState, this._navigationState);
             }
         };
-        RouterComponent.prototype.viewRelease = function (view) {
-            if (typeof view['onExit'] === 'function') {
-                view['onExit']();
+        RouterComponent.prototype._viewRelease = function (view) {
+            if (typeof view.onExit === 'function') {
+                view.onExit();
             }
         };
-        RouterComponent.prototype.viewMounted = function (view) {
-            this.__isLoadingNext = false;
+        RouterComponent.prototype._viewMounted = function (view) {
+            this._isNavigating = false;
         };
-        RouterComponent.prototype.templateLoadFailed = function (view) {
-            this.$emit('templateLoadFailed', view);
+        RouterComponent.prototype._templateLoadFailed = function (view) {
+            this.$emit(Component.Event.templateLoadFailed, view);
         };
-        RouterComponent.prototype._scanElement = function (rootElement) {
+        RouterComponent.prototype._parse = function (rootElement) {
             var _this = this;
             var nameOfRoute = config.prefix + 'route';
             var nameOfIndex = config.prefix + 'index';
             var nameOfIfBinding = config.prefix + 'if';
             var nameOfEventBinding = config.prefix + 'on';
-            var eventExpression = "\n                " + Component.Event.created + ":viewCreated($el);\n                " + Component.Event.mounted + ":viewMounted($el);\n                " + Component.Event.release + ":viewRelease($el);\n                " + Component.Event.templateLoadFailed + ":templateLoadFailed($el)";
+            var eventExpression = "\n                " + Component.Event.created + ":_viewCreated($el);\n                " + Component.Event.mounted + ":_viewMounted($el);\n                " + Component.Event.release + ":_viewRelease($el);\n                " + Component.Event.templateLoadFailed + ":_templateLoadFailed($el)";
             var route;
             var name;
             var scan = function (element) {
@@ -91,21 +93,21 @@ var drunk;
                     }
                     route = node.getAttribute(nameOfRoute); // 路由表
                     node.removeAttribute(nameOfRoute); // 移除属性
-                    // 添加一个if绑定,通过改实例的$visibleMap数据来监控和注册组件创建/销毁的事件,
+                    // 添加一个if绑定,通过改实例的_visibleViews数据来监控和注册组件创建/销毁的事件,
                     // 用于当理由切换时改变显示的组件和得到相应的组件实例
-                    // 会生成类似这样: <my-component drunk-if='$visibleMap.myComponent' drunk-on="..."></my-component>
-                    node.setAttribute(nameOfIfBinding, '$visibleMap["' + name + '"]');
+                    // 会生成类似这样: <my-component drunk-if='_visibleViews.myComponent' drunk-on="..."></my-component>
+                    node.setAttribute(nameOfIfBinding, '_visibleViews["' + name + '"]');
                     node.setAttribute(nameOfEventBinding, eventExpression);
                     // 添加并解析路由,设置改组件默认不可见
                     _this._addRoute(route, name);
-                    _this.$visibleMap[name] = false;
-                    _this.__isLoadingNext = true;
+                    _this._visibleViews[name] = false;
+                    _this._isNavigating = true;
                 });
             };
             scan(rootElement);
             // 查找drunk-index路径
-            this.__routeIndex = rootElement.getAttribute(nameOfIndex);
-            if (!this.__routeIndex) {
+            this._rootUrl = rootElement.getAttribute(nameOfIndex);
+            if (!this._rootUrl) {
                 console.error(rootElement, "\u8282\u70B9\u4E0A\u672A\u627E\u5230" + nameOfIndex + "\u8BBE\u7F6E");
             }
             rootElement.removeAttribute(nameOfIndex);
@@ -114,7 +116,7 @@ var drunk;
             var routeReg = pathToRegexp(route);
             var paramArr = routeReg.keys.map(function (key) { return key.name; });
             delete routeReg.keys;
-            this.__routerList.push({
+            this._routeList.push({
                 routeReg: routeReg,
                 routeStr: route,
                 paramArr: paramArr,
@@ -130,23 +132,23 @@ var drunk;
         RouterComponent.prototype._navigate = function (url) {
             var state;
             if (!url || !(state = this._parseUrl(url))) {
-                return this.navigate('#' + this.__routeIndex, true);
+                return this.navigate('#' + this._rootUrl, true);
             }
-            this.__routerState = state;
-            if (this.__currentView) {
+            this._routeState = state;
+            if (this._currView) {
                 // 如果存在当前组件
-                if (this.__currentViewId === state.viewId) {
+                if (this._currViewId === state.viewId) {
                     // 判断是否是在同一组件中导航,如果是,直接调用该组件的onEnter方法
-                    this.viewCreated(this.__currentView);
+                    this._viewCreated(this._currView);
                 }
                 else {
                     // 设置当前组件隐藏
-                    this.$visibleMap[this.__currentViewId] = false;
+                    this._visibleViews[this._currViewId] = false;
                 }
             }
             // 设置导航到的组件显示
-            this.$visibleMap[state.viewId] = true;
-            this.__currentViewId = state.viewId;
+            this._visibleViews[state.viewId] = true;
+            this._currViewId = state.viewId;
         };
         RouterComponent.prototype._parseUrl = function (url) {
             var saveParam = function (param, j) {
@@ -154,7 +156,7 @@ var drunk;
             };
             var result;
             var params;
-            for (var router = void 0, i = 0, routeReg = void 0, routeStr = void 0, paramArr = void 0; router = this.__routerList[i]; i++) {
+            for (var router = void 0, i = 0, routeReg = void 0, routeStr = void 0, paramArr = void 0; router = this._routeList[i]; i++) {
                 routeReg = router.routeReg;
                 routeStr = router.routeStr;
                 paramArr = router.paramArr;
@@ -239,7 +241,7 @@ var drunk;
             // Match all capturing groups of a regexp.
             var groups = path.source.match(/\((?!\?)/g) || [];
             // Map all the matches to their numeric keys and push into the keys.
-            keys.push.apply(keys, groups.definedComponent(function (match, index) {
+            keys.push.apply(keys, groups.map(function (match, index) {
                 return {
                     name: index,
                     delimiter: null,
@@ -254,7 +256,7 @@ var drunk;
             // Map array parts into regexps and return their source. We also pass
             // the same keys and options instance into every generation to get
             // consistent matching groups before we join the sources together.
-            path = path.definedComponent(function (value) {
+            path = path.map(function (value) {
                 return pathToRegexp(value, keys, options).source;
             });
             // Generate a new regexp instance by joining all the parts together.
@@ -315,4 +317,4 @@ var drunk;
     ;
     drunk.Application = new RouterComponent();
 })(drunk || (drunk = {}));
-//# sourceMappingURL=Application.js.map
+//# sourceMappingURL=application.js.map

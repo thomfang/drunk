@@ -233,7 +233,7 @@ drunk是一个高性能的web前端MVVM开发框架，采用WebComponents的开�
     ```
     
     ```javascript
-    new drunk.Component({
+    var View = drunk.Component.define({
         newValue: '',
         oldValue: '',
         init: function () {
@@ -254,7 +254,8 @@ drunk是一个高性能的web前端MVVM开发框架，采用WebComponents的开�
                 this.content = '';
             }
         }
-    }).$mount(document.body);
+    });
+    new View().$mount(document.body);
     ```
     
 * **action(动画)控制**
@@ -822,6 +823,30 @@ drunk是一个高性能的web前端MVVM开发框架，采用WebComponents的开�
 
 
 * 实例属性/方法
+
+    * 模板
+
+    > `template`  html模板字符串  
+    > `templateUrl` html模板的文件路径
+
+    ```typescript
+    var View = drunk.Component.define({
+        template: '<div>Hello world</div>'
+    });
+    var v = new View();
+    v.$processTemplate().then((template) => {
+        v.$mount(template);
+    });
+
+    class View2 extends drunk.Component {
+        templateUrl = '/path/to/view2.html';
+    }
+
+    var v2 = new View2();
+    v2.$processTemplate().then((template) => {
+        v2.$mount(template);
+    });
+    ```
 
     * `$filter` 持有该实例的所有过滤器的对象
 

@@ -1,20 +1,33 @@
 /// <reference path="../../build/drunk.d.ts" />
 declare namespace drunk {
     import Component = drunk.Component;
+    interface IRouterState {
+        url: string;
+        route: string;
+        params: {
+            [name: string]: any;
+        };
+        viewId: string;
+    }
+    interface IRouterComponent extends drunk.IComponentOptions {
+        onEnter?(state: IRouterState, navigationState?: Object): any;
+        onExit?(): any;
+    }
     interface IApplication {
         start(rootElement?: HTMLElement, url?: string): void;
         navigate(url: string, replaceState?: boolean, state?: any): void;
         back(): void;
     }
     class RouterComponent extends Component implements IApplication {
-        private __routeIndex;
-        private __routerList;
-        private __currentView;
-        private __currentViewId;
-        private __isLoadingNext;
-        private __routerState;
-        private __navigationState;
-        private $visibleMap;
+        private _rootUrl;
+        private _routeList;
+        private _currView;
+        private _currViewId;
+        private _isNavigating;
+        private _routeState;
+        private _navigationState;
+        private _navigatingPromise;
+        private _visibleViews;
         /**
          * 启动
          * @param  rootElement  默认以document.body启动
@@ -32,11 +45,11 @@ declare namespace drunk {
          * 后退
          */
         back(): void;
-        private viewCreated(view);
-        private viewRelease(view);
-        private viewMounted(view);
-        private templateLoadFailed(view);
-        private _scanElement(rootElement);
+        private _viewCreated(view);
+        private _viewRelease(view);
+        private _viewMounted(view);
+        private _templateLoadFailed(view);
+        private _parse(rootElement);
         private _addRoute(route, viewId);
         private _initNavigationEvent();
         private _navigate(url);

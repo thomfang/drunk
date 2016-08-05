@@ -35,13 +35,6 @@ namespace drunk {
         (...args: any[]): void;
     }
 
-    export interface IComponentEvent {
-        created: string;
-        release: string;
-        mounted: string;
-        templateLoadFailed: string;
-    }
-
     /**
      * Decorator for Component.register
      */
@@ -245,7 +238,7 @@ namespace drunk {
         /**
          * 组件的事件名称
          */
-        static Event: IComponentEvent = {
+        static Event = {
             created: 'created',
             release: 'release',
             mounted: 'mounted',
@@ -316,7 +309,7 @@ namespace drunk {
         static extend<T extends IComponentOptions>(options: T): IComponentContructor<T>;
         static extend<T extends IComponentOptions>(name: string, options: T): IComponentContructor<T>;
         static extend<T extends IComponentOptions>(name: string | T, options?: T) {
-            if (arguments.length === 1 && util.isObject(name)) {
+            if (arguments.length === 1 && Object.prototype.toString.call(name) === '[object Object]') {
                 options = arguments[0];
                 name = options.name;
             }

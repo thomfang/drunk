@@ -472,14 +472,14 @@ var drunk;
          * 判断是否是对象
          * @param   target 判断目标
          */
-        function isObject(target) {
+        function isPlainObjectOrObservableObject(target) {
             if (!target || typeof target !== 'object') {
                 return false;
             }
             var proto = Object.getPrototypeOf(target);
             return Object.prototype.toString.call(target) === '[object Object]' && (proto === Object.prototype || proto === drunk.observable.ObservableObjectPrototype);
         }
-        util.isObject = isObject;
+        util.isPlainObjectOrObservableObject = isPlainObjectOrObservableObject;
         /**
          * 拓展对象
          * @param  destination  目标对象
@@ -511,7 +511,7 @@ var drunk;
                     return deepClone(item);
                 });
             }
-            if (isObject(target)) {
+            if (isPlainObjectOrObservableObject(target)) {
                 var ret = {};
                 Object.keys(target).forEach(function (name) {
                     ret[name] = deepClone(target[name]);
@@ -1002,7 +1002,7 @@ var drunk;
                 else if (location.protocol === 'file:') {
                     isLocalRequest = true;
                 }
-                if (util.isObject(data)) {
+                if (Object.prototype.toString.call(data) === '[object Object]') {
                     if (contentType && contentType.match(/json/i)) {
                         data = JSON.stringify(data);
                     }
@@ -1197,7 +1197,7 @@ var drunk;
          * @param data 数组或JSON对象
          */
         function create(data) {
-            var isObject = util.isObject(data);
+            var isObject = util.isPlainObjectOrObservableObject(data);
             if (!isObject && !Array.isArray(data)) {
                 return;
             }
@@ -2267,7 +2267,7 @@ var drunk;
     drunk.Watcher = Watcher;
     // 遍历访问所有的属性以订阅所有的数据
     function visit(target) {
-        if (util.isObject(target)) {
+        if (util.isPlainObjectOrObservableObject(target)) {
             Object.keys(target).forEach(function (key) {
                 visit(target[key]);
             });
@@ -2351,7 +2351,7 @@ var drunk;
             if (definition.isTerminal) {
                 Binding._setTernimalBinding(name, definition.priority);
             }
-            if (util.isObject(definition)) {
+            if (Object.prototype.toString.call(definition) === '[object Object]') {
                 var ctor = function () {
                     var args = [];
                     for (var _i = 0; _i < arguments.length; _i++) {
@@ -3031,12 +3031,12 @@ var drunk;
         ActionBinding.prototype.init = function () {
             var _this = this;
             this.element[weakRefKey] = this;
-            if (document.body && document.body.contains(this.element)) {
-                this._actionJob = util.execAsyncWork(function () {
+            this._actionJob = util.execAsyncWork(function () {
+                _this._actionJob = null;
+                if (document.body && document.body.contains(_this.element)) {
                     _this.runActionByType(Action.Type.created);
-                    _this._actionJob = null;
-                });
-            }
+                }
+            });
         };
         /**
          * 解析action的定义表达式
@@ -4041,7 +4041,7 @@ var drunk;
             return Component.extend(options);
         };
         Component.extend = function (name, options) {
-            if (arguments.length === 1 && util.isObject(name)) {
+            if (arguments.length === 1 && Object.prototype.toString.call(name) === '[object Object]') {
                 options = arguments[0];
                 name = options.name;
             }
@@ -4209,7 +4209,6 @@ var drunk;
 /// <reference path="../../util/util.ts" />
 var drunk;
 (function (drunk) {
-    var util = drunk.util;
     var Binding = drunk.Binding;
     var AttributeBinding = (function (_super) {
         __extends(AttributeBinding, _super);
@@ -4222,7 +4221,7 @@ var drunk;
                 // 如果有提供指定的属性名
                 this._setAttribute(this.attribute, newValue);
             }
-            else if (util.isObject(newValue)) {
+            else if (Object.prototype.toString.call(newValue) === '[object Object]') {
                 Object.keys(newValue).forEach(function (name) {
                     _this._setAttribute(name, newValue[name]);
                 });
@@ -4471,7 +4470,7 @@ var drunk;
                     });
                 });
             }
-            else if (util.isObject(target)) {
+            else if (util.isPlainObjectOrObservableObject(target)) {
                 var idx = 0;
                 var key = void 0;
                 for (key in target) {

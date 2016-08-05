@@ -240,7 +240,7 @@ namespace drunk {
 
     // 遍历访问所有的属性以订阅所有的数据
     function visit(target: any) {
-        if (util.isObject(target)) {
+        if (util.isPlainObjectOrObservableObject(target)) {
             Object.keys(target).forEach(key => {
                 visit(target[key]);
             });

@@ -148,7 +148,7 @@ namespace drunk {
                     });
                 });
             }
-            else if (util.isObject(target)) {
+            else if (util.isPlainObjectOrObservableObject(target)) {
                 let idx = 0;
                 let key;
 

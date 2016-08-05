@@ -180,17 +180,17 @@ namespace drunk.dom {
         element.classList.remove.apply(element.classList, list);
     }
 
-    let styleSheet: CSSStyleSheet;
+    var styleSheet: CSSStyleSheet;
     export function addCSSRule(rules: { [selector: string]: { [property: string]: string } }) {
         if (!styleSheet) {
-            let styleElement = document.createElement('style');
+            var styleElement = document.createElement('style');
             document.head.appendChild(styleElement);
             styleSheet = <CSSStyleSheet>styleElement.sheet;
         }
 
         Object.keys(rules).forEach(selector => {
-            let rule = rules[selector];
-            let content = Object.keys(rule).map(property => `${property}:${rule[property]}`).join(';');
+            var rule = rules[selector];
+            var content = Object.keys(rule).map(property => `${property}:${rule[property]}`).join(';');
             styleSheet.insertRule(`${selector} {${content}}`, styleSheet.cssRules.length);
         });
     }
