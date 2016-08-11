@@ -13,7 +13,7 @@ namespace drunk {
         breakword: /\n+/g
     };
 
-    let help = `正确的用法如下:
+    let getHelpMessage = () => `正确的用法如下:
         ${config.prefix}on="click: expression"
         ${config.prefix}on="mousedown: expression; mouseup: callback()"
         ${config.prefix}on="click: callback($event, $el)"`;
@@ -31,7 +31,7 @@ namespace drunk {
             let matches = str.match(reg.statement);
             let prefix = config.prefix;
 
-            console.assert(matches !== null, `不合法的"${prefix}on"表达式 ${str}, ${help}`);
+            console.assert(matches !== null, `不合法的"${prefix}on"表达式 ${str}, ${getHelpMessage()}`);
 
             let type = matches[1];
             let expr = matches[2];
@@ -41,7 +41,7 @@ namespace drunk {
                 if (config.debug) {
                     console.log(type + ': ' + expr);
                 }
-                func.call(this.viewModel, e, this.element);
+                func.call(this.viewModel, e, this.element, util.global);
             }
 
             dom.on(this.element, type, handler);

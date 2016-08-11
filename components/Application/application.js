@@ -8,13 +8,11 @@ var drunk;
 (function (drunk) {
     var config = drunk.config;
     var Component = drunk.Component;
-    var Promise = drunk.Promise;
     var RouterComponent = (function (_super) {
         __extends(RouterComponent, _super);
         function RouterComponent() {
             _super.apply(this, arguments);
             this._routeList = [];
-            this._navigatingPromise = Promise.resolve();
             this._visibleViews = {};
         }
         /**
@@ -63,7 +61,7 @@ var drunk;
             }
         };
         RouterComponent.prototype._viewMounted = function (view) {
-            this._isNavigating = false;
+            // this._isNavigating = false;
         };
         RouterComponent.prototype._templateLoadFailed = function (view) {
             this.$emit(Component.Event.templateLoadFailed, view);
@@ -101,7 +99,7 @@ var drunk;
                     // 添加并解析路由,设置改组件默认不可见
                     _this._addRoute(route, name);
                     _this._visibleViews[name] = false;
-                    _this._isNavigating = true;
+                    // this._isNavigating = true;
                 });
             };
             scan(rootElement);

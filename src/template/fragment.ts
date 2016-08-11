@@ -65,7 +65,7 @@ namespace drunk.Template {
         base.href = document.location.href;
         anchor.setAttribute("href", url);
         base.href = anchor.href;
-        
+
         return load(url, false).then((template) => {
             dom.html(htmlDoc.documentElement, template);
             htmlDoc.head.appendChild(base);
@@ -160,8 +160,11 @@ namespace drunk.Template {
                 }, err => {
                     console.error(href, `样式加载失败:\n`, err);
                 });
-            } else {
-                let newLink: any = link.cloneNode(false);
+            }
+            else {
+                let newLink = link.cloneNode(false) as HTMLLinkElement;
+                newLink.setAttribute('rel', 'stylesheet');
+                newLink.setAttribute('type', 'text/css');
                 newLink.href = href;
                 document.head.appendChild(newLink);
             }

@@ -1,10 +1,12 @@
 /// <reference path="../util/util.ts" />
+/// <reference path="../config/config.ts" />
 /// <reference path="../parser/parser.ts" />
 /// <reference path="../observable/observable.ts" />
 
 namespace drunk {
 
     import util = drunk.util;
+    import config = drunk.config;
     import Parser = drunk.Parser;
     import observable = drunk.observable;
 
@@ -107,7 +109,13 @@ namespace drunk {
          * 数据更新派发，会先做缓冲，防止在同一时刻对此出发更新操作，等下一次系统轮训时再真正执行更新操作
          */
         private _propertyChanged(): void {
-            if (!this._throttle) {
+            if (config.renderOptimization) {
+                if (this._throttle) {
+                    util.cancelAnimationFrame(this._throttle);
+                }
+                this._flush();
+            }
+            else if (!this._throttle) {
                 this._throttle = util.requestAnimationFrame(() => this._flush());
             }
         }

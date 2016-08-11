@@ -37,10 +37,8 @@ namespace drunk {
         private _routeList: IRouter[] = [];
         private _currView: IRouterComponent;
         private _currViewId: string;
-        private _isNavigating: boolean;
         private _routeState: IRouterState;
         private _navigationState: any;
-        private _navigatingPromise: Promise<any> = Promise.resolve();
         private _visibleViews: IModel = {};
 
         /**
@@ -94,7 +92,7 @@ namespace drunk {
         }
 
         private _viewMounted(view: IRouterComponent) {
-            this._isNavigating = false;
+            // this._isNavigating = false;
         }
 
         private _templateLoadFailed(view: IRouterComponent) {
@@ -143,7 +141,7 @@ namespace drunk {
                     // 添加并解析路由,设置改组件默认不可见
                     this._addRoute(route, name);
                     this._visibleViews[name] = false;
-                    this._isNavigating = true;
+                    // this._isNavigating = true;
                 });
             };
 

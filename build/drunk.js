@@ -1515,6 +1515,7 @@ var drunk;
     var Parser;
     (function (Parser) {
         var Cache = drunk.Cache;
+        var globalName = "$global";
         var eventName = "$event";
         var elementName = "$el";
         var valueName = "__value";
@@ -1526,7 +1527,7 @@ var drunk;
             'break', 'case', 'catch', 'continue', 'debugger', 'default', 'delete', 'do',
             'else', 'finally', 'for', 'function', 'if', 'in', 'instanceof', 'new', 'return',
             'switch', 'this', 'throw', 'try', 'typeof', 'var', 'void', 'while',
-            'class', 'null', 'undefined', 'true', 'false', 'with', eventName, elementName,
+            'class', 'null', 'undefined', 'true', 'false', 'with', eventName, elementName, globalName,
             'let', 'abstract', 'import', 'yield', 'arguments'
         ];
         var tokenCache = new Cache(200);
@@ -1678,7 +1679,7 @@ var drunk;
             if (!fn) {
                 var detail = parseIdentifier(expression);
                 var fnBody = detail.proxies + "return (" + detail.formated + ");";
-                fn = createFunction(expression, eventName, elementName, fnBody);
+                fn = createFunction(expression, eventName, elementName, globalName, fnBody);
                 expressionCache.set(expression, fn);
             }
             return fn;
@@ -1704,7 +1705,7 @@ var drunk;
                 }
                 var detail = parseIdentifier(input);
                 var fnBody = detail.proxies + "try{return (" + detail.formated + ");}catch(e){}";
-                getter = createFunction(expression, eventName, elementName, fnBody);
+                getter = createFunction(expression, eventName, elementName, globalName, fnBody);
                 getter.dynamic = !!detail.identifiers.length;
                 getter.filters = filter ? filter.filters : null;
                 getterCache.set(expression, getter);
@@ -1779,7 +1780,7 @@ var drunk;
                         getter = parseGetter(item.expression);
                         filters_1[i] = getter.filters;
                         if (!getter.dynamic) {
-                            return getter((null));
+                            return getter.call(null);
                         }
                         dynamic_1 = true;
                         return getter;
@@ -2071,6 +2072,7 @@ var drunk;
 var drunk;
 (function (drunk) {
     var util = drunk.util;
+    var config = drunk.config;
     var Parser = drunk.Parser;
     var observable = drunk.observable;
     var Watcher = (function () {
@@ -2152,7 +2154,13 @@ var drunk;
          */
         Watcher.prototype._propertyChanged = function () {
             var _this = this;
-            if (!this._throttle) {
+            if (config.renderOptimization) {
+                if (this._throttle) {
+                    util.cancelAnimationFrame(this._throttle);
+                }
+                this._flush();
+            }
+            else if (!this._throttle) {
                 this._throttle = util.requestAnimationFrame(function () { return _this._flush(); });
             }
         };
@@ -2722,7 +2730,6 @@ var drunk;
             if (!this._isActived) {
                 return;
             }
-            this._isActived = false;
             Object.keys(this._proxyProps).forEach(function (property) {
                 delete _this[property];
             });
@@ -2736,6 +2743,7 @@ var drunk;
             });
             EventEmitter.cleanup(this);
             this._model = this._bindings = this._watchers = this._proxyProps = this.$filter = null;
+            this._isActived = false;
         };
         /**
          * 获取事件回调,内置方法
@@ -2770,7 +2778,7 @@ var drunk;
          * @param   el             元素对象
          */
         ViewModel.prototype.__execGetter = function (getter, isInterpolate) {
-            var value = getter.call(this);
+            var value = getter.call(this, null, null, util.global);
             return Filter.pipeFor.apply(null, [value, getter.filters, this.$filter, isInterpolate, this]);
         };
         return ViewModel;
@@ -3336,7 +3344,6 @@ var drunk;
         var config = drunk.config;
         var Parser = drunk.Parser;
         var Binding = drunk.Binding;
-        var componentName = config.prefix + 'component';
         var noop = function () { };
         function compile(node) {
             var isArray = Array.isArray(node);
@@ -3403,7 +3410,7 @@ var drunk;
         Template.createBindingDescriptorList = createBindingDescriptorList;
         function createElementBindingDescriptor(element) {
             if (element.tagName.toLowerCase().indexOf('-') > 0) {
-                element.setAttribute(componentName, element.tagName.toLowerCase());
+                element.setAttribute(config.prefix + 'component', element.tagName.toLowerCase());
             }
             return createTerminalBindingDescriptor(element) || createNormalBindingDescriptor(element);
         }
@@ -3714,6 +3721,8 @@ var drunk;
                 }
                 else {
                     var newLink = link.cloneNode(false);
+                    newLink.setAttribute('rel', 'stylesheet');
+                    newLink.setAttribute('type', 'text/css');
                     newLink.href = href;
                     document.head.appendChild(newLink);
                 }
@@ -3983,7 +3992,6 @@ var drunk;
             if (!this._isActived) {
                 return;
             }
-            this._isActived = false;
             this.$emit(Component.Event.release, this);
             _super.prototype.$release.call(this);
             if (this._isMounted) {
@@ -4165,7 +4173,7 @@ var drunk;
         statement: /(\w+):\s*(.+)/,
         breakword: /\n+/g
     };
-    var help = "\u6B63\u786E\u7684\u7528\u6CD5\u5982\u4E0B:\n        " + drunk.config.prefix + "on=\"click: expression\"\n        " + drunk.config.prefix + "on=\"mousedown: expression; mouseup: callback()\"\n        " + drunk.config.prefix + "on=\"click: callback($event, $el)\"";
+    var getHelpMessage = function () { return ("\u6B63\u786E\u7684\u7528\u6CD5\u5982\u4E0B:\n        " + drunk.config.prefix + "on=\"click: expression\"\n        " + drunk.config.prefix + "on=\"mousedown: expression; mouseup: callback()\"\n        " + drunk.config.prefix + "on=\"click: callback($event, $el)\""); };
     var EventBinding = (function (_super) {
         __extends(EventBinding, _super);
         function EventBinding() {
@@ -4179,7 +4187,7 @@ var drunk;
             var _this = this;
             var matches = str.match(reg.statement);
             var prefix = drunk.config.prefix;
-            console.assert(matches !== null, "\u4E0D\u5408\u6CD5\u7684\"" + prefix + "on\"\u8868\u8FBE\u5F0F " + str + ", " + help);
+            console.assert(matches !== null, "\u4E0D\u5408\u6CD5\u7684\"" + prefix + "on\"\u8868\u8FBE\u5F0F " + str + ", " + getHelpMessage());
             var type = matches[1];
             var expr = matches[2];
             var func = drunk.Parser.parse(expr.trim());
@@ -4187,7 +4195,7 @@ var drunk;
                 if (drunk.config.debug) {
                     console.log(type + ': ' + expr);
                 }
-                func.call(_this.viewModel, e, _this.element);
+                func.call(_this.viewModel, e, _this.element, drunk.util.global);
             };
             dom.on(this.element, type, handler);
             return { type: type, handler: handler };
@@ -4766,7 +4774,7 @@ var drunk;
     var reStatement = /(\w+):\s*(.+)/;
     var reSemic = /\s*;\s*/;
     var reBreakword = /\n+/g;
-    var help = "\u6B63\u786E\u7684\u7528\u6CD5\u5982\u4E0B:\n        " + drunk.config.prefix + "on=\"click: expression\"\n        " + drunk.config.prefix + "on=\"mousedown: expression; mouseup: callback()\"\n        " + drunk.config.prefix + "on=\"click: callback($event, $el)\"";
+    var getHelpMessage = function () { return ("\u6B63\u786E\u7684\u7528\u6CD5\u5982\u4E0B:\n        " + drunk.config.prefix + "on=\"click: expression\"\n        " + drunk.config.prefix + "on=\"mousedown: expression; mouseup: callback()\"\n        " + drunk.config.prefix + "on=\"click: callback($event, $el)\""); };
     var ComponentBinding = (function (_super) {
         __extends(ComponentBinding, _super);
         function ComponentBinding() {
@@ -4926,7 +4934,7 @@ var drunk;
             this.element.removeAttribute(bindingName);
             expression.replace(reBreakword, ' ').split(reSemic).map(function (str) {
                 var matches = str.match(reStatement);
-                console.assert(matches !== null, "\u4E0D\u5408\u6CD5\u7684\"" + drunk.config.prefix + "on\"\u8868\u8FBE\u5F0F " + str + ", " + help);
+                console.assert(matches !== null, "\u4E0D\u5408\u6CD5\u7684\"" + drunk.config.prefix + "on\"\u8868\u8FBE\u5F0F " + str + ", " + getHelpMessage());
                 _this._registerComponentEvent(matches[1], matches[2]);
             });
         };
@@ -4952,7 +4960,7 @@ var drunk;
                     type: eventName,
                     args: args,
                     target: _this.component
-                }, _this.component);
+                }, _this.component, util.global);
             });
         };
         /**

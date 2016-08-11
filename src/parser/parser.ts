@@ -9,7 +9,7 @@ namespace drunk.Parser {
     import Cache = drunk.Cache;
     
     export interface IGetter {
-        (viewModel: ViewModel, ...args: Array<any>): any;
+        (event?: Event, element?: HTMLElement, global?: any): any;
         filters?: Array<Filter.IFilterDef>;
         dynamic?: boolean;
         isInterpolate?: boolean;
@@ -24,6 +24,7 @@ namespace drunk.Parser {
         filters: Array<Filter.IFilterDef>;
     }
     
+    let globalName = "$global";
     let eventName = "$event";
     let elementName = "$el";
     let valueName = "__value";
@@ -36,7 +37,7 @@ namespace drunk.Parser {
         'break', 'case', 'catch', 'continue', 'debugger', 'default', 'delete', 'do',
         'else', 'finally', 'for', 'function', 'if', 'in', 'instanceof', 'new', 'return',
         'switch', 'this', 'throw', 'try', 'typeof', 'var', 'void', 'while',
-        'class', 'null', 'undefined', 'true', 'false', 'with', eventName, elementName,
+        'class', 'null', 'undefined', 'true', 'false', 'with', eventName, elementName, globalName,
         'let', 'abstract', 'import', 'yield', 'arguments'
     ];
     
@@ -214,7 +215,7 @@ namespace drunk.Parser {
             let detail = parseIdentifier(expression);
             let fnBody = detail.proxies + "return (" + detail.formated + ");";
             
-            fn = createFunction(expression, eventName, elementName, fnBody);
+            fn = createFunction(expression, eventName, elementName, globalName, fnBody);
             expressionCache.set(expression, fn);
         }
         
@@ -247,7 +248,7 @@ namespace drunk.Parser {
             let detail = parseIdentifier(input);
             let fnBody = detail.proxies + "try{return (" + detail.formated + ");}catch(e){}";
     
-            getter = createFunction(expression, eventName, elementName, fnBody);
+            getter = createFunction(expression, eventName, elementName, globalName, fnBody);
             getter.dynamic = !!detail.identifiers.length;
             getter.filters = filter ? filter.filters : null;
             
@@ -346,7 +347,7 @@ namespace drunk.Parser {
                     filters[i] = getter.filters;
                     
                     if (!getter.dynamic) {
-                        return getter(<ViewModel>(null));
+                        return getter.call(null);
                     }
                     dynamic = true;
                     return getter;

@@ -23,10 +23,8 @@ declare namespace drunk {
         private _routeList;
         private _currView;
         private _currViewId;
-        private _isNavigating;
         private _routeState;
         private _navigationState;
-        private _navigatingPromise;
         private _visibleViews;
         /**
          * 启动

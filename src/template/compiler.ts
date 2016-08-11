@@ -27,8 +27,6 @@ namespace drunk.Template {
         isTerminal?: boolean;
         isTextNode?: boolean;
     }
-
-    const componentName = config.prefix + 'component';
     const noop = () => { };
 
     export function compile(node: Node | Node[]) {
@@ -98,7 +96,7 @@ namespace drunk.Template {
 
     function createElementBindingDescriptor(element: HTMLElement) {
         if (element.tagName.toLowerCase().indexOf('-') > 0) {
-            element.setAttribute(componentName, element.tagName.toLowerCase());
+            element.setAttribute(config.prefix + 'component', element.tagName.toLowerCase());
         }
         return createTerminalBindingDescriptor(element) || createNormalBindingDescriptor(element);
     }

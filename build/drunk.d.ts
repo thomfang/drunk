@@ -508,7 +508,7 @@ declare namespace drunk.observable {
  */
 declare namespace drunk.Parser {
     interface IGetter {
-        (viewModel: ViewModel, ...args: Array<any>): any;
+        (event?: Event, element?: HTMLElement, global?: any): any;
         filters?: Array<Filter.IFilterDef>;
         dynamic?: boolean;
         isInterpolate?: boolean;

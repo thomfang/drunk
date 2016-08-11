@@ -211,7 +211,6 @@ namespace drunk {
                 return;
             }
             
-            this._isActived = false;
             this.$emit(Component.Event.release, this);
 
             super.$release();

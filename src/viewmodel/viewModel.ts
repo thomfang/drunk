@@ -269,8 +269,6 @@ namespace drunk {
                 return;
             }
 
-            this._isActived = false;
-
             Object.keys(this._proxyProps).forEach(property => {
                 delete this[property];
             });
@@ -287,6 +285,7 @@ namespace drunk {
 
             EventEmitter.cleanup(this);
             this._model = this._bindings = this._watchers = this._proxyProps = this.$filter = null;
+            this._isActived = false;
         }
 
         /**
@@ -321,7 +320,7 @@ namespace drunk {
          * @param   el             元素对象
          */
         protected __execGetter(getter, isInterpolate) {
-            var value = getter.call(this);
+            var value = getter.call(this, null, null, util.global);
             return Filter.pipeFor.apply(null, [value, getter.filters, this.$filter, isInterpolate, this]);
         }
     }

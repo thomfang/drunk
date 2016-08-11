@@ -17,7 +17,7 @@ namespace drunk {
     let reSemic = /\s*;\s*/;
     let reBreakword = /\n+/g;
 
-    let help = `正确的用法如下:
+    let getHelpMessage = () => `正确的用法如下:
         ${config.prefix}on="click: expression"
         ${config.prefix}on="mousedown: expression; mouseup: callback()"
         ${config.prefix}on="click: callback($event, $el)"`;
@@ -206,7 +206,7 @@ namespace drunk {
         private _processEventBinding() {
             let bindingName = config.prefix + 'on';
             let expression = this.element.getAttribute(bindingName);
-            
+
             if (expression == null) {
                 return;
             }
@@ -215,7 +215,7 @@ namespace drunk {
 
             expression.replace(reBreakword, ' ').split(reSemic).map(str => {
                 let matches = str.match(reStatement);
-                console.assert(matches !== null, `不合法的"${config.prefix}on"表达式 ${str}, ${help}`);
+                console.assert(matches !== null, `不合法的"${config.prefix}on"表达式 ${str}, ${getHelpMessage()}`);
                 this._registerComponentEvent(matches[1], matches[2]);
             });
         }
@@ -238,7 +238,7 @@ namespace drunk {
                     type: eventName,
                     args: args,
                     target: this.component
-                }, this.component);
+                }, this.component, util.global);
             });
         }
 
