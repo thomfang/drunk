@@ -2067,6 +2067,7 @@ var drunk;
     })(Filter = drunk.Filter || (drunk.Filter = {}));
 })(drunk || (drunk = {}));
 /// <reference path="../util/util.ts" />
+/// <reference path="../config/config.ts" />
 /// <reference path="../parser/parser.ts" />
 /// <reference path="../observable/observable.ts" />
 var drunk;

@@ -779,7 +779,7 @@ drunk是一个高性能的web前端MVVM开发框架，采用WebComponents的开�
 
     * 事件
 
-    > `Event`   
+    > `drunk.Component.Event`   
     > `Event.created, Event.mounted, Event.release, Event.templateLoadFailed`
 
     ```typescript
@@ -791,8 +791,8 @@ drunk是一个高性能的web前端MVVM开发框架，采用WebComponents的开�
 
     * 定义组件
 
-    > `define(members: Object)` 匿名组件  
-    > `define(name: string, members: Object)` 具名组件    
+    > `drunk.Component.define(members: Object)` 匿名组件  
+    > `drunk.Component.define(name: string, members: Object)` 具名组件    
 
     ```typescript
     // 匿名组件
@@ -812,7 +812,7 @@ drunk是一个高性能的web前端MVVM开发框架，采用WebComponents的开�
     
     * 根据名字和组件的类(构造函数)注册一个组件 
 
-    > `register(name: string, constructor: Function)` 
+    > `drunk.Component.register(name: string, constructor: Function)` 
 
     ```typescript
     class ComponentC extends drunk.Component {
@@ -1008,4 +1008,117 @@ drunk是一个高性能的web前端MVVM开发框架，采用WebComponents的开�
     ```typescript
     var vm = new drunk.Component();
     vm.$release();
+    ```
+
+## drunk.util
+
+* `drunk.util.global`
+
+    > 全部根对象,在浏览器里为window对象
+
+* `drunk.util.ajax(options: IAjaxOptions): Promise`
+
+    > 发送异步请求   
+    > ```     
+    >   interface IAjaxOptions { 
+    >       url: string;                请求url   
+    >       type?: string;              请求类型,默认为GET 
+    >       data?: Object;              请求发送的数据 
+    >       headers?: Object;           请求头配置   
+    >       withCredentials?: boolean;  请求是否带cookie 
+    >       dataType?: string;          请求接收的数据类型，可设置为json，默认为string    
+    >       responseType?: string;      dataType的别名 
+    >       timeout?: number;           请求超时时间  
+    >       user? string;               请求带的用户信息    
+    >       password?: string;          请求带的用户密码    
+    >   }
+    > ```
+
+    ```typescript
+    drunk.util.ajax({
+        url: 'http://github.com',
+        type: 'GET'
+    }).then(html => {
+        console.log(html);
+    });
+    ```
+
+* `drunk.util.extend(target, ...srcObjects: any[])`
+
+    > 把其他对象的属性拓展到目标对象中
+
+    ```typescript
+    var a = {};
+    var b = {a: 1, b: 2, c: 3};
+    var c = {name: 123};
+    drunk.util.extend(a, b, c);
+    console.log(a); // {a: 1, b: 2, c: 3, name: 123}
+    ```
+
+* `drunk.util.deepClone(target: Object|any[])`
+
+    > 深度拷贝对象和数组
+
+    ```typescript
+    var arr = [1, 2, 3];
+    console.log(arr === drunk.util.deepClone(arr)); // false
+
+    var obj = {name: 123};
+    console.log(obj === drunk.util.deepClone(obj)); // false
+    ```
+
+* `drunk.util.addArrayItem(array: any[], item: any)`
+
+    > 给数组添加唯一的item
+
+    ```typescript
+    var array = [1, 2, 3];
+    drunk.util.addArrayItem(array, 2);
+    console.log(array); // 依然是 [1, 2, 3]
+    ```
+
+* `drunk.util.removeArrayItem(array: any[], item: any)`
+
+    > 删除数组中的值
+
+    ```typescript
+    var array = [1, 2, 3];
+    drunk.util.removeArrayItem(array, 2);
+    console.log(array); // [1, 3]
+    ```
+
+* `drunk.util.toArray(arrayLike: any): any[]`
+
+    > 把类数组对象转为数组对象
+
+    ```typescript
+    var divs = document.querySelectorAll('div');
+    drunk.util.toArray(divs).forEach(() => {
+        // ...
+    });
+    ```
+
+* requestAnimationFrame和cancelAnimationFrame的兼容方法
+
+    > `drunk.util.requestAnimationFrame(callback: (timestamp: number) => any): number`  
+    > `drunk.util.cancelAnimationFrame(handle: number)` 
+
+    ```typescript
+    var id = drunk.util.requestAnimationFrame(() => console.log('123'));
+    drunk.util.cancelAnimationFrame(id);
+    ```
+
+* `drunk.util.execAsyncWork(callback: Function, context?: any): IAsyncJob`
+
+    > 执行一个异步方法
+
+    ```typescript
+    var obj = {name: 123};
+    var job = drunk.util.execAsyncWork(function () {
+        console.log(this); // this 是 obj对象
+    }, obj);
+    
+    if (!job.completed) {
+        job.cancel();
+    }
     ```

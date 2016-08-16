@@ -244,7 +244,12 @@ namespace drunk {
                 this._onScrollHandler({});
             }
             else {
+                let oldValue = this._itemContainer[attr];
                 this._itemContainer[attr] = dist;
+
+                if (oldValue === this._itemContainer[attr]) {
+                    this._onScrollHandler({});
+                }
             }
         }
 

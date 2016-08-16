@@ -181,7 +181,11 @@ var drunk;
                 this._onScrollHandler({});
             }
             else {
+                var oldValue = this._itemContainer[attr];
                 this._itemContainer[attr] = dist;
+                if (oldValue === this._itemContainer[attr]) {
+                    this._onScrollHandler({});
+                }
             }
         };
         /**
