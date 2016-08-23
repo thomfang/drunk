@@ -2155,7 +2155,7 @@ var drunk;
          */
         Watcher.prototype._propertyChanged = function () {
             var _this = this;
-            if (config.renderOptimization) {
+            if (!config.renderOptimization) {
                 if (this._throttle) {
                     util.cancelAnimationFrame(this._throttle);
                 }
@@ -4182,7 +4182,13 @@ var drunk;
         }
         EventBinding.prototype.init = function () {
             var _this = this;
-            this._events = this.expression.replace(reg.breakword, ' ').split(reg.semic).map(function (str) { return _this._parseEvent(str); });
+            var events = [];
+            this.expression.replace(reg.breakword, ' ').split(reg.semic).forEach(function (str) {
+                if (str && /\S/.test(str)) {
+                    events.push(_this._parseEvent(str));
+                }
+            });
+            this._events = events;
         };
         EventBinding.prototype._parseEvent = function (str) {
             var _this = this;

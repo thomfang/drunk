@@ -109,7 +109,7 @@ namespace drunk {
          * 数据更新派发，会先做缓冲，防止在同一时刻对此出发更新操作，等下一次系统轮训时再真正执行更新操作
          */
         private _propertyChanged(): void {
-            if (config.renderOptimization) {
+            if (!config.renderOptimization) {
                 if (this._throttle) {
                     util.cancelAnimationFrame(this._throttle);
                 }

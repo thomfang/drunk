@@ -24,7 +24,13 @@ namespace drunk {
         private _events: { type: string; handler: (ev) => void; }[];
 
         init() {
-            this._events = this.expression.replace(reg.breakword, ' ').split(reg.semic).map(str => this._parseEvent(str));
+            var events = [];
+            this.expression.replace(reg.breakword, ' ').split(reg.semic).forEach(str => {
+                if (str && /\S/.test(str)) {
+                    events.push(this._parseEvent(str));
+                }
+            });
+            this._events = events;
         }
 
         _parseEvent(str: string) {
