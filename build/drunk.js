@@ -4854,7 +4854,7 @@ var drunk;
                 util.toArray(element.attributes).forEach(function (attr) {
                     var attrName = attr.name;
                     var attrValue = attr.value;
-                    if (attrName.indexOf(drunk.config.prefix) > -1) {
+                    if (attrName.indexOf(drunk.config.prefix) === 0) {
                         return console.warn("\u81EA\u5B9A\u4E49\u7EC4\u4EF6\u6807\u7B7E\u4E0A\u4E0D\u652F\u6301\u4F7F\u7528\"" + attrName + "\"\u7ED1\u5B9A\u8BED\u6CD5");
                     }
                     if (!attrValue) {

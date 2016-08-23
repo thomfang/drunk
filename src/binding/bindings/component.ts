@@ -113,7 +113,7 @@ namespace drunk {
                     let attrName = attr.name;
                     let attrValue = attr.value;
 
-                    if (attrName.indexOf(config.prefix) > -1) {
+                    if (attrName.indexOf(config.prefix) === 0) {
                         return console.warn(`自定义组件标签上不支持使用"${attrName}"绑定语法`);
                     }
                     if (!attrValue) {
