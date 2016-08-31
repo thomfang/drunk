@@ -1,0 +1,67 @@
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1,width=device-width">
+    <title>Carousel View Demo</title>
+
+    <script src="../../build/drunk.js"></script>
+    <script src="../../components/carousel/carousel.js"></script>
+
+    <style>
+        html, body {width:100%;height:100%;margin:0;padding:0;}
+        .carousel-view {
+            width: 100%;
+            height: 200px;
+            overflow: hidden;
+        }
+        
+        .carousel-view .item {
+            width: 100%;
+            height: 100%;
+            display: inline-block;
+            color: #fff;
+            font-size: 18px;
+        }
+        
+        .gray {
+            background: #333;
+        }
+        
+        .red {
+            background: red;
+        }
+
+        .indicators {
+            width: 10px;
+            height: 10px;
+            border-radius: 10px;
+            background: #ddd;
+            margin: 0 10px;
+            float: left;
+        }
+        .indicators.on {
+            background: #333;
+        }
+    </style>
+</head>
+
+<body>
+    <carousel-view item-data-source="{{list}}" interval="3" index="{{carouselIndex}}" two-way="index" forward="false" auto-slide="false">
+        <div class="item" drunk-class="{red: $even, gray: $odd}">{{$item}}</div>
+    </carousel-view>
+    <div>
+        <div class="indicators" drunk-class="{on: index == carouselIndex}" drunk-on="click: carouselIndex = index" drunk-repeat="e,index in list"></div>
+    </div>
+
+    <script>
+        // drunk.config.debug = true;
+        var app = new drunk.Component({
+            list: [1, 2, 3],
+            carouselIndex: 1
+        });
+        app.$mount(document.body);
+    </script>
+</body>
+
+</html>

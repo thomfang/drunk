@@ -71,7 +71,7 @@
 <body>
 
     <div class="slide-item1" drunk-repeat="team,teamName in group" drunk-action="slide">
-        <h2>{{teamName}}</h2>
+        <h2>{{teamName}} -- {{count}}</h2>
         <div class="slide-item2" drunk-repeat="student in team" drunk-action="slide" drunk-include="tpl">
 
         </div>
@@ -135,6 +135,10 @@
             });
             
             app.tpl = 'a';
+
+            app.$computed('count', function () {
+                return Object.keys(this.group || {}).length;
+            });
             
             app.loadMore = function () {
                 this.group.$set('team' + count++, [

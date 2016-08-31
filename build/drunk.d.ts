@@ -1361,14 +1361,11 @@ declare namespace drunk {
         _element: any;
         protected _models: IModel[];
         constructor(_parent: Component | RepeatItem, ownModel: IModel);
-        /**
-         * 这里只初始化私有model
-         */
-        protected __init(ownModel: any): void;
+        protected __init(): void;
         /**
          * 继承父级viewModel的filter和私有model
          */
-        protected __inheritParentMembers(): void;
+        protected __inheritParentMembers(ownModel: any): void;
         /**
          * 代理指定model上的所有属性
          */

@@ -36,22 +36,17 @@ namespace drunk {
         protected _models: IModel[];
 
         constructor(private _parent: Component | RepeatItem, ownModel: IModel) {
-            super(ownModel);
-            this.__inheritParentMembers();
+            super();
+            this.__inheritParentMembers(ownModel);
         }
 
-        /**
-         * 这里只初始化私有model
-         */
-        protected __init(ownModel) {
-            this.__proxyModel(ownModel);
-            observable.create(ownModel);
+        protected __init() {
         }
 
         /**
          * 继承父级viewModel的filter和私有model
          */
-        protected __inheritParentMembers() {
+        protected __inheritParentMembers(ownModel) {
             let parent = this._parent;
             let models = (<RepeatItem>parent)._models;
 
@@ -64,6 +59,8 @@ namespace drunk {
                     this.__proxyModel(model);
                 });
             }
+            this.__proxyModel(ownModel);
+            observable.create(ownModel);
         }
 
         /**
@@ -85,9 +82,13 @@ namespace drunk {
          * 重写代理方法,顺便也让父级viewModel代理该属性
          */
         $proxy(property: string) {
-            if (util.createProxy(this, property, this._model)) {
+            if (this._proxyProps[property]) {
+                return;
+            }
+            if (util.createProxy(this, property, this._parent)) {
                 this._parent.$proxy(property);
             }
+            this._proxyProps[property] = true;
         }
 
         $getModel() {

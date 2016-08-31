@@ -4384,21 +4384,16 @@ var drunk;
     var RepeatItem = (function (_super) {
         __extends(RepeatItem, _super);
         function RepeatItem(_parent, ownModel) {
-            _super.call(this, ownModel);
+            _super.call(this);
             this._parent = _parent;
-            this.__inheritParentMembers();
+            this.__inheritParentMembers(ownModel);
         }
-        /**
-         * 这里只初始化私有model
-         */
-        RepeatItem.prototype.__init = function (ownModel) {
-            this.__proxyModel(ownModel);
-            drunk.observable.create(ownModel);
+        RepeatItem.prototype.__init = function () {
         };
         /**
          * 继承父级viewModel的filter和私有model
          */
-        RepeatItem.prototype.__inheritParentMembers = function () {
+        RepeatItem.prototype.__inheritParentMembers = function (ownModel) {
             var _this = this;
             var parent = this._parent;
             var models = parent._models;
@@ -4409,6 +4404,8 @@ var drunk;
                     _this.__proxyModel(model);
                 });
             }
+            this.__proxyModel(ownModel);
+            drunk.observable.create(ownModel);
         };
         /**
          * 代理指定model上的所有属性
@@ -4427,9 +4424,13 @@ var drunk;
          * 重写代理方法,顺便也让父级viewModel代理该属性
          */
         RepeatItem.prototype.$proxy = function (property) {
-            if (util.createProxy(this, property, this._model)) {
+            if (this._proxyProps[property]) {
+                return;
+            }
+            if (util.createProxy(this, property, this._parent)) {
                 this._parent.$proxy(property);
             }
+            this._proxyProps[property] = true;
         };
         RepeatItem.prototype.$getModel = function () {
             var result = _super.prototype.$getModel.call(this);
