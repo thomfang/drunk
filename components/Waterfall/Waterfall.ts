@@ -37,13 +37,16 @@ namespace drunk {
         itemWidth: number;
         itemSpan: number;
 
+        private _onScroll: IEventListener;
+        private _onResize: IEventListener;
+
         init() {
             var element = this.element;
             var viewModel = this.viewModel as RepeatItem;
             var parentVm = viewModel['_parent'] as Component;
 
             if (viewModel['$last']) {
-                let onScroll = () => {
+                this._onScroll = () => {
                     var elements = util.toArray(element.parentNode.children);
                     var tail = elements.length - 1;
 
@@ -53,18 +56,17 @@ namespace drunk {
                         }
                     });
                 };
-                let onResize = () => {
+                this._onResize = () => {
                     this.updateLayout();
                 };
 
                 viewModel.$watch('$last', (value: boolean) => {
                     if (!value) {
-                        parentVm.$removeListener('waterfall:scroll', onScroll);
-                        window.removeEventListener('resize', onResize);
+                        this.dettachEvent();
                     }
                 });
-                parentVm.$on('waterfall:scroll', onScroll);
-                window.addEventListener('resize', onResize);
+                parentVm.$on('waterfall:scroll', this._onScroll);
+                window.addEventListener('resize', this._onResize);
 
                 this.itemWidth = element.offsetWidth;
                 this.itemSpan = parseFloat(element.getAttribute('waterfall-item-span'));
@@ -113,6 +115,18 @@ namespace drunk {
             });
 
             scroller.style.height = Math.max.apply(Math, colsHeight) + 'px';
+        }
+
+        dettachEvent() {
+            if (this._onResize && this._onScroll) {
+                this.viewModel['_parent'].$removeListener('waterfall:scroll', this._onScroll);
+                window.removeEventListener('resize', this._onResize);
+                this._onResize = this._onScroll = null;
+            }
+        }
+
+        release() {
+            this.dettachEvent();
         }
     }
 

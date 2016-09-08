@@ -52,7 +52,7 @@ var drunk;
             var viewModel = this.viewModel;
             var parentVm = viewModel['_parent'];
             if (viewModel['$last']) {
-                var onScroll_1 = function () {
+                this._onScroll = function () {
                     var elements = drunk.util.toArray(element.parentNode.children);
                     var tail = elements.length - 1;
                     elements.forEach(function (itemElement, index) {
@@ -61,17 +61,16 @@ var drunk;
                         }
                     });
                 };
-                var onResize_1 = function () {
+                this._onResize = function () {
                     _this.updateLayout();
                 };
                 viewModel.$watch('$last', function (value) {
                     if (!value) {
-                        parentVm.$removeListener('waterfall:scroll', onScroll_1);
-                        window.removeEventListener('resize', onResize_1);
+                        _this.dettachEvent();
                     }
                 });
-                parentVm.$on('waterfall:scroll', onScroll_1);
-                window.addEventListener('resize', onResize_1);
+                parentVm.$on('waterfall:scroll', this._onScroll);
+                window.addEventListener('resize', this._onResize);
                 this.itemWidth = element.offsetWidth;
                 this.itemSpan = parseFloat(element.getAttribute('waterfall-item-span'));
                 this.updateLayout();
@@ -113,6 +112,16 @@ var drunk;
                 itemVisible(itemElement);
             });
             scroller.style.height = Math.max.apply(Math, colsHeight) + 'px';
+        };
+        WaterfallItem.prototype.dettachEvent = function () {
+            if (this._onResize && this._onScroll) {
+                this.viewModel['_parent'].$removeListener('waterfall:scroll', this._onScroll);
+                window.removeEventListener('resize', this._onResize);
+                this._onResize = this._onScroll = null;
+            }
+        };
+        WaterfallItem.prototype.release = function () {
+            this.dettachEvent();
         };
         WaterfallItem = __decorate([
             drunk.binding('waterfall-item')
