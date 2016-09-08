@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="initial-scale=1" />
+    <title>waterfall - demo</title>
+    <script src="../../build/drunk.js"></script>
+    <script src="../../components/Waterfall/waterfall.js"></script>
+
+    <style>
+        .container {
+            width: 100%;
+            height: 480px;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+        
+        .scroller {
+            width: 100%;
+            position: relative;
+        }
+        
+        .item {
+            position: absolute;
+            width: 150px;
+            height: 200px;
+            margin: 5px;
+            background: #333;
+            opacity: 0;
+            transition: all 0.5s ease-in-out;
+            /*transform: translateY(100px);*/
+        }
+        
+        .item.long {
+            height: 300px;
+        }
+        
+        .item.visible {
+            opacity: 1;
+            /*transform: translateY(0);*/
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class='container' drunk-waterfall>
+        <div class="scroller">
+            <div drunk-repeat="n,index in count" class="item" drunk-class="{long: $odd}" drunk-waterfall-item waterfall-item-span="10"></div>
+        </div>
+    </div>
+
+    <script>
+        var view = new drunk.Component({
+            count: 25
+        });
+        view.$mount(drunk.util.toArray(document.body.children));
+        view.$on('waterfall-scroll-end', function () {
+            this.count += 25;
+        })
+    </script>
+</body>
+
+</html>
