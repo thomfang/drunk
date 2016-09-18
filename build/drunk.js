@@ -1014,20 +1014,18 @@ var drunk;
                         }
                     }
                 }
-                xhr.onerror = function () {
-                    if (xhr) {
-                        reject(xhr);
-                        xhr = null;
-                    }
-                };
-                xhr.onreadystatechange = function () {
+                xhr.onload = function () {
                     if (xhr.readyState === 4) {
                         if ((xhr.status >= 200 && xhr.status < 300) || (isLocalRequest && xhr.status === 0)) {
                             var result = (options.responseType || options.dataType) == 'json' ? JSON.parse(xhr.responseText) : xhr.response;
                             resolve(result);
                         }
                         else {
-                            reject(xhr);
+                            var contentType_1 = xhr.getResponseHeader('Content-Type');
+                            reject({
+                                res: contentType_1.match(/json/i) ? JSON.parse(xhr.responseText) : xhr.responseText,
+                                xhr: xhr
+                            });
                         }
                         xhr = null;
                     }

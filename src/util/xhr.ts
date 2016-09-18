@@ -110,21 +110,18 @@ namespace drunk.util {
                 }
             }
 
-            xhr.onerror = () => {
-                if (xhr) {
-                    reject(xhr);
-                    xhr = null;
-                }
-            };
-
-            xhr.onreadystatechange = () => {
+            xhr.onload = () => {
                 if (xhr.readyState === 4) {
                     if ((xhr.status >= 200 && xhr.status < 300) || (isLocalRequest && xhr.status === 0)) {
                         let result = (options.responseType || options.dataType) == 'json' ? JSON.parse(xhr.responseText) : xhr.response;
                         resolve(result);
                     }
                     else {
-                        reject(xhr);
+                        let contentType = xhr.getResponseHeader('Content-Type');
+                        reject({
+                            res: contentType.match(/json/i) ? JSON.parse(xhr.responseText) : xhr.responseText,
+                            xhr: xhr
+                        });
                     }
                     xhr = null;
                 }
