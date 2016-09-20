@@ -1350,7 +1350,7 @@ declare namespace drunk {
     }
     /**
      * 用于repeat作用域下的子viewModel
-     * @param _parent     父级ViewModel
+     * @param $parent     父级ViewModel
      * @param ownModel    私有的数据
      */
     class RepeatItem extends Component {

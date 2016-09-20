@@ -23,7 +23,7 @@ namespace drunk {
 
     /**
      * 用于repeat作用域下的子viewModel
-     * @param _parent     父级ViewModel
+     * @param $parent     父级ViewModel
      * @param ownModel    私有的数据
      */
     export class RepeatItem extends Component {
@@ -123,8 +123,8 @@ namespace drunk {
             let context: any = this;
             let handler = this[handlerName];
 
-            while (!handler && context._parent) {
-                context = context._parent;
+            while (!handler && context.$parent) {
+                context = context.$parent;
                 handler = context[handlerName];
             }
 

@@ -4376,7 +4376,7 @@ var drunk;
     var global = util.global;
     /**
      * 用于repeat作用域下的子viewModel
-     * @param _parent     父级ViewModel
+     * @param $parent     父级ViewModel
      * @param ownModel    私有的数据
      */
     var RepeatItem = (function (_super) {
@@ -4458,8 +4458,8 @@ var drunk;
         RepeatItem.prototype.__getHandler = function (handlerName) {
             var context = this;
             var handler = this[handlerName];
-            while (!handler && context._parent) {
-                context = context._parent;
+            while (!handler && context.$parent) {
+                context = context.$parent;
                 handler = context[handlerName];
             }
             if (!handler) {
