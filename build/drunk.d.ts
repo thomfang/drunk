@@ -1354,13 +1354,17 @@ declare namespace drunk {
      * @param ownModel    私有的数据
      */
     class RepeatItem extends Component {
-        private _parent;
+        $parent: Component | RepeatItem;
         _isUsed: boolean;
         _isBinded: boolean;
         _flagNode: Node;
         _element: any;
+        $odd: boolean;
+        $even: boolean;
+        $last: boolean;
+        $first: boolean;
         protected _models: IModel[];
-        constructor(_parent: Component | RepeatItem, ownModel: IModel);
+        constructor($parent: Component | RepeatItem, ownModel: IModel);
         protected __init(): void;
         /**
          * 继承父级viewModel的filter和私有model
@@ -1375,6 +1379,10 @@ declare namespace drunk {
          */
         $proxy(property: string): void;
         $getModel(): any;
+        /**
+         * @override
+         */
+        $emit(type: string, ...args: any[]): this;
         /**
          * 重写获取事件处理方法,忘父级查找该方法
          */

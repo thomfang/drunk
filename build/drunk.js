@@ -4381,9 +4381,9 @@ var drunk;
      */
     var RepeatItem = (function (_super) {
         __extends(RepeatItem, _super);
-        function RepeatItem(_parent, ownModel) {
+        function RepeatItem($parent, ownModel) {
             _super.call(this);
-            this._parent = _parent;
+            this.$parent = $parent;
             this.__inheritParentMembers(ownModel);
         }
         RepeatItem.prototype.__init = function () {
@@ -4393,7 +4393,7 @@ var drunk;
          */
         RepeatItem.prototype.__inheritParentMembers = function (ownModel) {
             var _this = this;
-            var parent = this._parent;
+            var parent = this.$parent;
             var models = parent._models;
             _super.prototype.__init.call(this, parent._model);
             this.$filter = parent.$filter;
@@ -4425,8 +4425,8 @@ var drunk;
             if (this._proxyProps[property]) {
                 return;
             }
-            if (util.createProxy(this, property, this._parent)) {
-                this._parent.$proxy(property);
+            if (util.createProxy(this, property, this.$parent)) {
+                this.$parent.$proxy(property);
             }
             this._proxyProps[property] = true;
         };
@@ -4436,6 +4436,21 @@ var drunk;
                 util.extend(result, util.deepClone(model));
             });
             return result;
+        };
+        /**
+         * @override
+         */
+        RepeatItem.prototype.$emit = function (type) {
+            var args = [];
+            for (var _i = 1; _i < arguments.length; _i++) {
+                args[_i - 1] = arguments[_i];
+            }
+            if (type != Component.Event.created && type != Component.Event.mounted && type != Component.Event.release && type != Component.Event.templateLoadFailed) {
+                (_a = this.$parent).$emit.apply(_a, [type].concat(args));
+            }
+            _super.prototype.$emit.apply(this, [type].concat(args));
+            return this;
+            var _a;
         };
         /**
          * 重写获取事件处理方法,忘父级查找该方法

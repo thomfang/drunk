@@ -33,21 +33,27 @@ namespace drunk {
         _flagNode: Node;
         _element: any;
 
+        $odd: boolean;
+        $even: boolean;
+        $last: boolean;
+        $first: boolean;
+
         protected _models: IModel[];
 
-        constructor(private _parent: Component | RepeatItem, ownModel: IModel) {
+        constructor(public $parent: Component | RepeatItem, ownModel: IModel) {
             super();
             this.__inheritParentMembers(ownModel);
         }
 
         protected __init() {
+
         }
 
         /**
          * 继承父级viewModel的filter和私有model
          */
         protected __inheritParentMembers(ownModel) {
-            let parent = this._parent;
+            let parent = this.$parent;
             let models = (<RepeatItem>parent)._models;
 
             super.__init(parent._model);
@@ -85,8 +91,8 @@ namespace drunk {
             if (this._proxyProps[property]) {
                 return;
             }
-            if (util.createProxy(this, property, this._parent)) {
-                this._parent.$proxy(property);
+            if (util.createProxy(this, property, this.$parent)) {
+                this.$parent.$proxy(property);
             }
             this._proxyProps[property] = true;
         }
@@ -97,6 +103,17 @@ namespace drunk {
                 util.extend(result, util.deepClone(model));
             });
             return result;
+        }
+
+        /**
+         * @override
+         */
+        $emit(type: string, ...args: any[]) {
+            if (type != Component.Event.created && type != Component.Event.mounted && type != Component.Event.release && type != Component.Event.templateLoadFailed) {
+                this.$parent.$emit(type, ...args);
+            }
+            super.$emit(type, ...args);
+            return this;
         }
 
         /**
@@ -334,8 +351,8 @@ namespace drunk {
                             viewModel.element = viewModel._element = this.element.cloneNode(true);
                             dom.after(viewModel._element, viewModel._flagNode);
 
-                            this._bind(viewModel, viewModel.element);
-                            Component.setWeakRef(viewModel._element, viewModel);
+                            this._bind(viewModel as any, viewModel.element);
+                            Component.setWeakRef(viewModel._element, viewModel as any);
                             viewModel._isBinded = true;
                         } else {
                             dom.after(viewModel._element, viewModel._flagNode);
@@ -403,7 +420,7 @@ namespace drunk {
             let viewModelList = this._map.get(value);
 
             viewModel._flagNode = dom.createFlagNode(this._flagNodeContent);
-            Component.setWeakRef(viewModel._flagNode, viewModel);
+            Component.setWeakRef(viewModel._flagNode, viewModel as any);
 
             if (!viewModelList) {
                 viewModelList = [];
