@@ -42,6 +42,7 @@ namespace drunk {
                     break;
                 case "text":
                 case "tel":
+                case "number":
                 case "email":
                 case "url":
                 case "password":

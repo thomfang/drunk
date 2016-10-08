@@ -30,7 +30,7 @@ namespace drunk.Template {
      * @return                    返回一个Promise对象
      */
     export function renderFragment(url: string, hostedElement?: HTMLElement, useCache?: boolean) {
-        let fragmentId = url.toLowerCase();
+        let fragmentId = url;
         let fragmentPromise = fragCache.get(fragmentId);
 
         if (!useCache || !fragmentPromise) {
@@ -137,7 +137,7 @@ namespace drunk.Template {
      * 添加外链样式
      */
     function addLink(link: HTMLLinkElement, scopedClassList: string[]) {
-        let href = link.href.toLowerCase();
+        let href = link.href;
         let tagUid = href;
         let scoped = link.hasAttribute('scoped');
         let scopedClassName: string;
@@ -177,7 +177,7 @@ namespace drunk.Template {
      * 添加内链样式
      */
     function addStyle(styleElement: HTMLStyleElement, fragmentHref: string, position: number, scopedClassList: string[]) {
-        let tagUid = (fragmentHref + ' style[' + position + ']').toLowerCase();
+        let tagUid = fragmentHref + ' style[' + position + ']';
         let scoped = styleElement.hasAttribute('scoped');
         let scopedClassName: string;
 
@@ -230,7 +230,6 @@ namespace drunk.Template {
         if (inline) {
             tagUid = fragmentHref + ' script[' + position + ']';
         }
-        tagUid = tagUid.toLowerCase();
         tag.parentNode.removeChild(tag);
 
         if (!scriptRecord[tagUid]) {
@@ -279,10 +278,10 @@ namespace drunk.Template {
         }
 
         util.toArray(document.getElementsByTagName('script')).forEach(e => {
-            scriptRecord[e.src.toLowerCase()] = true;
+            scriptRecord[e.src] = true;
         });
         util.toArray(document.querySelectorAll('link[rel="stylesheet"], link[type="text/css"]')).forEach(e => {
-            linkRecord[e.href.toLowerCase()] = true;
+            linkRecord[e.href] = true;
         });
 
         cachedDocument = document.implementation.createHTMLDocument("cached document");

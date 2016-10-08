@@ -3606,7 +3606,7 @@ var drunk;
          * @return                    返回一个Promise对象
          */
         function renderFragment(url, hostedElement, useCache) {
-            var fragmentId = url.toLowerCase();
+            var fragmentId = url;
             var fragmentPromise = fragCache.get(fragmentId);
             if (!useCache || !fragmentPromise) {
                 fragmentPromise = populateDocument(url);
@@ -3697,7 +3697,7 @@ var drunk;
          * 添加外链样式
          */
         function addLink(link, scopedClassList) {
-            var href = link.href.toLowerCase();
+            var href = link.href;
             var tagUid = href;
             var scoped = link.hasAttribute('scoped');
             var scopedClassName;
@@ -3732,7 +3732,7 @@ var drunk;
          * 添加内链样式
          */
         function addStyle(styleElement, fragmentHref, position, scopedClassList) {
-            var tagUid = (fragmentHref + ' style[' + position + ']').toLowerCase();
+            var tagUid = fragmentHref + ' style[' + position + ']';
             var scoped = styleElement.hasAttribute('scoped');
             var scopedClassName;
             if (scoped) {
@@ -3777,7 +3777,6 @@ var drunk;
             if (inline) {
                 tagUid = fragmentHref + ' script[' + position + ']';
             }
-            tagUid = tagUid.toLowerCase();
             tag.parentNode.removeChild(tag);
             if (!scriptRecord[tagUid]) {
                 var newScript_1 = document.createElement('script');
@@ -3820,10 +3819,10 @@ var drunk;
                 return;
             }
             util.toArray(document.getElementsByTagName('script')).forEach(function (e) {
-                scriptRecord[e.src.toLowerCase()] = true;
+                scriptRecord[e.src] = true;
             });
             util.toArray(document.querySelectorAll('link[rel="stylesheet"], link[type="text/css"]')).forEach(function (e) {
-                linkRecord[e.href.toLowerCase()] = true;
+                linkRecord[e.href] = true;
             });
             cachedDocument = document.implementation.createHTMLDocument("cached document");
             initialized = true;
@@ -5207,6 +5206,7 @@ var drunk;
                     break;
                 case "text":
                 case "tel":
+                case "number":
                 case "email":
                 case "url":
                 case "password":
