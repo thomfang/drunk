@@ -1,10 +1,13 @@
 /// <reference path="../binding.ts" />
 /// <reference path="../../util/dom.ts" />
+/// <reference path="../../util/util.ts" />
 
 namespace drunk {
 
     import dom = drunk.dom;
     import util = drunk.util;
+    import Binding = drunk.Binding;
+    import binding = drunk.binding;
 
     @binding("model")
     class ModelBinding extends Binding implements IBindingDefinition {
@@ -50,7 +53,7 @@ namespace drunk {
                     this.initAsTextarea();
                     break;
                 default:
-                    this.initCommon();
+                    this.initAsCommon();
             }
         }
 
@@ -78,7 +81,7 @@ namespace drunk {
             this._getValue = this._getCommonControlValue;
         }
 
-        initCommon() {
+        initAsCommon() {
             this._changedEvent = "change";
             this._updateView = this._setCommonControlValue;
             this._getValue = this._getCommonControlValue;

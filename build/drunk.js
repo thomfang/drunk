@@ -1364,15 +1364,15 @@ var drunk;
          * @param  value  要移除的值
          */
         function $removeAllItem(array, value) {
-            var indexes = [];
+            var matchedIndexList = [];
             var step = 0;
             array.forEach(function (item, index) {
                 if (value === item) {
-                    indexes.push(index - step++);
+                    matchedIndexList.push(index - step++);
                 }
             });
-            if (indexes.length) {
-                indexes.forEach(function (index) {
+            if (matchedIndexList.length) {
+                matchedIndexList.forEach(function (index) {
                     array.splice(index, 1);
                 });
                 observable.notify(array);
@@ -1521,7 +1521,7 @@ var drunk;
         var proxyOperation = contextName + ".$proxy";
         var getHandlerOperation = contextName + ".__getHandler";
         // 保留关键字
-        var reserved = [
+        var reservedKeywords = [
             'break', 'case', 'catch', 'continue', 'debugger', 'default', 'delete', 'do',
             'else', 'finally', 'for', 'function', 'if', 'in', 'instanceof', 'new', 'return',
             'switch', 'this', 'throw', 'try', 'typeof', 'var', 'void', 'while',
@@ -1617,18 +1617,18 @@ var drunk;
                         index_1 = i + x.length;
                         return x;
                     }
-                    var prefix = str.slice(index_1, i); // 前一个字符
-                    var suffix = str.slice(i + x.length); // 后一个字符
+                    var prevStr = str.slice(index_1, i); // 前一个字符
+                    var nextStr = str.slice(i + x.length); // 后一个字符
                     index_1 = i + x.length;
-                    if (isColon(suffix) && isObjectKey(prefix)) {
+                    if (isColon(nextStr) && isObjectKey(prevStr)) {
                         // 如果前一个字符是冒号，再判断是否是对象的Key
                         return x;
                     }
-                    if (reserved.indexOf(x) > -1) {
+                    if (reservedKeywords.indexOf(x) > -1) {
                         // 如果是保留关键字直接返回原字符串
                         return x;
                     }
-                    if (isCallFunction(suffix)) {
+                    if (isCallFunction(nextStr)) {
                         // 如果后面有连续的字符是一对括号则为方法调用
                         // method(a) 会转成 __context.getHandler("method")(a)
                         return getHandlerOperation + ' && ' + getHandlerOperation + '("' + x + '")';
@@ -2402,7 +2402,7 @@ var drunk;
         Binding.create = function (viewModel, element, descriptor, parentViewModel, placeholder) {
             var Ctor = Binding.definitions[descriptor.name];
             if (!Ctor.retainAttribute && element.removeAttribute) {
-                element.removeAttribute(drunk.config.prefix + descriptor.name);
+                element.removeAttribute("" + drunk.config.prefix + descriptor.name + (descriptor.attribute ? ':' + descriptor.attribute : ''));
             }
             var binding = new Ctor(viewModel, element, descriptor);
             util.addArrayItem(viewModel._bindings, binding);
@@ -3344,6 +3344,7 @@ var drunk;
         var Parser = drunk.Parser;
         var Binding = drunk.Binding;
         var noop = function () { };
+        var reValidAttrName = /^[a-zA-Z-]+(:\w+)?$/;
         function compile(node) {
             var isArray = Array.isArray(node);
             var bindingDesc;
@@ -3456,47 +3457,61 @@ var drunk;
         function createNormalBindingDescriptor(element) {
             var bindingNodes;
             var shouldTerminate;
-            if (element.hasAttributes()) {
-                util.toArray(element.attributes).forEach(function (attr) {
-                    var name = attr.name;
-                    var value = attr.value;
-                    var index = name.indexOf(config.prefix);
-                    var bindingNode;
-                    if (index > -1 && index < name.length - 1) {
-                        name = name.slice(index + config.prefix.length);
-                        var bind = Binding.getByName(name);
-                        if (!bind) {
-                            throw new Error((config.prefix + name) + ": \u672A\u5B9A\u4E49");
-                        }
-                        if (name === 'include') {
-                            shouldTerminate = true;
-                        }
-                        bindingNode = {
-                            name: name,
-                            expression: value,
-                            priority: bind.priority
-                        };
+            if (!element.hasAttributes()) {
+                return;
+            }
+            util.toArray(element.attributes).forEach(function (attrNode) {
+                var attrName = attrNode.name;
+                var expression = attrNode.value;
+                var index = attrName.indexOf(config.prefix);
+                var attribute;
+                var bindingNode;
+                if (index > -1 && index < attrName.length - 1) {
+                    var name_2 = attrName.slice(index + config.prefix.length);
+                    if (!reValidAttrName.test(name_2)) {
+                        throw new Error("\u4E0D\u5408\u6CD5\u7684\u7ED1\u5B9A\u6307\u4EE4\uFF1A" + attrName);
                     }
-                    else if (Parser.hasInterpolation(value)) {
-                        bindingNode = {
-                            name: 'attr',
-                            attribute: name,
-                            expression: value,
-                            priority: Binding.getByName('attr').priority,
-                            isInterpolate: true
-                        };
+                    var i = name_2.indexOf(':');
+                    if (i > -1) {
+                        attribute = name_2.slice(i + 1);
+                        name_2 = name_2.slice(0, i);
                     }
-                    if (bindingNode) {
-                        if (!bindingNodes) {
-                            bindingNodes = [];
-                        }
-                        bindingNodes.push(bindingNode);
+                    else {
+                        attribute = null;
                     }
-                });
-                if (bindingNodes) {
-                    bindingNodes.sort(function (a, b) { return b.priority - a.priority; });
-                    return { bindings: bindingNodes, isTerminal: shouldTerminate };
+                    var bindDef = Binding.getByName(name_2);
+                    if (!bindDef) {
+                        throw new Error((config.prefix + attrName) + ": \u672A\u5B9A\u4E49");
+                    }
+                    if (attrName === 'include') {
+                        shouldTerminate = true;
+                    }
+                    bindingNode = {
+                        name: name_2,
+                        expression: expression,
+                        attribute: attribute,
+                        priority: bindDef.priority
+                    };
                 }
+                else if (Parser.hasInterpolation(expression)) {
+                    bindingNode = {
+                        name: 'attr',
+                        attribute: attrName,
+                        expression: expression,
+                        priority: Binding.getByName('attr').priority,
+                        isInterpolate: true
+                    };
+                }
+                if (bindingNode) {
+                    if (!bindingNodes) {
+                        bindingNodes = [];
+                    }
+                    bindingNodes.push(bindingNode);
+                }
+            });
+            if (bindingNodes) {
+                bindingNodes.sort(function (a, b) { return b.priority - a.priority; });
+                return { bindings: bindingNodes, isTerminal: shouldTerminate };
             }
         }
         function bindNode(viewModel, node, desc, owner, placeholder) {
@@ -4160,18 +4175,17 @@ var drunk;
     Component.register(config.prefix + 'view', Component);
 })(drunk || (drunk = {}));
 /// <reference path="../binding.ts" />
-/// <reference path="../../template/compiler.ts" />
 /// <reference path="../../util/dom.ts" />
 /// <reference path="../../config/config.ts" />
 var drunk;
 (function (drunk) {
     var dom = drunk.dom;
-    var reg = {
-        semic: /\s*;\s*/,
-        statement: /(\w+):\s*(.+)/,
-        breakword: /\n+/g
-    };
-    var getHelpMessage = function () { return ("\u6B63\u786E\u7684\u7528\u6CD5\u5982\u4E0B:\n        " + drunk.config.prefix + "on=\"click: expression\"\n        " + drunk.config.prefix + "on=\"mousedown: expression; mouseup: callback()\"\n        " + drunk.config.prefix + "on=\"click: callback($event, $el)\""); };
+    var util = drunk.util;
+    var config = drunk.config;
+    var reSemic = /\s*;\s*/;
+    var reStatement = /(\w+):\s*(.+)/;
+    var reBreakword = /\n+/g;
+    var getHelpMessage = function () { return ("\u6B63\u786E\u7684\u7528\u6CD5\u5982\u4E0B:\n        " + config.prefix + "on=\"click: expression\"\n        " + config.prefix + "on=\"mousedown: expression; mouseup: callback()\"\n        " + config.prefix + "on=\"click: callback($event, $el)\""); };
     var EventBinding = (function (_super) {
         __extends(EventBinding, _super);
         function EventBinding() {
@@ -4180,29 +4194,40 @@ var drunk;
         EventBinding.prototype.init = function () {
             var _this = this;
             var events = [];
-            this.expression.replace(reg.breakword, ' ').split(reg.semic).forEach(function (str) {
-                if (str && /\S/.test(str)) {
-                    events.push(_this._parseEvent(str));
-                }
-            });
+            if (this.attribute) {
+                var type = this.attribute;
+                var handler = this.createHandler(type, this.expression);
+                events.push({ type: type, handler: handler });
+            }
+            else {
+                this.expression.replace(reBreakword, ' ').split(reSemic).forEach(function (str) {
+                    if (str && /\S/.test(str)) {
+                        events.push(_this.parseEvent(str));
+                    }
+                });
+            }
             this._events = events;
         };
-        EventBinding.prototype._parseEvent = function (str) {
-            var _this = this;
-            var matches = str.match(reg.statement);
-            var prefix = drunk.config.prefix;
+        EventBinding.prototype.parseEvent = function (str) {
+            var matches = str.match(reStatement);
+            var prefix = config.prefix;
             console.assert(matches !== null, "\u4E0D\u5408\u6CD5\u7684\"" + prefix + "on\"\u8868\u8FBE\u5F0F " + str + ", " + getHelpMessage());
             var type = matches[1];
             var expr = matches[2];
-            var func = drunk.Parser.parse(expr.trim());
+            var handler = this.createHandler(type, expr.trim());
+            return { type: type, handler: handler };
+        };
+        EventBinding.prototype.createHandler = function (type, expression) {
+            var _this = this;
+            var func = drunk.Parser.parse(expression);
             var handler = function (e) {
-                if (drunk.config.debug) {
-                    console.log(type + ': ' + expr);
+                if (config.debug) {
+                    console.log(type + ': ' + expression);
                 }
-                func.call(_this.viewModel, e, _this.element, drunk.util.global);
+                func.call(_this.viewModel, e, _this.element, util.global);
             };
             dom.on(this.element, type, handler);
-            return { type: type, handler: handler };
+            return handler;
         };
         EventBinding.prototype.release = function () {
             var _this = this;
@@ -4227,19 +4252,23 @@ var drunk;
         function AttributeBinding() {
             _super.apply(this, arguments);
         }
-        AttributeBinding.prototype.update = function (newValue) {
+        AttributeBinding.prototype.update = function (attributes) {
             var _this = this;
             if (this.attribute) {
                 // 如果有提供指定的属性名
-                this._setAttribute(this.attribute, newValue);
+                this._setAttribute(this.attribute, attributes);
             }
-            else if (Object.prototype.toString.call(newValue) === '[object Object]') {
-                Object.keys(newValue).forEach(function (name) {
-                    _this._setAttribute(name, newValue[name]);
+            else if (Object.prototype.toString.call(attributes) === '[object Object]') {
+                Object.keys(attributes).forEach(function (name) {
+                    _this._setAttribute(name, attributes[name]);
                 });
             }
         };
         AttributeBinding.prototype._setAttribute = function (name, value) {
+            if (name === 'style' && value && typeof value != 'string') {
+                var props = Object.keys(value).map(function (prop) { return (prop + ":" + value[prop]); });
+                return this.element.setAttribute('style', props.join(';'));
+            }
             if (name === 'src' || name === 'href') {
                 value = value == null ? '' : value;
             }
@@ -5132,7 +5161,8 @@ var drunk;
             this._url = url;
             this._removeBind();
             if (url) {
-                return this._bindPromise = Template.renderFragment(url, null, true).then(function (fragment) {
+                this._bindPromise = Template.renderFragment(url, null, true);
+                return this._bindPromise.then(function (fragment) {
                     _this._createBinding(fragment);
                 });
             }
@@ -5155,9 +5185,7 @@ var drunk;
             }
             if (this._elements) {
                 var unbind_1 = this._unbind;
-                dom.remove(this._elements).then(function () {
-                    unbind_1();
-                });
+                dom.remove(this._elements).then(function () { return unbind_1(); });
                 this._elements = null;
             }
         };
@@ -5170,10 +5198,13 @@ var drunk;
 })(drunk || (drunk = {}));
 /// <reference path="../binding.ts" />
 /// <reference path="../../util/dom.ts" />
+/// <reference path="../../util/util.ts" />
 var drunk;
 (function (drunk) {
     var dom = drunk.dom;
     var util = drunk.util;
+    var Binding = drunk.Binding;
+    var binding = drunk.binding;
     var ModelBinding = (function (_super) {
         __extends(ModelBinding, _super);
         function ModelBinding() {
@@ -5214,7 +5245,7 @@ var drunk;
                     this.initAsTextarea();
                     break;
                 default:
-                    this.initCommon();
+                    this.initAsCommon();
             }
         };
         ModelBinding.prototype.initCheckbox = function () {
@@ -5237,7 +5268,7 @@ var drunk;
             this._updateView = this._setCommonControlValue;
             this._getValue = this._getCommonControlValue;
         };
-        ModelBinding.prototype.initCommon = function () {
+        ModelBinding.prototype.initAsCommon = function () {
             this._changedEvent = "change";
             this._updateView = this._setCommonControlValue;
             this._getValue = this._getCommonControlValue;
@@ -5297,10 +5328,10 @@ var drunk;
             return this.element.value;
         };
         ModelBinding = __decorate([
-            drunk.binding("model")
+            binding("model")
         ], ModelBinding);
         return ModelBinding;
-    }(drunk.Binding));
+    }(Binding));
 })(drunk || (drunk = {}));
 /// <reference path="../binding.ts" />
 var drunk;
@@ -5384,5 +5415,24 @@ var drunk;
         ], TranscludeBinding);
         return TranscludeBinding;
     }(drunk.Binding));
+})(drunk || (drunk = {}));
+/// <reference path="../binding.ts" />
+var drunk;
+(function (drunk) {
+    var binding = drunk.binding;
+    var Binding = drunk.Binding;
+    var DisabledBinding = (function (_super) {
+        __extends(DisabledBinding, _super);
+        function DisabledBinding() {
+            _super.apply(this, arguments);
+        }
+        DisabledBinding.prototype.update = function (disabled) {
+            this.element.disabled = !!disabled;
+        };
+        DisabledBinding = __decorate([
+            binding('disabled')
+        ], DisabledBinding);
+        return DisabledBinding;
+    }(Binding));
 })(drunk || (drunk = {}));
 //# sourceMappingURL=drunk.js.map

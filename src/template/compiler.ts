@@ -27,7 +27,9 @@ namespace drunk.Template {
         isTerminal?: boolean;
         isTextNode?: boolean;
     }
+
     const noop = () => { };
+    const reValidAttrName = /^[a-zA-Z-]+(:\w+)?$/;
 
     export function compile(node: Node | Node[]) {
         var isArray = Array.isArray(node);
@@ -43,9 +45,9 @@ namespace drunk.Template {
                 return noop;
             }
 
-            var allBindings = viewModel._bindings;
-            var beginOffset = allBindings.length;
-            var newBindings: Binding[];
+            let allBindings = viewModel._bindings;
+            let beginOffset = allBindings.length;
+            let newBindings: Binding[];
             if (isArray) {
                 bindNodeList(viewModel, node as Node[], bindingDesc as BindingDescriptor[], owner, placeholder);
             } else if (bindingDesc) {
@@ -130,7 +132,7 @@ namespace drunk.Template {
         var terminalBindings = Binding.getTerminalBindings();
 
         for (let i = 0, name; name = terminalBindings[i]; i++) {
-            let attrValue = element.getAttribute(config.prefix + name)
+            let attrValue = element.getAttribute(config.prefix + name);
             if (attrValue != null) {
                 return {
                     bindings: [{
@@ -149,49 +151,66 @@ namespace drunk.Template {
         var bindingNodes: BindingNode[];
         var shouldTerminate: boolean;
 
-        if (element.hasAttributes()) {
-            util.toArray(element.attributes).forEach(attr => {
-                let name = attr.name;
-                let value = attr.value;
-                let index = name.indexOf(config.prefix);
-                let bindingNode: BindingNode;
+        if (!element.hasAttributes()) {
+            return;
+        }
 
-                if (index > -1 && index < name.length - 1) {
-                    name = name.slice(index + config.prefix.length);
-                    let bind = Binding.getByName(name);
-                    if (!bind) {
-                        throw new Error(`${config.prefix + name}: 未定义`);
-                    }
-                    if (name === 'include') {
-                        shouldTerminate = true;
-                    }
-                    bindingNode = {
-                        name: name,
-                        expression: value,
-                        priority: bind.priority
-                    };
-                } else if (Parser.hasInterpolation(value)) {
-                    bindingNode = {
-                        name: 'attr',
-                        attribute: name,
-                        expression: value,
-                        priority: Binding.getByName('attr').priority,
-                        isInterpolate: true
-                    };
+        util.toArray(element.attributes).forEach(attrNode => {
+            let attrName: string = attrNode.name;
+            let expression: string = attrNode.value;
+            let index = attrName.indexOf(config.prefix);
+            let attribute: string;
+            let bindingNode: BindingNode;
+
+            if (index > -1 && index < attrName.length - 1) {
+                let name = attrName.slice(index + config.prefix.length);
+                if (!reValidAttrName.test(name)) {
+                    throw new Error(`不合法的绑定指令：${attrName}`);
                 }
 
-                if (bindingNode) {
-                    if (!bindingNodes) {
-                        bindingNodes = [];
-                    }
-                    bindingNodes.push(bindingNode);
+                let i = name.indexOf(':');
+                if (i > -1) {
+                    attribute = name.slice(i + 1);
+                    name = name.slice(0, i);
                 }
-            });
+                else {
+                    attribute = null;
+                }
 
-            if (bindingNodes) {
-                bindingNodes.sort((a, b) => b.priority - a.priority);
-                return { bindings: bindingNodes, isTerminal: shouldTerminate };
+                let bindDef = Binding.getByName(name);
+                if (!bindDef) {
+                    throw new Error(`${config.prefix + attrName}: 未定义`);
+                }
+                if (attrName === 'include') {
+                    shouldTerminate = true;
+                }
+                bindingNode = {
+                    name,
+                    expression,
+                    attribute,
+                    priority: bindDef.priority
+                };
+            } else if (Parser.hasInterpolation(expression)) {
+                bindingNode = {
+                    name: 'attr',
+                    attribute: attrName,
+                    expression,
+                    priority: Binding.getByName('attr').priority,
+                    isInterpolate: true
+                };
             }
+
+            if (bindingNode) {
+                if (!bindingNodes) {
+                    bindingNodes = [];
+                }
+                bindingNodes.push(bindingNode);
+            }
+        });
+
+        if (bindingNodes) {
+            bindingNodes.sort((a, b) => b.priority - a.priority);
+            return { bindings: bindingNodes, isTerminal: shouldTerminate };
         }
     }
 

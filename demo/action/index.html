@@ -147,14 +147,15 @@
 </head>
 
 <body>
-    <button drunk-on="click:show = !show;">点击切换文本展示</button>
-    <button drunk-on="click:expanded = !expanded">点击切换文本展示</button>
-    <button drunk-on="click:list.unshift({})">从列表头部添加一个</button>
-    <button drunk-on="click:list.push({}), count += 1">从列表尾部添加一个</button>
-    <button drunk-on="click:list.pop(),count -= 1">从列表中移除一个</button>
-    <button drunk-on="click:redBoxVisible = !redBoxVisible">点击切换动画</button>
-    <button drunk-on="click:greenBoxVisible = !greenBoxVisible">点击切换动画</button>
-    
+    <button drunk-disabled="disabled" drunk-on:click="show = !show">点击切换文本展示</button>
+    <button drunk-disabled="disabled" drunk-on="click:expanded = !expanded">点击切换文本展示</button>
+    <button drunk-disabled="disabled" drunk-on="click:list.unshift({})">从列表头部添加一个</button>
+    <button drunk-disabled="disabled" drunk-on="click:list.push({}), count += 1">从列表尾部添加一个</button>
+    <button drunk-disabled="disabled" drunk-on="click:list.pop(),count -= 1">从列表中移除一个</button>
+    <button drunk-disabled="disabled" drunk-on="click:redBoxVisible = !redBoxVisible">点击切换red box动画</button>
+    <button drunk-disabled="disabled" drunk-on="click:greenBoxVisible = !greenBoxVisible">点击切换green box动画</button>
+    <button drunk-on:click="disabled = !disabled">点击切换其他按钮的点击状态</button>
+
     <div class="msg" drunk-class="{'expand-created': show, 'expand-removed': !show}">Hello,drunk.js!</div>
     <div class="color" drunk-action drunk-show='expanded'>drunk-show控制的动画</div>
     <div class="animated" drunk-action drunk-if='expanded'>drunk-if控制的动画</div>
@@ -162,9 +163,12 @@
         <p class="slogan" drunk-repeat="content in slogan" drunk-action="slide">{{content}}</p>
     </div>
     <div class="blackbox" drunk-repeat="e,i in list" drunk-action="{{i * 0.1}} box bounce"></div>
+
     <div class="redbox" drunk-if="redBoxVisible" drunk-action="bounce"></div>
+    <div class="redbox" drunk-attr:style="{'background-color': redBoxVisible ? 'red' : 'black', opacity: redBoxVisible ? 1 : 0.5}"></div>
+
     <div class="greenbox" drunk-if="greenBoxVisible" drunk-action="fade"></div>
-    
+
     <script>
         drunk.Action.register('fade', {
             created: function (element, done) {

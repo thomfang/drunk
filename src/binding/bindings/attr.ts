@@ -11,19 +11,23 @@ namespace drunk {
 
         attribute: string;
 
-        update(newValue: any) {
+        update(attributes: string | { [name: string]: any }) {
             if (this.attribute) {
                 // 如果有提供指定的属性名
-                this._setAttribute(this.attribute, newValue);
+                this._setAttribute(this.attribute, attributes);
             }
-            else if (Object.prototype.toString.call(newValue) === '[object Object]') {
-                Object.keys(newValue).forEach(name => {
-                    this._setAttribute(name, newValue[name]);
+            else if (Object.prototype.toString.call(attributes) === '[object Object]') {
+                Object.keys(attributes).forEach(name => {
+                    this._setAttribute(name, attributes[name]);
                 });
             }
         }
 
-        private _setAttribute(name: string, value: any) {
+        private _setAttribute(name: string, value: string | { [name: string]: any }) {
+            if (name === 'style' && value && typeof value != 'string') {
+                let props = Object.keys(value).map(prop => `${prop}:${value[prop]}`);
+                return this.element.setAttribute('style', props.join(';'));
+            }
             if (name === 'src' || name === 'href') {
                 value = value == null ? '' : value;
             }

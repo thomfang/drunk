@@ -17,7 +17,7 @@
 <script src="drunk.js"></script>
 ```
 
-下载[drunk.d.ts](https://raw.githubusercontent.com/tilfon/drunk/master/build/drunk.d.ts)，在你的TS项目或JS项目开关引入，可以得到drunk的API提示。
+下载[drunk.d.ts](https://raw.githubusercontent.com/tilfon/drunk/master/build/drunk.d.ts)，在你的TS项目或JS项目开头引入，可以得到drunk的API提示。
 
 ```js
 /// <reference path="drunk.d.ts" />

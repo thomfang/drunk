@@ -769,6 +769,10 @@ declare namespace drunk {
          */
         expression: string;
         /**
+         * 指令附带的2级属性
+         */
+        attribute: string;
+        /**
          * 是否已经不可用
          */
         protected _isActived: boolean;
@@ -1397,6 +1401,8 @@ declare namespace drunk {
          */
         static toList(target: any): IItemDataDescriptor[];
     }
+}
+declare namespace drunk {
 }
 declare namespace drunk {
 }

@@ -73,17 +73,17 @@ namespace drunk.observable {
      * @param  value  要移除的值
      */
     export function $removeAllItem<T>(array: IObservableArray<T>, value: any): void {
-        let indexes: number[] = [];
-        let step = 0;
+        var matchedIndexList: number[] = [];
+        var step = 0;
 
         array.forEach((item, index) => {
             if (value === item) {
-                indexes.push(index - step++);
+                matchedIndexList.push(index - step++);
             }
         });
 
-        if (indexes.length) {
-            indexes.forEach(index => {
+        if (matchedIndexList.length) {
+            matchedIndexList.forEach(index => {
                 array.splice(index, 1);
             });
             notify(array);

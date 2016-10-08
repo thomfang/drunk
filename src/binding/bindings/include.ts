@@ -30,7 +30,8 @@ namespace drunk {
             this._removeBind();
 
             if (url) {
-                return this._bindPromise = Template.renderFragment(url, null, true).then(fragment => {
+                this._bindPromise = Template.renderFragment(url, null, true);
+                return this._bindPromise.then(fragment => {
                     this._createBinding(fragment);
                 });
             }
@@ -55,9 +56,7 @@ namespace drunk {
             }
             if (this._elements) {
                 let unbind = this._unbind;
-                dom.remove(this._elements).then(() => {
-                    unbind();
-                });
+                dom.remove(this._elements).then(() => unbind());
                 this._elements = null;
             }
         }

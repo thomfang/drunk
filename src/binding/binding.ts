@@ -165,7 +165,7 @@ namespace drunk {
             let Ctor = Binding.definitions[descriptor.name];
 
             if (!Ctor.retainAttribute && element.removeAttribute) {
-                element.removeAttribute(config.prefix + descriptor.name);
+                element.removeAttribute(`${config.prefix}${descriptor.name}${descriptor.attribute ? ':' +　descriptor.attribute : ''}`);
             }
 
             let binding: Binding = new Ctor(viewModel, element, descriptor);
@@ -219,6 +219,11 @@ namespace drunk {
          * 绑定的表达式
          */
         expression: string;
+
+        /**
+         * 指令附带的2级属性
+         */
+        attribute: string;
 
         /**
          * 是否已经不可用

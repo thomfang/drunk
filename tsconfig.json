@@ -42,6 +42,7 @@
         "src/binding/bindings/repeat.ts",
         "src/binding/bindings/show.ts",
         "src/binding/bindings/transclude.ts",
-        "src/binding/bindings/action.ts"
+        "src/binding/bindings/action.ts",
+        "src/binding/bindings/disabled.ts"
     ]
 }

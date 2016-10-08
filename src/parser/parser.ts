@@ -24,16 +24,16 @@ namespace drunk.Parser {
         filters: Array<Filter.IFilterDef>;
     }
     
-    let globalName = "$global";
-    let eventName = "$event";
-    let elementName = "$el";
-    let valueName = "__value";
-    let contextName = "this";
-    let proxyOperation = contextName + ".$proxy";
-    let getHandlerOperation = contextName + ".__getHandler";
+    const globalName = "$global";
+    const eventName = "$event";
+    const elementName = "$el";
+    const valueName = "__value";
+    const contextName = "this";
+    const proxyOperation = contextName + ".$proxy";
+    const getHandlerOperation = contextName + ".__getHandler";
     
     // 保留关键字
-    let reserved: Array<string> = [
+    const reservedKeywords: Array<string> = [
         'break', 'case', 'catch', 'continue', 'debugger', 'default', 'delete', 'do',
         'else', 'finally', 'for', 'function', 'if', 'in', 'instanceof', 'new', 'return',
         'switch', 'this', 'throw', 'try', 'typeof', 'var', 'void', 'while',
@@ -41,22 +41,22 @@ namespace drunk.Parser {
         'let', 'abstract', 'import', 'yield', 'arguments'
     ];
     
-    let tokenCache = new Cache<any[]>(200);
-    let getterCache = new Cache<IGetter>(200);
-    let setterCache = new Cache<ISetter>(200);
-    let filterCache = new Cache<IFilterCache>(200);
-    let expressionCache = new Cache<IGetter>(200);
-    let identifierCache = new Cache<any>(200);
-    let interpolateGetterCache = new Cache<IGetter>(200);
+    const tokenCache = new Cache<any[]>(200);
+    const getterCache = new Cache<IGetter>(200);
+    const setterCache = new Cache<ISetter>(200);
+    const filterCache = new Cache<IFilterCache>(200);
+    const expressionCache = new Cache<IGetter>(200);
+    const identifierCache = new Cache<any>(200);
+    const interpolateGetterCache = new Cache<IGetter>(200);
     
-    let reIdentifier = /("|').*?\1|[a-zA-Z$_][a-z0-9A-Z$_]*/g;
-    let reFilter = /("|').*?\1|\|\||\|\s*([a-zA-Z$_][a-z0-9A-Z$_]*)(:[^|]*)?/g;
-    let reInterpolate = /\{\{((.|\n)+?)\}\}/g;
-    let reBrackets = /^\([^)]*\)/;
-    let reObjectKey = /[{,]\s*$/;
-    let reColon = /^\s*:/;
-    let reAnychar = /\S+/;
-    let reThisProperties = /\bthis\.([_$[A-Za-z0-9]+)|\bthis\[\s*("|')(.+?)\2\s*\]/g;
+    const reIdentifier = /("|').*?\1|[a-zA-Z$_][a-z0-9A-Z$_]*/g;
+    const reFilter = /("|').*?\1|\|\||\|\s*([a-zA-Z$_][a-z0-9A-Z$_]*)(:[^|]*)?/g;
+    const reInterpolate = /\{\{((.|\n)+?)\}\}/g;
+    const reBrackets = /^\([^)]*\)/;
+    const reObjectKey = /[{,]\s*$/;
+    const reColon = /^\s*:/;
+    const reAnychar = /\S+/;
+    const reThisProperties = /\bthis\.([_$[A-Za-z0-9]+)|\bthis\[\s*("|')(.+?)\2\s*\]/g;
 
     /**
      *  解析filter定义
@@ -145,22 +145,22 @@ namespace drunk.Parser {
                     return x;
                 }
 
-                let prefix = str.slice(index, i);     // 前一个字符
-                let suffix = str.slice(i + x.length); // 后一个字符
+                let prevStr = str.slice(index, i);     // 前一个字符
+                let nextStr = str.slice(i + x.length); // 后一个字符
 
                 index = i + x.length;
 
-                if (isColon(suffix) && isObjectKey(prefix)) {
+                if (isColon(nextStr) && isObjectKey(prevStr)) {
                     // 如果前一个字符是冒号，再判断是否是对象的Key
                     return x;
                 }
 
-                if (reserved.indexOf(x) > -1) {
+                if (reservedKeywords.indexOf(x) > -1) {
                     // 如果是保留关键字直接返回原字符串
                     return x;
                 }
                 
-                if (isCallFunction(suffix)) {
+                if (isCallFunction(nextStr)) {
                     // 如果后面有连续的字符是一对括号则为方法调用
                     // method(a) 会转成 __context.getHandler("method")(a)
                     return getHandlerOperation + ' && ' + getHandlerOperation + '("' + x + '")';
@@ -179,8 +179,8 @@ namespace drunk.Parser {
             
             cache = {
                 proxies: identifiers.length ? ('if (' + proxyOperation + ') {\n' + proxies.join(';\n') + ';\n}\n') : '',
-                formated: formated,
-                identifiers: identifiers
+                formated,
+                identifiers
             };
             
             identifierCache.set(str, cache);

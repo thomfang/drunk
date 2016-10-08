@@ -59,7 +59,7 @@
     <list-view item-data-source="{{list}}" scroll-to-item="{{locatedIndex}}">
         <list-view-item>
             <div class="smallListIconTextItem">
-                <img class="smallListIconTextItem-Image" drunk-attr="{src: $item.picture}" />
+                <img class="smallListIconTextItem-Image" drunk-attr:src="$item.picture" />
                 <div class="smallListIconTextItem-Detail">
                     <h4 class="win-h4" drunk-bind="$item.title"></h4>
                     <h6 class="win-h6" drunk-bind="$item.text"></h6>
