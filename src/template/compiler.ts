@@ -97,8 +97,14 @@ namespace drunk.Template {
     }
 
     function createElementBindingDescriptor(element: HTMLElement) {
-        if (element.tagName.toLowerCase().indexOf('-') > 0) {
-            element.setAttribute(config.prefix + 'component', element.tagName.toLowerCase());
+        var tagName = element.tagName.toLowerCase()
+        if (tagName.indexOf('-') > 0) {
+            element.setAttribute(config.prefix + 'component', tagName);
+        } else if (tagName === 'slot') {
+            if (element.attributes.length > 1) {
+                console.warn(`<slot>: 标签上只能设置name属性`);
+            }
+            element.setAttribute(config.prefix + 'slot', element.getAttribute('name') || '');
         }
         return createTerminalBindingDescriptor(element) || createNormalBindingDescriptor(element);
     }

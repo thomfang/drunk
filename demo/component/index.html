@@ -19,23 +19,20 @@
 </head>
 
 <body>
-
-    <button drunk-on="click: alertview1Visible = !alertview1Visible">
-            {{ alertview1Visible ? 'Hide' : 'Show' }} alerv view 
-        </button>
-
     <p>
         <input type="text" placeholder="输入任务并按回车添加" drunk-model="content" drunk-on='keyup: $event.keyCode === 13 && addTodo()' />
     </p>
 
     <todo-item drunk-repeat="todo,index in todoList" content="{{todo.title}}" index="{{index}}" completed="{{todo.completed}}"
-        on-remove="todoList.splice(index, 1)">
+        on-remove="confirmRemove(index)">
     </todo-item>
 
-    <alert-view src="./alert.html" title="Title 1" content="This is alert content 1" two-way="visible" visible="{{alertview1Visible}}">
+    <alert-view src="./alert.html" content="确认要删除该任务吗" two-way="visible" visible="{{alertVisible}}" on-confirm="removeTodo()">
+        <p slot="title">删除该任务</p>
+        <button drunk-on:click="cancelRemove()">取消</button>
     </alert-view>
 
-    <script type='text/tpl' id="todo-item">
+    <script type='text/tpl' id="todo-item.html">
         <p drunk-class="{strike: completed}">
             <strong>{{content}}</strong>
             <button drunk-on="click: $emit('remove', index)">删除</button>
@@ -43,40 +40,7 @@
         </p>
     </script>
 
-    <script>
-        drunk.Component.define('todo-item', {   
-                templateUrl: 'todo-item'
-            });
-            
-            var TodoApp = drunk.Component.extend({
-                
-                init: function () {
-                    this.todoList = [];
-                },
-                
-                handlers: {
-                    
-                    addTodo: function () {
-                        if (!this.content) {
-                            return;
-                        }
-                        
-                        this.todoList.unshift({
-                            title: this.content,
-                            completed: false
-                        });
-                        
-                        this.content = '';
-                    },
-                }
-            });
-            
-            // drunk.config.debug = true;
-            
-            var app = new TodoApp();
-            
-            app.$mount(document.body);
-    </script>
+    <script src="main.js"></script>
 </body>
 
 </html>

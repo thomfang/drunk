@@ -6,22 +6,24 @@ namespace drunk {
     import dom = drunk.dom;
     import Binding = drunk.Binding;
 
+    type ClassMap = { [name: string]: boolean };
+
     @binding("class")
     class ClassBinding extends Binding implements IBindingDefinition {
 
         private _oldClass: any;
 
-        update(data: any) {
+        update(data: string | ClassMap | string[]) {
             let elem = this.element;
 
             if (Array.isArray(data)) {
-                this._toggleClassList(data);
+                this._toggleClassList(data as string[]);
             }
             else if (data && typeof data === 'object') {
-                this._setClassByMap(data);
+                this._toggleClassMap(data as ClassMap);
             }
-            else if (typeof data === 'string' && (data = data.trim()) !== this._oldClass) {
-                this._toggleClassString(data);
+            else if (typeof data === 'string' && (data = (data as string).trim()) !== this._oldClass) {
+                this._toggleClassString(data as string);
             }
         }
 
@@ -53,7 +55,7 @@ namespace drunk {
             this._oldClass = classList;
         }
 
-        private _setClassByMap(classMap: { [name: string]: boolean }) {
+        private _toggleClassMap(classMap: { [name: string]: boolean }) {
             Object.keys(classMap).forEach(name => {
                 if (classMap[name]) {
                     dom.addClass(this.element, name);
@@ -64,15 +66,15 @@ namespace drunk {
             });
         }
 
-        private _toggleClassString(str: string) {
+        private _toggleClassString(newClass: string) {
             if (this._oldClass) {
                 dom.removeClass(this.element, this._oldClass);
             }
 
-            this._oldClass = str;
+            this._oldClass = newClass;
 
-            if (str) {
-                dom.addClass(this.element, str);
+            if (newClass) {
+                dom.addClass(this.element, newClass);
             }
         }
     }

@@ -1,13 +1,19 @@
-<link href="alert.css" type="text/css" />
+<link href="alert.css" type="text/css" scoped />
 
 <div drunk-show="visible" drunk-action class="alert-view">
-    <p class="title">{{title}}</p>
+    <slot name="title">
+        <p class="title">温馨提示</p>
+    </slot>
     <p class="content">{{content}}</p>
-    <button drunk-on="click: visible = false">confirm</button>
+    <slot></slot>
+    <button drunk-on:click="confirm()">确认</button>
 </div>
 
 <script>
     drunk.Component.define('alert-view', {
-        
+        confirm: function () {
+            this.visible = false;
+            this.$emit('confirm');
+        }
     });
 </script>

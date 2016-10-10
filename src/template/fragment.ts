@@ -122,7 +122,7 @@ namespace drunk.Template {
      * 为节点添加作用域样式
      */
     function addScopedClassList(node: HTMLElement, classList: string[]) {
-        if (!node.classList || !classList.length) {
+        if (!node.classList || !classList.length || node.tagName.toLowerCase() === 'slot') {
             return;
         }
 

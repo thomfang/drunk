@@ -3409,8 +3409,15 @@ var drunk;
         }
         Template.createBindingDescriptorList = createBindingDescriptorList;
         function createElementBindingDescriptor(element) {
-            if (element.tagName.toLowerCase().indexOf('-') > 0) {
-                element.setAttribute(config.prefix + 'component', element.tagName.toLowerCase());
+            var tagName = element.tagName.toLowerCase();
+            if (tagName.indexOf('-') > 0) {
+                element.setAttribute(config.prefix + 'component', tagName);
+            }
+            else if (tagName === 'slot') {
+                if (element.attributes.length > 1) {
+                    console.warn("<slot>: \u6807\u7B7E\u4E0A\u53EA\u80FD\u8BBE\u7F6Ename\u5C5E\u6027");
+                }
+                element.setAttribute(config.prefix + 'slot', element.getAttribute('name') || '');
             }
             return createTerminalBindingDescriptor(element) || createNormalBindingDescriptor(element);
         }
@@ -3700,7 +3707,7 @@ var drunk;
          * 为节点添加作用域样式
          */
         function addScopedClassList(node, classList) {
-            if (!node.classList || !classList.length) {
+            if (!node.classList || !classList.length || node.tagName.toLowerCase() === 'slot') {
                 return;
             }
             classList.forEach(function (className) { return node.classList.add(className); });
@@ -4332,7 +4339,7 @@ var drunk;
                 this._toggleClassList(data);
             }
             else if (data && typeof data === 'object') {
-                this._setClassByMap(data);
+                this._toggleClassMap(data);
             }
             else if (typeof data === 'string' && (data = data.trim()) !== this._oldClass) {
                 this._toggleClassString(data);
@@ -4362,7 +4369,7 @@ var drunk;
             });
             this._oldClass = classList;
         };
-        ClassBinding.prototype._setClassByMap = function (classMap) {
+        ClassBinding.prototype._toggleClassMap = function (classMap) {
             var _this = this;
             Object.keys(classMap).forEach(function (name) {
                 if (classMap[name]) {
@@ -4373,13 +4380,13 @@ var drunk;
                 }
             });
         };
-        ClassBinding.prototype._toggleClassString = function (str) {
+        ClassBinding.prototype._toggleClassString = function (newClass) {
             if (this._oldClass) {
                 dom.removeClass(this.element, this._oldClass);
             }
-            this._oldClass = str;
-            if (str) {
-                dom.addClass(this.element, str);
+            this._oldClass = newClass;
+            if (newClass) {
+                dom.addClass(this.element, newClass);
             }
         };
         ClassBinding = __decorate([
@@ -4817,7 +4824,7 @@ var drunk;
     var dom = drunk.dom;
     var util = drunk.util;
     var Binding = drunk.Binding;
-    var Template = drunk.Template;
+    var renderFragment = drunk.Template.renderFragment;
     var Component = drunk.Component;
     var reOneInterpolate = /^\{\{([^{]+)\}\}$/;
     var reStatement = /(\w+):\s*(.+)/;
@@ -4852,7 +4859,7 @@ var drunk;
          */
         ComponentBinding.prototype._initAsyncComponent = function (src) {
             var _this = this;
-            return Template.renderFragment(src, null, true).then(function (fragment) {
+            return renderFragment(src, null, true).then(function (fragment) {
                 if (_this.isDisposed) {
                     return;
                 }
@@ -4865,21 +4872,25 @@ var drunk;
                 _this.component.element = util.toArray(fragment.childNodes);
                 _this._processComponentAttributes();
                 return _this._realizeComponent();
+            }, function (error) {
+                if (error && error.message !== 'Canceled') {
+                    console.error(_this.expression + ": \u7EC4\u4EF6\u521B\u5EFA\u5931\u8D25\n", error);
+                }
             });
         };
         /**
          * 获取双向绑定的属性名
          */
         ComponentBinding.prototype._getTwoWayBindingAttrs = function () {
-            var result = this.element.getAttribute('two-way');
-            var marked = {};
+            var value = this.element.getAttribute('two-way');
+            var attrs = {};
             this.element.removeAttribute('two-way');
-            if (result) {
-                result.trim().split(/\s+/).forEach(function (str) {
-                    marked[util.camelCase(str)] = true;
+            if (value) {
+                value.trim().split(/\s+/).forEach(function (str) {
+                    attrs[util.camelCase(str)] = true;
                 });
             }
-            return marked;
+            return attrs;
         };
         /**
          * 为组件准备数据和绑定事件
@@ -4941,7 +4952,8 @@ var drunk;
             var element = this.element;
             var component = this.component;
             var viewModel = this.viewModel;
-            this._realizePromise = component.$processTemplate().then(function (template) {
+            this._realizePromise = component.$processTemplate();
+            return this._realizePromise.then(function (template) {
                 if (_this.isDisposed) {
                     return;
                 }
@@ -4965,13 +4977,11 @@ var drunk;
                         viewModel._element = nodeList;
                     }
                 }
-            });
-            this._realizePromise.done(null, function (error) {
+            }, function (error) {
                 if (error && error.message !== 'Canceled') {
-                    console.warn(_this.expression + ": \u7EC4\u4EF6\u521B\u5EFA\u5931\u8D25\n", error);
+                    console.error(_this.expression + ": \u7EC4\u4EF6\u521B\u5EFA\u5931\u8D25\n", error);
                 }
             });
-            return this._realizePromise;
         };
         ComponentBinding.prototype._processEventBinding = function () {
             var _this = this;
@@ -5369,34 +5379,49 @@ var drunk;
     var dom = drunk.dom;
     var util = drunk.util;
     var Template = drunk.Template;
-    var TranscludeBinding = (function (_super) {
-        __extends(TranscludeBinding, _super);
-        function TranscludeBinding() {
+    var SlotBinding = (function (_super) {
+        __extends(SlotBinding, _super);
+        function SlotBinding() {
             _super.apply(this, arguments);
         }
-        /**
-         * 初始化绑定,先注册transcludeResponse事件用于获取transclude的viewModel和nodelist
-         * 然后发送getTranscludeContext事件通知
-         */
-        TranscludeBinding.prototype.init = function (ownerViewModel, placeholder) {
-            if (!ownerViewModel || !placeholder) {
-                throw new Error("$mount(element, ownerViewModel, placeholder): ownerViewModel\u548Cplaceholder\u672A\u63D0\u4F9B");
+        SlotBinding.prototype.init = function (owner, placeholder) {
+            if (!owner || !placeholder) {
+                throw new Error("$mount(element, owner, placeholder): owner\u548Cplaceholder\u672A\u63D0\u4F9B");
             }
             var nodes = [];
             var unbinds = [];
-            var transclude = placeholder.childNodes;
             var fragment = document.createDocumentFragment();
-            util.toArray(transclude).forEach(function (node) {
-                nodes.push(node);
-                fragment.appendChild(node);
-            });
+            var viewModel = owner;
+            if (this.expression && /\S/.test(this.expression)) {
+                var element = placeholder.querySelector("[slot=\"" + this.expression + "\"]");
+                if (element) {
+                    element.removeAttribute('slot');
+                    nodes.push(element);
+                    fragment.appendChild(element);
+                }
+            }
+            else {
+                util.toArray(placeholder.childNodes).forEach(function (node) {
+                    if (node.nodeType === 3 || !node.hasAttribute('slot')) {
+                        nodes.push(node);
+                        fragment.appendChild(node);
+                    }
+                });
+            }
+            if (this.element.tagName.toLowerCase() === 'slot' && !nodes.length && this.element.childNodes.length) {
+                util.toArray(this.element.childNodes).forEach(function (node) {
+                    nodes.push(node);
+                    fragment.appendChild(node);
+                });
+                viewModel = this.viewModel;
+            }
             // 换掉节点
             dom.replace(fragment, this.element);
             nodes.forEach(function (node) {
                 // 编译模板并获取绑定创建函数
                 // 保存解绑函数
                 var bind = Template.compile(node);
-                unbinds.push(bind(ownerViewModel, node));
+                unbinds.push(bind(viewModel, node));
             });
             this._nodes = nodes;
             this._unbinds = unbinds;
@@ -5404,16 +5429,16 @@ var drunk;
         /**
          * 释放绑定
          */
-        TranscludeBinding.prototype.release = function () {
+        SlotBinding.prototype.release = function () {
             this._unbinds.forEach(function (unbind) { return unbind(); });
             this._nodes.forEach(function (node) { return dom.remove(node); });
-            this._unbinds = null;
-            this._nodes = null;
+            this._unbinds = this._nodes = null;
         };
-        TranscludeBinding = __decorate([
-            drunk.binding("transclude")
-        ], TranscludeBinding);
-        return TranscludeBinding;
+        SlotBinding.isTerminal = true;
+        SlotBinding = __decorate([
+            drunk.binding("slot")
+        ], SlotBinding);
+        return SlotBinding;
     }(drunk.Binding));
 })(drunk || (drunk = {}));
 /// <reference path="../binding.ts" />

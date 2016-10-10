@@ -9,15 +9,15 @@ namespace drunk {
     import dom = drunk.dom;
     import util = drunk.util;
     import Binding = drunk.Binding;
-    import Template = drunk.Template;
+    import renderFragment = drunk.Template.renderFragment;
     import Component = drunk.Component;
 
-    let reOneInterpolate = /^\{\{([^{]+)\}\}$/;
-    let reStatement = /(\w+):\s*(.+)/;
-    let reSemic = /\s*;\s*/;
-    let reBreakword = /\n+/g;
+    const reOneInterpolate = /^\{\{([^{]+)\}\}$/;
+    const reStatement = /(\w+):\s*(.+)/;
+    const reSemic = /\s*;\s*/;
+    const reBreakword = /\n+/g;
 
-    let getHelpMessage = () => `正确的用法如下:
+    const getHelpMessage = () => `正确的用法如下:
         ${config.prefix}on="click: expression"
         ${config.prefix}on="mousedown: expression; mouseup: callback()"
         ${config.prefix}on="click: callback($event, $el)"`;
@@ -30,7 +30,7 @@ namespace drunk {
 
         private _headNode: any;
         private _tailNode: any;
-        private _realizePromise: Promise<any>;
+        private _realizePromise: Promise<HTMLElement>;
 
         component: Component;
         unwatches: Function[];
@@ -60,7 +60,7 @@ namespace drunk {
          * 初始化异步组件,先加载为fragment,再设置为组件的element,在进行初始化
          */
         private _initAsyncComponent(src: string) {
-            return Template.renderFragment(src, null, true).then((fragment) => {
+            return renderFragment(src, null, true).then((fragment) => {
                 if (this.isDisposed) {
                     return;
                 }
@@ -76,6 +76,10 @@ namespace drunk {
 
                 this._processComponentAttributes();
                 return this._realizeComponent();
+            }, (error: Error) => {
+                if (error && error.message !== 'Canceled') {
+                    console.error(`${this.expression}: 组件创建失败\n`, error);
+                }
             });
         }
 
@@ -83,16 +87,16 @@ namespace drunk {
          * 获取双向绑定的属性名
          */
         private _getTwoWayBindingAttrs() {
-            let result = this.element.getAttribute('two-way');
-            let marked: { [key: string]: boolean } = {};
+            let value = this.element.getAttribute('two-way');
+            let attrs: { [name: string]: boolean } = {};
 
             this.element.removeAttribute('two-way');
-            if (result) {
-                result.trim().split(/\s+/).forEach((str) => {
-                    marked[util.camelCase(str)] = true;
+            if (value) {
+                value.trim().split(/\s+/).forEach((str) => {
+                    attrs[util.camelCase(str)] = true;
                 });
             }
-            return marked;
+            return attrs;
         }
 
         /**
@@ -158,11 +162,13 @@ namespace drunk {
          * 处理组件的视图与数据绑定
          */
         private _realizeComponent() {
-            let element = this.element;
-            let component = this.component;
-            let viewModel = this.viewModel;
+            var element = this.element;
+            var component = this.component;
+            var viewModel = this.viewModel;
 
-            this._realizePromise = component.$processTemplate().then(template => {
+            this._realizePromise = component.$processTemplate();
+
+            return this._realizePromise.then(template => {
                 if (this.isDisposed) {
                     return;
                 }
@@ -193,14 +199,11 @@ namespace drunk {
                         viewModel._element = nodeList;
                     }
                 }
-            });
-            this._realizePromise.done(null, (error: Error) => {
+            }, (error: Error) => {
                 if (error && error.message !== 'Canceled') {
-                    console.warn(`${this.expression}: 组件创建失败\n`, error);
+                    console.error(`${this.expression}: 组件创建失败\n`, error);
                 }
             });
-
-            return this._realizePromise;
         }
 
         private _processEventBinding() {
@@ -232,7 +235,7 @@ namespace drunk {
                 // $event对象有type和args两个字段,args字段是组件派发这个事件所传递的参数的列表
                 // $el字段为该组件实例
                 if (config.debug) {
-                    console.log(`${eventName}: ${expression}`)
+                    console.log(`${eventName}: ${expression}`);
                 }
                 func.call(viewModel, {
                     type: eventName,
@@ -299,8 +302,8 @@ namespace drunk {
                 dom.remove(this._headNode);
                 dom.remove(this._tailNode);
 
-                Binding.removeWeakRef(this._headNode, <any>this);
-                Binding.removeWeakRef(this._tailNode, <any>this);
+                Binding.removeWeakRef(this._headNode, this);
+                Binding.removeWeakRef(this._tailNode, this);
             }
 
             // 移除所有引用
