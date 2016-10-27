@@ -228,7 +228,7 @@ declare namespace drunk {
         /**
          * map的成员个数
          */
-        size: number;
+        readonly size: number;
     }
 }
 declare namespace drunk {
@@ -1118,32 +1118,8 @@ declare namespace drunk.Template {
         isTextNode?: boolean;
     };
     function compile(node: Node | Node[]): (viewModel: ViewModel, node: Node | Node[], owner?: ViewModel, placeholder?: HTMLElement) => () => void;
-    function createBindingDescriptor(node: Node): {
-        bindings?: {
-            name: string;
-            expression: string;
-            priority: number;
-            attribute?: string;
-            isInterpolate?: boolean;
-        }[];
-        children?: BindingDescriptor[];
-        fragment?: DocumentFragment;
-        isTerminal?: boolean;
-        isTextNode?: boolean;
-    };
-    function createBindingDescriptorList(nodeList: Node[]): {
-        bindings?: {
-            name: string;
-            expression: string;
-            priority: number;
-            attribute?: string;
-            isInterpolate?: boolean;
-        }[];
-        children?: BindingDescriptor[];
-        fragment?: DocumentFragment;
-        isTerminal?: boolean;
-        isTextNode?: boolean;
-    }[];
+    function createBindingDescriptor(node: Node): BindingDescriptor;
+    function createBindingDescriptorList(nodeList: Node[]): BindingDescriptor[];
 }
 declare namespace drunk.Template {
     import Promise = drunk.Promise;
@@ -1172,7 +1148,7 @@ declare namespace drunk {
     import ViewModel = drunk.ViewModel;
     interface IComponentOptions {
         name?: string;
-        init?: () => void;
+        init?(): any;
         data?: {
             [name: string]: any;
         };
@@ -1215,21 +1191,6 @@ declare namespace drunk {
          * 未找到则作为一个服务端的链接发送ajax请求获取
          */
         templateUrl: string;
-        /** 该组件作用域下的事件处理方法 */
-        handlers: {
-            [name: string]: (...args) => void;
-        };
-        /** 监控器描述,key表示表达式,值为监控回调 */
-        watchers: {
-            [expression: string]: (newValue: any, oldValue: any) => void;
-        };
-        filters: {
-            [name: string]: Filter.IFilter;
-        };
-        /** 组件的数据,会被初始化到Model中,可以为一个函数,函数可以直接返回值或一个处理值的Promise对象 */
-        data: {
-            [name: string]: any;
-        };
         /**
          * 组件类，继承ViewModel类，实现了模板的准备和数据的绑定
          * @param  model  初始化的数据

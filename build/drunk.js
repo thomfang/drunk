@@ -3897,21 +3897,6 @@ var drunk;
             _super.call(this, model);
             Component.instancesById[util.uniqueId(this)] = this;
         }
-        Object.defineProperty(Component.prototype, "filters", {
-            set: function (filters) {
-                this.$setFilters(filters);
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Component.prototype, "data", {
-            /** 组件的数据,会被初始化到Model中,可以为一个函数,函数可以直接返回值或一个处理值的Promise对象 */
-            set: function (dataDescriptors) {
-                this.$resolveData(dataDescriptors);
-            },
-            enumerable: true,
-            configurable: true
-        });
         /**
          * 实例创建时会调用的初始化方法,派生类可覆盖该方法
          */
@@ -4073,9 +4058,6 @@ var drunk;
                 options = arguments[0];
                 name = options.name;
             }
-            // else {
-            //     members.name = arguments[0];
-            // }
             var superClass = this;
             var prototype = Object.create(superClass.prototype);
             var watchers;
@@ -4977,7 +4959,7 @@ var drunk;
                         viewModel._element = nodeList;
                     }
                 }
-            }, function (error) {
+            }).catch(function (error) {
                 if (error && error.message !== 'Canceled') {
                     console.error(_this.expression + ": \u7EC4\u4EF6\u521B\u5EFA\u5931\u8D25\n", error);
                 }

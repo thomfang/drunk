@@ -199,7 +199,7 @@ namespace drunk {
                         viewModel._element = nodeList;
                     }
                 }
-            }, (error: Error) => {
+            }).catch((error: Error) => {
                 if (error && error.message !== 'Canceled') {
                     console.error(`${this.expression}: 组件创建失败\n`, error);
                 }

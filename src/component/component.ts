@@ -20,7 +20,7 @@ namespace drunk {
 
     export interface IComponentOptions {
         name?: string;
-        init?: () => void;
+        init?(): any;
         data?: { [name: string]: any };
         filters?: { [name: string]: Filter.IFilter };
         watchers?: { [expression: string]: IBindingAction };
@@ -67,21 +67,6 @@ namespace drunk {
          * 未找到则作为一个服务端的链接发送ajax请求获取
          */
         templateUrl: string;
-
-        /** 该组件作用域下的事件处理方法 */
-        handlers: { [name: string]: (...args) => void };
-
-        /** 监控器描述,key表示表达式,值为监控回调 */
-        watchers: { [expression: string]: (newValue: any, oldValue: any) => void };
-
-        set filters(filters: { [name: string]: Filter.IFilter }) {
-            this.$setFilters(filters);
-        }
-
-        /** 组件的数据,会被初始化到Model中,可以为一个函数,函数可以直接返回值或一个处理值的Promise对象 */
-        set data(dataDescriptors: { [name: string]: any }) {
-            this.$resolveData(dataDescriptors);
-        }
 
         /**
          * 组件类，继承ViewModel类，实现了模板的准备和数据的绑定
@@ -312,9 +297,6 @@ namespace drunk {
                 options = arguments[0];
                 name = options.name;
             }
-            // else {
-            //     members.name = arguments[0];
-            // }
 
             var superClass = this;
             var prototype = Object.create(superClass.prototype);
