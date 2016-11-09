@@ -34,24 +34,29 @@ namespace drunk {
 
         component: Component;
         unwatches: Function[];
+        properties: { [name: string]: { expression: string; value: any; isDynamic: boolean; }; };
+        events: { [name: string]: string };
         isDisposed: boolean;
 
         /**
          * 初始化组件,找到组件类并生成实例,创建组件的绑定
          */
         init() {
-            let src = this.element.getAttribute('src');
+            this.unwatches = [];
+            this.properties = {};
+            this.events = {};
+
+            var src = this.element.getAttribute('src');
             this.element.removeAttribute('src');
             if (src) {
                 return this._initAsyncComponent(src);
             }
 
-            let Ctor = Component.getConstructorByName(this.expression);
+            var Ctor = Component.getConstructorByName(this.expression);
             if (!Ctor) {
                 throw new Error(this.expression + ": 未找到该组件.");
             }
             this.component = new Ctor();
-            this.unwatches = [];
             this._processComponentAttributes();
             return this._realizeComponent();
         }
@@ -69,8 +74,6 @@ namespace drunk {
                 if (!Ctor) {
                     throw new Error(`${this.expression} : 未找到该组件`);
                 }
-
-                this.unwatches = [];
                 this.component = new Ctor();
                 this.component.element = util.toArray(fragment.childNodes);
 
@@ -87,8 +90,8 @@ namespace drunk {
          * 获取双向绑定的属性名
          */
         private _getTwoWayBindingAttrs() {
-            let value = this.element.getAttribute('two-way');
-            let attrs: { [name: string]: boolean } = {};
+            var value = this.element.getAttribute('two-way');
+            var attrs: { [name: string]: boolean } = {};
 
             this.element.removeAttribute('two-way');
             if (value) {
@@ -103,9 +106,10 @@ namespace drunk {
          * 为组件准备数据和绑定事件
          */
         private _processComponentAttributes() {
-            let element = this.element;
-            let component = this.component;
-            let twoWayBindingAttrs = this._getTwoWayBindingAttrs();
+            var element = this.element;
+            var component = this.component;
+            var properties = this.properties;
+            var twoWayBindingAttrs = this._getTwoWayBindingAttrs();
 
             this._processEventBinding();
 
@@ -147,6 +151,7 @@ namespace drunk {
                             value = parseFloat(attrValue);
                             value = isNaN(value) ? attrValue : value;
                         }
+                        properties[attrName] = { expression: attrValue, value, isDynamic: false };
                         return component[attrName] = value;
                     }
 
@@ -207,8 +212,8 @@ namespace drunk {
         }
 
         private _processEventBinding() {
-            let bindingName = config.prefix + 'on';
-            let expression = this.element.getAttribute(bindingName);
+            var bindingName = config.prefix + 'on';
+            var expression = this.element.getAttribute(bindingName);
 
             if (expression == null) {
                 return;
@@ -227,8 +232,10 @@ namespace drunk {
          * 注册组件的事件
          */
         private _registerComponentEvent(eventName: string, expression: string) {
-            let viewModel: Component = this.viewModel;
-            let func = Parser.parse(expression);
+            var viewModel: Component = this.viewModel;
+            var func = Parser.parse(expression);
+
+            this.events[eventName] = expression;
 
             this.component.$on(eventName, (...args: any[]) => {
                 // 事件的处理函数,会生成一个$event对象,在表达式中可以访问该对象.
@@ -249,9 +256,10 @@ namespace drunk {
          * 监控绑定表达式,表达式里任意数据更新时,同步到component的指定属性
          */
         private _initComponentWatcher(property: string, expression: string, isTwoWay: boolean) {
-            let viewModel = this.viewModel;
-            let component = this.component;
-            let unwatch: () => void;
+            var viewModel = this.viewModel;
+            var component = this.component;
+            var propInfo = this.properties[property] = { expression, isDynamic: true, value: undefined };
+            var unwatch: () => void;
 
             if (isTwoWay) {
                 let result = expression.match(reOneInterpolate);
@@ -267,6 +275,7 @@ namespace drunk {
                     if (newValue === currValue) {
                         return;
                     }
+                    propInfo.value = newValue;
                     viewModel.$setValue(ownerProperty, newValue);
                 });
 
@@ -277,6 +286,7 @@ namespace drunk {
                 if (component[property] === newValue) {
                     return;
                 }
+                propInfo.value = newValue;
                 component[property] = newValue;
             }, false, true);
 
@@ -307,7 +317,7 @@ namespace drunk {
             }
 
             // 移除所有引用
-            this._headNode = this._tailNode = this.component = this.unwatches = this._realizePromise = null;
+            this._headNode = this._tailNode = this.component = this.unwatches = this.properties = this.events = this._realizePromise = null;
             this.isDisposed = true;
         }
     }

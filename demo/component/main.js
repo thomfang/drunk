@@ -1,8 +1,10 @@
+/// <reference path="../../build/drunk.d.ts" />
+
 drunk.Component.define('todo-item', {
     templateUrl: 'todo-item.html'
 });
 
-var TodoApp = drunk.Component.extend({
+var TodoApp = drunk.Component.define({
 
     init: function () {
         this.todoList = [];
@@ -39,6 +41,8 @@ var TodoApp = drunk.Component.extend({
         this.currIndex = null;
     }
 });
+
+drunk.config.debug = true;
 
 var app = new TodoApp();
 

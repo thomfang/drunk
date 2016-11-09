@@ -212,7 +212,7 @@ namespace drunk {
          */
         $getModel() {
             let model = {};
-            Object.keys(this._proxyProps).forEach(prop => model[prop] = this._model[prop]);
+            Object.keys(this._proxyProps).forEach(prop => model[prop] = this[prop]);
             return util.extend(model, util.deepClone(this._model));
         }
 

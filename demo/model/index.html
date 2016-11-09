@@ -8,7 +8,7 @@
     </head>
     
     <body>
-        
+
         <input type="text" drunk-model="content">
         <p>{{ {'male': '男', 'female': '女'}[gender] }}</p>
         <p>input: {{content}}</p>
@@ -30,8 +30,8 @@
             var app = new drunk.Component();
             app.gender = 'male';
             app.$watch('content', function (newValue) {
-                if (newValue && newValue.length > 3) {
-                    this.content = newValue.slice(0, 3);
+                if (newValue && newValue.length > 10) {
+                    this.content = newValue.slice(0, 10);
                 }
             });
             app.$mount(document.body);

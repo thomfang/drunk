@@ -756,6 +756,7 @@ declare namespace drunk {
          * binding名称
          */
         name: string;
+        value: any;
         /**
          * 是否深度监听表达式
          */
@@ -785,6 +786,7 @@ declare namespace drunk {
          */
         protected _update: (newValue: any, oldValue: any) => void;
         protected _isDynamic: boolean;
+        private _firstUpdate;
         /**
          * 根据绑定的定义创建一个绑定实例，根据定义进行viewModel与DOM元素绑定的初始化、视图渲染和释放
          * @param  viewModel       ViewModel实例
@@ -795,7 +797,7 @@ declare namespace drunk {
         /**
          * 初始化绑定
          */
-        $initialize(ownerViewModel: any, placeholder?: HTMLElement): any;
+        $initialize(ownerViewModel: any, placeholder?: HTMLElement): void;
         /**
          * 移除绑定并销毁
          */

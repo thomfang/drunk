@@ -44,13 +44,13 @@ namespace drunk {
         (newValue: any, oldValue: any): any;
     }
 
-    let refKey = 'DRUNK-BINDING-ID-LIST';
+    const refKey = 'DRUNK-BINDING-ID-LIST';
 
     /** 终止型绑定信息列表,每个绑定信息包含了name(名字)和priority(优先级)信息 */
-    let terminalBindingDescriptors: { name: string; priority: number }[] = [];
+    const terminalBindingDescriptors: { name: string; priority: number }[] = [];
 
     /** 终止型绑定的名称 */
-    let terminalBindings: string[] = [];
+    var terminalBindings: string[] = [];
 
     export function binding(name: string) {
         return function (constructor: IBindingConstructor) {
@@ -205,6 +205,8 @@ namespace drunk {
          */
         name: string;
 
+        value: any;
+
         /**
          * 是否深度监听表达式
          */
@@ -242,6 +244,8 @@ namespace drunk {
 
         protected _isDynamic: boolean;
 
+        private _firstUpdate: boolean;
+
         /**
          * 根据绑定的定义创建一个绑定实例，根据定义进行viewModel与DOM元素绑定的初始化、视图渲染和释放
          * @param  viewModel       ViewModel实例
@@ -249,6 +253,7 @@ namespace drunk {
          * @param  definition      绑定定义
          */
         constructor(public viewModel: Component, public element: any, descriptor: IBindingDefinition) {
+            this._firstUpdate = true;
             Binding.instancesById[util.uniqueId(this)] = this;
             util.extend(this, descriptor);
         }
@@ -257,13 +262,14 @@ namespace drunk {
          * 初始化绑定
          */
         $initialize(ownerViewModel, placeholder?: HTMLElement) {
-            if (typeof this["init"] === 'function') {
-                this["init"](ownerViewModel, placeholder);
+            var self = this as IBindingDefinition;
+            if (typeof self.init === 'function') {
+                self.init(ownerViewModel, placeholder);
             }
 
             this._isActived = true;
 
-            if (typeof this["update"] !== 'function') {
+            if (typeof self.update !== 'function') {
                 return;
             }
 
@@ -274,15 +280,16 @@ namespace drunk {
 
             if (!getter.dynamic) {
                 // 如果只是一个静态表达式直接取值更新
-                return this["update"](viewModel.$eval(expression, isInterpolate), undefined);
+                return self.update(viewModel.$eval(expression, isInterpolate), undefined);
             }
 
             this._update = (newValue, oldValue) => {
-                if (!this._isActived) {
-                    return;
+                if (!this._isActived || (!this._firstUpdate && this.value === newValue)) {
+                    return this._firstUpdate = false;
                 }
-
-                this["update"](newValue, oldValue);
+                this._firstUpdate = false;
+                this.value = newValue;
+                (this as IBindingDefinition).update(newValue, oldValue);
             }
             this._unwatch = viewModel.$watch(expression, this._update, this.isDeepWatch, false);
             this._isDynamic = true;
@@ -313,6 +320,7 @@ namespace drunk {
          * @param  value    要设置的值
          */
         $setValue(value: any): void {
+            this.value = value;
             this.viewModel.$setValue(this.expression, value);
         }
 

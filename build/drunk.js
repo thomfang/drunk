@@ -2319,6 +2319,7 @@ var drunk;
              * 是否已经不可用
              */
             this._isActived = true;
+            this._firstUpdate = true;
             Binding.instancesById[util.uniqueId(this)] = this;
             util.extend(this, descriptor);
         }
@@ -2436,11 +2437,12 @@ var drunk;
          */
         Binding.prototype.$initialize = function (ownerViewModel, placeholder) {
             var _this = this;
-            if (typeof this["init"] === 'function') {
-                this["init"](ownerViewModel, placeholder);
+            var self = this;
+            if (typeof self.init === 'function') {
+                self.init(ownerViewModel, placeholder);
             }
             this._isActived = true;
-            if (typeof this["update"] !== 'function') {
+            if (typeof self.update !== 'function') {
                 return;
             }
             var expression = this.expression;
@@ -2449,13 +2451,15 @@ var drunk;
             var getter = drunk.Parser.parseGetter(expression, isInterpolate);
             if (!getter.dynamic) {
                 // 如果只是一个静态表达式直接取值更新
-                return this["update"](viewModel.$eval(expression, isInterpolate), undefined);
+                return self.update(viewModel.$eval(expression, isInterpolate), undefined);
             }
             this._update = function (newValue, oldValue) {
-                if (!_this._isActived) {
-                    return;
+                if (!_this._isActived || (!_this._firstUpdate && _this.value === newValue)) {
+                    return _this._firstUpdate = false;
                 }
-                _this["update"](newValue, oldValue);
+                _this._firstUpdate = false;
+                _this.value = newValue;
+                _this.update(newValue, oldValue);
             };
             this._unwatch = viewModel.$watch(expression, this._update, this.isDeepWatch, false);
             this._isDynamic = true;
@@ -2483,6 +2487,7 @@ var drunk;
          * @param  value    要设置的值
          */
         Binding.prototype.$setValue = function (value) {
+            this.value = value;
             this.viewModel.$setValue(this.expression, value);
         };
         Binding.prototype.$execute = function () {
@@ -2682,7 +2687,7 @@ var drunk;
         ViewModel.prototype.$getModel = function () {
             var _this = this;
             var model = {};
-            Object.keys(this._proxyProps).forEach(function (prop) { return model[prop] = _this._model[prop]; });
+            Object.keys(this._proxyProps).forEach(function (prop) { return model[prop] = _this[prop]; });
             return util.extend(model, util.deepClone(this._model));
         };
         /**
@@ -4822,6 +4827,9 @@ var drunk;
          * 初始化组件,找到组件类并生成实例,创建组件的绑定
          */
         ComponentBinding.prototype.init = function () {
+            this.unwatches = [];
+            this.properties = {};
+            this.events = {};
             var src = this.element.getAttribute('src');
             this.element.removeAttribute('src');
             if (src) {
@@ -4832,7 +4840,6 @@ var drunk;
                 throw new Error(this.expression + ": 未找到该组件.");
             }
             this.component = new Ctor();
-            this.unwatches = [];
             this._processComponentAttributes();
             return this._realizeComponent();
         };
@@ -4849,7 +4856,6 @@ var drunk;
                 if (!Ctor) {
                     throw new Error(_this.expression + " : \u672A\u627E\u5230\u8BE5\u7EC4\u4EF6");
                 }
-                _this.unwatches = [];
                 _this.component = new Ctor();
                 _this.component.element = util.toArray(fragment.childNodes);
                 _this._processComponentAttributes();
@@ -4881,6 +4887,7 @@ var drunk;
             var _this = this;
             var element = this.element;
             var component = this.component;
+            var properties = this.properties;
             var twoWayBindingAttrs = this._getTwoWayBindingAttrs();
             this._processEventBinding();
             if (element.hasAttributes()) {
@@ -4918,6 +4925,7 @@ var drunk;
                             value = parseFloat(attrValue);
                             value = isNaN(value) ? attrValue : value;
                         }
+                        properties[attrName] = { expression: attrValue, value: value, isDynamic: false };
                         return component[attrName] = value;
                     }
                     // title="{{somelet}}"
@@ -4986,6 +4994,7 @@ var drunk;
             var _this = this;
             var viewModel = this.viewModel;
             var func = drunk.Parser.parse(expression);
+            this.events[eventName] = expression;
             this.component.$on(eventName, function () {
                 var args = [];
                 for (var _i = 0; _i < arguments.length; _i++) {
@@ -5010,6 +5019,7 @@ var drunk;
         ComponentBinding.prototype._initComponentWatcher = function (property, expression, isTwoWay) {
             var viewModel = this.viewModel;
             var component = this.component;
+            var propInfo = this.properties[property] = { expression: expression, isDynamic: true, value: undefined };
             var unwatch;
             if (isTwoWay) {
                 var result = expression.match(reOneInterpolate);
@@ -5022,6 +5032,7 @@ var drunk;
                     if (newValue === currValue) {
                         return;
                     }
+                    propInfo.value = newValue;
                     viewModel.$setValue(ownerProperty_1, newValue);
                 });
                 this.unwatches.push(unwatch);
@@ -5030,6 +5041,7 @@ var drunk;
                 if (component[property] === newValue) {
                     return;
                 }
+                propInfo.value = newValue;
                 component[property] = newValue;
             }, false, true);
             this.unwatches.push(unwatch);
@@ -5055,7 +5067,7 @@ var drunk;
                 Binding.removeWeakRef(this._tailNode, this);
             }
             // 移除所有引用
-            this._headNode = this._tailNode = this.component = this.unwatches = this._realizePromise = null;
+            this._headNode = this._tailNode = this.component = this.unwatches = this.properties = this.events = this._realizePromise = null;
             this.isDisposed = true;
         };
         ComponentBinding.isTerminal = true;
