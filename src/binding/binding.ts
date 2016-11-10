@@ -284,7 +284,7 @@ namespace drunk {
             }
 
             this._update = (newValue, oldValue) => {
-                if (!this._isActived || (!this._firstUpdate && this.value === newValue)) {
+                if (!this._isActived || (!this._firstUpdate && !util.isObjectOrNotEqual(newValue, this.value))) {
                     return this._firstUpdate = false;
                 }
                 this._firstUpdate = false;

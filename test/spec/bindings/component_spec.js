@@ -7,7 +7,7 @@ describe("Binding.component", function () {
     var binding, vm, container;
 
     var tpl1 = drunk.dom.create("<script id='tpl1.html' type='text/template'><div id='component'></div></script>");
-    var tpl2 = drunk.dom.create("<script id='tpl2.html' type='text/template'><div><div drunk-transclude></div></div></script>");
+    var tpl2 = drunk.dom.create("<script id='tpl2.html' type='text/template'><div><div drunk-slot></div></div></script>");
 
     document.body.appendChild(tpl1);
     document.body.appendChild(tpl2);
@@ -34,6 +34,8 @@ describe("Binding.component", function () {
 
         binding.component = new MyComponent();
         binding.unwatches = [];
+        binding.properties = {};
+        binding.events = {};
 
         binding._processComponentAttributes();
 

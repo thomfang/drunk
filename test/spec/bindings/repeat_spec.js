@@ -62,7 +62,7 @@ describe("Binding.repeat", function () {
             $even: false,
             item: item0.val,
         });
-        expect(vm0._parent).toBe(binding.viewModel);
+        expect(vm0.$parent).toBe(binding.viewModel);
         expect(binding._map.get(item0.val)[0]).toBe(vm0);
         expect(vm0._flagNode).toBeDefined();
 

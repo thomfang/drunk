@@ -44,6 +44,10 @@ var TodoApp = drunk.Component.define({
 
 drunk.config.debug = true;
 
+drunk.Component.registerByResources({
+    'alert-view': 'alert.html'
+});
+
 var app = new TodoApp();
 
 app.$mount(document.body);

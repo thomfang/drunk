@@ -27,7 +27,7 @@
         on-remove="confirmRemove(index)">
     </todo-item>
 
-    <alert-view src="./alert.html" content="确认要删除该任务吗" two-way="visible" visible="{{alertVisible}}" on-confirm="removeTodo()">
+    <alert-view content="确认要删除该任务吗" two-way="visible" visible="{{alertVisible}}" on-confirm="removeTodo()">
         <p slot="title">删除该任务</p>
         <button drunk-on:click="cancelRemove()">取消</button>
     </alert-view>

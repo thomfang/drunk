@@ -190,6 +190,11 @@ namespace drunk.util {
         return job;
     }
 
+    // 判断两个值是对象或不同的值
+    export function isObjectOrNotEqual(a, b) {
+        return a !== b || (typeof a === 'object' && a);
+    }
+
     var handleCounter = 1;
     var requestAnimationCallbackMap = {};
     var requestAnimationWorker: number;

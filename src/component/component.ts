@@ -195,7 +195,7 @@ namespace drunk {
             if (!this._isActived) {
                 return;
             }
-            
+
             this.$emit(Component.Event.release, this);
 
             super.$release();
@@ -212,9 +212,14 @@ namespace drunk {
         }
 
         /**
-         * 定义的组件记录
+         * 组件构造函数
          */
         static constructorsByName: { [name: string]: IComponentContructor<any> } = {};
+
+        /**
+         * 组件为加载的资源
+         */
+        static resourcesByName: { [name: string]: string } = {};
 
         /** 组件实例 */
         static instancesById: { [id: number]: Component } = {};
@@ -262,6 +267,13 @@ namespace drunk {
          */
         static getConstructorByName(name: string): IComponentContructor<any> {
             return Component.constructorsByName[name];
+        }
+
+        /**
+         * 根据组件名获取组件的资源链接
+         */
+        static getResourceByName(name: string): string {
+            return Component.resourcesByName[name];
         }
 
         /**
@@ -371,6 +383,27 @@ namespace drunk {
             Component.constructorsByName[name] = componentCtor;
 
             addHiddenStyleForComponent(name);
+        }
+
+        /**
+         * 注册组件资源，资源只会在需要构造组件时才会加载
+         */
+            Object.keys(components).forEach(name => {
+                if (this.resourcesByName[name] != null) {
+                    console.warn(`组件"${name}"资源变化: ${this.resourcesByName[name]} => ${components[name]}`);
+                }
+                this.resourcesByName[name] = components[name];
+                this.constructorsByName[name] = null;
+                addHiddenStyleForComponent(name);
+            });
+        }
+
+        /**
+         * 注册并加载组件资源
+         */
+            Object.keys(components).forEach(name => {
+                Template.renderFragment(components[name], null, true);
+            });
         }
     }
 

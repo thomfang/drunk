@@ -35,7 +35,7 @@ describe("Binding", function () {
             update: jasmine.createSpy("update"),
             release: jasmine.createSpy("release")
         });
-        
+
         binding.$initialize();
         binding.$execute();
 
@@ -71,7 +71,7 @@ describe("Binding", function () {
             expression: '"a"',
             update: jasmine.createSpy("update")
         });
-        
+
         binding.$initialize();
         binding.$execute();
 
@@ -85,27 +85,32 @@ describe("Binding", function () {
             expression: 'a',
             update: jasmine.createSpy("update")
         });
-        
+
         binding.$initialize();
         binding.$execute();
 
         expect(binding.update.calls.count()).toBe(1);
-        
+
         var watcher = viewModel._watchers.a;
 
         spyOn(viewModel, "$setValue").and.callThrough();
-        
-        binding.$setValue(2, true);
+
+        binding.$setValue(2);
 
         expect(viewModel.$setValue.calls.any()).toEqual(true);
         expect(viewModel.a).toBe(2);
         expect(watcher.value).toBe(1);
 
         drunk.util.requestAnimationFrame(function () {
-            expect(binding.update.calls.count()).toBe(2);
             expect(watcher.value).toBe(2);
+            expect(binding.update.calls.count()).toBe(1);
 
-            done();
+            viewModel.$setValue('a', 3);
+            drunk.util.requestAnimationFrame(function () {
+                expect(watcher.value).toBe(3);
+                expect(binding.update.calls.count()).toBe(2);
+                done()
+            });
         });
     });
 
@@ -115,7 +120,7 @@ describe("Binding", function () {
             expression: 'b',
             update: jasmine.createSpy("update")
         });
-        
+
         binding.$initialize();
         binding.$execute();
 
@@ -139,12 +144,12 @@ describe("Binding", function () {
             expression: 'a',
             update: jasmine.createSpy()
         });
-        
+
         binding1.$initialize();
         binding1.$execute();
         binding2.$initialize();
         binding2.$execute();
-        
+
         var watcher = viewModel._watchers.a;
 
         expect(watcher._actions.length).toBe(2);

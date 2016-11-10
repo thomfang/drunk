@@ -114,7 +114,7 @@ namespace drunk.observable {
             let newValue: any = arguments[0];
 
             // 有传入参数，则是赋值操作
-            if (!isNotEqual(newValue, value)) {
+            if (!util.isObjectOrNotEqual(newValue, value)) {
                 // 如果值相同，不做任何处理
                 return;
             }
@@ -151,10 +151,5 @@ namespace drunk.observable {
         if (observer) {
             observer.notify();
         }
-    }
-
-    // 判断两个值是否不同
-    function isNotEqual(a, b) {
-        return a !== b || (typeof a === 'object' && a);
     }
 }

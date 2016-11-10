@@ -628,6 +628,11 @@ var drunk;
             return job;
         }
         util.execAsyncWork = execAsyncWork;
+        // 判断两个值是对象或不同的值
+        function isObjectOrNotEqual(a, b) {
+            return a !== b || (typeof a === 'object' && a);
+        }
+        util.isObjectOrNotEqual = isObjectOrNotEqual;
         var handleCounter = 1;
         var requestAnimationCallbackMap = {};
         var requestAnimationWorker;
@@ -1267,7 +1272,7 @@ var drunk;
                 }
                 var newValue = arguments[0];
                 // 有传入参数，则是赋值操作
-                if (!isNotEqual(newValue, value)) {
+                if (!util.isObjectOrNotEqual(newValue, value)) {
                     // 如果值相同，不做任何处理
                     return;
                 }
@@ -1300,10 +1305,6 @@ var drunk;
             }
         }
         observable.notify = notify;
-        // 判断两个值是否不同
-        function isNotEqual(a, b) {
-            return a !== b || (typeof a === 'object' && a);
-        }
     })(observable = drunk.observable || (drunk.observable = {}));
 })(drunk || (drunk = {}));
 /// <reference path="../util/util.ts" />
@@ -2454,7 +2455,7 @@ var drunk;
                 return self.update(viewModel.$eval(expression, isInterpolate), undefined);
             }
             this._update = function (newValue, oldValue) {
-                if (!_this._isActived || (!_this._firstUpdate && _this.value === newValue)) {
+                if (!_this._isActived || (!_this._firstUpdate && !util.isObjectOrNotEqual(newValue, _this.value))) {
                     return _this._firstUpdate = false;
                 }
                 _this._firstUpdate = false;
@@ -4043,6 +4044,12 @@ var drunk;
         Component.getConstructorByName = function (name) {
             return Component.constructorsByName[name];
         };
+        /**
+         * 根据组件名获取组件的资源链接
+         */
+        Component.getResourceByName = function (name) {
+            return Component.resourcesByName[name];
+        };
         Component.define = function () {
             var args = [];
             for (var _i = 0; _i < arguments.length; _i++) {
@@ -4138,9 +4145,36 @@ var drunk;
             addHiddenStyleForComponent(name);
         };
         /**
-         * 定义的组件记录
+         * 注册组件资源，资源只会在需要构造组件时才会加载
+         */
+        Component.registerByResourcesLazy = function (components) {
+            var _this = this;
+            Object.keys(components).forEach(function (name) {
+                if (_this.resourcesByName[name] != null) {
+                    console.warn("\u7EC4\u4EF6\"" + name + "\"\u8D44\u6E90\u53D8\u5316: " + _this.resourcesByName[name] + " => " + components[name]);
+                }
+                _this.resourcesByName[name] = components[name];
+                _this.constructorsByName[name] = null;
+                addHiddenStyleForComponent(name);
+            });
+        };
+        /**
+         * 注册并加载组件资源
+         */
+        Component.registerByResources = function (components) {
+            this.registerByResourcesLazy(components);
+            Object.keys(components).forEach(function (name) {
+                Template.renderFragment(components[name], null, true);
+            });
+        };
+        /**
+         * 组件构造函数
          */
         Component.constructorsByName = {};
+        /**
+         * 组件为加载的资源
+         */
+        Component.resourcesByName = {};
         /** 组件实例 */
         Component.instancesById = {};
         /**
@@ -4830,16 +4864,21 @@ var drunk;
             this.unwatches = [];
             this.properties = {};
             this.events = {};
+            var name = this.expression;
             var src = this.element.getAttribute('src');
             this.element.removeAttribute('src');
             if (src) {
                 return this._initAsyncComponent(src);
             }
-            var Ctor = Component.getConstructorByName(this.expression);
-            if (!Ctor) {
-                throw new Error(this.expression + ": 未找到该组件.");
+            var ctor = Component.getConstructorByName(name);
+            if (!ctor) {
+                var resource = Component.getResourceByName(name);
+                if (resource != null) {
+                    return this._initAsyncComponent(resource);
+                }
+                throw new Error(name + ": 未找到该组件.");
             }
-            this.component = new Ctor();
+            this.component = new ctor();
             this._processComponentAttributes();
             return this._realizeComponent();
         };

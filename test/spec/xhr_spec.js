@@ -39,8 +39,8 @@ describe("xhr", function () {
     });
     
     it("should recieve a 404 status", function (done) {
-        var onFail = function (res) {
-            expect(res.status).toBe(404);
+        var onFail = function (err) {
+            expect(err.xhr.status).toBe(404);
             done();
         };
 

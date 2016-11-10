@@ -46,17 +46,24 @@ namespace drunk {
             this.properties = {};
             this.events = {};
 
+            var name = this.expression;
             var src = this.element.getAttribute('src');
+
             this.element.removeAttribute('src');
             if (src) {
                 return this._initAsyncComponent(src);
             }
 
-            var Ctor = Component.getConstructorByName(this.expression);
-            if (!Ctor) {
-                throw new Error(this.expression + ": 未找到该组件.");
+            var ctor = Component.getConstructorByName(name);
+            if (!ctor) {
+                let resource = Component.getResourceByName(name);
+                if (resource != null) {
+                    return this._initAsyncComponent(resource);
+                }
+                throw new Error(name + ": 未找到该组件.");
             }
-            this.component = new Ctor();
+
+            this.component = new ctor();
             this._processComponentAttributes();
             return this._realizeComponent();
         }

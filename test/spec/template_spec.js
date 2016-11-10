@@ -54,10 +54,10 @@ describe("Template", function () {
 
             vm.color = "black";
 
-            drunk.util.execAsyncWork(function () {
+            setTimeout(function () {
                 expect(element.className).toBe("item black");
                 done();
-            });
+            }, 200);
         });
 
         it("compile nodeList", function () {

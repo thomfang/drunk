@@ -162,6 +162,7 @@ declare namespace drunk.util {
      * @return             返回一个带有cancel方法的job对象
      */
     function execAsyncWork(work: () => any, context?: any): IAsyncJob;
+    function isObjectOrNotEqual(a: any, b: any): any;
     var requestAnimationFrame: (callback: FrameRequestCallback) => number;
     var cancelAnimationFrame: (handle: number) => void;
 }
@@ -1235,10 +1236,16 @@ declare namespace drunk {
          */
         $release(): void;
         /**
-         * 定义的组件记录
+         * 组件构造函数
          */
         static constructorsByName: {
             [name: string]: IComponentContructor<any>;
+        };
+        /**
+         * 组件为加载的资源
+         */
+        static resourcesByName: {
+            [name: string]: string;
         };
         /** 组件实例 */
         static instancesById: {
@@ -1277,6 +1284,10 @@ declare namespace drunk {
          */
         static getConstructorByName(name: string): IComponentContructor<any>;
         /**
+         * 根据组件名获取组件的资源链接
+         */
+        static getResourceByName(name: string): string;
+        /**
          * 自定义一个组件类
          * @param  name     组件名，必然包含'-'在中间
          * @param  members  组件成员
@@ -1298,6 +1309,18 @@ declare namespace drunk {
          * @param  componentCtor 组件类
          */
         static register(name: string, componentCtor: any): void;
+        /**
+         * 注册组件资源，资源只会在需要构造组件时才会加载
+         */
+        static registerByResourcesLazy(components: {
+            [name: string]: string;
+        }): void;
+        /**
+         * 注册并加载组件资源
+         */
+        static registerByResources(components: {
+            [name: string]: string;
+        }): void;
     }
 }
 declare namespace drunk {
