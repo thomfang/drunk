@@ -388,6 +388,7 @@ namespace drunk {
         /**
          * 注册组件资源，资源只会在需要构造组件时才会加载
          */
+        static registerByResourcesLazy(components: { [name: string]: string }) {
             Object.keys(components).forEach(name => {
                 if (this.resourcesByName[name] != null) {
                     console.warn(`组件"${name}"资源变化: ${this.resourcesByName[name]} => ${components[name]}`);
@@ -401,6 +402,8 @@ namespace drunk {
         /**
          * 注册并加载组件资源
          */
+        static registerByResources(components: { [name: string]: string }) {
+            this.registerByResourcesLazy(components);
             Object.keys(components).forEach(name => {
                 Template.renderFragment(components[name], null, true);
             });
