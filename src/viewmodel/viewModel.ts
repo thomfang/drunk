@@ -160,7 +160,7 @@ namespace drunk {
          * @param   property  需要代理的属性名
          */
         $proxy(property: string): void {
-            if (this._proxyProps[property]) {
+            if (this._proxyProps[property] || typeof this[property] === 'function') {
                 return;
             }
             var value = this[property];
