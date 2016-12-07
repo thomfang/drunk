@@ -45,9 +45,9 @@
 
 <body>
 
-    <div class='container' drunk-waterfall>
+    <div class='container' drunk-waterfall:001="{onScrollEnd: onScrollEnd, itemSpan: 10}">
         <div class="scroller">
-            <div drunk-repeat="n,index in count" class="item" drunk-class="{long: $odd}" drunk-waterfall-item waterfall-item-span="10"></div>
+            <div drunk-repeat="n,index in count" class="item" drunk-class="{long: $odd}" drunk-waterfall-item:001></div>
         </div>
     </div>
 
@@ -56,9 +56,9 @@
             count: 25
         });
         view.$mount(drunk.util.toArray(document.body.children));
-        view.$on('waterfall-scroll-end', function () {
+        view.onScrollEnd = function () {
             this.count += 25;
-        })
+        };
     </script>
 </body>
 

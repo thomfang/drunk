@@ -6,10 +6,10 @@
  *
  * example:
  *
- * <div class='container' drunk-waterfall>
+ * <div class='container' drunk-waterfall:001="{onScroll: scrollHandler, onScrollEnd: scrollEndHandler, itemSpan: 10}">
  *      <div class="scroller">
- *          <div drunk-repeat="img in imgList" class="item" drunk-waterfall-item waterfall-item-span="10">
- *              <img drunk-attr="{src: img}">
+ *          <div drunk-repeat="img in imgList" class="item" drunk-waterfall-item:001>
+ *              <img >
  *          </div>
  *      </div>
  * </div>
