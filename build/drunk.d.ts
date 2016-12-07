@@ -1152,6 +1152,7 @@ declare namespace drunk {
     interface IComponentOptions {
         name?: string;
         init?(): any;
+        release?(): any;
         data?: {
             [name: string]: any;
         };
@@ -1203,6 +1204,10 @@ declare namespace drunk {
          * 实例创建时会调用的初始化方法,派生类可覆盖该方法
          */
         init(): void;
+        /**
+         * 实例销毁时调用的方法，派生类可覆盖该方法
+         */
+        release(): void;
         /**
          * 属性初始化
          * @param  model 数据

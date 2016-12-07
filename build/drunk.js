@@ -2642,7 +2642,7 @@ var drunk;
          * @param   property  需要代理的属性名
          */
         ViewModel.prototype.$proxy = function (property) {
-            if (this._proxyProps[property]) {
+            if (this._proxyProps[property] || typeof this[property] === 'function') {
                 return;
             }
             var value = this[property];
@@ -3909,6 +3909,11 @@ var drunk;
         Component.prototype.init = function () {
         };
         /**
+         * 实例销毁时调用的方法，派生类可覆盖该方法
+         */
+        Component.prototype.release = function () {
+        };
+        /**
          * 属性初始化
          * @param  model 数据
          */
@@ -4003,6 +4008,7 @@ var drunk;
             if (!this._isActived) {
                 return;
             }
+            this.release();
             this.$emit(Component.Event.release, this);
             _super.prototype.$release.call(this);
             if (this._isMounted) {

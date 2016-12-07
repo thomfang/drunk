@@ -21,6 +21,7 @@ namespace drunk {
     export interface IComponentOptions {
         name?: string;
         init?(): any;
+        release?(): any;
         data?: { [name: string]: any };
         filters?: { [name: string]: Filter.IFilter };
         watchers?: { [expression: string]: IBindingAction };
@@ -81,6 +82,13 @@ namespace drunk {
          * 实例创建时会调用的初始化方法,派生类可覆盖该方法
          */
         init() {
+
+        }
+
+        /**
+         * 实例销毁时调用的方法，派生类可覆盖该方法
+         */
+        release() {
 
         }
 
@@ -196,6 +204,7 @@ namespace drunk {
                 return;
             }
 
+            this.release();
             this.$emit(Component.Event.release, this);
 
             super.$release();
